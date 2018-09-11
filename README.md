@@ -4,6 +4,16 @@ BetterTwitchChat is a rich text Twitch chat integration mod with full unicode, e
 # Beta
 The mod is currently in beta, which means you may experience some bugs. Please report any bugs via the issues tab on GitHub.
 
+# Features
+- Full Rich Text Support, see ALL of your Twitch chat when immersed in Beat Saber!
+  - This includes all Twitch badges and emotes, BetterTwitchTV emotes, FrankerFaceZ emotes, and all Emojis!
+  - This also includes full Unicode Support!
+- Customizable User Interface
+  - Change the scale, width, text/background colors, and chat order!
+- *Coming soon*
+  - Popular alert API integration with services such as streamlabs and streamtip
+  - More chat customization options!
+
 # Getting Started
 After installing BetterTwitchChat.dll, run the game once to generate the BetterTwitchChat.ini file in the UserData folder inside your Beat Saber directory.
 
