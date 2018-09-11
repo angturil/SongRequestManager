@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2037
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterTwitchChat", "BetterTwitchChat\BetterTwitchChat.csproj", "{205F177C-3995-46B4-854B-9EED576B706D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{205F177C-3995-46B4-854B-9EED576B706D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{205F177C-3995-46B4-854B-9EED576B706D}.Debug|x64.Build.0 = Debug|Any CPU
+		{205F177C-3995-46B4-854B-9EED576B706D}.Release|x64.ActiveCfg = Release|Any CPU
+		{205F177C-3995-46B4-854B-9EED576B706D}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CE491DE5-B017-462A-9B5C-7AC6D075B1B8}
+	EndGlobalSection
+EndGlobal

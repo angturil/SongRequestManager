@@ -1,0 +1,178 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{205F177C-3995-46B4-854B-9EED576B706D}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>BetterTwitchChat</RootNamespace>
+    <AssemblyName>BetterTwitchChat</AssemblyName>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;/unsafe</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="IllusionPlugin">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IllusionPlugin.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="TextMeshPro-1.0.55.2017.1.0b12, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\TextMeshPro-1.0.55.2017.1.0b12.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AssetBundleModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIElementsModule">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestAudioModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestTextureModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestWWWModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.VRModule">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.VRModule.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Config.cs" />
+    <Compile Include="Resources\BuiltInResources.cs" />
+    <Compile Include="Chat\ChatMover.cs" />
+    <Compile Include="Chat\LockToggle.cs" />
+    <Compile Include="Sprites\AnimatedSprite.cs" />
+    <Compile Include="Sprites\AnimatedSpriteLoader.cs" />
+    <Compile Include="Sprites\AnimationController.cs" />
+    <Compile Include="Sprites\SpriteLoader.cs" />
+    <Compile Include="Sprites\SpriteParser.cs" />
+    <Compile Include="Sprites\AnimatedSpriteDecoder.cs" />
+    <Compile Include="UI\BeatSaberUI.cs" />
+    <Compile Include="Chat\ChatHandler.cs" />
+    <Compile Include="Chat\ChatSharp\CapabilityPool.cs" />
+    <Compile Include="Chat\ChatSharp\ChannelCollection.cs" />
+    <Compile Include="Chat\ChatSharp\ClientSettings.cs" />
+    <Compile Include="Chat\ChatSharp\Events\ChannelEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\ChannelTopicEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\ChannelUserEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\ErronousNickEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\ErrorEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\ErrorReplieEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\IrcNoticeEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\KickEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\ModeChangeEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\NickChangedEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\PrivateMessageEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\RawMessageEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\ServerMOTDEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\SocketErrorEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\SupportsEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\UserEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\WhoEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Events\WhoIsEventArgs.cs" />
+    <Compile Include="Chat\ChatSharp\Handlers\CapabilityHandlers.cs" />
+    <Compile Include="Chat\ChatSharp\Handlers\ChannelHandlers.cs" />
+    <Compile Include="Chat\ChatSharp\Handlers\ErrorHandlers.cs" />
+    <Compile Include="Chat\ChatSharp\Handlers\ListingHandlers.cs" />
+    <Compile Include="Chat\ChatSharp\Handlers\MessageHandlers.cs" />
+    <Compile Include="Chat\ChatSharp\Handlers\MOTDHandlers.cs" />
+    <Compile Include="Chat\ChatSharp\Handlers\SaslHandlers.cs" />
+    <Compile Include="Chat\ChatSharp\Handlers\ServerHandlers.cs" />
+    <Compile Include="Chat\ChatSharp\Handlers\UserHandlers.cs" />
+    <Compile Include="Chat\ChatSharp\IrcCapability.cs" />
+    <Compile Include="Chat\ChatSharp\IrcChannel.cs" />
+    <Compile Include="Chat\ChatSharp\IrcClient.Commands.cs" />
+    <Compile Include="Chat\ChatSharp\IrcClient.cs" />
+    <Compile Include="Chat\ChatSharp\IrcMessage.cs" />
+    <Compile Include="Chat\ChatSharp\IrcProtocolException.cs" />
+    <Compile Include="Chat\ChatSharp\IrcUser.cs" />
+    <Compile Include="Chat\ChatSharp\Mask.cs" />
+    <Compile Include="Chat\ChatSharp\MaskCollection.cs" />
+    <Compile Include="Chat\ChatSharp\PrivateMessage.cs" />
+    <Compile Include="Chat\ChatSharp\RequestManager.cs" />
+    <Compile Include="Chat\ChatSharp\ServerInfo.cs" />
+    <Compile Include="Chat\ChatSharp\Timestamp.cs" />
+    <Compile Include="Chat\ChatSharp\UserPool.cs" />
+    <Compile Include="Chat\ChatSharp\UserPoolView.cs" />
+    <Compile Include="Chat\ChatSharp\WhoIs.cs" />
+    <Compile Include="Chat\ChatSharp\WhoX.cs" />
+    <Compile Include="UI\Drawing.cs" />
+    <Compile Include="Gameplay\ExtraBomb.cs" />
+    <Compile Include="UI\GameOptionToggle.cs" />
+    <Compile Include="UI\NGUIUtil.cs" />
+    <Compile Include="Plugin.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\SimpleJSON.cs" />
+    <Compile Include="Chat\TwitchIrcClient.cs" />
+    <Compile Include="Utilities\Utilities.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
