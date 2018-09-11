@@ -21,7 +21,7 @@ After installing BetterTwitchChat.dll, run the game once to generate the BetterT
 All you need to enter is the channel name which you want to join, the chat will show up to your right in game, and you can move it by pointing at it with the laser from your controller and grabbing it with the trigger. You can also move the chat towards you and away from you by pressing up and down on the analog stick or trackpad on your controller. Finally, you can use the lock button in the corner of the chat to lock the chat position in place so you don't accidentally move it.
 
 # Config
-For the rest of the setup, you will have to manually edit the config file (in UserData\BetterTwitchChat.ini).  Use the table below as a guide for setting these values:
+For the rest of the setup, you will have to manually edit the config file (in UserData\BetterTwitchChat.ini).  *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values:
 
 | Option                     | Description                                                                                                                  |
 |----------------------------|------------------------------------------------------------------------------------------------------------------------------|
