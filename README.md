@@ -11,7 +11,7 @@ The mod is currently in beta, which means you may experience some bugs. Please r
 - Customizable User Interface
   - Change the scale, width, text/background colors, and chat order!
 - *Coming soon*
-  - Popular alert API integration with services such as streamlabs and streamtip
+  - Popular alert API integration with services such as streamlabs
   - More chat customization options!
 
 # Getting Started
