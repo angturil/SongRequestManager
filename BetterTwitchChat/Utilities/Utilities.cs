@@ -248,7 +248,7 @@ namespace BetterTwitchChat.Utils {
         public static string StripHTML(string input) {
             return Regex.Replace(input, "<.*?>", String.Empty);
         }
-        
+
         public static Vector3 GetAverageCharacterPos(CustomText textComp, int i) {
             try {
                 TextGenerator textGen = textComp.cachedTextGenerator;

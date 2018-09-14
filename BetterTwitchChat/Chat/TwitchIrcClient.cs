@@ -40,6 +40,7 @@ namespace BetterTwitchChat.Chat {
         private static System.Random _random;
 
         public static void Initialize(ChatHandler betterTwitchChat) {
+
             _betterTwitchChat = betterTwitchChat;
             _random = new System.Random(DateTime.Now.Millisecond);
             string username = String.Empty;// Plugin.Instance.Config.TwitchUsername;
@@ -137,7 +138,7 @@ namespace BetterTwitchChat.Chat {
                                     msgArray[2] = msgArray[2].Substring(1);
 
                                     // Parse any emotes in the message, download them, then queue it for rendering
-                                    SpriteParser.Parse(new ChatMessage(msgArray[2], messageInfo), _betterTwitchChat);
+                                    SpriteParser.Parse(new ChatMessage(Utilities.StripHTML(msgArray[2]), messageInfo), _betterTwitchChat);
                                     break;
                             }
                         }

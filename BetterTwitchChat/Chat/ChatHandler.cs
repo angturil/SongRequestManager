@@ -180,12 +180,12 @@ namespace BetterTwitchChat {
                 // Overlay any animated emotes that have just finished processing
                 if (SpriteLoader.AnimationDisplayQueue.Count > 0) {
                     if (SpriteLoader.AnimationDisplayQueue.TryPop(out var animationDisplayInfo)) {
-                        if(SpriteLoader.CachedSprites.ContainsKey(animationDisplayInfo.emoteIndex)) {
+                        if (SpriteLoader.CachedSprites.ContainsKey(animationDisplayInfo.emoteIndex)) {
                             var animationInfo = SpriteLoader.CachedSprites[animationDisplayInfo.emoteIndex]?.animationInfo;
                             if (animationInfo != null && animationInfo.Count == 1) {
                                 foreach (CustomText currentMessage in _chatMessages) {
                                     //foreach (Image img in currentMessage.emoteRenderers) {
-                                    for (int i = currentMessage.emoteRenderers.Count; i > 0; --i) {
+                                    for (int i = currentMessage.emoteRenderers.Count - 1; i >= 0; i--) {
                                         Image img = currentMessage.emoteRenderers[i];
                                         if (img.sprite == animationInfo[0].sprite) {
                                             //Plugin.Log("Destroying temporary still version of current gif!");
@@ -196,9 +196,11 @@ namespace BetterTwitchChat {
                                 }
                             }
                         }
+
                         SpriteLoader.CachedSprites[animationDisplayInfo.emoteIndex] = new CachedSpriteData(animationDisplayInfo.sprites);
                         if (animationDisplayInfo.sprites.Count > 1) {
                             _animationController.Register(animationDisplayInfo.sprites);
+                            //Plugin.Log("Registered animation with animationController!");
                         }
                         foreach (CustomText currentMessage in _chatMessages) {
                             if(animationDisplayInfo.emoteIndex.StartsWith("AB")) {
