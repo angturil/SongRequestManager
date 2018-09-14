@@ -6,7 +6,7 @@ The mod is currently in beta, which means you may experience some bugs. Please r
 
 # Features
 - Full Rich Text Support, see ALL of your Twitch chat when immersed in Beat Saber!
-  - This includes all Twitch badges and emotes, BetterTwitchTV emotes, FrankerFaceZ emotes, and all Emojis!
+  - This includes all Twitch badges and emotes, BetterTwitchTV emotes, FrankerFaceZ emotes, all Emojis and even animated emotes!
   - This also includes full Unicode Support!
 - Customizable User Interface
   - Change the scale, width, text/background colors, and chat order!
