@@ -26,6 +26,7 @@ namespace BetterTwitchChat.Sprites {
         public CachedSpriteData cachedSpriteInfo;
         public string swapString;
         public string emoteIndex;
+        public bool isEmoji = false;
     };
 
     public class SpriteParser : MonoBehaviour {
@@ -42,26 +43,33 @@ namespace BetterTwitchChat.Sprites {
             
             var matches = Utilities.GetEmojisInString(newChatMessage.msg);
             if (matches.Count > 0) {
+                //Plugin.Log($"Found {matches.Count.ToString()} emojis in message!");
                 foreach (Match m in matches) {
                     string emojiIndex = Utilities.WebParseEmojiRegExMatchEvaluator(m);
                     string replaceString = m.Value;
 
                     if (emojiIndex != String.Empty) {
+                        //Plugin.Log($"Found EmojiIndex {emojiIndex}");
                         emojiIndex += ".png";
                         //Plugin.Log($"EmojiIndex: {emojiIndex}");
                         if (!SpriteLoader.CachedSprites.ContainsKey(emojiIndex)) {
+                            //Plugin.Log($"Loading emoji {emojiIndex}");
                             _betterTwitchChat.QueueDownload(new SpriteDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.messageInfo.messageID));
                         }
                         if (!downloadQueue.ContainsKey(emojiIndex)) {
+                            //Plugin.Log($"Queueing emoji {emojiIndex}");
                             downloadQueue.Add(emojiIndex, replaceString);
                         }
                     }
+
                     foreach (string index in downloadQueue.Keys) {
                         while (!SpriteLoader.CachedSprites.ContainsKey(index)) {
+                            //Plugin.Log($"Waiting for emoji {index}");
                             Thread.Sleep(0);
                         }
                         if (SpriteLoader.CachedSprites.TryGetValue(index, out var cachedSpriteInfo)) {
                             EmoteInfo swapInfo = new EmoteInfo();
+                            swapInfo.isEmoji = true;
                             swapInfo.cachedSpriteInfo = cachedSpriteInfo;
                             swapInfo.swapChar = swapChar;
                             swapInfo.swapString = downloadQueue[index];
@@ -185,13 +193,20 @@ namespace BetterTwitchChat.Sprites {
             // Replace each emote with a hex character; we'll draw the emote at the position of this character later on
             foreach (EmoteInfo e in parsedEmotes) {
                 string replaceString = $"   {Char.ConvertFromUtf32(e.swapChar)}  ";
-                string[] parts = newChatMessage.msg.Split(' ');
-                for (int i = 0; i < parts.Length; i++) {
-                    if (parts[i] == e.swapString) {
-                        parts[i] = replaceString;
+                if (!e.isEmoji) {
+                    string[] parts = newChatMessage.msg.Split(' ');
+                    for (int i = 0; i < parts.Length; i++) {
+                        if (parts[i] == e.swapString) {
+                            parts[i] = replaceString;
+                        }
                     }
+                    newChatMessage.msg = string.Join(" ", parts);
                 }
-                newChatMessage.msg = string.Join(" ", parts);
+                else {
+                    // Replace emojis using the Replace function, since we don't care about spacing
+                    newChatMessage.msg = newChatMessage.msg.Replace(e.swapString, replaceString);
+                }
+                
             }
 
             //// TODO: Re-add tagging, why doesn't unity have highlighting in its default rich text markup?

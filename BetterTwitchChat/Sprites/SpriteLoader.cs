@@ -14,7 +14,7 @@ using BetterTwitchChat.Chat;
 namespace BetterTwitchChat.Sprites {
     public class CachedSpriteData {
         public Sprite sprite = null;
-        public List<AnimationData> animationInfo = new List<AnimationData>();
+        public List<AnimationData> animationInfo = null;
         public CachedSpriteData(Sprite sprite) {
             this.sprite = sprite;
         }
@@ -146,15 +146,31 @@ namespace BetterTwitchChat.Sprites {
                     spritePath = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase).Replace("\\Plugins", "")}\\{localFilePath}";
                     //Plugin.Log("Local path exists!");
                 }
+                else {
+                    if (spriteDownloadInfo.type == ImageType.Emoji) {
+                        Plugin.Log($"Local path did not exist for Emoji {spriteDownloadInfo.index}!");
+                        while(!CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData((Sprite)null))) yield return null;
+                        Instance._loaderBusy = false;
+                        yield break;
+                    }
+                    //Plugin.Log($"Path {spritePath} does not exist!");
+                }
 
                 Sprite sprite;
                 using (var web = UnityWebRequestTexture.GetTexture(spritePath, true)) {
                     yield return web.SendWebRequest();
                     if (web.isNetworkError || web.isHttpError) {
                         Plugin.Log($"An error occured when requesting emote {spriteDownloadInfo.index}, Message: \"{web.error}\"");
+                        if (spriteDownloadInfo.type == ImageType.BTTV_Animated) {
+                            while (!CachedSprites.TryAdd(spriteDownloadInfo.index, null)) yield return null;
+                        }
+                        else {
+                            while (!CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData((Sprite)null))) yield return null;
+                        }
                         sprite = null;
                     }
                     else {
+                        //Plugin.Log("Success loading emote!");
                         if (spriteDownloadInfo.type == ImageType.BTTV_Animated) {
                             while (!CachedSprites.TryAdd(spriteDownloadInfo.index, null)) yield return null;
                             yield return AnimatedSpriteDecoder.Process(web.downloadHandler.data, GetTextureListCallback, spriteDownloadInfo.index);
@@ -164,6 +180,7 @@ namespace BetterTwitchChat.Sprites {
                         }
                         else {
                             var tex = DownloadHandlerTexture.GetContent(web);
+                            //Plugin.Log($"Texture is {web.downloadHandler.data.Length.ToString()}");
                             sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0,0), Plugin.PixelsPerUnit);
                             while (!CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData(sprite))) yield return null;
                             if (!localPathExists) {
