@@ -108,38 +108,43 @@ namespace BetterTwitchChat.UI {
         public static void OverlayEmote(CustomText currentMessage, char swapChar, Material noGlowMaterialUI, AnimationController animationController, CachedSpriteData cachedSpriteInfo) {
             // Don't even try to overlay an emote if it's not been cached properly
             if (cachedSpriteInfo == null || (cachedSpriteInfo.sprite == null && cachedSpriteInfo.animationInfo == null)) {
-                 //Plugin.Log("Sprite was not fully cached!");
-                 return;
+                //Plugin.Log("Sprite was not fully cached!");
+                return;
             }
 
             bool animatedEmote = cachedSpriteInfo.animationInfo != null;
-            
+
             foreach (int i in Utilities.IndexOfAll(currentMessage.text, Char.ConvertFromUtf32(swapChar))) {
-                if (i > 1 && i < currentMessage.text.Count() - 2 && currentMessage.text[i - 1] == ' ' && currentMessage.text[i - 2] == ' ' && currentMessage.text[i + 1] == ' ' && currentMessage.text[i + 2] == ' ') {
-                    GameObject newGameObject = new GameObject();
-                    var image = newGameObject.AddComponent<Image>();
-                    image.material = noGlowMaterialUI;
-                    
-                    var shadow = newGameObject.AddComponent<Shadow>();
+                try {
+                    if (i > 1 && i < currentMessage.text.Count() - 2 && currentMessage.text[i - 1] == ' ' && currentMessage.text[i - 2] == ' ' && currentMessage.text[i + 1] == ' ' && currentMessage.text[i + 2] == ' ') {
+                        GameObject newGameObject = new GameObject();
+                        var image = newGameObject.AddComponent<Image>();
+                        image.material = noGlowMaterialUI;
 
-                    if (animatedEmote) {
-                        var animatedImage = newGameObject.AddComponent<AnimatedSprite>();
-                        animatedImage.Init(image, cachedSpriteInfo.animationInfo, animationController);
-                    }
-                    else {
-                        image.sprite = cachedSpriteInfo.sprite;
-                        image.sprite.texture.wrapMode = TextureWrapMode.Clamp;
-                    }
+                        var shadow = newGameObject.AddComponent<Shadow>();
 
-                    image.rectTransform.SetParent(currentMessage.rectTransform, false);
-                    image.preserveAspect = true;
-                    image.rectTransform.sizeDelta = new Vector2(7.0f, 7.0f);
-                    image.rectTransform.pivot = new Vector2(0, 0);
-                    
-                    var textGen = currentMessage.cachedTextGenerator;
-                    var pos = new Vector3(textGen.verts[i * 4 + 3].position.x, textGen.verts[i * 4 + 3].position.y);
-                    image.rectTransform.position = currentMessage.gameObject.transform.TransformPoint(pos / Plugin.PixelsPerUnit - new Vector3(image.preferredWidth / Plugin.PixelsPerUnit + 2.5f, image.preferredHeight / Plugin.PixelsPerUnit + 0.7f));
-                    currentMessage.emoteRenderers.Add(image);
+                        if (animatedEmote) {
+                            var animatedImage = newGameObject.AddComponent<AnimatedSprite>();
+                            animatedImage.Init(image, cachedSpriteInfo.animationInfo, animationController);
+                        }
+                        else {
+                            image.sprite = cachedSpriteInfo.sprite;
+                            image.sprite.texture.wrapMode = TextureWrapMode.Clamp;
+                        }
+
+                        image.rectTransform.SetParent(currentMessage.rectTransform, false);
+                        image.preserveAspect = true;
+                        image.rectTransform.sizeDelta = new Vector2(7.0f, 7.0f);
+                        image.rectTransform.pivot = new Vector2(0, 0);
+
+                        var textGen = currentMessage.cachedTextGenerator;
+                        var pos = new Vector3(textGen.verts[i * 4 + 3].position.x, textGen.verts[i * 4 + 3].position.y);
+                        image.rectTransform.position = currentMessage.gameObject.transform.TransformPoint(pos / Plugin.PixelsPerUnit - new Vector3(image.preferredWidth / Plugin.PixelsPerUnit + 2.5f, image.preferredHeight / Plugin.PixelsPerUnit + 0.7f));
+                        currentMessage.emoteRenderers.Add(image);
+                    }
+                }
+                catch (Exception e) {
+                    Plugin.Log($"Exception {e.Message} occured when trying to overlay emote at index {i.ToString()}!");
                 }
             }
         }

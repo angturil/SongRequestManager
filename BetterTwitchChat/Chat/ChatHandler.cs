@@ -289,6 +289,7 @@ namespace BetterTwitchChat {
             messageInfo.parsedEmotes.ForEach(e => Drawing.OverlayEmote(currentMessage, e.swapChar, _noGlowMaterialUI, _animationController, e.cachedSpriteInfo));
             messageInfo.parsedBadges.ForEach(b => Drawing.OverlayEmote(currentMessage, b.swapChar, _noGlowMaterialUI, _animationController, new CachedSpriteData(b.sprite)));
 
+
             _messageRendering = false;
             _waitForFrames = 2;
         }

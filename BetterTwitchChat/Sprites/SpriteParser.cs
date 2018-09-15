@@ -14,6 +14,7 @@ using UnityEngine.UI;
 using BetterTwitchChat.Utils;
 using BetterTwitchChat.Chat;
 using System.Text.RegularExpressions;
+using BetterTwitchChat.UI;
 
 namespace BetterTwitchChat.Sprites {
     public class BadgeInfo {
@@ -34,7 +35,7 @@ namespace BetterTwitchChat.Sprites {
             Dictionary<string, string> downloadQueue = new Dictionary<string, string>();
             List<EmoteInfo> parsedEmotes = new List<EmoteInfo>();
             List<BadgeInfo> parsedBadges = new List<BadgeInfo>();
-            char swapChar = (char)0x1337;
+            char swapChar = (char)0xE000;
             bool isActionMessage = newChatMessage.msg.Substring(1).StartsWith("ACTION") && newChatMessage.msg[0] == (char)0x1;
 
             if (isActionMessage) {
@@ -62,7 +63,7 @@ namespace BetterTwitchChat.Sprites {
                         }
                     }
 
-                    foreach (string index in downloadQueue.Keys) {
+                    foreach (string index in downloadQueue.Keys.Distinct()) {
                         while (!SpriteLoader.CachedSprites.ContainsKey(index)) {
                             //Plugin.Log($"Waiting for emoji {index}");
                             Thread.Sleep(0);
@@ -75,10 +76,13 @@ namespace BetterTwitchChat.Sprites {
                             swapInfo.swapString = downloadQueue[index];
                             swapInfo.emoteIndex = index;
                             parsedEmotes.Add(swapInfo);
+
                             swapChar++;
                         }
                     }
                 }
+                parsedEmotes = parsedEmotes.OrderByDescending(o => o.swapString.Length).ToList();
+
                 downloadQueue.Clear();
             }
 
@@ -203,10 +207,10 @@ namespace BetterTwitchChat.Sprites {
                     newChatMessage.msg = string.Join(" ", parts);
                 }
                 else {
+                    //Plugin.Log($"Replacing {e.emoteIndex} of length {e.swapString.Length.ToString()}");
                     // Replace emojis using the Replace function, since we don't care about spacing
                     newChatMessage.msg = newChatMessage.msg.Replace(e.swapString, replaceString);
                 }
-                
             }
 
             //// TODO: Re-add tagging, why doesn't unity have highlighting in its default rich text markup?
