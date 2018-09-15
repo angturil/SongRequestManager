@@ -22,7 +22,7 @@ using BetterTwitchChat.UI;
 namespace BetterTwitchChat {
     public class Plugin : IPlugin {
         public string Name => "BetterTwitchChat";
-        public string Version => "0.1.2";
+        public string Version => "0.2.0";
 
         public bool IsAtMainMenu = false;
         public bool ShouldWriteConfig = false;
