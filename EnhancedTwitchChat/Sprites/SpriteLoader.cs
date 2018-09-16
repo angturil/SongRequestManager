@@ -8,10 +8,10 @@ using System.Reflection;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-using BetterTwitchChat.Utils;
-using BetterTwitchChat.Chat;
+using EnhancedTwitchChat.Utils;
+using EnhancedTwitchChat.Chat;
 
-namespace BetterTwitchChat.Sprites {
+namespace EnhancedTwitchChat.Sprites {
     public class CachedSpriteData {
         public Sprite sprite = null;
         public List<AnimationData> animationInfo = null;
@@ -72,6 +72,7 @@ namespace BetterTwitchChat.Sprites {
         private ConcurrentStack<SpriteDownloadInfo> _spriteDownloadQueue = new ConcurrentStack<SpriteDownloadInfo>();
         private bool _loaderBusy = false;
         private static SpriteLoader Instance;
+        public int waitForFrames = 0;
 
         public void Awake() {
             UnityEngine.Object.DontDestroyOnLoad(this);
@@ -95,7 +96,7 @@ namespace BetterTwitchChat.Sprites {
 
         public void Update() {
             // Download any emotes we need cached for one of our messages
-            if (_spriteDownloadQueue.Count > 0 && !_loaderBusy) {
+            if (_spriteDownloadQueue.Count > 0 && !_loaderBusy && waitForFrames == 0) {
                 if (_spriteDownloadQueue.TryPop(out var spriteDownloadInfo)) {
                     switch (spriteDownloadInfo.type) {
                         case ImageType.Twitch:
@@ -118,6 +119,9 @@ namespace BetterTwitchChat.Sprites {
                             break;
                     }
                 }
+            }
+            else if (waitForFrames > 0) {
+                waitForFrames--;
             }
         }
 
@@ -191,6 +195,7 @@ namespace BetterTwitchChat.Sprites {
                 }
                 //Plugin.Log($"Web request completed, {CachedSprites.Count} emotes now cached!");
             }
+            Instance.waitForFrames = 2;
             Instance._loaderBusy = false;
         }
 

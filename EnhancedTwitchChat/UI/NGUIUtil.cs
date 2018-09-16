@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 
-namespace BetterTwitchChat.UI {
+namespace EnhancedTwitchChat.UI {
     internal class NGUIUtil {
         private const string INDENT_STRING = " ";
 

@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-using BetterTwitchChat.Utils;
-using BetterTwitchChat.Chat;
+using EnhancedTwitchChat.Utils;
+using EnhancedTwitchChat.Chat;
 using System.Text.RegularExpressions;
-using BetterTwitchChat.UI;
+using EnhancedTwitchChat.UI;
 
-namespace BetterTwitchChat.Sprites {
+namespace EnhancedTwitchChat.Sprites {
     public class BadgeInfo {
         public char swapChar;
         public Sprite sprite;
@@ -31,7 +31,7 @@ namespace BetterTwitchChat.Sprites {
     };
 
     public class SpriteParser : MonoBehaviour {
-        public static void Parse(ChatMessage newChatMessage, ChatHandler _betterTwitchChat) {
+        public static void Parse(ChatMessage newChatMessage, ChatHandler _chatHandler) {
             Dictionary<string, string> downloadQueue = new Dictionary<string, string>();
             List<EmoteInfo> parsedEmotes = new List<EmoteInfo>();
             List<BadgeInfo> parsedBadges = new List<BadgeInfo>();
@@ -51,7 +51,7 @@ namespace BetterTwitchChat.Sprites {
                     if (emojiIndex != String.Empty) {
                         emojiIndex += ".png";
                         if (!SpriteLoader.CachedSprites.ContainsKey(emojiIndex)) {
-                            _betterTwitchChat.QueueDownload(new SpriteDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.messageInfo.messageID));
+                            _chatHandler.QueueDownload(new SpriteDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.messageInfo.messageID));
                         }
                         if (!downloadQueue.ContainsKey(emojiIndex)) {
                             downloadQueue.Add(emojiIndex, replaceString);
@@ -91,7 +91,7 @@ namespace BetterTwitchChat.Sprites {
                     if (SpriteLoader.TwitchBadgeIDs.ContainsKey(badgeName)) {
                         badgeIndex = SpriteLoader.TwitchBadgeIDs[badgeName];
                         if (!SpriteLoader.CachedSprites.ContainsKey(badgeIndex)) {
-                            _betterTwitchChat.QueueDownload(new SpriteDownloadInfo(badgeIndex, ImageType.Badge, newChatMessage.messageInfo.messageID));
+                            _chatHandler.QueueDownload(new SpriteDownloadInfo(badgeIndex, ImageType.Badge, newChatMessage.messageInfo.messageID));
                         }
                         downloadQueue.Add(badgeIndex, badgeName);
                     }
@@ -118,7 +118,7 @@ namespace BetterTwitchChat.Sprites {
                     string[] emoteParts = emote.Split(':');
                     string emoteIndex = $"T{emoteParts[0]}";
                     if (!SpriteLoader.CachedSprites.ContainsKey(emoteIndex)) {
-                        _betterTwitchChat.QueueDownload(new SpriteDownloadInfo(emoteIndex, ImageType.Twitch, newChatMessage.messageInfo.messageID));
+                        _chatHandler.QueueDownload(new SpriteDownloadInfo(emoteIndex, ImageType.Twitch, newChatMessage.messageInfo.messageID));
                     }
                     downloadQueue.Add(emoteIndex, emoteParts[1]);
                 }
@@ -166,7 +166,7 @@ namespace BetterTwitchChat.Sprites {
 
                 if (emoteType != ImageType.None) {
                     if (!SpriteLoader.CachedSprites.ContainsKey(emoteIndex)) {
-                        _betterTwitchChat.QueueDownload(new SpriteDownloadInfo(emoteIndex, emoteType, newChatMessage.messageInfo.messageID));
+                        _chatHandler.QueueDownload(new SpriteDownloadInfo(emoteIndex, emoteType, newChatMessage.messageInfo.messageID));
                     }
                     downloadQueue.Add(emoteIndex, word);
                 }

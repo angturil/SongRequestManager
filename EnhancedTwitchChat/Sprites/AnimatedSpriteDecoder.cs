@@ -1,4 +1,4 @@
-﻿using BetterTwitchChat.Utils;
+﻿using EnhancedTwitchChat.Utils;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace BetterTwitchChat.Sprites {
+namespace EnhancedTwitchChat.Sprites {
     public class AnimationData {
         public Sprite sprite;
         public float delay;

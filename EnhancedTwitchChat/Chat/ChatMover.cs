@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using VRUIControls;
 
-namespace BetterTwitchChat.Chat {
+namespace EnhancedTwitchChat.Chat {
     class ChatMover : MonoBehaviour {
         protected Transform _moverCube;
         protected VRController _grabbingController = null;

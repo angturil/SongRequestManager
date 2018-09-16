@@ -6,11 +6,11 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
-using BetterTwitchChat.Utils;
-using BetterTwitchChat.Chat;
-using BetterTwitchChat.Sprites;
+using EnhancedTwitchChat.Utils;
+using EnhancedTwitchChat.Chat;
+using EnhancedTwitchChat.Sprites;
 
-namespace BetterTwitchChat.UI {
+namespace EnhancedTwitchChat.UI {
     public class CustomText : Text {
         public MessageInfo messageInfo;
         public List<Image> emoteRenderers = new List<Image>();

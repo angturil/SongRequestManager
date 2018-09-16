@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace BetterTwitchChat.Gameplay {
+namespace EnhancedTwitchChat.Gameplay {
     class ExtraBomb : MonoBehaviour {
         NoteController _note = null;
         public void Init(BeatmapObjectSpawnController spawner, NoteController note) {

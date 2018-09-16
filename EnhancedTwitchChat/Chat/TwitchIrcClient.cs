@@ -3,10 +3,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using BetterTwitchChat.Sprites;
-using BetterTwitchChat.Utils;
+using EnhancedTwitchChat.Sprites;
+using EnhancedTwitchChat.Utils;
 
-namespace BetterTwitchChat.Chat {
+namespace EnhancedTwitchChat.Chat {
     public class ChatMessage {
         public string msg = String.Empty;
         public MessageInfo messageInfo = new MessageInfo();
@@ -35,14 +35,14 @@ namespace BetterTwitchChat.Chat {
         public static ConcurrentStack<ChatMessage> RenderQueue = new ConcurrentStack<ChatMessage>();
 
         private static IrcClient client;
-        private static ChatHandler _betterTwitchChat;
+        private static ChatHandler _chatHandler;
         private static Dictionary<int, string> _userColors = new Dictionary<int, string>();
 
         private static System.Random _random;
 
-        public static void Initialize(ChatHandler betterTwitchChat) {
+        public static void Initialize(ChatHandler chatHandler) {
 
-            _betterTwitchChat = betterTwitchChat;
+            _chatHandler = chatHandler;
             _random = new System.Random(DateTime.Now.Millisecond);
             string username = String.Empty;// Plugin.Instance.Config.TwitchUsername;
             string oauthToken = String.Empty;// Plugin.Instance.Config.TwitchoAuthToken;
@@ -85,7 +85,7 @@ namespace BetterTwitchChat.Chat {
                 ConnectionTime = DateTime.Now;
                 JoinedChannel = false;
                 client.JoinChannel($"#{Plugin.Instance.Config.TwitchChannel}");
-                _betterTwitchChat.displayStatusMessage = true;
+                _chatHandler.displayStatusMessage = true;
             }
         }
 
@@ -142,7 +142,7 @@ namespace BetterTwitchChat.Chat {
                                     msgArray[2] = msgArray[2].Substring(1);
 
                                     // Parse any emotes in the message, download them, then queue it for rendering
-                                    SpriteParser.Parse(new ChatMessage(Utilities.StripHTML(msgArray[2]), messageInfo), _betterTwitchChat);
+                                    SpriteParser.Parse(new ChatMessage(Utilities.StripHTML(msgArray[2]), messageInfo), _chatHandler);
                                     break;
                             }
                         }
@@ -153,7 +153,7 @@ namespace BetterTwitchChat.Chat {
                             Plugin.Log($"Channel room-id: {Plugin.TwitchChannelID}");
                         }
                         else if (message.Contains("CLEARCHAT")) {
-                            _betterTwitchChat.OnUserTimedOut(messageComponents["target-user-id"]);
+                            _chatHandler.OnUserTimedOut(messageComponents["target-user-id"]);
 
                         }
                         else if (message.Contains("USERNOTICE")) {
@@ -163,7 +163,7 @@ namespace BetterTwitchChat.Chat {
                                 case "subgift":
                                     MessageInfo messageInfo = GetMessageInfo(String.Empty, messageComponents);
                                     string newMsg = messageComponents["system-msg"].Replace("\\s", " ");
-                                    SpriteParser.Parse(new ChatMessage($"<b>{newMsg.Substring(newMsg.IndexOf(" ") + 1)}</b>", messageInfo), _betterTwitchChat);
+                                    SpriteParser.Parse(new ChatMessage($"<b>{newMsg.Substring(newMsg.IndexOf(" ") + 1)}</b>", messageInfo), _chatHandler);
                                     break;
                             }
                         }

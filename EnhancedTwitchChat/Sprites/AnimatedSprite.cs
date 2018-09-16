@@ -1,4 +1,4 @@
-﻿using BetterTwitchChat.Utils;
+﻿using EnhancedTwitchChat.Utils;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace BetterTwitchChat.Sprites {
+namespace EnhancedTwitchChat.Sprites {
     class AnimatedSprite : MonoBehaviour {
         private Image _image;
         private List<AnimationData> _spriteList;

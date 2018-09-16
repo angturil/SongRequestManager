@@ -8,7 +8,7 @@ using UnityEngine.EventSystems;
 using VRUIControls;
 using UnityEngine.UI;
 
-namespace BetterTwitchChat.Chat {
+namespace EnhancedTwitchChat.Chat {
     class LockToggle : MonoBehaviour {
         protected Transform _lockSphere;
         protected VRPointer _vrPointer;
@@ -18,15 +18,15 @@ namespace BetterTwitchChat.Chat {
         protected bool _raycastHitTarget = false;
         
         protected const float MaxLaserDistance = 50;
-        protected ChatHandler _betterTwitchChat;
+        protected ChatHandler _chatHandler;
         protected static LockToggle _this;
 
-        public void Init(ChatHandler betterTwitchChat, Image lockImage, Transform lockSphere) {
+        public void Init(ChatHandler chatHandler, Image lockImage, Transform lockSphere) {
             _this = this;
             _vrPointer = GetComponent<VRPointer>();
             _lockSphere = lockSphere;
             _lockImage = lockImage;
-            _betterTwitchChat = betterTwitchChat;
+            _chatHandler = chatHandler;
         }
 
         public void Update() {

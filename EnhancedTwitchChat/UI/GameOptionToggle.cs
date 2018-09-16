@@ -8,7 +8,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using IllusionPlugin;
 
-namespace BetterTwitchChat.UI {
+namespace EnhancedTwitchChat.UI {
     public class GameOptionToggle {
         public GameObject gameObject;
 

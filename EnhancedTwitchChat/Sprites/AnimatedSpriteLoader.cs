@@ -6,9 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using BetterTwitchChat.Utils;
+using EnhancedTwitchChat.Utils;
 
-namespace BetterTwitchChat.Sprites {
+namespace EnhancedTwitchChat.Sprites {
     class AnimatedSpriteLoader : MonoBehaviour {
         public static ConcurrentDictionary<string, string> BTTVAnimatedEmoteIDs = new ConcurrentDictionary<string, string>();
         private ConcurrentStack<SpriteDownloadInfo> _spriteDownloadQueue = new ConcurrentStack<SpriteDownloadInfo>();

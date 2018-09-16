@@ -1,4 +1,4 @@
-﻿using BetterTwitchChat.Utils;
+﻿using EnhancedTwitchChat.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace BetterTwitchChat.Sprites {
+namespace EnhancedTwitchChat.Sprites {
     class AnimControllerData {
         public List<AnimationData> animationInfo;
         public int index = 0;

@@ -12,7 +12,7 @@ using UnityEngine.UI;
 using VRUI;
 using Image = UnityEngine.UI.Image;
 
-namespace BetterTwitchChat.UI {
+namespace EnhancedTwitchChat.UI {
     class BeatSaberUI : MonoBehaviour
     {
         private Button _buttonInstance;

@@ -4,17 +4,17 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-using BetterTwitchChat.Sprites;
+using EnhancedTwitchChat.Sprites;
 using VRUIControls;
 using UnityEngine.SceneManagement;
 using System.Text;
 using System.Collections.Concurrent;
 using System.IO;
-using BetterTwitchChat.Utils;
-using BetterTwitchChat.Chat;
-using BetterTwitchChat.UI;
+using EnhancedTwitchChat.Utils;
+using EnhancedTwitchChat.Chat;
+using EnhancedTwitchChat.UI;
 
-namespace BetterTwitchChat {
+namespace EnhancedTwitchChat {
     public class ChatHandler : MonoBehaviour {
         public bool displayStatusMessage = false;
 
@@ -88,7 +88,7 @@ namespace BetterTwitchChat {
 
             SceneManager.sceneLoaded += SceneManagerOnSceneLoaded;
 
-            Plugin.Log("BetterTwitchChat initialized");
+            Plugin.Log("EnhancedTwitchChat initialized");
         }
 
         private void PluginOnConfigChangedEvent(Config config) {

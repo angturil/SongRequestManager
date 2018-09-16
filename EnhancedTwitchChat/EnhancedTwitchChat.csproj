@@ -7,8 +7,8 @@
     <ProjectGuid>{205F177C-3995-46B4-854B-9EED576B706D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BetterTwitchChat</RootNamespace>
-    <AssemblyName>BetterTwitchChat</AssemblyName>
+    <RootNamespace>EnhancedTwitchChat</RootNamespace>
+    <AssemblyName>EnhancedTwitchChat</AssemblyName>
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
