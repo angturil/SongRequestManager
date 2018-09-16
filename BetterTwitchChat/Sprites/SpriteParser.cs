@@ -44,30 +44,22 @@ namespace BetterTwitchChat.Sprites {
             
             var matches = Utilities.GetEmojisInString(newChatMessage.msg);
             if (matches.Count > 0) {
-                //Plugin.Log($"Found {matches.Count.ToString()} emojis in message!");
                 foreach (Match m in matches) {
                     string emojiIndex = Utilities.WebParseEmojiRegExMatchEvaluator(m);
                     string replaceString = m.Value;
 
                     if (emojiIndex != String.Empty) {
-                        //Plugin.Log($"Found EmojiIndex {emojiIndex}");
                         emojiIndex += ".png";
-                        //Plugin.Log($"EmojiIndex: {emojiIndex}");
                         if (!SpriteLoader.CachedSprites.ContainsKey(emojiIndex)) {
-                            //Plugin.Log($"Loading emoji {emojiIndex}");
                             _betterTwitchChat.QueueDownload(new SpriteDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.messageInfo.messageID));
                         }
                         if (!downloadQueue.ContainsKey(emojiIndex)) {
-                            //Plugin.Log($"Queueing emoji {emojiIndex}");
                             downloadQueue.Add(emojiIndex, replaceString);
                         }
                     }
 
                     foreach (string index in downloadQueue.Keys.Distinct()) {
-                        while (!SpriteLoader.CachedSprites.ContainsKey(index)) {
-                            //Plugin.Log($"Waiting for emoji {index}");
-                            Thread.Sleep(0);
-                        }
+                        while (!SpriteLoader.CachedSprites.ContainsKey(index)) Thread.Sleep(0);
                         if (SpriteLoader.CachedSprites.TryGetValue(index, out var cachedSpriteInfo)) {
                             EmoteInfo swapInfo = new EmoteInfo();
                             swapInfo.isEmoji = true;

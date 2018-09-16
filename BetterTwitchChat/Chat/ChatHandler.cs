@@ -121,7 +121,6 @@ namespace BetterTwitchChat {
                     _noGlowMaterial = new Material(shader);
                     _background.material = new Material(shader);
                     _lockButtonImage.material = new Material(shader);
-                    //Plugin.Log("Found NoGlow material");
                 }
             }
 
@@ -133,7 +132,6 @@ namespace BetterTwitchChat {
                     mat.color = Color.clear;
                     _chatMoverPrimitive.GetComponent<Renderer>().material = mat;
                     _lockButtonPrimitive.GetComponent<Renderer>().material = mat;
-                    //Plugin.Log("Found NoGlowUI material");
                 }
             }
             
@@ -184,11 +182,9 @@ namespace BetterTwitchChat {
                             var animationInfo = SpriteLoader.CachedSprites[animationDisplayInfo.emoteIndex]?.animationInfo;
                             if (animationInfo != null && animationInfo.Count == 1) {
                                 foreach (CustomText currentMessage in _chatMessages) {
-                                    //foreach (Image img in currentMessage.emoteRenderers) {
                                     for (int i = currentMessage.emoteRenderers.Count - 1; i >= 0; i--) {
                                         Image img = currentMessage.emoteRenderers[i];
                                         if (img.sprite == animationInfo[0].sprite) {
-                                            //Plugin.Log("Destroying temporary still version of current gif!");
                                             Destroy(img.gameObject);
                                             currentMessage.emoteRenderers.RemoveAt(i);
                                         }
@@ -200,7 +196,6 @@ namespace BetterTwitchChat {
                         SpriteLoader.CachedSprites[animationDisplayInfo.emoteIndex] = new CachedSpriteData(animationDisplayInfo.sprites);
                         if (animationDisplayInfo.sprites.Count > 1) {
                             _animationController.Register(animationDisplayInfo.sprites);
-                            //Plugin.Log("Registered animation with animationController!");
                         }
                         foreach (CustomText currentMessage in _chatMessages) {
                             if(animationDisplayInfo.emoteIndex.StartsWith("AB")) {
@@ -208,7 +203,6 @@ namespace BetterTwitchChat {
                                     if (e.emoteIndex == animationDisplayInfo.emoteIndex) {
                                         e.cachedSpriteInfo = SpriteLoader.CachedSprites[animationDisplayInfo.emoteIndex];
                                         Drawing.OverlayEmote(currentMessage, e.swapChar, _noGlowMaterialUI, _animationController, e.cachedSpriteInfo);
-                                        //Plugin.Log($"Overlayed animated emote index {animationDisplayInfo.emoteIndex}");
                                     }
                                 }
                             }
@@ -236,7 +230,7 @@ namespace BetterTwitchChat {
                 _twitchChatCanvas.transform.position = Plugin.Instance.Config.ChatPosition;
                 if (!Plugin.Instance.Config.ReverseChatOrder) _twitchChatCanvas.transform.position = _twitchChatCanvas.transform.TransformPoint(new Vector3(0, _currentBackgroundHeight));
 
-                _chatMoverCube.localScale = _background.rectTransform.sizeDelta * (Plugin.Instance.Config.ChatScale * 1.2f) / Plugin.PixelsPerUnit;// new Vector3((Plugin.ChatSize.x * Plugin.ChatScale / Plugin.PixelsPerUnit), (_currentBackgroundHeight * Plugin.ChatScale  / Plugin.PixelsPerUnit), 0.001f);
+                _chatMoverCube.localScale = _background.rectTransform.sizeDelta * (Plugin.Instance.Config.ChatScale * 1.2f) / Plugin.PixelsPerUnit;
                 _chatMoverCube.eulerAngles = Plugin.Instance.Config.ChatRotation;
                 _chatMoverCube.position = _background.rectTransform.TransformPoint(_background.rectTransform.rect.width/2, _currentBackgroundHeight / 2, 0);
 
