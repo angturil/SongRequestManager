@@ -1,5 +1,5 @@
 # Mod Info
-BetterTwitchChat is a rich text Twitch chat integration mod with full unicode, emote, and emoji support.
+EnhancedTwitchChat is a rich text Twitch chat integration mod with full unicode, emote, and emoji support.
 
 # Beta
 The mod is currently in beta, which means you may experience some bugs. Please report any bugs via the issues tab on GitHub.
