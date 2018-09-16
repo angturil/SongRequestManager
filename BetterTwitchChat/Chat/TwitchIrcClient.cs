@@ -36,6 +36,7 @@ namespace BetterTwitchChat.Chat {
 
         private static IrcClient client;
         private static ChatHandler _betterTwitchChat;
+        private static Dictionary<int, string> _userColors = new Dictionary<int, string>();
 
         private static System.Random _random;
 
@@ -107,7 +108,10 @@ namespace BetterTwitchChat.Chat {
             messageInfo.sender = (displayName == null || displayName == string.Empty) ? msgSender : displayName;
 
             string displayColor = messageComponents["color"];
-            messageInfo.nameColor = (displayColor == null || displayColor == string.Empty) ? (String.Format("#{0:X6}", _random.Next(0x1000000)) + "FF") : displayColor;
+            if ((displayColor == null || displayColor == String.Empty) && !_userColors.ContainsKey(msgSender.GetHashCode())) {
+                _userColors.Add(msgSender.GetHashCode(), (String.Format("#{0:X6}", new Random(msgSender.GetHashCode()).Next(0x1000000)) + "FF"));
+            }
+            messageInfo.nameColor = (displayColor == null || displayColor == string.Empty) ? _userColors[msgSender.GetHashCode()] : displayColor;
 
             if (messageComponents.ContainsKey("bits")) {
                 int numBits = Convert.ToInt32(messageComponents["bits"]);

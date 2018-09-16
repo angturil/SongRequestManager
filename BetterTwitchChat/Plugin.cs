@@ -88,10 +88,7 @@ namespace BetterTwitchChat {
                 ShouldWriteConfig = false;
             }
         }
-
-        struct testStruct {
-        };
-
+        
         public void OnFixedUpdate() {
         }
     }
