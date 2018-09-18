@@ -22,7 +22,7 @@ using EnhancedTwitchChat.UI;
 namespace EnhancedTwitchChat {
     public class Plugin : IPlugin {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "0.3.0";
+        public string Version => "0.3.1";
 
         public bool IsAtMainMenu = false;
         public bool ShouldWriteConfig = false;
