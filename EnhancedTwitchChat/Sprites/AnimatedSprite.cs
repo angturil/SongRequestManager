@@ -16,6 +16,8 @@ namespace EnhancedTwitchChat.Sprites {
         private AnimationController _animationController;
 
         public void Init(Image image, List<AnimationData> sprites, AnimationController animationController) {
+            UnityEngine.Object.DontDestroyOnLoad(this);
+
             _spriteList = sprites;
             _image = image;
             _animationController = animationController;
@@ -27,7 +29,6 @@ namespace EnhancedTwitchChat.Sprites {
         
         void Update() {
             if (_spriteList == null || _spriteList.Count <= 1 || _animationController == null) return;
-
             _image.sprite = _animationController.Get(_spriteList);
         }
 

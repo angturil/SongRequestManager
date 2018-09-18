@@ -19,6 +19,10 @@ namespace EnhancedTwitchChat.Sprites {
 
     class AnimationController : MonoBehaviour {
         private List<AnimControllerData> _registeredAnimations = new List<AnimControllerData>();
+        void Awake() {
+            UnityEngine.Object.DontDestroyOnLoad(this);
+        }
+
         public void Register(List<AnimationData> _animation) {
             _registeredAnimations.Add(new AnimControllerData(_animation));
         }
@@ -43,7 +47,6 @@ namespace EnhancedTwitchChat.Sprites {
                     if (aci.index >= aci.animationInfo.Count) {
                         aci.index = 0;
                     }
-                        
                 }
             }
         }
