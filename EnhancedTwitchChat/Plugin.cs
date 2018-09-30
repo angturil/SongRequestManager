@@ -22,7 +22,7 @@ using EnhancedTwitchChat.UI;
 namespace EnhancedTwitchChat {
     public class Plugin : IPlugin {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "0.3.1";
+        public string Version => "0.3.3";
 
         public bool IsAtMainMenu = false;
         public bool ShouldWriteConfig = false;
@@ -41,9 +41,6 @@ namespace EnhancedTwitchChat {
 
         public void OnApplicationStart() {
             Instance = this;
-            
-            // Pre-initialize our system fonts to reduce lag later on
-            Drawing.InitSystemFonts();
         }
 
         public void OnApplicationQuit() {

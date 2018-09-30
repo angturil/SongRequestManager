@@ -44,7 +44,10 @@ namespace EnhancedTwitchChat {
         public void Awake() {
             _gameObject = this.gameObject;
             UnityEngine.Object.DontDestroyOnLoad(_gameObject);
-            
+
+            // Pre-initialize our system fonts to reduce lag later on
+            Drawing.Initialize(_gameObject.transform);
+
             _lockedSprite = Utilities.LoadNewSprite(BuiltInResources.LockedIcon);
             _unlockedSprite = Utilities.LoadNewSprite(BuiltInResources.UnlockedIcon);
 
@@ -71,7 +74,7 @@ namespace EnhancedTwitchChat {
             var lockButtonGameObj = new GameObject();
             _lockButtonImage = lockButtonGameObj.AddComponent<Image>();
             _lockButtonImage.preserveAspect = true;
-            _lockButtonImage.rectTransform.sizeDelta = new Vector2(12, 12);
+            _lockButtonImage.rectTransform.sizeDelta = new Vector2(10, 10);
             _lockButtonImage.rectTransform.SetParent(_gameObject.transform, false);
             _lockButtonImage.rectTransform.pivot = new Vector2(0, 0);
             _lockButtonImage.color = Color.white.ColorWithAlpha(0.15f);

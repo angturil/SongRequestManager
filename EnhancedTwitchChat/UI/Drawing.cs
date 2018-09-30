@@ -39,21 +39,40 @@ namespace EnhancedTwitchChat.UI {
         private const int MaxFontUsages = 5;
         public static int fontUseCount = 0;
         public static int fontUseIndex = 0;
+        public static string spriteSpacing = " ";
         private static List<Font> cachedSystemFonts = new List<Font>();
-        public static void InitSystemFonts() {
+        public static void Initialize(Transform parent) {
             for (int i = 0; i < Plugin.Instance.Config.MaxMessages + 1; i+= MaxFontUsages) {
                 cachedSystemFonts.Add(LoadSystemFont(Plugin.Instance.Config.FontName));
             }
+
+            CustomText tmpText = InitText(spriteSpacing, Color.white.ColorWithAlpha(0), 10, new Vector2(1000, 1000), new Vector3(0, -100, 0), new Quaternion(0,0,0,0), parent, TextAnchor.MiddleLeft);
+            while (tmpText.preferredWidth < 4) {
+                tmpText.text += " ";
+            }
+            spriteSpacing = tmpText.text;
+            //Plugin.Log($"Sprite Spacing: {tmpText.preferredWidth.ToString()}, NumSpaces: {spriteSpacing.Count().ToString()}");
         }
         
         private static Font LoadSystemFont(string font) {
-            Font newFont = Font.CreateDynamicFontFromOSFont(font, 10);
-            if (newFont != null) {
-                return newFont;
+            bool useFallback = false;
+            if (font.Length == 0) {
+                useFallback = true;
             }
-            else {
-                return LoadSystemFont("Segoe UI");
+
+            List<string> installedFonts = Font.GetOSInstalledFontNames().ToList();
+            installedFonts.ForEach(f => f = f.ToLower());
+            if (!installedFonts.Contains(font)) {
+                useFallback = true;
             }
+
+            if (useFallback) {
+                font = "Segoe UI";
+                Plugin.Instance.Config.FontName = font;
+                Plugin.Instance.ShouldWriteConfig = true;
+                Plugin.Log($"Invalid font name specified! Falling back to Segoe UI");
+            }
+            return Font.CreateDynamicFontFromOSFont(font, 10);
         }
 
         public static CustomText InitText(string text, Color textColor, float fontSize, Vector2 sizeDelta, Vector3 position, Quaternion rotation, Transform parent, TextAnchor textAlign, Material mat = null) {
@@ -116,7 +135,7 @@ namespace EnhancedTwitchChat.UI {
 
             foreach (int i in Utilities.IndexOfAll(currentMessage.text, Char.ConvertFromUtf32(swapChar))) {
                 try {
-                    if (i > 1 && i < currentMessage.text.Count() - 2 && currentMessage.text[i - 1] == ' ' && currentMessage.text[i - 2] == ' ' && currentMessage.text[i + 1] == ' ' && currentMessage.text[i + 2] == ' ') {
+                    if (i > 0 && i < currentMessage.text.Count() - 1 && currentMessage.text[i - 1] == ' ' && currentMessage.text[i + 1] == ' ') {
                         GameObject newGameObject = new GameObject();
                         var image = newGameObject.AddComponent<Image>();
                         image.material = noGlowMaterialUI;

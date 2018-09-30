@@ -188,7 +188,7 @@ namespace EnhancedTwitchChat.Sprites {
 
             // Replace each emote with a hex character; we'll draw the emote at the position of this character later on
             foreach (EmoteInfo e in parsedEmotes) {
-                string replaceString = $"   {Char.ConvertFromUtf32(e.swapChar)}  ";
+                string replaceString = $" {Drawing.spriteSpacing}{Char.ConvertFromUtf32(e.swapChar)}{Drawing.spriteSpacing}";
                 if (!e.isEmoji) {
                     string[] parts = newChatMessage.msg.Split(' ');
                     for (int i = 0; i < parts.Length; i++) {
@@ -219,7 +219,7 @@ namespace EnhancedTwitchChat.Sprites {
             if (parsedBadges.Count > 0) {
                 parsedBadges.Reverse();
                 for (int i = 0; i < parsedBadges.Count; i++) {
-                    badgeStr = $"  {Char.ConvertFromUtf32(parsedBadges[i].swapChar)}     {badgeStr}";
+                    badgeStr = $"{Drawing.spriteSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}{Drawing.spriteSpacing}{Drawing.spriteSpacing} {badgeStr}";
                 }
             }
             newChatMessage.msg = $"{badgeStr}{newChatMessage.msg}";
