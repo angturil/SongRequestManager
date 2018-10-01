@@ -51,6 +51,7 @@ namespace EnhancedTwitchChat.UI {
                 tmpText.text += " ";
             }
             spriteSpacing = tmpText.text;
+            GameObject.Destroy(tmpText.gameObject);
             //Plugin.Log($"Sprite Spacing: {tmpText.preferredWidth.ToString()}, NumSpaces: {spriteSpacing.Count().ToString()}");
         }
         
