@@ -36,7 +36,7 @@ namespace EnhancedTwitchChat.UI {
     };
 
     class Drawing {
-        private const int MaxFontUsages = 5;
+        private const int MaxFontUsages = 3;
         public static int fontUseCount = 0;
         public static int fontUseIndex = 0;
         public static string spriteSpacing = " ";
@@ -60,11 +60,11 @@ namespace EnhancedTwitchChat.UI {
             if (font.Length == 0) {
                 useFallback = true;
             }
-
-            List<string> installedFonts = Font.GetOSInstalledFontNames().ToList();
-            installedFonts.ForEach(f => f = f.ToLower());
-            if (!installedFonts.Contains(font)) {
-                useFallback = true;
+            else {
+                List<string> installedFonts = Font.GetOSInstalledFontNames().ToList().ConvertAll(f => f.ToLower());
+                if (!installedFonts.Contains(font.ToLower())) {
+                    useFallback = true;
+                }
             }
 
             if (useFallback) {
