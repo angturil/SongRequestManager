@@ -170,7 +170,7 @@ namespace EnhancedTwitchChat.Chat {
                     }
                 }
             }
-            catch (Exception ex) {
+            catch (Exception) {
                 //Plugin.Log($"Caught exception \"{ex.Message}\" from {ex.Source}");
                 //Plugin.Log($"Stack trace: {ex.StackTrace}");
             }

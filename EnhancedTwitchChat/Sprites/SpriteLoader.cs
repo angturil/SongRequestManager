@@ -129,9 +129,10 @@ namespace EnhancedTwitchChat.Sprites {
             _spriteDownloadQueue.Push(emote);
         }
 
-        public static IEnumerator Download(string spritePath, SpriteDownloadInfo spriteDownloadInfo) {
+        public static IEnumerator Download(string spritePath, SpriteDownloadInfo spriteDownloadInfo, bool isRetry = false) {
             Instance._loaderBusy = true;
             if (!CachedSprites.ContainsKey(spriteDownloadInfo.index)) {
+                string origSpritePath = spritePath;
 
                 string spriteCachePath = "Cache\\Sprites";
                 if (!Directory.Exists(spriteCachePath)) {
@@ -184,10 +185,28 @@ namespace EnhancedTwitchChat.Sprites {
                         }
                         else {
                             var tex = DownloadHandlerTexture.GetContent(web);
-                            //Plugin.Log($"Texture is {web.downloadHandler.data.Length.ToString()}");
-                            sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0,0), Plugin.PixelsPerUnit);
+
+                            bool success = false;
+                            try
+                            {
+                                sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0, 0), Plugin.PixelsPerUnit);
+                                success = true;
+                            }
+                            catch (Exception e)
+                            {
+                                Plugin.Log(e.ToString());
+                                if(File.Exists(localFilePath)) File.Delete(localFilePath);
+                                sprite = null;
+                            }
+
+                            if (!success && !isRetry)
+                            {
+                                yield return Download(origSpritePath, spriteDownloadInfo, true);
+                                yield break;
+                            }
+
                             while (!CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData(sprite))) yield return null;
-                            if (!localPathExists) {
+                            if (!localPathExists && success) {
                                 SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
                             }
                         }

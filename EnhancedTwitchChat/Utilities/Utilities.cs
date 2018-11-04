@@ -205,7 +205,7 @@ namespace EnhancedTwitchChat.Utils {
                     File.WriteAllBytes(path, data);
                     Plugin.Log("Downloaded file!");
                 }
-                catch (Exception e) {
+                catch (Exception) {
                     Plugin.Log("Failed to download file!");
                     yield break;
                 }

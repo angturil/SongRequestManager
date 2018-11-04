@@ -28,7 +28,6 @@ namespace EnhancedTwitchChat {
         private AnimationController _animationController;
         private Image _background;
         private ConcurrentStack<string> _timeoutQueue = new ConcurrentStack<string>();
-        private ConcurrentStack<bool> _lockButtonToggleQueue = new ConcurrentStack<bool>();
         private GameObject _chatMoverPrimitive;
         private Transform _chatMoverCube;
         private GameObject _lockButtonPrimitive;
