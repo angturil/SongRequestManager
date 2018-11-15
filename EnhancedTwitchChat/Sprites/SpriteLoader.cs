@@ -214,7 +214,7 @@ namespace EnhancedTwitchChat.Sprites {
                 }
                 //Plugin.Log($"Web request completed, {CachedSprites.Count} emotes now cached!");
             }
-            Instance.waitForFrames = 2;
+            Instance.waitForFrames = 3;
             Instance._loaderBusy = false;
         }
 

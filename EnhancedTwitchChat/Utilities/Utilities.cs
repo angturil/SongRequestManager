@@ -10,6 +10,8 @@ using UnityEngine;
 using UnityEngine.Networking;
 using EnhancedTwitchChat.UI;
 using System.Drawing;
+using IllusionInjector;
+using IllusionPlugin;
 
 namespace EnhancedTwitchChat.Utils {
     class Utilities : MonoBehaviour {
@@ -210,6 +212,17 @@ namespace EnhancedTwitchChat.Utils {
                     yield break;
                 }
             }
+        }
+
+        public static bool IsModInstalled(string modName)
+        {
+            foreach (IPlugin p in PluginManager.Plugins) {
+                if (p.Name == modName)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         
         public static Texture2D LoadTexture(string FilePath) {

@@ -18,6 +18,7 @@ using EnhancedTwitchChat.Sprites;
 using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.UI;
+using AsyncTwitch;
 
 namespace EnhancedTwitchChat {
     public class Plugin : IPlugin {
@@ -41,6 +42,9 @@ namespace EnhancedTwitchChat {
 
         public void OnApplicationStart() {
             Instance = this;
+
+            _chatHandler = new GameObject("EnhancedTwitchChat").AddComponent<ChatHandler>();
+            new Thread(() => TwitchIRCClient.Initialize(_chatHandler)).Start();
         }
 
         public void OnApplicationQuit() {
@@ -50,16 +54,6 @@ namespace EnhancedTwitchChat {
         public void OnLevelWasLoaded(int level) {
             string menuName = SceneManager.GetSceneByBuildIndex(level).name;
             if (menuName == "Menu") {
-                if (!_chatHandler) {
-                    _chatHandler = new GameObject("EnhancedTwitchChat").AddComponent<ChatHandler>();
-                }
-
-                if (!TwitchIRCClient.Initialized) {
-                    new Thread(() => TwitchIRCClient.Initialize(_chatHandler)).Start();
-                    TwitchIRCClient.Initialized = true;
-                }
-
-                //Plugin.Log("Taking out the trash... ;)");
                 System.GC.Collect();
 
                 IsAtMainMenu = true;

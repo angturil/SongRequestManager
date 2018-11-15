@@ -38,6 +38,13 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="AsyncTwitch">
+      <HintPath>..\..\AsyncTwitch\AsyncTwitch\bin\Release\AsyncTwitch.dll</HintPath>
+    </Reference>
+    <Reference Include="IllusionInjector, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IllusionInjector.dll</HintPath>
+    </Reference>
     <Reference Include="IllusionPlugin">
       <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IllusionPlugin.dll</HintPath>
     </Reference>
@@ -116,53 +123,6 @@
     <Compile Include="Sprites\AnimatedSpriteDecoder.cs" />
     <Compile Include="UI\BeatSaberUI.cs" />
     <Compile Include="Chat\ChatHandler.cs" />
-    <Compile Include="Chat\ChatSharp\CapabilityPool.cs" />
-    <Compile Include="Chat\ChatSharp\ChannelCollection.cs" />
-    <Compile Include="Chat\ChatSharp\ClientSettings.cs" />
-    <Compile Include="Chat\ChatSharp\Events\ChannelEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\ChannelTopicEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\ChannelUserEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\ErronousNickEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\ErrorEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\ErrorReplieEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\IrcNoticeEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\KickEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\ModeChangeEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\NickChangedEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\PrivateMessageEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\RawMessageEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\ServerMOTDEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\SocketErrorEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\SupportsEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\UserEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\WhoEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Events\WhoIsEventArgs.cs" />
-    <Compile Include="Chat\ChatSharp\Handlers\CapabilityHandlers.cs" />
-    <Compile Include="Chat\ChatSharp\Handlers\ChannelHandlers.cs" />
-    <Compile Include="Chat\ChatSharp\Handlers\ErrorHandlers.cs" />
-    <Compile Include="Chat\ChatSharp\Handlers\ListingHandlers.cs" />
-    <Compile Include="Chat\ChatSharp\Handlers\MessageHandlers.cs" />
-    <Compile Include="Chat\ChatSharp\Handlers\MOTDHandlers.cs" />
-    <Compile Include="Chat\ChatSharp\Handlers\SaslHandlers.cs" />
-    <Compile Include="Chat\ChatSharp\Handlers\ServerHandlers.cs" />
-    <Compile Include="Chat\ChatSharp\Handlers\UserHandlers.cs" />
-    <Compile Include="Chat\ChatSharp\IrcCapability.cs" />
-    <Compile Include="Chat\ChatSharp\IrcChannel.cs" />
-    <Compile Include="Chat\ChatSharp\IrcClient.Commands.cs" />
-    <Compile Include="Chat\ChatSharp\IrcClient.cs" />
-    <Compile Include="Chat\ChatSharp\IrcMessage.cs" />
-    <Compile Include="Chat\ChatSharp\IrcProtocolException.cs" />
-    <Compile Include="Chat\ChatSharp\IrcUser.cs" />
-    <Compile Include="Chat\ChatSharp\Mask.cs" />
-    <Compile Include="Chat\ChatSharp\MaskCollection.cs" />
-    <Compile Include="Chat\ChatSharp\PrivateMessage.cs" />
-    <Compile Include="Chat\ChatSharp\RequestManager.cs" />
-    <Compile Include="Chat\ChatSharp\ServerInfo.cs" />
-    <Compile Include="Chat\ChatSharp\Timestamp.cs" />
-    <Compile Include="Chat\ChatSharp\UserPool.cs" />
-    <Compile Include="Chat\ChatSharp\UserPoolView.cs" />
-    <Compile Include="Chat\ChatSharp\WhoIs.cs" />
-    <Compile Include="Chat\ChatSharp\WhoX.cs" />
     <Compile Include="UI\Drawing.cs" />
     <Compile Include="Gameplay\ExtraBomb.cs" />
     <Compile Include="UI\GameOptionToggle.cs" />

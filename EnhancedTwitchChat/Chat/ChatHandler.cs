@@ -13,6 +13,7 @@ using System.IO;
 using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.UI;
+using AsyncTwitch;
 
 namespace EnhancedTwitchChat {
     public class ChatHandler : MonoBehaviour {
@@ -88,13 +89,26 @@ namespace EnhancedTwitchChat {
             _lockButtonSphere = _lockButtonPrimitive.transform;
             _lockButtonSphere.localScale = new Vector3(0.15f * Plugin.Instance.Config.ChatScale, 0.15f * Plugin.Instance.Config.ChatScale, 0.001f);
 
+            while (_chatMessages.Count < Plugin.Instance.Config.MaxMessages)
+            {
+                var currentMessage = Drawing.InitText("", Color.clear, Plugin.Instance.Config.ChatScale, new Vector2(Plugin.Instance.Config.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), _gameObject.transform, TextAnchor.UpperLeft, _noGlowMaterialUI);
+                if (!Plugin.Instance.Config.ReverseChatOrder)
+                {
+                    _chatMessages.Add(currentMessage);
+                }
+                else
+                {
+                    _chatMessages.Insert(0, currentMessage);
+                }
+            }
+
             SceneManager.sceneLoaded += SceneManagerOnSceneLoaded;
 
             Plugin.Log("EnhancedTwitchChat initialized");
         }
 
         private void PluginOnConfigChangedEvent(Config config) {
-            TwitchIRCClient.OnConnectionComplete();
+            TwitchConnection.Instance.JoinRoom(Plugin.Instance.Config.TwitchChannel);
             UpdateChatUI();
 
             _canvasRectTransform.localScale = new Vector3(0.012f * Plugin.Instance.Config.ChatScale, 0.012f * Plugin.Instance.Config.ChatScale, 0.012f * Plugin.Instance.Config.ChatScale);
@@ -142,17 +156,14 @@ namespace EnhancedTwitchChat {
                 _lockButtonImage.sprite = Plugin.Instance.Config.LockChatPosition ? _lockedSprite : _unlockedSprite;
 
                 // Wait a few seconds after we've connect to the chat, then send our welcome message
-                if (displayStatusMessage && (TwitchIRCClient.JoinedChannel || (DateTime.Now - TwitchIRCClient.ConnectionTime).TotalSeconds >= 5)) {
-                    if (TwitchIRCClient.JoinedChannel) {
-                        Plugin.Log("Reinitializing sprites!");
-                        _spriteLoader.Init();
-                    }
+                if (displayStatusMessage && (Plugin.TwitchChannelID != String.Empty || (DateTime.Now - TwitchIRCClient.ConnectionTime).TotalSeconds >= 5)) {
+                    _spriteLoader.Init();
 
                     MessageInfo messageInfo = new MessageInfo();
                     messageInfo.nameColor = "#00000000";
                     messageInfo.sender = String.Empty;
-                    if (TwitchIRCClient.JoinedChannel) {
-                        TwitchIRCClient.RenderQueue.Push(new ChatMessage($"Success joining chat room \"{Plugin.Instance.Config.TwitchChannel}\"", messageInfo));
+                    if (Plugin.TwitchChannelID != String.Empty) {
+                        TwitchIRCClient.RenderQueue.Push(new ChatMessage($"Success connecting to chat room!", messageInfo));
                     }
                     else {
                         TwitchIRCClient.RenderQueue.Push(new ChatMessage($"Failed to connect to the chat room!", messageInfo));
@@ -248,29 +259,20 @@ namespace EnhancedTwitchChat {
         private IEnumerator AddNewChatMessage(string msg, MessageInfo messageInfo) {
             _messageRendering = true;
             CustomText currentMessage = null;
-            if (_chatMessages.Count < Plugin.Instance.Config.MaxMessages) {
-                currentMessage = Drawing.InitText(msg, Color.clear, Plugin.Instance.Config.ChatScale, new Vector2(Plugin.Instance.Config.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), _gameObject.transform, TextAnchor.UpperLeft, _noGlowMaterialUI);
-                if (!Plugin.Instance.Config.ReverseChatOrder) {
-                    _chatMessages.Add(currentMessage);
-                }
-                else {
-                    _chatMessages.Insert(0, currentMessage);
-                }
+           
+            if (!Plugin.Instance.Config.ReverseChatOrder) {
+                currentMessage = _chatMessages.First();
+                _chatMessages.RemoveAt(0);
+                _chatMessages.Add(currentMessage);
             }
             else {
-                if (!Plugin.Instance.Config.ReverseChatOrder) {
-                    currentMessage = _chatMessages.First();
-                    _chatMessages.RemoveAt(0);
-                    _chatMessages.Add(currentMessage);
-                }
-                else {
-                    currentMessage = _chatMessages.Last();
-                    _chatMessages.Remove(currentMessage);
-                    _chatMessages.Insert(0, currentMessage);
-                }
-                currentMessage.text = msg;
+                currentMessage = _chatMessages.Last();
+                _chatMessages.Remove(currentMessage);
+                _chatMessages.Insert(0, currentMessage);
             }
+            currentMessage.text = msg;
             currentMessage.messageInfo = messageInfo;
+            currentMessage.material = _noGlowMaterialUI;
 
             if (currentMessage.emoteRenderers.Count > 0) {
                 currentMessage.emoteRenderers.ForEach(e => Destroy(e.gameObject));
@@ -282,12 +284,11 @@ namespace EnhancedTwitchChat {
             yield return null;
 
             currentMessage.color = Plugin.Instance.Config.TextColor;
-            messageInfo.parsedEmotes.ForEach(e => Drawing.OverlayEmote(currentMessage, e.swapChar, _noGlowMaterialUI, _animationController, e.cachedSpriteInfo));
             messageInfo.parsedBadges.ForEach(b => Drawing.OverlayEmote(currentMessage, b.swapChar, _noGlowMaterialUI, _animationController, new CachedSpriteData(b.sprite)));
-
-
+            messageInfo.parsedEmotes.ForEach(e => Drawing.OverlayEmote(currentMessage, e.swapChar, _noGlowMaterialUI, _animationController, e.cachedSpriteInfo));
+            
             _messageRendering = false;
-            _waitForFrames = 2;
+            _waitForFrames = 3;
         }
         
         private void PurgeChatMessages(string userID) {
@@ -307,8 +308,11 @@ namespace EnhancedTwitchChat {
                 float currentYValue = 0;
                 float initialYValue = currentYValue;
                 for (int i = 0; i < _chatMessages.Count(); i++) {
-                    _chatMessages[i].transform.localPosition = new Vector3(-Plugin.Instance.Config.ChatWidth / 2, currentYValue, 0);
-                    currentYValue -= (_chatMessages[i].preferredHeight + (i < _chatMessages.Count() - 1 ? Plugin.Instance.Config.LineSpacing + 1.5f : 0));
+                    if (_chatMessages[i].text != "")
+                    {
+                        _chatMessages[i].transform.localPosition = new Vector3(-Plugin.Instance.Config.ChatWidth / 2, currentYValue, 0);
+                        currentYValue -= (_chatMessages[i].preferredHeight + (i < _chatMessages.Count() - 1 ? Plugin.Instance.Config.LineSpacing + 1.5f : 0));
+                    }
                 }
                 _currentBackgroundHeight = (initialYValue - currentYValue) + Plugin.Instance.Config.BackgroundPadding * 2;
 
