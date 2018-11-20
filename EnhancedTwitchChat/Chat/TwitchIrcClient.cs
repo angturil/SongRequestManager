@@ -148,11 +148,7 @@ namespace EnhancedTwitchChat.Chat
                         Plugin.Log($"Stack trace: {ex.StackTrace}");
                     }
                 }
-                else
-                {
-                   // Plugin.Log("Idle");
-                }
-                Thread.Sleep(10);
+                Thread.Sleep(15);
             }
         }
     };

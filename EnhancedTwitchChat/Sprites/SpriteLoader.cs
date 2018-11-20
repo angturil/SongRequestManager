@@ -114,9 +114,9 @@ namespace EnhancedTwitchChat.Sprites
         {
             // Skip this frame if our fps is low
             float fps = 1.0f / Time.deltaTime;
-            if (!Plugin.Instance.IsAtMainMenu && fps < XRDevice.refreshRate - 1)
+            if (!Plugin.Instance.IsAtMainMenu && fps < XRDevice.refreshRate - 5)
             {
-                _waitForFrames = 15;
+                _waitForFrames = (int)XRDevice.refreshRate;
                 return;
             }
 
@@ -217,15 +217,12 @@ namespace EnhancedTwitchChat.Sprites
                     }
                     else
                     {
-                        //Plugin.Log("Success loading emote!");
                         if (spriteDownloadInfo.type == ImageType.BTTV_Animated)
                         {
                             while (!CachedSprites.TryAdd(spriteDownloadInfo.index, null)) yield return null;
                             yield return AnimatedSpriteDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedEmote, spriteDownloadInfo.index);
                             if (!localPathExists)
-                            {
                                 SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
-                            }
                         }
                         else
                         {
@@ -253,19 +250,22 @@ namespace EnhancedTwitchChat.Sprites
                             }
 
                             while (!CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData(sprite))) yield return null;
+                            yield return null;
+
+                            ChatHandler.Instance.OverlayEmote(sprite, spriteDownloadInfo.index);
+
                             if (!localPathExists && success)
-                            {
                                 SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
-                            }
                         }
                     }
                 }
                 //Plugin.Log($"Web request completed, {CachedSprites.Count} emotes now cached!");
+                if (Plugin.Instance.IsAtMainMenu)
+                    Instance._waitForFrames = 10;
+                else
+                    Instance._waitForFrames = 25;
             }
-            if (Plugin.Instance.IsAtMainMenu)
-                Instance._waitForFrames = 5;
-            else
-                Instance._waitForFrames = 15;
+
             Instance._loaderBusy = false;
         }
 

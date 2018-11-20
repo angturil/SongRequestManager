@@ -29,8 +29,8 @@ namespace EnhancedTwitchChat
 
         ~ObjectPool()
         {
-            foreach(KeyValuePair<T, bool> kvp in _objects)
-                UnityEngine.Object.Destroy(kvp.Key.gameObject);
+            foreach(KeyValuePair<T, bool> obj in _objects)
+                UnityEngine.Object.Destroy(obj.Key.gameObject);
         }
 
         private T internalAlloc()

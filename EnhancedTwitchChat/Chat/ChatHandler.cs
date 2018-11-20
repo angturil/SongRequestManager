@@ -219,8 +219,8 @@ namespace EnhancedTwitchChat
                 float fps = 1.0f / Time.deltaTime;
                 if (!Plugin.Instance.IsAtMainMenu && fps < XRDevice.refreshRate - 5)
                 {
-                    _waitForFrames = 10;
-                    Plugin.Log($"[{DateTime.Now.ToLongTimeString()}] FPS: {fps}, {TwitchIRCClient.MessageQueue.Count.ToString()} messages queued!");
+                    _waitForFrames = 15;
+                    //Plugin.Log($"[{DateTime.Now.ToLongTimeString()}] FPS: {fps}, {TwitchIRCClient.MessageQueue.Count.ToString()} messages queued!");
                     return;
                 }
 
@@ -317,46 +317,91 @@ namespace EnhancedTwitchChat
                 }
             }
         }
-        
-        public void OverlayAnimatedEmote(List<AnimationData> textureList, string emoteIndex)
+
+        public void OverlayEmote(Sprite emote, string emoteIndex)
         {
-            if (SpriteLoader.CachedSprites.ContainsKey(emoteIndex))
+            try
             {
-                var animationInfo = SpriteLoader.CachedSprites[emoteIndex]?.animationInfo;
-                if (animationInfo != null && animationInfo.Count == 1)
+                foreach (CustomText currentMessage in _chatMessages)
                 {
-                    foreach (CustomText currentMessage in _chatMessages)
+                    if (currentMessage.messageInfo == null) continue;
+
+                    if (!emoteIndex.StartsWith("AB"))
                     {
-                        for (int i = currentMessage.emoteRenderers.Count - 1; i >= 0; i--)
+                        foreach (EmoteInfo e in currentMessage.messageInfo.parsedEmotes)
                         {
-                            Image img = currentMessage.emoteRenderers[i];
-                            if (img.sprite == animationInfo[0].sprite)
+                            if (e.emoteIndex == emoteIndex && e.cachedSpriteInfo == null)
                             {
-                                _imagePool.Free(img);
-                                currentMessage.emoteRenderers.RemoveAt(i);
+                                e.cachedSpriteInfo = new CachedSpriteData(emote);
+                                Drawing.OverlayEmote(currentMessage, e.swapChar, _imagePool, e.cachedSpriteInfo);
+                            }
+                        }
+
+                        foreach (BadgeInfo b in currentMessage.messageInfo.parsedBadges)
+                        {
+                            if (b.badgeIndex == emoteIndex && b.sprite == null)
+                            {
+                                b.sprite = emote;
+                                Drawing.OverlayEmote(currentMessage, b.swapChar, _imagePool, new CachedSpriteData(b.sprite));
                             }
                         }
                     }
                 }
             }
-
-            SpriteLoader.CachedSprites[emoteIndex] = new CachedSpriteData(textureList);
-            if (textureList.Count > 1)
-                AnimationController.Instance.Register(textureList);
-
-            foreach (CustomText currentMessage in _chatMessages)
+            catch (Exception e)
             {
-                if (emoteIndex.StartsWith("AB"))
+                Plugin.Log($"Exception when overlaying emote! {e.ToString()}");
+            }
+        }
+        
+        public void OverlayAnimatedEmote(List<AnimationData> textureList, string emoteIndex)
+        {
+            try
+            {
+                if (SpriteLoader.CachedSprites.ContainsKey(emoteIndex))
                 {
-                    foreach (EmoteInfo e in currentMessage.messageInfo.parsedEmotes)
+                    var animationInfo = SpriteLoader.CachedSprites[emoteIndex]?.animationInfo;
+                    if (animationInfo != null && animationInfo.Count == 1)
                     {
-                        if (e.emoteIndex == emoteIndex)
+                        foreach (CustomText currentMessage in _chatMessages)
                         {
-                            e.cachedSpriteInfo = SpriteLoader.CachedSprites[emoteIndex];
-                            Drawing.OverlayEmote(currentMessage, e.swapChar, _imagePool, e.cachedSpriteInfo);
+                            for (int i = currentMessage.emoteRenderers.Count - 1; i >= 0; i--)
+                            {
+                                Image img = currentMessage.emoteRenderers[i];
+                                if (img.sprite == animationInfo[0].sprite)
+                                {
+                                    _imagePool.Free(img);
+                                    currentMessage.emoteRenderers.RemoveAt(i);
+                                }
+                            }
                         }
                     }
                 }
+
+                SpriteLoader.CachedSprites[emoteIndex] = new CachedSpriteData(textureList);
+                if (textureList.Count > 1)
+                    AnimationController.Instance.Register(textureList);
+
+                foreach (CustomText currentMessage in _chatMessages)
+                {
+                    if (currentMessage.messageInfo == null) continue;
+
+                    if (emoteIndex.StartsWith("AB"))
+                    {
+                        foreach (EmoteInfo e in currentMessage.messageInfo.parsedEmotes)
+                        {
+                            if (e.emoteIndex == emoteIndex)
+                            {
+                                e.cachedSpriteInfo = SpriteLoader.CachedSprites[emoteIndex];
+                                Drawing.OverlayEmote(currentMessage, e.swapChar, _imagePool, e.cachedSpriteInfo);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Log($"Exception when overlaying animated emote! {e.ToString()}");
             }
         }
 

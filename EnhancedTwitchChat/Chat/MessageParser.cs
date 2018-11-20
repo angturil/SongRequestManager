@@ -25,6 +25,7 @@ namespace EnhancedTwitchChat.Sprites
     {
         public char swapChar;
         public Sprite sprite;
+        public string badgeIndex;
     };
 
     public class EmoteInfo
@@ -68,23 +69,22 @@ namespace EnhancedTwitchChat.Sprites
                         if (!downloadQueue.ContainsKey(emojiIndex))
                             downloadQueue.Add(emojiIndex, replaceString);
                     }
-                    Thread.Sleep(10);
+                    Thread.Sleep(5);
 
                     foreach (string index in downloadQueue.Keys.Distinct())
                     {
-                        while (!SpriteLoader.CachedSprites.ContainsKey(index)) Thread.Sleep(0);
-                        if (SpriteLoader.CachedSprites.TryGetValue(index, out var cachedSpriteInfo))
-                        {
-                            EmoteInfo swapInfo = new EmoteInfo();
-                            swapInfo.isEmoji = true;
-                            swapInfo.cachedSpriteInfo = cachedSpriteInfo;
-                            swapInfo.swapChar = swapChar;
-                            swapInfo.swapString = downloadQueue[index];
-                            swapInfo.emoteIndex = index;
-                            parsedEmotes.Add(swapInfo);
+                        CachedSpriteData cachedSpriteInfo = null;
+                        SpriteLoader.CachedSprites.TryGetValue(index, out cachedSpriteInfo);
 
-                            swapChar++;
-                        }
+                        EmoteInfo swapInfo = new EmoteInfo();
+                        swapInfo.isEmoji = true;
+                        swapInfo.cachedSpriteInfo = cachedSpriteInfo;
+                        swapInfo.swapChar = swapChar;
+                        swapInfo.swapString = downloadQueue[index];
+                        swapInfo.emoteIndex = index;
+                        parsedEmotes.Add(swapInfo);
+
+                        swapChar++;
                     }
                 }
                 parsedEmotes = parsedEmotes.OrderByDescending(o => o.swapString.Length).ToList();
@@ -107,19 +107,19 @@ namespace EnhancedTwitchChat.Sprites
                         downloadQueue.Add(badgeIndex, badgeName);
                     }
                 }
-                Thread.Sleep(10);
+                Thread.Sleep(5);
 
                 foreach (string badgeIndex in downloadQueue.Keys)
                 {
-                    while (!SpriteLoader.CachedSprites.ContainsKey(badgeIndex)) Thread.Sleep(0);
-                    if (SpriteLoader.CachedSprites.TryGetValue(badgeIndex, out var cachedSpriteInfo))
-                    {
-                        BadgeInfo swapInfo = new BadgeInfo();
-                        swapInfo.sprite = cachedSpriteInfo.sprite;
-                        swapInfo.swapChar = swapChar;
-                        parsedBadges.Add(swapInfo);
-                        swapChar++;
-                    }
+                    CachedSpriteData cachedSpriteInfo = null;
+                    SpriteLoader.CachedSprites.TryGetValue(badgeIndex, out cachedSpriteInfo);
+
+                    BadgeInfo swapInfo = new BadgeInfo();
+                    swapInfo.sprite = cachedSpriteInfo?.sprite;
+                    swapInfo.swapChar = swapChar;
+                    swapInfo.badgeIndex = badgeIndex;
+                    parsedBadges.Add(swapInfo);
+                    swapChar++;
                 }
                 downloadQueue.Clear();
             }
@@ -135,27 +135,26 @@ namespace EnhancedTwitchChat.Sprites
                     
                     downloadQueue.Add(emoteIndex, string.Join("-", e.Index[0]));
                 }
-                Thread.Sleep(10);
+                Thread.Sleep(5);
 
                 foreach (string emoteIndex in downloadQueue.Keys)
                 {
-                    while (!SpriteLoader.CachedSprites.ContainsKey(emoteIndex)) Thread.Sleep(0);
-                    if (SpriteLoader.CachedSprites.TryGetValue(emoteIndex, out var cachedSpriteInfo))
-                    {
-                        string emoteInfo = downloadQueue[emoteIndex].Split(',')[0];
-                        string[] charsToReplace = emoteInfo.Split('-');
-                        int startReplace = Convert.ToInt32(charsToReplace[0]);
-                        int endReplace = Convert.ToInt32(charsToReplace[1]);
-                        string msg = newChatMessage.msg;
+                    CachedSpriteData cachedSpriteInfo = null;
+                    SpriteLoader.CachedSprites.TryGetValue(emoteIndex, out cachedSpriteInfo);
 
-                        EmoteInfo swapInfo = new EmoteInfo();
-                        swapInfo.cachedSpriteInfo = cachedSpriteInfo;
-                        swapInfo.swapChar = swapChar;
-                        swapInfo.swapString = msg.Substring(startReplace, endReplace - startReplace + 1);
-                        swapInfo.emoteIndex = emoteIndex;
-                        parsedEmotes.Add(swapInfo);
-                        swapChar++;
-                    }
+                    string emoteInfo = downloadQueue[emoteIndex].Split(',')[0];
+                    string[] charsToReplace = emoteInfo.Split('-');
+                    int startReplace = Convert.ToInt32(charsToReplace[0]);
+                    int endReplace = Convert.ToInt32(charsToReplace[1]);
+                    string msg = newChatMessage.msg;
+
+                    EmoteInfo swapInfo = new EmoteInfo();
+                    swapInfo.cachedSpriteInfo = cachedSpriteInfo;
+                    swapInfo.swapChar = swapChar;
+                    swapInfo.swapString = msg.Substring(startReplace, endReplace - startReplace + 1);
+                    swapInfo.emoteIndex = emoteIndex;
+                    parsedEmotes.Add(swapInfo);
+                    swapChar++;
                 }
                 downloadQueue.Clear();
             }
@@ -191,21 +190,20 @@ namespace EnhancedTwitchChat.Sprites
                     downloadQueue.Add(emoteIndex, word);
                 }
             }
-            Thread.Sleep(10);
+            Thread.Sleep(5);
 
             foreach (string emoteIndex in downloadQueue.Keys)
             {
-                while (!SpriteLoader.CachedSprites.ContainsKey(emoteIndex)) Thread.Sleep(0);
-                if (SpriteLoader.CachedSprites.TryGetValue(emoteIndex, out var cachedSpriteInfo))
-                {
-                    EmoteInfo swapInfo = new EmoteInfo();
-                    swapInfo.cachedSpriteInfo = cachedSpriteInfo;
-                    swapInfo.swapChar = swapChar;
-                    swapInfo.swapString = downloadQueue[emoteIndex];
-                    swapInfo.emoteIndex = emoteIndex;
-                    parsedEmotes.Add(swapInfo);
-                    swapChar++;
-                }
+                CachedSpriteData cachedSpriteInfo = null;
+                SpriteLoader.CachedSprites.TryGetValue(emoteIndex, out cachedSpriteInfo);
+
+                EmoteInfo swapInfo = new EmoteInfo();
+                swapInfo.cachedSpriteInfo = cachedSpriteInfo;
+                swapInfo.swapChar = swapChar;
+                swapInfo.swapString = downloadQueue[emoteIndex];
+                swapInfo.emoteIndex = emoteIndex;
+                parsedEmotes.Add(swapInfo);
+                swapChar++;
             }
 
             // Replace each emote with a hex character; we'll draw the emote at the position of this character later on
@@ -235,6 +233,8 @@ namespace EnhancedTwitchChat.Sprites
             //if (Plugin._twitchUsername != String.Empty && msg.Contains(Plugin._twitchUsername)) {
             //    msg = $"<mark=#ffff0050>{msg}</mark>";
             //}
+
+            Thread.Sleep(5);
 
             string displayColor = newChatMessage.twitchMessage.Author.Color;
             if ((displayColor == null || displayColor == String.Empty) && !_userColors.ContainsKey(newChatMessage.twitchMessage.Author.DisplayName.GetHashCode()))
