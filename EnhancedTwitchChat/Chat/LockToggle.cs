@@ -18,15 +18,13 @@ namespace EnhancedTwitchChat.Chat {
         protected bool _raycastHitTarget = false;
         
         protected const float MaxLaserDistance = 50;
-        protected ChatHandler _chatHandler;
         protected static LockToggle _this;
 
-        public void Init(ChatHandler chatHandler, Image lockImage, Transform lockSphere) {
+        public void Init(Image lockImage, Transform lockSphere) {
             _this = this;
             _vrPointer = GetComponent<VRPointer>();
             _lockSphere = lockSphere;
             _lockImage = lockImage;
-            _chatHandler = chatHandler;
         }
 
         public void Update() {

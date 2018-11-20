@@ -13,23 +13,24 @@ namespace EnhancedTwitchChat.Sprites {
     class AnimatedSprite : MonoBehaviour {
         private Image _image;
         private List<AnimationData> _spriteList;
-        private AnimationController _animationController;
 
-        public void Init(Image image, List<AnimationData> sprites, AnimationController animationController) {
+        void Awake()
+        {
             UnityEngine.Object.DontDestroyOnLoad(this);
 
+        }
+
+        public void Init(Image image, List<AnimationData> sprites) {
             _spriteList = sprites;
             _image = image;
-            _animationController = animationController;
-
             if (_spriteList.Count > 0) {
                 _image.sprite = _spriteList[0].sprite;
             }
         }
         
         void Update() {
-            if (_spriteList == null || _spriteList.Count <= 1 || _animationController == null) return;
-            _image.sprite = _animationController.Get(_spriteList);
+            if (_spriteList == null || _spriteList.Count <= 1 || AnimationController.Instance == null) return;
+            _image.sprite = AnimationController.Instance.Get(_spriteList);
         }
 
         void OnDestroy() {

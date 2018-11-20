@@ -28,11 +28,9 @@ namespace EnhancedTwitchChat {
         public bool IsAtMainMenu = false;
         public bool ShouldWriteConfig = false;
         public static Plugin Instance { get; private set; }
-        public static int PixelsPerUnit = 100;
-        public static string TwitchChannelID = string.Empty;
+
         public readonly Config Config = new Config(Path.Combine(Environment.CurrentDirectory, "UserData\\EnhancedTwitchChat.ini"));
 
-        private ChatHandler _chatHandler = null;
 
         // https://api.twitch.tv/kraken/streams/ninja?client_id=jg6ij5z8mf8jr8si22i5uq8tobnmde
 
@@ -43,8 +41,8 @@ namespace EnhancedTwitchChat {
         public void OnApplicationStart() {
             Instance = this;
 
-            _chatHandler = new GameObject("EnhancedTwitchChat").AddComponent<ChatHandler>();
-            new Thread(() => TwitchIRCClient.Initialize(_chatHandler)).Start();
+            new GameObject("EnhancedTwitchChat").AddComponent<ChatHandler>();
+            new Thread(() => TwitchIRCClient.Initialize()).Start();
         }
 
         public void OnApplicationQuit() {
