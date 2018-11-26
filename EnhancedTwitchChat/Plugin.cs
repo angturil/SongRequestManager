@@ -23,7 +23,7 @@ using AsyncTwitch;
 namespace EnhancedTwitchChat {
     public class Plugin : IPlugin {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "0.3.3";
+        public string Version => "0.3.4";
 
         public bool IsAtMainMenu = false;
         public bool ShouldWriteConfig = false;
@@ -39,40 +39,77 @@ namespace EnhancedTwitchChat {
         }
 
         public void OnApplicationStart() {
+            if (Instance != null) return;
+
             Instance = this;
 
             new GameObject("EnhancedTwitchChat").AddComponent<ChatHandler>();
             new Thread(() => TwitchIRCClient.Initialize()).Start();
+
+            SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
+        }
+
+        private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1)
+        {
+            if (arg1.name == "Menu")
+                IsAtMainMenu = true;
+
+            else if (arg1.name == "GameCore")
+                IsAtMainMenu = false;
+        }
+
+        public void OnLevelWasLoaded(int level)
+        {
         }
 
         public void OnApplicationQuit() {
             Config.Save();
         }
-
-        public void OnLevelWasLoaded(int level) {
-            string menuName = SceneManager.GetSceneByBuildIndex(level).name;
-            if (menuName == "Menu") {
-                System.GC.Collect();
-
-                IsAtMainMenu = true;
-            }
-            else if (menuName.Contains("Environment")) {
-                IsAtMainMenu = false;
-            }
-        }
-
-        public void OnLevelWasInitialized(int level) {
-            
-        }
         
-        public void OnUpdate() {
-            if (ShouldWriteConfig) {
-                Config.Save();
-                ShouldWriteConfig = false;
-            }
+        public void OnLevelWasInitialized(int level) {
         }
         
         public void OnFixedUpdate() {
+        }
+
+        public void OnUpdate()
+        {
+            if (ShouldWriteConfig)
+            {
+                Config.Save();
+                ShouldWriteConfig = false;
+            }
+            
+            var c = GameObject.Find("Camera Plus")?.gameObject.GetComponent<Camera>();
+            if (c && !c.GetComponent<ManualCameraRenderer>())
+                c.gameObject.AddComponent<ManualCameraRenderer>();
+        }
+    }
+
+    public class ManualCameraRenderer : MonoBehaviour
+    {
+        public float fps = 60;
+        float elapsed;
+        Camera cam;
+
+        void Start()
+        {
+            cam = GetComponent<Camera>();
+            cam.enabled = false;
+        }
+
+        void Update()
+        {
+            elapsed += Time.deltaTime;
+            if (elapsed > 1.0f / fps)
+            {
+                elapsed = 0;
+                cam.enabled = true;
+            }
+            else if (cam.enabled)
+            {
+                cam.enabled = false;
+            }
         }
     }
 }

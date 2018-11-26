@@ -128,6 +128,7 @@
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities\ObjectPool.cs" />
+    <Compile Include="Utilities\ReflectionUtil.cs" />
     <Compile Include="Utilities\SimpleJSON.cs" />
     <Compile Include="Chat\TwitchIrcClient.cs" />
     <Compile Include="Utilities\Utilities.cs" />

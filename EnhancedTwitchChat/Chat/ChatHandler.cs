@@ -161,21 +161,13 @@ namespace EnhancedTwitchChat
         {
             if (!noGlowMaterial)
             {
-                Shader shader = Shader.Find("Custom/SpriteNoGlow");
+                Material shader = Resources.FindObjectsOfTypeAll<Material>().Where(m => m.name == "UINoGlow").FirstOrDefault();
                 if (shader)
                 {
                     noGlowMaterial = new Material(shader);
+                    noGlowMaterialUI = new Material(shader);
                     _background.material = new Material(shader);
                     _lockButtonImage.material = new Material(shader);
-                }
-            }
-
-            if (!noGlowMaterialUI)
-            {
-                Shader shader = Shader.Find("Custom/UINoGlow");
-                if (shader)
-                {
-                    noGlowMaterialUI = new Material(shader);
                     var mat = new Material(shader);
                     mat.color = Color.clear;
                     _chatMoverPrimitive.GetComponent<Renderer>().material = mat;
