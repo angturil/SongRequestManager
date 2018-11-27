@@ -39,4 +39,4 @@ For the rest of the setup, you will have to manually edit the config file (in Us
 | **ReverseChatOrder**       | When set to true, chat messages will enter from the top and exit on bottom instead of entering on bottom and exiting on top. |
 
 # Download
-[Click here to download the latest EnhancedTwitchChat.dll](https://github.com/brian91292/BeatSaber-EnhancedTwitchChat/releases)
+[Click here to download the latest EnhancedTwitchChat.dll](https://github.com/brian91292/BeatSaber-EnhancedTwitchChat/releases/latest)
