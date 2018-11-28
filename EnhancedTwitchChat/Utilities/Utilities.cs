@@ -10,6 +10,9 @@ using UnityEngine;
 using UnityEngine.Networking;
 using EnhancedTwitchChat.UI;
 using System.Drawing;
+using IllusionInjector;
+using IllusionPlugin;
+using System.Reflection;
 
 namespace EnhancedTwitchChat.Utils {
     class Utilities : MonoBehaviour {
@@ -211,38 +214,71 @@ namespace EnhancedTwitchChat.Utils {
                 }
             }
         }
-        
-        public static Texture2D LoadTexture(string FilePath) {
-            if (File.Exists(FilePath)) {
-                return LoadTexture(File.ReadAllBytes(FilePath));
-            }
-            return null;
-        }
 
-        public static Texture2D LoadTexture(byte[] file) {
-            if (file.Count() > 0) {
-                Texture2D Tex2D = new Texture2D(2, 2);
-                if (Tex2D.LoadImage(file)) {
-                    Tex2D.wrapMode = TextureWrapMode.Clamp;
-                    return Tex2D;
+        public static bool IsModInstalled(string modName)
+        {
+            foreach (IPlugin p in PluginManager.Plugins) {
+                if (p.Name == modName)
+                {
+                    return true;
                 }
             }
-            return null;
+            return false;
         }
 
-        public static Sprite LoadNewSprite(Texture2D SpriteTexture, float PixelsPerUnit = 100.0f) {
-            if (SpriteTexture) {
-                return Sprite.Create(SpriteTexture, new Rect(0, 0, SpriteTexture.width, SpriteTexture.height), new Vector2(0, 0), PixelsPerUnit);
+        public static Texture2D LoadTextureRaw(byte[] file)
+        {
+            if (file.Count() > 0)
+            {
+                Texture2D Tex2D = new Texture2D(2, 2);
+                if (Tex2D.LoadImage(file))
+                    return Tex2D;
             }
             return null;
         }
 
-        public static Sprite LoadNewSprite(string FilePath, float PixelsPerUnit = 100.0f) {
-            return LoadNewSprite(LoadTexture(FilePath), PixelsPerUnit);
+        public static Texture2D LoadTextureFromFile(string FilePath)
+        {
+            if (File.Exists(FilePath))
+                return LoadTextureRaw(File.ReadAllBytes(FilePath));
+
+            return null;
         }
 
-        public static Sprite LoadNewSprite(byte[] image, float PixelsPerUnit = 100.0f) {
-            return LoadNewSprite(LoadTexture(image), PixelsPerUnit);
+        public static Texture2D LoadTextureFromResources(string resourcePath)
+        {
+            return LoadTextureRaw(GetResource(Assembly.GetCallingAssembly(), resourcePath));
+        }
+
+        public static Sprite LoadSpriteRaw(byte[] image, float PixelsPerUnit = 100.0f)
+        {
+            return LoadSpriteFromTexture(LoadTextureRaw(image), PixelsPerUnit);
+        }
+
+        public static Sprite LoadSpriteFromTexture(Texture2D SpriteTexture, float PixelsPerUnit = 100.0f)
+        {
+            if (SpriteTexture)
+                return Sprite.Create(SpriteTexture, new Rect(0, 0, SpriteTexture.width, SpriteTexture.height), new Vector2(0, 0), PixelsPerUnit);
+
+            return null;
+        }
+
+        public static Sprite LoadSpriteFromFile(string FilePath, float PixelsPerUnit = 100.0f)
+        {
+            return LoadSpriteFromTexture(LoadTextureFromFile(FilePath), PixelsPerUnit);
+        }
+
+        public static Sprite LoadSpriteFromResources(string resourcePath, float PixelsPerUnit = 100.0f)
+        {
+            return LoadSpriteRaw(GetResource(Assembly.GetCallingAssembly(), resourcePath), PixelsPerUnit);
+        }
+
+        public static byte[] GetResource(Assembly asm, string ResourceName)
+        {
+            System.IO.Stream stream = asm.GetManifestResourceStream(ResourceName);
+            byte[] data = new byte[stream.Length];
+            stream.Read(data, 0, (int)stream.Length);
+            return data;
         }
 
         public static string StripHTML(string input) {

@@ -18,20 +18,19 @@ using EnhancedTwitchChat.Sprites;
 using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.UI;
+using AsyncTwitch;
 
 namespace EnhancedTwitchChat {
     public class Plugin : IPlugin {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "0.3.3";
+        public string Version => "0.3.5";
 
-        public bool IsAtMainMenu = false;
+        public bool IsAtMainMenu = true;
         public bool ShouldWriteConfig = false;
         public static Plugin Instance { get; private set; }
-        public static int PixelsPerUnit = 100;
-        public static string TwitchChannelID = string.Empty;
+
         public readonly Config Config = new Config(Path.Combine(Environment.CurrentDirectory, "UserData\\EnhancedTwitchChat.ini"));
 
-        private ChatHandler _chatHandler = null;
 
         // https://api.twitch.tv/kraken/streams/ninja?client_id=jg6ij5z8mf8jr8si22i5uq8tobnmde
 
@@ -40,47 +39,77 @@ namespace EnhancedTwitchChat {
         }
 
         public void OnApplicationStart() {
+            if (Instance != null) return;
+
             Instance = this;
+
+            new GameObject("EnhancedTwitchChat").AddComponent<ChatHandler>();
+            new Thread(() => TwitchIRCClient.Initialize()).Start();
+
+            SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
+        }
+
+        private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1)
+        {
+            if (arg1.name == "Menu")
+                IsAtMainMenu = true;
+
+            else if (arg1.name == "GameCore")
+                IsAtMainMenu = false;
+        }
+
+        public void OnLevelWasLoaded(int level)
+        {
         }
 
         public void OnApplicationQuit() {
             Config.Save();
         }
-
-        public void OnLevelWasLoaded(int level) {
-            string menuName = SceneManager.GetSceneByBuildIndex(level).name;
-            if (menuName == "Menu") {
-                if (!_chatHandler) {
-                    _chatHandler = new GameObject("EnhancedTwitchChat").AddComponent<ChatHandler>();
-                }
-
-                if (!TwitchIRCClient.Initialized) {
-                    new Thread(() => TwitchIRCClient.Initialize(_chatHandler)).Start();
-                    TwitchIRCClient.Initialized = true;
-                }
-
-                //Plugin.Log("Taking out the trash... ;)");
-                System.GC.Collect();
-
-                IsAtMainMenu = true;
-            }
-            else if (menuName.Contains("Environment")) {
-                IsAtMainMenu = false;
-            }
-        }
-
-        public void OnLevelWasInitialized(int level) {
-            
-        }
         
-        public void OnUpdate() {
-            if (ShouldWriteConfig) {
-                Config.Save();
-                ShouldWriteConfig = false;
-            }
+        public void OnLevelWasInitialized(int level) {
         }
         
         public void OnFixedUpdate() {
+        }
+
+        public void OnUpdate()
+        {
+            if (ShouldWriteConfig)
+            {
+                Config.Save();
+                ShouldWriteConfig = false;
+            }
+            
+            var c = GameObject.Find("Camera Plus")?.gameObject.GetComponent<Camera>();
+            if (c && !c.GetComponent<ManualCameraRenderer>())
+                c.gameObject.AddComponent<ManualCameraRenderer>();
+        }
+    }
+
+    public class ManualCameraRenderer : MonoBehaviour
+    {
+        public float fps = 60;
+        float elapsed;
+        Camera cam;
+
+        void Start()
+        {
+            cam = GetComponent<Camera>();
+            cam.enabled = false;
+        }
+
+        void Update()
+        {
+            elapsed += Time.deltaTime;
+            if (elapsed > 1.0f / fps)
+            {
+                elapsed = 0;
+                cam.enabled = true;
+            }
+            else if (cam.enabled)
+            {
+                cam.enabled = false;
+            }
         }
     }
 }

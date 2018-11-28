@@ -76,7 +76,7 @@ namespace EnhancedTwitchChat.Sprites {
                 yield return null;
 
                 frameTexture.wrapMode = TextureWrapMode.Clamp;
-                gifTexList.Add(new AnimationData(Sprite.Create(frameTexture, new Rect(0, 0, frameTexture.width, frameTexture.height), new Vector2(0, 0), Plugin.PixelsPerUnit), currentFrameInfo.delay));
+                gifTexList.Add(new AnimationData(Sprite.Create(frameTexture, new Rect(0, 0, frameTexture.width, frameTexture.height), new Vector2(0, 0), ChatHandler.Instance.pixelsPerUnit), currentFrameInfo.delay));
                 
                 if (callback != null && i == 0) {
                     callback(new List<AnimationData>() { gifTexList[0] }, emoteIndex);

@@ -1,178 +1,154 @@
-﻿using ChatSharp;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using EnhancedTwitchChat.Sprites;
 using EnhancedTwitchChat.Utils;
+using AsyncTwitch;
+using UnityEngine;
+using System.Threading;
 
-namespace EnhancedTwitchChat.Chat {
-    public class ChatMessage {
+namespace EnhancedTwitchChat.Chat
+{
+    public class ChatMessage
+    {
         public string msg = String.Empty;
-        public MessageInfo messageInfo = new MessageInfo();
-        public ChatMessage(string msg, MessageInfo messageInfo) {
-            this.msg = msg;
-            this.messageInfo = messageInfo;
-        }
-    };
-
-    public class MessageInfo {
-        public string badges;
-        public string twitchEmotes;
-        public string nameColor;
-        public string sender;
-        public string userID;
-        public string messageID;
+        public TwitchMessage twitchMessage = new TwitchMessage();
         public List<EmoteInfo> parsedEmotes = new List<EmoteInfo>();
         public List<BadgeInfo> parsedBadges = new List<BadgeInfo>();
+
+        public ChatMessage(string msg, TwitchMessage messageInfo)
+        {
+            this.msg = msg;
+            this.twitchMessage = messageInfo;
+        }
     };
 
-    class TwitchIRCClient {
+    class TwitchIRCClient
+    {
         public static bool Initialized = false;
-        public static bool IsConnected = false;
-        public static bool JoinedChannel = false;
         public static DateTime ConnectionTime;
         public static ConcurrentStack<ChatMessage> RenderQueue = new ConcurrentStack<ChatMessage>();
-
-        private static IrcClient client;
-        private static ChatHandler _chatHandler;
-        private static Dictionary<int, string> _userColors = new Dictionary<int, string>();
+        public static ConcurrentQueue<TwitchMessage> MessageQueue = new ConcurrentQueue<TwitchMessage>();
+        public static string ChannelID = string.Empty;
 
         private static System.Random _random;
+        private static string _lastRoomId;
 
-        public static void Initialize(ChatHandler chatHandler) {
 
-            _chatHandler = chatHandler;
+        public static void Initialize()
+        {
             _random = new System.Random(DateTime.Now.Millisecond);
-            string username = String.Empty;// Plugin.Instance.Config.TwitchUsername;
-            string oauthToken = String.Empty;// Plugin.Instance.Config.TwitchoAuthToken;
 
-            if (username == String.Empty) {
-                username = $"justinfan{_random.Next(0, int.MaxValue).ToString()}";
-                Plugin.Log($"Using username {username}");
+            if (!Utilities.IsModInstalled("Asynchronous Twitch Library"))
+            {
+                Plugin.Log("AsyncTwitch not installed!");
+                ChatHandler.Instance.displayStatusMessage = true;
+                return;
             }
 
-            // Create a connection to our twitch chat and setup event listeners
-            client = new IrcClient("irc.chat.twitch.tv", new IrcUser(username, username, oauthToken));
-            client.ConnectionComplete += Client_ConnectionComplete;
-            client.RawMessageRecieved += Client_RawMessageRecieved;
-            client.UserJoinedChannel += Client_UserJoinedChannel;
-            client.ConnectAsync();
+            InitAsyncTwitch();
         }
 
-        private static void Client_UserJoinedChannel(object sender, ChatSharp.Events.ChannelUserEventArgs e) {
-            JoinedChannel = true;
-        }
+        private static void InitAsyncTwitch()
+        {
+            while (TwitchConnection.Instance == null) Thread.Sleep(50);
 
-        public static void OnConnectionComplete() {
-            bool foundCurrentChannel = false;
-            if (client.Channels.Count() > 0) {
-                List<IrcChannel> removalQueue = new List<IrcChannel>();
-                foreach (IrcChannel c in client.Channels) {
-                    if (c.Name.Substring(1) != Plugin.Instance.Config.TwitchChannel) {
-                        c.Part();
-                        removalQueue.Add(c);
-                    }
-                    else {
-                        foundCurrentChannel = true;
-                    }
-                }
-                foreach (IrcChannel c in removalQueue) {
-                    client.Channels.Remove(c);
-                }
-            }
-            if (!foundCurrentChannel) {
-                ConnectionTime = DateTime.Now;
-                JoinedChannel = false;
-                client.JoinChannel($"#{Plugin.Instance.Config.TwitchChannel}");
-                _chatHandler.displayStatusMessage = true;
-            }
-        }
+            TwitchConnection.Instance.StartConnection();
 
-        private static void Client_ConnectionComplete(object sender, EventArgs e) {
+            while (!TwitchConnection.IsConnected) Thread.Sleep(50);
+
+            Thread.Sleep(1000);
+
+            TwitchConnection.Instance.RegisterOnMessageReceived(TwitchConnection_OnMessageReceived);
+            TwitchConnection.Instance.RegisterOnChannelJoined(TwitchConnection_OnChannelJoined);
+            TwitchConnection.Instance.RegisterOnChannelParted(TwitchConnection_OnChannelParted);
+            TwitchConnection.Instance.RegisterOnRoomStateChanged(TwitchConnection_OnRoomstateChanged);
+
+            TwitchConnection.Instance.JoinRoom(Plugin.Instance.Config.TwitchChannel);
+
+            ChatHandler.Instance.displayStatusMessage = true;
+            Initialized = true;
             ConnectionTime = DateTime.Now;
-            IsConnected = true;
-            client.SendRawMessage("CAP REQ :twitch.tv/tags twitch.tv/commands");
-            OnConnectionComplete();
-            Plugin.Log("Connected to twitch chat successfully!");
+
+            Plugin.Log("AsyncTwitch initialized!");
+
+            ProcessingThread();
         }
 
-        private static MessageInfo GetMessageInfo(string msgSender, Dictionary<string, string> messageComponents) {
-            MessageInfo messageInfo = new MessageInfo();
-            messageInfo.twitchEmotes = messageComponents["emotes"];
-            messageInfo.badges = messageComponents["badges"];
-            messageInfo.userID = messageComponents["user-id"];
-            messageInfo.messageID = messageComponents["id"];
+        private static void TwitchConnection_OnRoomstateChanged(TwitchConnection obj, RoomState roomstate)
+        {
+            Plugin.Log($"RoomState changed! {roomstate.RoomID}");
+            if (roomstate != TwitchConnection.Instance.RoomStates[Plugin.Instance.Config.TwitchChannel]) return;
 
-            string displayName = messageComponents["display-name"];
-            messageInfo.sender = (displayName == null || displayName == string.Empty) ? msgSender : displayName;
-
-            string displayColor = messageComponents["color"];
-            if ((displayColor == null || displayColor == String.Empty) && !_userColors.ContainsKey(msgSender.GetHashCode())) {
-                _userColors.Add(msgSender.GetHashCode(), (String.Format("#{0:X6}", new Random(msgSender.GetHashCode()).Next(0x1000000)) + "FF"));
+            if (roomstate.RoomID != _lastRoomId)
+            {
+                ChatHandler.Instance.displayStatusMessage = true;
+                _lastRoomId = roomstate.RoomID;
+                TwitchIRCClient.ChannelID = roomstate.RoomID;
+                Plugin.Log($"Twitch channel ID is {TwitchIRCClient.ChannelID}");
+                ConnectionTime = DateTime.Now;
             }
-            messageInfo.nameColor = (displayColor == null || displayColor == string.Empty) ? _userColors[msgSender.GetHashCode()] : displayColor;
-
-            if (messageComponents.ContainsKey("bits")) {
-                int numBits = Convert.ToInt32(messageComponents["bits"]);
-                //Plugin.Instance.Config.TwitchBitBalance += numBits;
-                //Plugin.Log($"Got {numBits} bits! Total balance is {Plugin.TwitchBitBalance}");
-            }
-            return messageInfo;
         }
 
-        private static void Client_RawMessageRecieved(object s, ChatSharp.Events.RawMessageEventArgs e) {
-            //Plugin.Log(e.Message);
-            try {
-                if (e.Message.StartsWith("@")) {
-                    string[] parts = e.Message.Split(new char[] { ' ' }, 2);
-                    string message = parts[1];
-                    Dictionary<string, string> messageComponents = parts[0].Substring(1).Split(';').ToList().ToDictionary(x => x.Substring(0, x.IndexOf('=')), y => y.Substring(y.IndexOf('=') + 1));
-                    if (System.Text.RegularExpressions.Regex.IsMatch(message, ":.*!.*@.*.tmi.twitch.tv")) {
-                        string msgSender = message.Substring(1, message.IndexOf('!') - 1);
-                        string msgPrefix = $":{msgSender}!{msgSender}@{msgSender}.tmi.twitch.tv ";
-                        if (message.StartsWith(msgPrefix)) {
-                            List<string> msgArray = message.Replace(msgPrefix, "").Split(new char[] { ' ' }, 3).ToList();
-                            switch (msgArray[0]) {
-                                case "PRIVMSG":
-                                    // Grab the info we care about from the current message
-                                    MessageInfo messageInfo = GetMessageInfo(msgSender, messageComponents);
+        private static void TwitchConnection_OnChannelJoined(TwitchConnection obj, string channel)
+        {
+            Plugin.Log("Joined channel " + channel);
+        }
 
-                                    // Remove the : from the beginning of the msg
-                                    msgArray[2] = msgArray[2].Substring(1);
+        private static void TwitchConnection_OnChannelParted(TwitchConnection obj, string channel)
+        {
+            Plugin.Log("Left channel " + channel);
+        }
 
-                                    // Parse any emotes in the message, download them, then queue it for rendering
-                                    SpriteParser.Parse(new ChatMessage(Utilities.StripHTML(msgArray[2]), messageInfo), _chatHandler);
-                                    break;
+        private static void TwitchConnection_OnMessageReceived(TwitchConnection twitchCon, TwitchMessage twitchMessage)
+        {
+            MessageQueue.Enqueue(twitchMessage);
+        }
+
+        private static void ProcessingThread()
+        {
+            while (true)
+            {
+                if (MessageQueue.Count > 0 && MessageQueue.TryDequeue(out var twitchMessage))
+                {
+                    if (twitchMessage.Room != null && twitchMessage.Room.RoomID != TwitchIRCClient.ChannelID) return;
+
+                    try
+                    {
+                        if (twitchMessage.Author != null && twitchMessage.Author.DisplayName != String.Empty)
+                            MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMessage.Content), twitchMessage));
+
+                        else
+                        {
+                            if (twitchMessage.Content.Contains("CLEARCHAT"))
+                            {
+                                string[] parts = twitchMessage.RawMessage.Split(new char[] { ' ' }, 2);
+                                Dictionary<string, string> messageComponents = parts[0].Substring(1).Split(';').ToList().ToDictionary(x => x.Substring(0, x.IndexOf('=')), y => y.Substring(y.IndexOf('=') + 1));
+                                ChatHandler.Instance.PurgeChatMessages(messageComponents["target-user-id"]);
                             }
+                            //else if (message.Contains("USERNOTICE"))
+                            //{
+                            //    switch (messageComponents["msg-id"])
+                            //    {
+                            //        case "sub":
+                            //        case "resub":
+                            //        case "subgift":
+                            //            //MessageInfo messageInfo = GetMessageInfo(twitchMessage, String.Empty, messageComponents);
+                            //            string newMsg = messageComponents["system-msg"].Replace("\\s", " ");
+                            //            SpriteParser.Parse(new ChatMessage($"<b>{newMsg.Substring(newMsg.IndexOf(" ") + 1)}</b>", twitchMessage));
+                            //            break;
+                            //    }
+                            //}
                         }
                     }
-                    else {
-                        if (message.Contains("ROOMSTATE")) {
-                            Plugin.TwitchChannelID = messageComponents["room-id"];
-                            Plugin.Log($"Channel room-id: {Plugin.TwitchChannelID}");
-                        }
-                        else if (message.Contains("CLEARCHAT")) {
-                            _chatHandler.OnUserTimedOut(messageComponents["target-user-id"]);
-
-                        }
-                        else if (message.Contains("USERNOTICE")) {
-                            switch (messageComponents["msg-id"]) {
-                                case "sub":
-                                case "resub":
-                                case "subgift":
-                                    MessageInfo messageInfo = GetMessageInfo(String.Empty, messageComponents);
-                                    string newMsg = messageComponents["system-msg"].Replace("\\s", " ");
-                                    SpriteParser.Parse(new ChatMessage($"<b>{newMsg.Substring(newMsg.IndexOf(" ") + 1)}</b>", messageInfo), _chatHandler);
-                                    break;
-                            }
-                        }
+                    catch (Exception ex)
+                    {
+                        Plugin.Log($"Caught exception \"{ex.Message}\" from {ex.Source}");
+                        Plugin.Log($"Stack trace: {ex.StackTrace}");
                     }
                 }
-            }
-            catch (Exception) {
-                //Plugin.Log($"Caught exception \"{ex.Message}\" from {ex.Source}");
-                //Plugin.Log($"Stack trace: {ex.StackTrace}");
+                Thread.Sleep(15);
             }
         }
     };

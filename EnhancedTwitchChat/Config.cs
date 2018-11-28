@@ -4,8 +4,10 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EnhancedTwitchChat {
-    public class Config {
+namespace EnhancedTwitchChat
+{
+    public class Config
+    {
         public string FilePath { get; }
 
         public string TwitchChannel = "";
@@ -19,7 +21,7 @@ namespace EnhancedTwitchChat {
         public float ChatWidth = 160;
         public float LineSpacing = 2;
         public int MaxMessages = 20;
-        
+
         public float PositionX = 2.0244143f;
         public float PositionY = 0.373768f;
         public float PositionZ = 0.08235432f;
@@ -47,11 +49,14 @@ namespace EnhancedTwitchChat {
         private readonly FileSystemWatcher _configWatcher;
         private bool _saving;
 
-        public Color TextColor {
-            get {
+        public Color TextColor
+        {
+            get
+            {
                 return new Color(TextColorR, TextColorG, TextColorB, TextColorA);
             }
-            set {
+            set
+            {
                 TextColorR = value.r;
                 TextColorG = value.g;
                 TextColorB = value.b;
@@ -59,11 +64,14 @@ namespace EnhancedTwitchChat {
             }
         }
 
-        public Color BackgroundColor {
-            get {
+        public Color BackgroundColor
+        {
+            get
+            {
                 return new Color(BackgroundColorR, BackgroundColorG, BackgroundColorB, BackgroundColorA);
             }
-            set {
+            set
+            {
                 BackgroundColorR = value.r;
                 BackgroundColorG = value.g;
                 BackgroundColorB = value.b;
@@ -71,42 +79,53 @@ namespace EnhancedTwitchChat {
             }
         }
 
-        public Vector3 ChatPosition {
-            get {
+        public Vector3 ChatPosition
+        {
+            get
+            {
                 return new Vector3(PositionX, PositionY, PositionZ);
             }
-            set {
+            set
+            {
                 PositionX = value.x;
                 PositionY = value.y;
                 PositionZ = value.z;
             }
         }
 
-        public Vector3 ChatRotation {
+        public Vector3 ChatRotation
+        {
             get { return new Vector3(RotationX, RotationY, RotationZ); }
-            set {
+            set
+            {
                 RotationX = value.x;
                 RotationY = value.y;
                 RotationZ = value.z;
             }
         }
-        
-        public Config(string filePath) {
+
+        public Config(string filePath)
+        {
             FilePath = filePath;
 
-            if (File.Exists(filePath)) {
+            if (File.Exists(filePath))
+            {
                 Load();
             }
-            else {
+            else
+            {
                 // If their old config exists, rename it then load their settings
-                if (File.Exists("UserData\\BetterTwitchChat.ini")) {
+                if (File.Exists("UserData\\BetterTwitchChat.ini"))
+                {
                     File.Move("UserData\\BetterTwitchChat.ini", "UserData\\EnhancedTwitchChat.ini");
                     Load();
                     Plugin.Log("Migrated settings from BetterTwitchChat.ini to EnhancedTwitchChat.ini");
                 }
-                else {
+                else
+                {
                     string configSectionName = "BetterTwitchChat";
-                    if (ModPrefs.GetString(configSectionName, "ChannelToJoin") != String.Empty && !ModPrefs.GetBool(configSectionName, "Migrated", false)) {
+                    if (ModPrefs.GetString(configSectionName, "ChannelToJoin") != String.Empty && !ModPrefs.GetBool(configSectionName, "Migrated", false))
+                    {
                         //TwitchoAuthToken = ModPrefs.GetString(configSectionName, "oAuth_Token", string.Empty);
                         //TwitchUsername = ModPrefs.GetString(configSectionName, "Username", string.Empty);
                         TwitchChannel = ModPrefs.GetString(configSectionName, "ChannelToJoin", String.Empty).ToLower().Replace(" ", "");
@@ -129,7 +148,8 @@ namespace EnhancedTwitchChat {
                 }
             }
 
-            _configWatcher = new FileSystemWatcher($"{Environment.CurrentDirectory}\\UserData") {
+            _configWatcher = new FileSystemWatcher($"{Environment.CurrentDirectory}\\UserData")
+            {
                 NotifyFilter = NotifyFilters.LastWrite,
                 Filter = "EnhancedTwitchChat.ini",
                 EnableRaisingEvents = true
@@ -137,41 +157,50 @@ namespace EnhancedTwitchChat {
             _configWatcher.Changed += ConfigWatcherOnChanged;
         }
 
-        ~Config() {
+        ~Config()
+        {
             _configWatcher.Changed -= ConfigWatcherOnChanged;
         }
 
-        public void Save() {
+        public void Save()
+        {
             _saving = true;
             ConfigSerializer.SaveConfig(this, FilePath);
         }
 
-        public void Load() {
+        public void Load()
+        {
             ConfigSerializer.LoadConfig(this, FilePath);
-            if (TwitchChannel.Length > 0) {
+            if (TwitchChannel.Length > 0)
+            {
                 TwitchChannel = TwitchChannel.ToLower().Replace(" ", "");
             }
             //else {
-                //TwitchChannel = TwitchUsername;
+            //TwitchChannel = TwitchUsername;
             //}
-            if (BackgroundPadding < 0) {
+            if (BackgroundPadding < 0)
+            {
                 BackgroundPadding = 0;
             }
 
-            if (MaxMessages < 1) {
+            if (MaxMessages < 1)
+            {
                 MaxMessages = 1;
             }
         }
 
-        private void ConfigWatcherOnChanged(object sender, FileSystemEventArgs fileSystemEventArgs) {
-            if (_saving) {
+        private void ConfigWatcherOnChanged(object sender, FileSystemEventArgs fileSystemEventArgs)
+        {
+            if (_saving)
+            {
                 _saving = false;
                 return;
             }
 
             Load();
 
-            if (ConfigChangedEvent != null) {
+            if (ConfigChangedEvent != null)
+            {
                 ConfigChangedEvent(this);
             }
         }

@@ -18,9 +18,14 @@ namespace EnhancedTwitchChat.Sprites {
     };
 
     class AnimationController : MonoBehaviour {
+        public static AnimationController Instance = null;
+
         private List<AnimControllerData> _registeredAnimations = new List<AnimControllerData>();
         void Awake() {
             UnityEngine.Object.DontDestroyOnLoad(this);
+
+            if (Instance == null) Instance = this;
+            else Destroy(this);
         }
 
         public void Register(List<AnimationData> _animation) {
