@@ -38,8 +38,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="AsyncTwitch">
-      <HintPath>..\..\AsyncTwitch\AsyncTwitch\bin\Release\AsyncTwitch.dll</HintPath>
+    <Reference Include="AsyncTwitch, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\AsyncTwitch.dll</HintPath>
     </Reference>
     <Reference Include="IllusionInjector, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -112,7 +113,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Config.cs" />
-    <Compile Include="Resources\BuiltInResources.cs" />
     <Compile Include="Chat\ChatMover.cs" />
     <Compile Include="Chat\LockToggle.cs" />
     <Compile Include="Sprites\AnimatedSprite.cs" />
@@ -133,7 +133,10 @@
     <Compile Include="Chat\TwitchIrcClient.cs" />
     <Compile Include="Utilities\Utilities.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\LockedIcon.png" />
+    <EmbeddedResource Include="Resources\UnlockedIcon.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>

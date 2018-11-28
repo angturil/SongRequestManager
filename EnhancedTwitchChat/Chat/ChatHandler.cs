@@ -78,8 +78,8 @@ namespace EnhancedTwitchChat
             // Pre-initialize our system fonts to reduce lag later on
             Drawing.Initialize(_gameObject.transform);
 
-            _lockedSprite = Utilities.LoadNewSprite(BuiltInResources.LockedIcon);
-            _unlockedSprite = Utilities.LoadNewSprite(BuiltInResources.UnlockedIcon);
+            _lockedSprite = Utilities.LoadSpriteFromResources("EnhancedTwitchChat.Resources.LockedIcon.png");
+            _unlockedSprite = Utilities.LoadSpriteFromResources("EnhancedTwitchChat.Resources.UnlockedIcon.png");
 
             Plugin.Instance.Config.ConfigChangedEvent += PluginOnConfigChangedEvent;
 
