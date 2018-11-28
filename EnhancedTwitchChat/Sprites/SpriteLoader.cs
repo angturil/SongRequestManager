@@ -116,7 +116,7 @@ namespace EnhancedTwitchChat.Sprites
             float fps = 1.0f / Time.deltaTime;
             if (!Plugin.Instance.IsAtMainMenu && fps < XRDevice.refreshRate - 5)
             {
-                _waitForFrames = (int)XRDevice.refreshRate;
+                //_waitForFrames = (int)XRDevice.refreshRate;
                 return;
             }
 

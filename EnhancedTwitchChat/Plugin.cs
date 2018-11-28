@@ -23,9 +23,9 @@ using AsyncTwitch;
 namespace EnhancedTwitchChat {
     public class Plugin : IPlugin {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "0.3.4";
+        public string Version => "0.3.5";
 
-        public bool IsAtMainMenu = false;
+        public bool IsAtMainMenu = true;
         public bool ShouldWriteConfig = false;
         public static Plugin Instance { get; private set; }
 

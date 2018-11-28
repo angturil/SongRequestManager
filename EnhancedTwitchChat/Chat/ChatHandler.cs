@@ -211,7 +211,7 @@ namespace EnhancedTwitchChat
                 float fps = 1.0f / Time.deltaTime;
                 if (!Plugin.Instance.IsAtMainMenu && fps < XRDevice.refreshRate - 5)
                 {
-                    _waitForFrames = 15;
+                    //_waitForFrames = 15;
                     //Plugin.Log($"[{DateTime.Now.ToLongTimeString()}] FPS: {fps}, {TwitchIRCClient.MessageQueue.Count.ToString()} messages queued!");
                     return;
                 }
