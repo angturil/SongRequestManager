@@ -1,3 +1,6 @@
+# Download
+[Click here to download the latest EnhancedTwitchChat.dll](https://github.com/brian91292/BeatSaber-EnhancedTwitchChat/releases/latest)
+
 # Mod Info
 EnhancedTwitchChat is a rich text Twitch chat integration mod with full unicode, emote, and emoji support.
 
@@ -37,6 +40,3 @@ For the rest of the setup, you will have to manually edit the config file (in Us
 | **BackgroundColorR/G/B/A** | The color of the chat background, on a scale of 0-1. If your colors are between 0-255, just divide by 255 to get this value! |
 | **LockChatPosition**       | Whether or not the chat can be moved by pointing at it with the controller laser and gripping with the trigger.              |
 | **ReverseChatOrder**       | When set to true, chat messages will enter from the top and exit on bottom instead of entering on bottom and exiting on top. |
-
-# Download
-[Click here to download the latest EnhancedTwitchChat.dll](https://github.com/brian91292/BeatSaber-EnhancedTwitchChat/releases/latest)
