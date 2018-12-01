@@ -45,7 +45,7 @@ namespace EnhancedTwitchChat.Sprites {
     };
 
     class AnimatedSpriteDecoder {
-        public static IEnumerator Process(byte[] gifData, Action<List<AnimationData>, string> callback, string emoteIndex) {
+        public static IEnumerator Process(byte[] gifData, Action<List<AnimationData>, SpriteDownloadInfo> callback, SpriteDownloadInfo spriteDownloadInfo) {
             List<AnimationData> gifTexList = new List<AnimationData>();
             GifInfo frameInfo = new GifInfo();
             DateTime startTime = DateTime.Now;
@@ -79,14 +79,14 @@ namespace EnhancedTwitchChat.Sprites {
                 gifTexList.Add(new AnimationData(Sprite.Create(frameTexture, new Rect(0, 0, frameTexture.width, frameTexture.height), new Vector2(0, 0), ChatHandler.Instance.pixelsPerUnit), currentFrameInfo.delay));
                 
                 if (callback != null && i == 0) {
-                    callback(new List<AnimationData>() { gifTexList[0] }, emoteIndex);
+                    callback(new List<AnimationData>() { gifTexList[0] }, spriteDownloadInfo);
                 }
             }
 
             yield return null;
 
             if (callback != null) {
-                callback(gifTexList, emoteIndex);
+                callback(gifTexList, spriteDownloadInfo);
             }
 
             Plugin.Log($"Finished decoding gif! Elapsed time: {(DateTime.Now - startTime).TotalSeconds.ToString()} seconds.");
