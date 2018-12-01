@@ -26,8 +26,7 @@ namespace EnhancedTwitchChat
         public int pixelsPerUnit = 100;
         public Material noGlowMaterial = null;
         public Material noGlowMaterialUI = null;
-
-        private GameObject _gameObject = null;
+        
         private Canvas _twitchChatCanvas = null;
         private List<CustomText> _chatMessages = new List<CustomText>();
         private ObjectPool<Image> _imagePool;
@@ -44,10 +43,11 @@ namespace EnhancedTwitchChat
         private bool _messageRendering = false;
         private int _waitForFrames = 0;
 
+        
+
         public void Awake()
         {
-            _gameObject = this.gameObject;
-            DontDestroyOnLoad(_gameObject);
+            DontDestroyOnLoad(gameObject);
 
             if (Instance == null) Instance = this;
             else
@@ -56,6 +56,7 @@ namespace EnhancedTwitchChat
                 return;
             }
 
+            // Precache a pool of images objects that will be used for displaying emotes/badges later on
             _imagePool = new ObjectPool<Image>(50,
                 // OnAlloc
                 ((Image image) =>
@@ -75,37 +76,48 @@ namespace EnhancedTwitchChat
                 })
             );
 
-            // Pre-initialize our system fonts to reduce lag later on
-            Drawing.Initialize(_gameObject.transform);
+            // Pre-initialize our system fonts to reduce potential lag later on
+            Drawing.Initialize(gameObject.transform);
+            
+            // Startup the sprite loader and anim controller
+            new GameObject("EnhancedTwitchChatAnimController").AddComponent<AnimationController>();
+            new GameObject("EnhancedTwitchChatSpriteLoader").AddComponent<SpriteLoader>();
 
+            // Initialize the chats UI
+            InitializeChatUI();
+
+            // Subscribe to events
+            SceneManager.sceneLoaded += SceneManagerOnSceneLoaded;
+            Plugin.Instance.Config.ConfigChangedEvent += PluginOnConfigChangedEvent;
+
+            Plugin.Log("EnhancedTwitchChat initialized");
+        }
+
+        private void InitializeChatUI()
+        {
             _lockedSprite = Utilities.LoadSpriteFromResources("EnhancedTwitchChat.Resources.LockedIcon.png");
             _unlockedSprite = Utilities.LoadSpriteFromResources("EnhancedTwitchChat.Resources.UnlockedIcon.png");
 
-            Plugin.Instance.Config.ConfigChangedEvent += PluginOnConfigChangedEvent;
-
-            new GameObject().AddComponent<AnimationController>();
-            new GameObject().AddComponent<SpriteLoader>();
-
-            _twitchChatCanvas = _gameObject.AddComponent<Canvas>();
+            _twitchChatCanvas = gameObject.AddComponent<Canvas>();
             _twitchChatCanvas.renderMode = RenderMode.WorldSpace;
-            var collider = _gameObject.AddComponent<MeshCollider>();
-            var scaler = _gameObject.AddComponent<CanvasScaler>();
+            var collider = gameObject.AddComponent<MeshCollider>();
+            var scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = pixelsPerUnit;
             _canvasRectTransform = _twitchChatCanvas.GetComponent<RectTransform>();
             _canvasRectTransform.localScale = new Vector3(0.012f * Plugin.Instance.Config.ChatScale, 0.012f * Plugin.Instance.Config.ChatScale, 0.012f * Plugin.Instance.Config.ChatScale);
 
-            _background = new GameObject().AddComponent<Image>();
-            _background.rectTransform.SetParent(_gameObject.transform, false);
+            _background = new GameObject("EnhancedTwitchChatBackground").AddComponent<Image>();
+            _background.rectTransform.SetParent(gameObject.transform, false);
             _background.color = Plugin.Instance.Config.BackgroundColor;
             _background.rectTransform.pivot = new Vector2(0, 0);
             _background.rectTransform.sizeDelta = new Vector2(Plugin.Instance.Config.ChatWidth + Plugin.Instance.Config.BackgroundPadding, 0);
             _background.rectTransform.localPosition = new Vector3(0 - (Plugin.Instance.Config.ChatWidth + Plugin.Instance.Config.BackgroundPadding) / 2, 0, 0);
 
-            var lockButtonGameObj = new GameObject();
+            var lockButtonGameObj = new GameObject("EnhancedTwitchChatLockButton");
             _lockButtonImage = lockButtonGameObj.AddComponent<Image>();
             _lockButtonImage.preserveAspect = true;
             _lockButtonImage.rectTransform.sizeDelta = new Vector2(10, 10);
-            _lockButtonImage.rectTransform.SetParent(_gameObject.transform, false);
+            _lockButtonImage.rectTransform.SetParent(gameObject.transform, false);
             _lockButtonImage.rectTransform.pivot = new Vector2(0, 0);
             _lockButtonImage.color = Color.white.ColorWithAlpha(0.15f);
             lockButtonGameObj.AddComponent<Shadow>();
@@ -121,16 +133,12 @@ namespace EnhancedTwitchChat
 
             while (_chatMessages.Count < Plugin.Instance.Config.MaxMessages)
             {
-                var currentMessage = Drawing.InitText("", Color.clear, Plugin.Instance.Config.ChatScale, new Vector2(Plugin.Instance.Config.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), _gameObject.transform, TextAnchor.UpperLeft, noGlowMaterialUI);
+                var currentMessage = Drawing.InitText("", Color.clear, Plugin.Instance.Config.ChatScale, new Vector2(Plugin.Instance.Config.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), gameObject.transform, TextAnchor.UpperLeft, noGlowMaterialUI);
                 if (!Plugin.Instance.Config.ReverseChatOrder) _chatMessages.Add(currentMessage);
                 else _chatMessages.Insert(0, currentMessage);
             }
-
-            SceneManager.sceneLoaded += SceneManagerOnSceneLoaded;
-
-            Plugin.Log("EnhancedTwitchChat initialized");
         }
-
+        
         private void PluginOnConfigChangedEvent(Config config)
         {
             TwitchConnection.Instance.JoinRoom(config.TwitchChannel);
@@ -281,12 +289,12 @@ namespace EnhancedTwitchChat
             currentMessage.color = Plugin.Instance.Config.TextColor;
             foreach (BadgeInfo b in messageInfo.parsedBadges)
             {
-                Drawing.OverlayEmote(currentMessage, b.swapChar, _imagePool, new CachedSpriteData(b.sprite));
+                Drawing.OverlaySprite(currentMessage, b.swapChar, _imagePool, b.spriteIndex);
                 yield return null;
             }
             foreach (EmoteInfo e in messageInfo.parsedEmotes)
             {
-                Drawing.OverlayEmote(currentMessage, e.swapChar, _imagePool, e.cachedSpriteInfo);
+                Drawing.OverlaySprite(currentMessage, e.swapChar, _imagePool, e.spriteIndex);
                 yield return null;
             }
 
@@ -310,10 +318,12 @@ namespace EnhancedTwitchChat
             }
         }
 
-        public void OverlayEmote(Sprite emote, string emoteIndex)
+        public void OverlayEmote(Sprite emote, SpriteDownloadInfo spriteDownloadInfo)
         {
             try
             {
+                string emoteIndex = spriteDownloadInfo.index;
+                string messageIndex = spriteDownloadInfo.messageIndex;
                 foreach (CustomText currentMessage in _chatMessages)
                 {
                     if (currentMessage.messageInfo == null) continue;
@@ -322,20 +332,14 @@ namespace EnhancedTwitchChat
                     {
                         foreach (EmoteInfo e in currentMessage.messageInfo.parsedEmotes)
                         {
-                            if (e.emoteIndex == emoteIndex && e.cachedSpriteInfo == null)
-                            {
-                                e.cachedSpriteInfo = new CachedSpriteData(emote);
-                                Drawing.OverlayEmote(currentMessage, e.swapChar, _imagePool, e.cachedSpriteInfo);
-                            }
+                            if (e.spriteIndex == emoteIndex && !e.hasOverlayed)
+                                Drawing.OverlaySprite(currentMessage, e.swapChar, _imagePool, e.spriteIndex);
                         }
 
                         foreach (BadgeInfo b in currentMessage.messageInfo.parsedBadges)
                         {
-                            if (b.badgeIndex == emoteIndex && b.sprite == null)
-                            {
-                                b.sprite = emote;
-                                Drawing.OverlayEmote(currentMessage, b.swapChar, _imagePool, new CachedSpriteData(b.sprite));
-                            }
+                            if (b.spriteIndex == emoteIndex && !b.hasOverlayed)
+                                Drawing.OverlaySprite(currentMessage, b.swapChar, _imagePool, b.spriteIndex);
                         }
                     }
                 }
@@ -346,10 +350,12 @@ namespace EnhancedTwitchChat
             }
         }
         
-        public void OverlayAnimatedEmote(List<AnimationData> textureList, string emoteIndex)
+        public void OverlayAnimatedEmote(List<AnimationData> textureList, SpriteDownloadInfo spriteDownloadInfo)
         {
             try
             {
+                string emoteIndex = spriteDownloadInfo.index;
+                string messageIndex = spriteDownloadInfo.messageIndex;
                 if (SpriteLoader.CachedSprites.ContainsKey(emoteIndex))
                 {
                     var animationInfo = SpriteLoader.CachedSprites[emoteIndex]?.animationInfo;
@@ -382,11 +388,8 @@ namespace EnhancedTwitchChat
                     {
                         foreach (EmoteInfo e in currentMessage.messageInfo.parsedEmotes)
                         {
-                            if (e.emoteIndex == emoteIndex)
-                            {
-                                e.cachedSpriteInfo = SpriteLoader.CachedSprites[emoteIndex];
-                                Drawing.OverlayEmote(currentMessage, e.swapChar, _imagePool, e.cachedSpriteInfo);
-                            }
+                            if (e.spriteIndex == emoteIndex && !e.hasOverlayed)
+                                Drawing.OverlaySprite(currentMessage, e.swapChar, _imagePool, e.spriteIndex);
                         }
                     }
                 }

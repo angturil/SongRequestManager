@@ -52,11 +52,6 @@ namespace EnhancedTwitchChat.UI
         private static List<Font> cachedSystemFonts = new List<Font>();
         public static void Initialize(Transform parent)
         {
-            for (int i = 0; i < Plugin.Instance.Config.MaxMessages + 1; i += MaxFontUsages)
-            {
-                cachedSystemFonts.Add(LoadSystemFont(Plugin.Instance.Config.FontName));
-            }
-
             CustomText tmpText = InitText(spriteSpacing, Color.white.ColorWithAlpha(0), 10, new Vector2(1000, 1000), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.MiddleLeft);
             while (tmpText.preferredWidth < 4)
             {
@@ -64,7 +59,6 @@ namespace EnhancedTwitchChat.UI
             }
             spriteSpacing = tmpText.text;
             GameObject.Destroy(tmpText.gameObject);
-            //Plugin.Log($"Sprite Spacing: {tmpText.preferredWidth.ToString()}, NumSpaces: {spriteSpacing.Count().ToString()}");
         }
 
         private static Font LoadSystemFont(string font)
@@ -118,7 +112,7 @@ namespace EnhancedTwitchChat.UI
             tmpText.rectTransform.sizeDelta = sizeDelta;
             tmpText.supportRichText = true;
             tmpText.text = text;
-            tmpText.font = LoadSystemFont(Plugin.Instance.Config.FontName);// cachedSystemFonts[fontUseIndex];
+            tmpText.font = LoadSystemFont(Plugin.Instance.Config.FontName);
             tmpText.fontSize = 10;
 
             tmpText.verticalOverflow = VerticalWrapMode.Overflow;
@@ -132,32 +126,32 @@ namespace EnhancedTwitchChat.UI
             return tmpText;
         }
 
-        public static void OverlayEmote(CustomText currentMessage, char swapChar, ObjectPool<Image> imagePool, CachedSpriteData cachedSpriteInfo)
+        public static void OverlaySprite(CustomText currentMessage, char swapChar, ObjectPool<Image> imagePool, string spriteIndex)
         {
-            // Don't even try to overlay an emote if it's not been cached properly
-            if (cachedSpriteInfo == null || (cachedSpriteInfo.sprite == null && cachedSpriteInfo.animationInfo == null))
-            {
-                //Plugin.Log("Sprite was not fully cached!");
+            CachedSpriteData cachedSpriteInfo = SpriteLoader.CachedSprites.ContainsKey(spriteIndex) ? SpriteLoader.CachedSprites[spriteIndex] : null;
+
+            // If cachedSpriteInfo is null, the emote will be overlayed at a later time once it's finished being cached
+            if (cachedSpriteInfo == null)
                 return;
-            }
 
             bool animatedEmote = cachedSpriteInfo.animationInfo != null;
-
             foreach (int i in Utilities.IndexOfAll(currentMessage.text, Char.ConvertFromUtf32(swapChar)))
             {
                 try
                 {
                     if (i > 0 && i < currentMessage.text.Count() - 1 && currentMessage.text[i - 1] == ' ' && currentMessage.text[i + 1] == ' ')
                     {
-                        var image = imagePool.Alloc();
+                        Image image = imagePool.Alloc();
+                        image.preserveAspect = true;
+                        image.rectTransform.sizeDelta = new Vector2(7.0f, 7.0f);
+                        image.rectTransform.pivot = new Vector2(0, 0);
 
                         if (animatedEmote)
                         {
-                            var animatedImage = image.gameObject.GetComponent<AnimatedSprite>();
+                            AnimatedSprite animatedImage = image.gameObject.GetComponent<AnimatedSprite>();
                             if (animatedImage == null)
-                            {
                                 animatedImage = image.gameObject.AddComponent<AnimatedSprite>();
-                            }
+
                             animatedImage.Init(image, cachedSpriteInfo.animationInfo);
                             animatedImage.enabled = true;
                         }
@@ -166,14 +160,10 @@ namespace EnhancedTwitchChat.UI
                             image.sprite = cachedSpriteInfo.sprite;
                             image.sprite.texture.wrapMode = TextureWrapMode.Clamp;
                         }
-
                         image.rectTransform.SetParent(currentMessage.rectTransform, false);
-                        image.preserveAspect = true;
-                        image.rectTransform.sizeDelta = new Vector2(7.0f, 7.0f);
-                        image.rectTransform.pivot = new Vector2(0, 0);
 
-                        var textGen = currentMessage.cachedTextGenerator;
-                        var pos = new Vector3(textGen.verts[i * 4 + 3].position.x, textGen.verts[i * 4 + 3].position.y);
+                        TextGenerator textGen = currentMessage.cachedTextGenerator;
+                        Vector3 pos = new Vector3(textGen.verts[i * 4 + 3].position.x, textGen.verts[i * 4 + 3].position.y);
                         image.rectTransform.position = currentMessage.gameObject.transform.TransformPoint(pos / ChatHandler.Instance.pixelsPerUnit - new Vector3(image.preferredWidth / ChatHandler.Instance.pixelsPerUnit + 2.5f, image.preferredHeight / ChatHandler.Instance.pixelsPerUnit + 0.7f));
 
                         image.enabled = true;
@@ -186,6 +176,10 @@ namespace EnhancedTwitchChat.UI
                     Plugin.Log($"Exception {e.Message} occured when trying to overlay emote at index {i.ToString()}!");
                 }
             }
+
+            // Mark the sprites as having been overlayed, so we can't accidentally overlay them twice from our overlay callback
+            currentMessage.messageInfo.parsedEmotes.Where(e => e.spriteIndex == spriteIndex).ToList().ForEach(e => e.hasOverlayed = true);
+            currentMessage.messageInfo.parsedBadges.Where(b => b.spriteIndex == spriteIndex).ToList().ForEach(b => b.hasOverlayed = true);
         }
     };
 }

@@ -43,10 +43,14 @@ namespace EnhancedTwitchChat {
 
             Instance = this;
 
-            new GameObject("EnhancedTwitchChat").AddComponent<ChatHandler>();
+            new GameObject("EnhancedTwitchChatChatHandler").AddComponent<ChatHandler>();
             new Thread(() => TwitchIRCClient.Initialize()).Start();
 
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
+        }
+
+        public void OnApplicationQuit()
+        {
         }
 
         private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1)
@@ -58,14 +62,9 @@ namespace EnhancedTwitchChat {
                 IsAtMainMenu = false;
         }
 
-        public void OnLevelWasLoaded(int level)
-        {
+        public void OnLevelWasLoaded(int level) {
         }
 
-        public void OnApplicationQuit() {
-            Config.Save();
-        }
-        
         public void OnLevelWasInitialized(int level) {
         }
         

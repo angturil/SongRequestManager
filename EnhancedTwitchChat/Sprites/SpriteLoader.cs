@@ -168,15 +168,11 @@ namespace EnhancedTwitchChat.Sprites
 
                 string spriteCachePath = "Cache\\Sprites";
                 if (!Directory.Exists(spriteCachePath))
-                {
                     Directory.CreateDirectory(spriteCachePath);
-                }
 
                 string typePath = $"{spriteCachePath}\\{ImageTypeNames.Get(spriteDownloadInfo.type)}";
                 if (!Directory.Exists(typePath))
-                {
                     Directory.CreateDirectory(typePath);
-                }
 
                 bool localPathExists = false;
                 string localFilePath = $"{typePath}\\{spriteDownloadInfo.index}";
@@ -220,7 +216,7 @@ namespace EnhancedTwitchChat.Sprites
                         if (spriteDownloadInfo.type == ImageType.BTTV_Animated)
                         {
                             while (!CachedSprites.TryAdd(spriteDownloadInfo.index, null)) yield return null;
-                            yield return AnimatedSpriteDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedEmote, spriteDownloadInfo.index);
+                            yield return AnimatedSpriteDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedEmote, spriteDownloadInfo);
                             if (!localPathExists)
                                 SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
                         }
@@ -252,7 +248,7 @@ namespace EnhancedTwitchChat.Sprites
                             while (!CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData(sprite))) yield return null;
                             yield return null;
 
-                            ChatHandler.Instance.OverlayEmote(sprite, spriteDownloadInfo.index);
+                            ChatHandler.Instance.OverlayEmote(sprite, spriteDownloadInfo);
 
                             if (!localPathExists && success)
                                 SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
