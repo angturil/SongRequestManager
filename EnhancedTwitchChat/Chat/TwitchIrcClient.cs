@@ -29,8 +29,8 @@ namespace EnhancedTwitchChat.Chat
         public static bool Initialized = false;
         public static DateTime ConnectionTime;
         public static ConcurrentStack<ChatMessage> RenderQueue = new ConcurrentStack<ChatMessage>();
-        public static ConcurrentQueue<TwitchMessage> MessageQueue = new ConcurrentQueue<TwitchMessage>();
-        public static string ChannelID = string.Empty;
+        public static ConcurrentDictionary<string, ConcurrentQueue<TwitchMessage>> MessageQueues = new ConcurrentDictionary<string, ConcurrentQueue<TwitchMessage>>();
+        public static Dictionary<string, string> ChannelIds = new Dictionary<string, string>();
 
         private static System.Random _random;
         private static string _lastRoomId;
@@ -52,47 +52,51 @@ namespace EnhancedTwitchChat.Chat
 
         private static void InitAsyncTwitch()
         {
+            // Wait for the AsyncTwitch instance to be initialized, then start the connection
             while (TwitchConnection.Instance == null) Thread.Sleep(50);
-
             TwitchConnection.Instance.StartConnection();
 
+            // Wait until the AsyncTwitch socket connection is established, then assume the IRC connection is active a second later
             while (!TwitchConnection.IsConnected) Thread.Sleep(50);
+            Thread.Sleep(2000);
 
-            Thread.Sleep(1000);
-
+            // Register AsyncTwitch callbacks, then join the channel in the EnhancedTwitchChat config
             TwitchConnection.Instance.RegisterOnMessageReceived(TwitchConnection_OnMessageReceived);
             TwitchConnection.Instance.RegisterOnChannelJoined(TwitchConnection_OnChannelJoined);
             TwitchConnection.Instance.RegisterOnChannelParted(TwitchConnection_OnChannelParted);
             TwitchConnection.Instance.RegisterOnRoomStateChanged(TwitchConnection_OnRoomstateChanged);
+            TwitchConnection.Instance.JoinRoom(Config.Instance.TwitchChannel);
 
-            TwitchConnection.Instance.JoinRoom(Plugin.Instance.Config.TwitchChannel);
-
+            // Display a message in the chat informing the user whether or not the connection to the channel was successful
             ChatHandler.Instance.displayStatusMessage = true;
             Initialized = true;
             ConnectionTime = DateTime.Now;
 
-            Plugin.Log("AsyncTwitch initialized!");
-
+            // Process any messages we receive from AsyncTwitch
             ProcessingThread();
+
+            Plugin.Log("AsyncTwitch initialized!");
         }
 
         private static void TwitchConnection_OnRoomstateChanged(TwitchConnection obj, RoomState roomstate)
         {
-            Plugin.Log($"RoomState changed! {roomstate.RoomID}");
-            if (roomstate != TwitchConnection.Instance.RoomStates[Plugin.Instance.Config.TwitchChannel]) return;
+            Plugin.Log($"RoomState changed for channel #{roomstate.ChannelName} (Room ID: {roomstate.RoomID})");
+            ChannelIds[roomstate.ChannelName] = roomstate.RoomID;
+            if (roomstate.ChannelName != Config.Instance.TwitchChannel) return;
 
             if (roomstate.RoomID != _lastRoomId)
             {
                 ChatHandler.Instance.displayStatusMessage = true;
                 _lastRoomId = roomstate.RoomID;
-                TwitchIRCClient.ChannelID = roomstate.RoomID;
-                Plugin.Log($"Twitch channel ID is {TwitchIRCClient.ChannelID}");
                 ConnectionTime = DateTime.Now;
             }
         }
 
         private static void TwitchConnection_OnChannelJoined(TwitchConnection obj, string channel)
         {
+            if (!ChannelIds.ContainsKey(channel))
+                ChannelIds[channel] = String.Empty;
+
             Plugin.Log("Joined channel " + channel);
         }
 
@@ -103,22 +107,50 @@ namespace EnhancedTwitchChat.Chat
 
         private static void TwitchConnection_OnMessageReceived(TwitchConnection twitchCon, TwitchMessage twitchMessage)
         {
-            MessageQueue.Enqueue(twitchMessage);
+            //if (twitchMessage.Room != null && twitchMessage.Room.ChannelName != Config.Instance.TwitchChannel)
+            //{
+            //    Plugin.Log($"Channel: {twitchMessage.Room.ChannelName}, ConfigChannel: {Config.Instance.TwitchChannel}");
+            //    return;
+            //}
+
+            if (twitchMessage.Room != null)
+            {
+                if (!MessageQueues.ContainsKey(Config.Instance.TwitchChannel))
+                    MessageQueues[twitchMessage.Room.ChannelName] = new ConcurrentQueue<TwitchMessage>();
+
+                if (MessageQueues[twitchMessage.Room.ChannelName].Count > Config.Instance.MaxMessages)
+                {
+                    if (MessageQueues[twitchMessage.Room.ChannelName].TryDequeue(out var dump))
+                    {
+                        //Plugin.Log($"Dumping message id {dump.Id}, Reason: Too many messages in queue.");
+                    }
+                }
+                MessageQueues[twitchMessage.Room.ChannelName].Enqueue(twitchMessage);
+                //Plugin.Log("Enqueued!");
+            }
+            else
+            {
+                if (!MessageQueues.ContainsKey("NoRoomMessages"))
+                    MessageQueues["NoRoomMessages"] = new ConcurrentQueue<TwitchMessage>();
+
+                MessageQueues["NoRoomMessages"].Enqueue(twitchMessage);
+            }
         }
 
         private static void ProcessingThread()
         {
             while (true)
             {
-                if (MessageQueue.Count > 0 && MessageQueue.TryDequeue(out var twitchMessage))
-                {
-                    if (twitchMessage.Room != null && twitchMessage.Room.RoomID != TwitchIRCClient.ChannelID) return;
+                try {
+                    if (MessageQueues.ContainsKey("NoRoomMessages") && MessageQueues["NoRoomMessages"].Count > 0 && MessageQueues["NoRoomMessages"].TryDequeue(out var noRoomMessage))
+                    {
+                        Plugin.Log($"NoRoomMessage: {noRoomMessage.RawMessage}");
+                    }
 
-                    try
+                    if (MessageQueues.ContainsKey(Config.Instance.TwitchChannel) && MessageQueues[Config.Instance.TwitchChannel].Count > 0 && MessageQueues[Config.Instance.TwitchChannel].TryDequeue(out var twitchMessage))
                     {
                         if (twitchMessage.Author != null && twitchMessage.Author.DisplayName != String.Empty)
                             MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMessage.Content), twitchMessage));
-
                         else
                         {
                             if (twitchMessage.Content.Contains("CLEARCHAT"))
@@ -142,11 +174,11 @@ namespace EnhancedTwitchChat.Chat
                             //}
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Plugin.Log($"Caught exception \"{ex.Message}\" from {ex.Source}");
-                        Plugin.Log($"Stack trace: {ex.StackTrace}");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log($"Caught exception \"{ex.Message}\" from {ex.Source}");
+                    Plugin.Log($"Stack trace: {ex.StackTrace}");
                 }
                 Thread.Sleep(15);
             }

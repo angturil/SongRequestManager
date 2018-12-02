@@ -29,7 +29,7 @@ namespace EnhancedTwitchChat.UI
     [RequireComponent(typeof(LayoutElement))]
     public class ContentSizeManager : MonoBehaviour
     {
-        public float maximumWidth = Plugin.Instance.Config.ChatWidth;
+        public float maximumWidth = Config.Instance.ChatWidth;
         private LayoutElement _thisElement;
         public void Init()
         {
@@ -37,19 +37,38 @@ namespace EnhancedTwitchChat.UI
             _thisElement = GetComponent<LayoutElement>();
             _thisElement.preferredWidth = maximumWidth;
         }
-
-        void Update()
-        {
-        }
     };
 
     class Drawing
     {
-        private const int MaxFontUsages = 3;
-        public static int fontUseCount = 0;
-        public static int fontUseIndex = 0;
+        public static int pixelsPerUnit = 100;
+        public static Material noGlowMaterial = null;
+        public static Material noGlowMaterialUI = null;
         public static string spriteSpacing = " ";
-        private static List<Font> cachedSystemFonts = new List<Font>();
+
+        public static bool SpritesCached
+        {
+            get
+            {
+                if (!noGlowMaterial)
+                {
+                    Material material = Resources.FindObjectsOfTypeAll<Material>().Where(m => m.name == "UINoGlow").FirstOrDefault();
+                    if (material)
+                    {
+                        noGlowMaterial = new Material(material);
+                        noGlowMaterialUI = new Material(material);
+                        ChatHandler.Instance.background.material = new Material(material);
+                        ChatHandler.Instance.lockButtonImage.material = new Material(material);
+                        var mat = new Material(material);
+                        mat.color = Color.clear;
+                        ChatHandler.Instance.chatMoverPrimitive.GetComponent<Renderer>().material = mat;
+                        ChatHandler.Instance.lockButtonPrimitive.GetComponent<Renderer>().material = mat;
+                    }
+                }
+                return noGlowMaterial && noGlowMaterialUI;
+            }
+        }
+
         public static void Initialize(Transform parent)
         {
             CustomText tmpText = InitText(spriteSpacing, Color.white.ColorWithAlpha(0), 10, new Vector2(1000, 1000), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.MiddleLeft);
@@ -80,7 +99,7 @@ namespace EnhancedTwitchChat.UI
             if (useFallback)
             {
                 font = "Segoe UI";
-                Plugin.Instance.Config.FontName = font;
+                Config.Instance.FontName = font;
                 Plugin.Instance.ShouldWriteConfig = true;
                 Plugin.Log($"Invalid font name specified! Falling back to Segoe UI");
             }
@@ -90,20 +109,12 @@ namespace EnhancedTwitchChat.UI
         public static CustomText InitText(string text, Color textColor, float fontSize, Vector2 sizeDelta, Vector3 position, Quaternion rotation, Transform parent, TextAnchor textAlign, Material mat = null)
         {
             GameObject newGameObj = new GameObject();
+            newGameObj.AddComponent<Shadow>();
+
+            CanvasScaler scaler = newGameObj.AddComponent<CanvasScaler>();
+            scaler.dynamicPixelsPerUnit = pixelsPerUnit;
+
             CustomText tmpText = newGameObj.AddComponent<CustomText>();
-
-            var scaler = newGameObj.AddComponent<CanvasScaler>();
-            scaler.dynamicPixelsPerUnit = ChatHandler.Instance.pixelsPerUnit;
-
-            var shadow = newGameObj.AddComponent<Shadow>();
-            //shadow.effectDistance = new Vector2(0.5f, -0.5f);
-
-            var mcs = tmpText.gameObject.AddComponent<ContentSizeManager>();
-            mcs.transform.SetParent(tmpText.rectTransform, false);
-            mcs.Init();
-            var fitter = tmpText.gameObject.AddComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-
             tmpText.color = textColor;
             tmpText.rectTransform.SetParent(parent.transform, false);
             tmpText.rectTransform.localPosition = position;
@@ -112,13 +123,18 @@ namespace EnhancedTwitchChat.UI
             tmpText.rectTransform.sizeDelta = sizeDelta;
             tmpText.supportRichText = true;
             tmpText.text = text;
-            tmpText.font = LoadSystemFont(Plugin.Instance.Config.FontName);
+            tmpText.font = LoadSystemFont(Config.Instance.FontName);
             tmpText.fontSize = 10;
-
             tmpText.verticalOverflow = VerticalWrapMode.Overflow;
             tmpText.alignment = textAlign;
             tmpText.horizontalOverflow = HorizontalWrapMode.Wrap;
             tmpText.resizeTextForBestFit = false;
+
+            var mcs = tmpText.gameObject.AddComponent<ContentSizeManager>();
+            mcs.transform.SetParent(tmpText.rectTransform, false);
+            mcs.Init();
+            var fitter = tmpText.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             if (mat)
                 tmpText.material = mat;
@@ -128,10 +144,10 @@ namespace EnhancedTwitchChat.UI
 
         public static void OverlaySprite(CustomText currentMessage, char swapChar, ObjectPool<Image> imagePool, string spriteIndex)
         {
-            CachedSpriteData cachedSpriteInfo = SpriteLoader.CachedSprites.ContainsKey(spriteIndex) ? SpriteLoader.CachedSprites[spriteIndex] : null;
+            CachedSpriteData cachedSpriteInfo = SpriteDownloader.CachedSprites.ContainsKey(spriteIndex) ? SpriteDownloader.CachedSprites[spriteIndex] : null;
 
             // If cachedSpriteInfo is null, the emote will be overlayed at a later time once it's finished being cached
-            if (cachedSpriteInfo == null)
+            if (cachedSpriteInfo == null || (cachedSpriteInfo.sprite == null && cachedSpriteInfo.animationInfo == null))
                 return;
 
             bool animatedEmote = cachedSpriteInfo.animationInfo != null;
@@ -164,10 +180,9 @@ namespace EnhancedTwitchChat.UI
 
                         TextGenerator textGen = currentMessage.cachedTextGenerator;
                         Vector3 pos = new Vector3(textGen.verts[i * 4 + 3].position.x, textGen.verts[i * 4 + 3].position.y);
-                        image.rectTransform.position = currentMessage.gameObject.transform.TransformPoint(pos / ChatHandler.Instance.pixelsPerUnit - new Vector3(image.preferredWidth / ChatHandler.Instance.pixelsPerUnit + 2.5f, image.preferredHeight / ChatHandler.Instance.pixelsPerUnit + 0.7f));
+                        image.rectTransform.position = currentMessage.gameObject.transform.TransformPoint(pos / pixelsPerUnit - new Vector3(image.preferredWidth / pixelsPerUnit + 2.5f, image.preferredHeight / pixelsPerUnit + 0.7f));
 
                         image.enabled = true;
-                        image.color = image.color.ColorWithAlpha(1);
                         currentMessage.emoteRenderers.Add(image);
                     }
                 }
@@ -176,10 +191,6 @@ namespace EnhancedTwitchChat.UI
                     Plugin.Log($"Exception {e.Message} occured when trying to overlay emote at index {i.ToString()}!");
                 }
             }
-
-            // Mark the sprites as having been overlayed, so we can't accidentally overlay them twice from our overlay callback
-            currentMessage.messageInfo.parsedEmotes.Where(e => e.spriteIndex == spriteIndex).ToList().ForEach(e => e.hasOverlayed = true);
-            currentMessage.messageInfo.parsedBadges.Where(b => b.spriteIndex == spriteIndex).ToList().ForEach(b => b.hasOverlayed = true);
         }
     };
 }

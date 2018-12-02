@@ -49,6 +49,8 @@ namespace EnhancedTwitchChat
         private readonly FileSystemWatcher _configWatcher;
         private bool _saving;
 
+        public static Config Instance = null;
+
         public Color TextColor
         {
             get
@@ -106,6 +108,7 @@ namespace EnhancedTwitchChat
 
         public Config(string filePath)
         {
+            Instance = this;
             FilePath = filePath;
 
             if (File.Exists(filePath))
@@ -172,9 +175,7 @@ namespace EnhancedTwitchChat
         {
             ConfigSerializer.LoadConfig(this, FilePath);
             if (TwitchChannel.Length > 0)
-            {
                 TwitchChannel = TwitchChannel.ToLower().Replace(" ", "");
-            }
             //else {
             //TwitchChannel = TwitchUsername;
             //}

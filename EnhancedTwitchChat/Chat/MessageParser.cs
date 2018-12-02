@@ -24,7 +24,6 @@ namespace EnhancedTwitchChat.Sprites
     public class SpriteInfo
     {
         public char swapChar;
-        public bool hasOverlayed;
         public string spriteIndex;
     }
 
@@ -43,6 +42,7 @@ namespace EnhancedTwitchChat.Sprites
         private static Dictionary<int, string> _userColors = new Dictionary<int, string>();
         public static void Parse(ChatMessage newChatMessage)
         {
+            //Plugin.Log($"Parsing message for {(newChatMessage.twitchMessage.Author.IsBroadcaster ? "broadcaster" : "user")} {newChatMessage.twitchMessage.Author.DisplayName} with user-id {newChatMessage.twitchMessage.Author.UserID}");
             Dictionary<string, string> downloadQueue = new Dictionary<string, string>();
             List<EmoteInfo> parsedEmotes = new List<EmoteInfo>();
             List<BadgeInfo> parsedBadges = new List<BadgeInfo>();
@@ -64,8 +64,8 @@ namespace EnhancedTwitchChat.Sprites
                     if (emojiIndex != String.Empty)
                     {
                         emojiIndex += ".png";
-                        if (!SpriteLoader.CachedSprites.ContainsKey(emojiIndex))
-                            SpriteLoader.Instance.Queue(new SpriteDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.twitchMessage.Id));
+                        if (!SpriteDownloader.CachedSprites.ContainsKey(emojiIndex))
+                            SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.twitchMessage.Id));
 
                         if (!downloadQueue.ContainsKey(emojiIndex))
                             downloadQueue.Add(emojiIndex, replaceString);
@@ -80,7 +80,6 @@ namespace EnhancedTwitchChat.Sprites
                         swapInfo.swapString = downloadQueue[index];
                         swapInfo.spriteIndex = index;
                         parsedEmotes.Add(swapInfo);
-
                         swapChar++;
                     }
                 }
@@ -95,11 +94,11 @@ namespace EnhancedTwitchChat.Sprites
                 {
                     string badgeName = $"{b.BadgeName}{b.BadgeVersion}";
                     string badgeIndex = string.Empty;
-                    if (SpriteLoader.TwitchBadgeIDs.ContainsKey(badgeName))
+                    if (SpriteDownloader.TwitchBadgeIDs.ContainsKey(badgeName))
                     {
-                        badgeIndex = SpriteLoader.TwitchBadgeIDs[badgeName];
-                        if (!SpriteLoader.CachedSprites.ContainsKey(badgeIndex))
-                            SpriteLoader.Instance.Queue(new SpriteDownloadInfo(badgeIndex, ImageType.Badge, newChatMessage.twitchMessage.Id));
+                        badgeIndex = SpriteDownloader.TwitchBadgeIDs[badgeName];
+                        if (!SpriteDownloader.CachedSprites.ContainsKey(badgeIndex))
+                            SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(badgeIndex, ImageType.Badge, newChatMessage.twitchMessage.Id));
 
                         downloadQueue.Add(badgeIndex, badgeName);
                     }
@@ -123,8 +122,8 @@ namespace EnhancedTwitchChat.Sprites
                 foreach (TwitchEmote e in newChatMessage.twitchMessage.Emotes)
                 {
                     string emoteIndex = $"T{e.Id}";
-                    if (!SpriteLoader.CachedSprites.ContainsKey(emoteIndex))
-                        SpriteLoader.Instance.Queue(new SpriteDownloadInfo(emoteIndex, ImageType.Twitch, newChatMessage.twitchMessage.Id));
+                    if (!SpriteDownloader.CachedSprites.ContainsKey(emoteIndex))
+                        SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(emoteIndex, ImageType.Twitch, newChatMessage.twitchMessage.Id));
                     
                     downloadQueue.Add(emoteIndex, string.Join("-", e.Index[0]));
                 }
@@ -155,26 +154,26 @@ namespace EnhancedTwitchChat.Sprites
                 //Plugin.Log($"WORD: {word}");
                 string emoteIndex = String.Empty;
                 ImageType emoteType = ImageType.None;
-                if (SpriteLoader.BTTVEmoteIDs.ContainsKey(word))
+                if (SpriteDownloader.BTTVEmoteIDs.ContainsKey(word))
                 {
-                    emoteIndex = $"B{SpriteLoader.BTTVEmoteIDs[word]}";
+                    emoteIndex = $"B{SpriteDownloader.BTTVEmoteIDs[word]}";
                     emoteType = ImageType.BTTV;
                 }
-                else if (SpriteLoader.BTTVAnimatedEmoteIDs.ContainsKey(word))
+                else if (SpriteDownloader.BTTVAnimatedEmoteIDs.ContainsKey(word))
                 {
-                    emoteIndex = $"AB{SpriteLoader.BTTVAnimatedEmoteIDs[word]}";
+                    emoteIndex = $"AB{SpriteDownloader.BTTVAnimatedEmoteIDs[word]}";
                     emoteType = ImageType.BTTV_Animated;
                 }
-                else if (SpriteLoader.FFZEmoteIDs.ContainsKey(word))
+                else if (SpriteDownloader.FFZEmoteIDs.ContainsKey(word))
                 {
-                    emoteIndex = $"F{SpriteLoader.FFZEmoteIDs[word]}";
+                    emoteIndex = $"F{SpriteDownloader.FFZEmoteIDs[word]}";
                     emoteType = ImageType.FFZ;
                 }
 
                 if (emoteType != ImageType.None)
                 {
-                    if (!SpriteLoader.CachedSprites.ContainsKey(emoteIndex))
-                        SpriteLoader.Instance.Queue(new SpriteDownloadInfo(emoteIndex, emoteType, newChatMessage.twitchMessage.Id));
+                    if (!SpriteDownloader.CachedSprites.ContainsKey(emoteIndex))
+                        SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(emoteIndex, emoteType, newChatMessage.twitchMessage.Id));
 
                     downloadQueue.Add(emoteIndex, word);
                 }
@@ -223,9 +222,7 @@ namespace EnhancedTwitchChat.Sprites
 
             string displayColor = newChatMessage.twitchMessage.Author.Color;
             if ((displayColor == null || displayColor == String.Empty) && !_userColors.ContainsKey(newChatMessage.twitchMessage.Author.DisplayName.GetHashCode()))
-            {
                 _userColors.Add(newChatMessage.twitchMessage.Author.DisplayName.GetHashCode(), (String.Format("#{0:X6}", new Random(newChatMessage.twitchMessage.Author.DisplayName.GetHashCode()).Next(0x1000000)) + "FF"));
-            }
             newChatMessage.twitchMessage.Author.Color = (displayColor == null || displayColor == string.Empty) ? _userColors[newChatMessage.twitchMessage.Author.DisplayName.GetHashCode()] : displayColor;
 
             // Add the users name to the message with the correct color

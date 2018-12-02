@@ -46,9 +46,7 @@ namespace EnhancedTwitchChat
             foreach (KeyValuePair<T, bool> kvp in _objects)
             {
                 if (!kvp.Value)
-                {
                     obj = kvp.Key;
-                }
             }
             if (obj == null) obj = internalAlloc();
 

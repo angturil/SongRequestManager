@@ -117,7 +117,7 @@
     <Compile Include="Chat\LockToggle.cs" />
     <Compile Include="Sprites\AnimatedSprite.cs" />
     <Compile Include="Sprites\AnimationController.cs" />
-    <Compile Include="Sprites\SpriteLoader.cs" />
+    <Compile Include="Sprites\SpriteDownloader.cs" />
     <Compile Include="Chat\MessageParser.cs" />
     <Compile Include="Sprites\AnimatedSpriteDecoder.cs" />
     <Compile Include="UI\BeatSaberUI.cs" />
