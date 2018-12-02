@@ -253,7 +253,7 @@ namespace EnhancedTwitchChat.Sprites
         public static IEnumerator GetTwitchGlobalBadges()
         {
             Plugin.Log($"Downloading twitch global badge listing");
-
+            int emotesCached = 0;
             using (var web = UnityWebRequest.Get("https://badges.twitch.tv/v1/badges/global/display"))
             {
                 yield return web.SendWebRequest();
@@ -277,19 +277,12 @@ namespace EnhancedTwitchChat.Sprites
                             string versionID = version.Key;
                             string url = versionObject["image_url_4x"];
                             string index = url.Substring(url.IndexOf("/v1/") + 4).Replace("/3", "");
-                            while (!TwitchBadgeIDs.TryAdd($"{name}{versionID}", index))
-                            {
-                                if (name == "subscriber")
-                                {
-                                    Plugin.Log("Subscriber badge already exists! Skipping!");
-                                    break;
-                                }
-                                yield return null;
-                            }
+                            TwitchBadgeIDs.TryAdd($"{name}{versionID}", index);
+                            emotesCached++;
                         }
                     }
                 }
-                Plugin.Log("Web request completed, twitch global badges now cached!");
+                Plugin.Log($"Web request completed, {emotesCached.ToString()} twitch global badges now cached!");
             }
         }
 
@@ -300,6 +293,7 @@ namespace EnhancedTwitchChat.Sprites
                 yield return null;
             }
             Plugin.Log($"Downloading twitch channel badge listing");
+            int emotesCached = 0;
             using (var web = UnityWebRequest.Get($"https://badges.twitch.tv/v1/badges/channels/{TwitchIRCClient.ChannelIds[Config.Instance.TwitchChannel]}/display"))
             {
                 yield return web.SendWebRequest();
@@ -322,27 +316,26 @@ namespace EnhancedTwitchChat.Sprites
                         string url = versionObject["image_url_4x"];
                         string index = url.Substring(url.IndexOf("/v1/") + 4).Replace("/3", "");
                         string finalName = $"{name}{versionID}";
-                        while (!TwitchBadgeIDs.TryAdd(finalName, index))
+                        if(!TwitchBadgeIDs.TryAdd(finalName, index) && name == "subscriber")
                         {
                             // Overwrite the affiliate sub badges if the channel has any custom ones
                             if (TwitchBadgeIDs.TryGetValue(finalName, out var existing))
                             {
                                 TwitchBadgeIDs[finalName] = index;
                                 Plugin.Log("Replaced default sub icon!");
-                                break;
                             }
-                            yield return null;
                         }
+                        emotesCached++;
                     }
                 }
-                Plugin.Log("Web request completed, twitch channel badges now cached!");
+                Plugin.Log($"Web request completed, {emotesCached.ToString()} twitch channel badges now cached!");
             }
         }
 
         public static IEnumerator GetBTTVGlobalEmotes()
         {
             Plugin.Log("Downloading BTTV global emote listing");
-
+            int emotesCached = 0;
             using (var web = UnityWebRequest.Get("https://api.betterttv.net/2/emotes"))
             {
                 yield return web.SendWebRequest();
@@ -361,20 +354,21 @@ namespace EnhancedTwitchChat.Sprites
                         if (o["channel"] == null)
                         {
                             if (o["imageType"] != "gif")
-                                while (!BTTVEmoteIDs.TryAdd(o["code"], o["id"])) yield return null;
+                                BTTVEmoteIDs.TryAdd(o["code"], o["id"]);
                             else
-                                while (!SpriteDownloader.BTTVAnimatedEmoteIDs.TryAdd(o["code"], o["id"])) yield return null;
+                                SpriteDownloader.BTTVAnimatedEmoteIDs.TryAdd(o["code"], o["id"]);
+                            emotesCached++;
                         }
                     }
                 }
-                Plugin.Log("Web request completed, BTTV global emotes now cached!");
+                Plugin.Log($"Web request completed, {emotesCached.ToString()} BTTV global emotes now cached!");
             }
         }
 
         public static IEnumerator GetBTTVChannelEmotes()
         {
             Plugin.Log($"Downloading BTTV emotes for channel {Config.Instance.TwitchChannel}");
-
+            int emotesCached = 0;
             using (var web = UnityWebRequest.Get($"https://api.betterttv.net/2/channels/{Config.Instance.TwitchChannel}"))
             {
                 yield return web.SendWebRequest();
@@ -390,20 +384,22 @@ namespace EnhancedTwitchChat.Sprites
                     JSONArray emotes = json["emotes"].AsArray;
                     foreach (SimpleJSON.JSONObject o in emotes)
                     {
+                        Plugin.Log($"BTTV Channel Emote: {o["code"]}");
                         if (o["imageType"] != "gif")
-                            while (!BTTVEmoteIDs.TryAdd(o["code"], o["id"])) yield return null;
+                            BTTVEmoteIDs.TryAdd(o["code"], o["id"]);
                         else
-                            while (!SpriteDownloader.BTTVAnimatedEmoteIDs.TryAdd(o["code"], o["id"])) yield return null;
+                            SpriteDownloader.BTTVAnimatedEmoteIDs.TryAdd(o["code"], o["id"]);
+                        emotesCached++;
                     }
                 }
-                Plugin.Log("Web request completed, BTTV channel emotes now cached!");
+                Plugin.Log($"Web request completed, {emotesCached.ToString()} BTTV channel emotes now cached!");
             }
         }
 
         public static IEnumerator GetFFZGlobalEmotes()
         {
             Plugin.Log("Downloading FFZ global emote listing");
-
+            int emotesCached = 0;
             using (var web = UnityWebRequest.Get("https://api.frankerfacez.com/v1/set/global"))
             {
                 yield return web.SendWebRequest();
@@ -423,17 +419,17 @@ namespace EnhancedTwitchChat.Sprites
                         JSONObject urls = o["urls"].AsObject;
                         string url = urls[urls.Count - 1];
                         string index = url.Substring(url.IndexOf(".com/") + 5);
-
-                        while (!FFZEmoteIDs.TryAdd(o["name"], index)) yield return null;
+                        FFZEmoteIDs.TryAdd(o["name"], index);
+                        emotesCached++;
                     }
                 }
-                Plugin.Log("Web request completed, FFZ global emotes now cached!");
+                Plugin.Log($"Web request completed, {emotesCached.ToString()} FFZ global emotes now cached!");
             }
         }
         public static IEnumerator GetFFZChannelEmotes()
         {
             Plugin.Log($"Downloading FFZ emotes for channel {Config.Instance.TwitchChannel}");
-
+            int emotesCached = 0;
             using (var web = UnityWebRequest.Get($"https://api.frankerfacez.com/v1/room/{Config.Instance.TwitchChannel}"))
             {
                 yield return web.SendWebRequest();
@@ -453,11 +449,11 @@ namespace EnhancedTwitchChat.Sprites
                         JSONObject urls = o["urls"].AsObject;
                         string url = urls[urls.Count - 1];
                         string index = url.Substring(url.IndexOf(".com/") + 5);
-
-                        while (!FFZEmoteIDs.TryAdd(o["name"], index)) yield return null;
+                        FFZEmoteIDs.TryAdd(o["name"], index);
+                        emotesCached++;
                     }
                 }
-                Plugin.Log("Web request completed, FFZ channel emotes now cached!");
+                Plugin.Log($"Web request completed, {emotesCached.ToString()} FFZ channel emotes now cached!");
             }
         }
     };
