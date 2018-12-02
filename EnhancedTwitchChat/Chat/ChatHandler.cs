@@ -255,13 +255,15 @@ namespace EnhancedTwitchChat
             UpdateChatUI();
 
             yield return null;
-
+            
             currentMessage.color = Config.Instance.TextColor;
             foreach (BadgeInfo b in messageInfo.parsedBadges)
                 Drawing.OverlaySprite(currentMessage, b.swapChar, _imagePool, b.spriteIndex);
 
             foreach (EmoteInfo e in messageInfo.parsedEmotes)
                 Drawing.OverlaySprite(currentMessage, e.swapChar, _imagePool, e.spriteIndex);
+            
+            currentMessage.hasRendered = true;
 
             _waitForFrames = 3;
             _messageRendering = false;
@@ -275,7 +277,7 @@ namespace EnhancedTwitchChat
                 string messageIndex = spriteDownloadInfo.messageIndex;
                 foreach (CustomText currentMessage in _chatMessages)
                 {
-                    if (currentMessage.messageInfo == null) continue;
+                    if (currentMessage.messageInfo == null || !currentMessage.hasRendered) continue;
 
                     if (!emoteIndex.StartsWith("AB"))
                     {
@@ -333,7 +335,7 @@ namespace EnhancedTwitchChat
 
                 foreach (CustomText currentMessage in _chatMessages)
                 {
-                    if (currentMessage.messageInfo == null) continue;
+                    if (currentMessage.messageInfo == null || !currentMessage.hasRendered) continue;
 
                     if (emoteIndex.StartsWith("AB"))
                     {

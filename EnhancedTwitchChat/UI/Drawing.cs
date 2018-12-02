@@ -17,6 +17,7 @@ namespace EnhancedTwitchChat.UI
     {
         public ChatMessage messageInfo;
         public List<Image> emoteRenderers = new List<Image>();
+        public bool hasRendered = false;
         ~CustomText()
         {
             foreach (Image i in emoteRenderers)
