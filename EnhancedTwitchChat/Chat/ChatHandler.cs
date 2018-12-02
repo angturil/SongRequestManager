@@ -357,6 +357,8 @@ namespace EnhancedTwitchChat
         {
             foreach (CustomText currentMessage in _chatMessages)
             {
+                if (currentMessage.messageInfo == null) continue;
+
                 if (currentMessage.messageInfo.twitchMessage.Author.UserID == userID)
                 {
                     currentMessage.text = $"<color={currentMessage.messageInfo.twitchMessage.Author.Color}><b>{currentMessage.messageInfo.twitchMessage.Author.DisplayName}</b></color> <message deleted>";

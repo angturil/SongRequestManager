@@ -153,7 +153,7 @@ namespace EnhancedTwitchChat.Chat
                             MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMessage.Content), twitchMessage));
                         else
                         {
-                            if (twitchMessage.Content.Contains("CLEARCHAT"))
+                            if (twitchMessage.RawMessage.Contains("CLEARCHAT"))
                             {
                                 string[] parts = twitchMessage.RawMessage.Split(new char[] { ' ' }, 2);
                                 Dictionary<string, string> messageComponents = parts[0].Substring(1).Split(';').ToList().ToDictionary(x => x.Substring(0, x.IndexOf('=')), y => y.Substring(y.IndexOf('=') + 1));
