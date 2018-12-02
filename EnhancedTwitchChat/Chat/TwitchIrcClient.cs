@@ -142,36 +142,39 @@ namespace EnhancedTwitchChat.Chat
             while (true)
             {
                 try {
-                    if (MessageQueues.ContainsKey("NoRoomMessages") && MessageQueues["NoRoomMessages"].Count > 0 && MessageQueues["NoRoomMessages"].TryDequeue(out var noRoomMessage))
+                    if (ChatHandler.Instance.initialized)
                     {
-                        Plugin.Log($"NoRoomMessage: {noRoomMessage.RawMessage}");
-                    }
-
-                    if (MessageQueues.ContainsKey(Config.Instance.TwitchChannel) && MessageQueues[Config.Instance.TwitchChannel].Count > 0 && MessageQueues[Config.Instance.TwitchChannel].TryDequeue(out var twitchMessage))
-                    {
-                        if (twitchMessage.Author != null && twitchMessage.Author.DisplayName != String.Empty)
-                            MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMessage.Content), twitchMessage));
-                        else
+                        if (MessageQueues.ContainsKey("NoRoomMessages") && MessageQueues["NoRoomMessages"].Count > 0 && MessageQueues["NoRoomMessages"].TryDequeue(out var noRoomMessage))
                         {
-                            if (twitchMessage.RawMessage.Contains("CLEARCHAT"))
+                            //Plugin.Log($"NoRoomMessage: {noRoomMessage.RawMessage}");
+                        }
+
+                        if (MessageQueues.ContainsKey(Config.Instance.TwitchChannel) && MessageQueues[Config.Instance.TwitchChannel].Count > 0 && MessageQueues[Config.Instance.TwitchChannel].TryDequeue(out var twitchMessage))
+                        {
+                            if (twitchMessage.Author != null && twitchMessage.Author.DisplayName != String.Empty)
+                                MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMessage.Content), twitchMessage));
+                            else
                             {
-                                string[] parts = twitchMessage.RawMessage.Split(new char[] { ' ' }, 2);
-                                Dictionary<string, string> messageComponents = parts[0].Substring(1).Split(';').ToList().ToDictionary(x => x.Substring(0, x.IndexOf('=')), y => y.Substring(y.IndexOf('=') + 1));
-                                ChatHandler.Instance.PurgeChatMessages(messageComponents["target-user-id"]);
+                                if (twitchMessage.RawMessage.Contains("CLEARCHAT"))
+                                {
+                                    string[] parts = twitchMessage.RawMessage.Split(new char[] { ' ' }, 2);
+                                    Dictionary<string, string> messageComponents = parts[0].Substring(1).Split(';').ToList().ToDictionary(x => x.Substring(0, x.IndexOf('=')), y => y.Substring(y.IndexOf('=') + 1));
+                                    ChatHandler.Instance.PurgeChatMessages(messageComponents["target-user-id"]);
+                                }
+                                //else if (message.Contains("USERNOTICE"))
+                                //{
+                                //    switch (messageComponents["msg-id"])
+                                //    {
+                                //        case "sub":
+                                //        case "resub":
+                                //        case "subgift":
+                                //            //MessageInfo messageInfo = GetMessageInfo(twitchMessage, String.Empty, messageComponents);
+                                //            string newMsg = messageComponents["system-msg"].Replace("\\s", " ");
+                                //            SpriteParser.Parse(new ChatMessage($"<b>{newMsg.Substring(newMsg.IndexOf(" ") + 1)}</b>", twitchMessage));
+                                //            break;
+                                //    }
+                                //}
                             }
-                            //else if (message.Contains("USERNOTICE"))
-                            //{
-                            //    switch (messageComponents["msg-id"])
-                            //    {
-                            //        case "sub":
-                            //        case "resub":
-                            //        case "subgift":
-                            //            //MessageInfo messageInfo = GetMessageInfo(twitchMessage, String.Empty, messageComponents);
-                            //            string newMsg = messageComponents["system-msg"].Replace("\\s", " ");
-                            //            SpriteParser.Parse(new ChatMessage($"<b>{newMsg.Substring(newMsg.IndexOf(" ") + 1)}</b>", twitchMessage));
-                            //            break;
-                            //    }
-                            //}
                         }
                     }
                 }

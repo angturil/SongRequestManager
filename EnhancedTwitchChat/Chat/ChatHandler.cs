@@ -27,6 +27,7 @@ namespace EnhancedTwitchChat
         public Image background;
         public GameObject lockButtonPrimitive;
         public GameObject chatMoverPrimitive;
+        public bool initialized = false;
         
         private Canvas _twitchChatCanvas = null;
         private List<CustomText> _chatMessages = new List<CustomText>();
@@ -83,6 +84,7 @@ namespace EnhancedTwitchChat
             SceneManager.sceneLoaded += SceneManagerOnSceneLoaded;
             Config.Instance.ConfigChangedEvent += PluginOnConfigChangedEvent;
 
+            initialized = true;
             Plugin.Log("EnhancedTwitchChat initialized");
         }
 
