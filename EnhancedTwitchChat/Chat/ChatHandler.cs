@@ -31,7 +31,7 @@ namespace EnhancedTwitchChat
         
         private Canvas _twitchChatCanvas = null;
         private List<CustomText> _chatMessages = new List<CustomText>();
-        private ObjectPool<Image> _imagePool;
+        private ObjectPool<CustomImage> _imagePool;
         private Transform _chatMoverCube;
         private Transform _lockButtonSphere;
         private float _currentBackgroundHeight;
@@ -40,6 +40,7 @@ namespace EnhancedTwitchChat
         private Sprite _unlockedSprite;
         private bool _messageRendering = false;
         private int _waitForFrames = 0;
+        private ConcurrentStack<string> _timeoutQueue = new ConcurrentStack<string>();
 
         public void Awake()
         {
@@ -53,16 +54,16 @@ namespace EnhancedTwitchChat
             }
 
             // Precache a pool of images objects that will be used for displaying emotes/badges later on
-            _imagePool = new ObjectPool<Image>(50,
+            _imagePool = new ObjectPool<CustomImage>(50,
                 // OnAlloc
-                ((Image image) =>
+                ((CustomImage image) =>
                 {
                     image.material = Drawing.noGlowMaterialUI;
                     var shadow = image.gameObject.GetComponent<Shadow>();
                     if (shadow == null) shadow = image.gameObject.AddComponent<Shadow>();
                 }),
                 // OnFree
-                ((Image image) =>
+                ((CustomImage image) =>
                 {
                     image.enabled = false;
                     var anim = image.GetComponent<AnimatedSprite>();
@@ -138,6 +139,10 @@ namespace EnhancedTwitchChat
 
                     displayStatusMessage = false;
                 }
+
+                // Make sure to delete any purged messages right away
+                if (_timeoutQueue.Count > 0 && _timeoutQueue.TryPop(out var userID))
+                    PurgeChatMessagesInternal(userID);
 
                 if (_waitForFrames > 0)
                 {
@@ -260,10 +265,12 @@ namespace EnhancedTwitchChat
             
             currentMessage.color = Config.Instance.TextColor;
             foreach (BadgeInfo b in messageInfo.parsedBadges)
-                Drawing.OverlaySprite(currentMessage, b.swapChar, _imagePool, b.spriteIndex);
+                Drawing.OverlaySprite(currentMessage, b, _imagePool);
 
             foreach (EmoteInfo e in messageInfo.parsedEmotes)
-                Drawing.OverlaySprite(currentMessage, e.swapChar, _imagePool, e.spriteIndex);
+                Drawing.OverlaySprite(currentMessage, e, _imagePool);
+
+            yield return null;
             
             currentMessage.hasRendered = true;
 
@@ -286,13 +293,13 @@ namespace EnhancedTwitchChat
                         foreach (EmoteInfo e in currentMessage.messageInfo.parsedEmotes)
                         {
                             if (e.spriteIndex == emoteIndex)
-                                Drawing.OverlaySprite(currentMessage, e.swapChar, _imagePool, e.spriteIndex);
+                                Drawing.OverlaySprite(currentMessage, e, _imagePool);
                         }
 
                         foreach (BadgeInfo b in currentMessage.messageInfo.parsedBadges)
                         {
                             if (b.spriteIndex == emoteIndex)
-                                Drawing.OverlaySprite(currentMessage, b.swapChar, _imagePool, b.spriteIndex);
+                                Drawing.OverlaySprite(currentMessage, b, _imagePool);
                         }
                     }
                 }
@@ -319,7 +326,7 @@ namespace EnhancedTwitchChat
                         {
                             for (int i = currentMessage.emoteRenderers.Count - 1; i >= 0; i--)
                             {
-                                Image img = currentMessage.emoteRenderers[i];
+                                CustomImage img = currentMessage.emoteRenderers[i];
                                 if (img.sprite == animationInfo[0].sprite)
                                 {
                                     _imagePool.Free(img);
@@ -332,6 +339,7 @@ namespace EnhancedTwitchChat
 
                 // Initialize our animated emote data, registering it with the animation controller if it's longer than 1 frame
                 SpriteDownloader.CachedSprites[emoteIndex] = new CachedSpriteData(textureList);
+                SpriteDownloader.CachedSprites[emoteIndex].sprite = textureList[0].sprite;
                 if (textureList.Count > 1)
                     AnimationController.Instance.Register(textureList);
 
@@ -344,7 +352,7 @@ namespace EnhancedTwitchChat
                         foreach (EmoteInfo e in currentMessage.messageInfo.parsedEmotes)
                         {
                             if (e.spriteIndex == emoteIndex)
-                                Drawing.OverlaySprite(currentMessage, e.swapChar, _imagePool, e.spriteIndex);
+                                Drawing.OverlaySprite(currentMessage, e, _imagePool);
                         }
                     }
                 }
@@ -355,7 +363,7 @@ namespace EnhancedTwitchChat
             }
         }
 
-        public void PurgeChatMessages(string userID)
+        private void PurgeChatMessagesInternal(string userID)
         {
             foreach (CustomText currentMessage in _chatMessages)
             {
@@ -370,11 +378,18 @@ namespace EnhancedTwitchChat
             }
         }
 
+        public void PurgeChatMessages(string userID)
+        {
+            _timeoutQueue.Push(userID);
+        }
+
         private void ClearSprites(CustomText currentMessage)
         {
             if (currentMessage.emoteRenderers.Count > 0)
             {
-                currentMessage.emoteRenderers.ForEach(e => _imagePool.Free(e));
+                foreach (CustomImage image in currentMessage.emoteRenderers) {
+                    _imagePool.Free(image);
+                }
                 currentMessage.emoteRenderers.Clear();
             }
         }

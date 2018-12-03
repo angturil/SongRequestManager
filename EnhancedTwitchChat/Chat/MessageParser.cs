@@ -34,7 +34,7 @@ namespace EnhancedTwitchChat.Sprites
     public class EmoteInfo : SpriteInfo
     {
         public string swapString;
-        public bool isEmoji = false;
+        public bool isEmoji;
     };
 
     public class MessageParser : MonoBehaviour
@@ -53,37 +53,34 @@ namespace EnhancedTwitchChat.Sprites
             if (isActionMessage)
                 newChatMessage.msg = newChatMessage.msg.TrimEnd((char)0x1).Substring(8);
 
-            var matches = Utilities.GetEmojisInString(newChatMessage.msg);
-            if (matches.Count > 0)
+            // Parse and download any twitch emotes in the message
+            if (newChatMessage.twitchMessage.Emotes.Count() > 0)
             {
-                foreach (Match m in matches)
+                foreach (TwitchEmote e in newChatMessage.twitchMessage.Emotes)
                 {
-                    string emojiIndex = Utilities.WebParseEmojiRegExMatchEvaluator(m);
-                    string replaceString = m.Value;
+                    string emoteIndex = $"T{e.Id}";
+                    if (!SpriteDownloader.CachedSprites.ContainsKey(emoteIndex))
+                        SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(emoteIndex, ImageType.Twitch, newChatMessage.twitchMessage.Id));
 
-                    if (emojiIndex != String.Empty)
-                    {
-                        emojiIndex += ".png";
-                        if (!SpriteDownloader.CachedSprites.ContainsKey(emojiIndex))
-                            SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.twitchMessage.Id));
-
-                        if (!downloadQueue.ContainsKey(emojiIndex))
-                            downloadQueue.Add(emojiIndex, replaceString);
-                    }
-                    Thread.Sleep(5);
-
-                    foreach (string index in downloadQueue.Keys.Distinct())
-                    {
-                        EmoteInfo swapInfo = new EmoteInfo();
-                        swapInfo.isEmoji = true;
-                        swapInfo.swapChar = swapChar;
-                        swapInfo.swapString = downloadQueue[index];
-                        swapInfo.spriteIndex = index;
-                        parsedEmotes.Add(swapInfo);
-                        swapChar++;
-                    }
+                    downloadQueue.Add(emoteIndex, string.Join("-", e.Index[0]));
                 }
-                parsedEmotes = parsedEmotes.OrderByDescending(o => o.swapString.Length).ToList();
+                Thread.Sleep(5);
+
+                foreach (string emoteIndex in downloadQueue.Keys)
+                {
+                    string emoteInfo = downloadQueue[emoteIndex].Split(',')[0];
+                    string[] charsToReplace = emoteInfo.Split('-');
+                    int startReplace = Convert.ToInt32(charsToReplace[0]);
+                    int endReplace = Convert.ToInt32(charsToReplace[1]);
+                    string msg = newChatMessage.msg;
+
+                    EmoteInfo swapInfo = new EmoteInfo();
+                    swapInfo.swapChar = swapChar;
+                    swapInfo.swapString = msg.Substring(startReplace, endReplace - startReplace + 1);
+                    swapInfo.spriteIndex = emoteIndex;
+                    parsedEmotes.Add(swapInfo);
+                    swapChar++;
+                }
                 downloadQueue.Clear();
             }
 
@@ -116,34 +113,37 @@ namespace EnhancedTwitchChat.Sprites
                 downloadQueue.Clear();
             }
 
-            // Parse and download any twitch emotes in the message
-            if (newChatMessage.twitchMessage.Emotes.Count() > 0)
+            var matches = Utilities.GetEmojisInString(newChatMessage.msg);
+            if (matches.Count > 0)
             {
-                foreach (TwitchEmote e in newChatMessage.twitchMessage.Emotes)
+                foreach (Match m in matches)
                 {
-                    string emoteIndex = $"T{e.Id}";
-                    if (!SpriteDownloader.CachedSprites.ContainsKey(emoteIndex))
-                        SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(emoteIndex, ImageType.Twitch, newChatMessage.twitchMessage.Id));
-                    
-                    downloadQueue.Add(emoteIndex, string.Join("-", e.Index[0]));
-                }
-                Thread.Sleep(5);
+                    string emojiIndex = Utilities.WebParseEmojiRegExMatchEvaluator(m);
+                    string replaceString = m.Value;
 
-                foreach (string emoteIndex in downloadQueue.Keys)
-                {
-                    string emoteInfo = downloadQueue[emoteIndex].Split(',')[0];
-                    string[] charsToReplace = emoteInfo.Split('-');
-                    int startReplace = Convert.ToInt32(charsToReplace[0]);
-                    int endReplace = Convert.ToInt32(charsToReplace[1]);
-                    string msg = newChatMessage.msg;
+                    if (emojiIndex != String.Empty)
+                    {
+                        emojiIndex += ".png";
+                        if (!SpriteDownloader.CachedSprites.ContainsKey(emojiIndex))
+                            SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.twitchMessage.Id));
 
-                    EmoteInfo swapInfo = new EmoteInfo();
-                    swapInfo.swapChar = swapChar;
-                    swapInfo.swapString = msg.Substring(startReplace, endReplace - startReplace + 1);
-                    swapInfo.spriteIndex = emoteIndex;
-                    parsedEmotes.Add(swapInfo);
-                    swapChar++;
+                        if (!downloadQueue.ContainsKey(emojiIndex))
+                            downloadQueue.Add(emojiIndex, replaceString);
+                    }
+                    Thread.Sleep(5);
+
+                    foreach (string index in downloadQueue.Keys.Distinct())
+                    {
+                        EmoteInfo swapInfo = new EmoteInfo();
+                        swapInfo.isEmoji = true;
+                        swapInfo.swapChar = swapChar;
+                        swapInfo.swapString = downloadQueue[index];
+                        swapInfo.spriteIndex = index;
+                        parsedEmotes.Add(swapInfo);
+                        swapChar++;
+                    }
                 }
+                parsedEmotes = parsedEmotes.OrderByDescending(o => o.swapString.Length).ToList();
                 downloadQueue.Clear();
             }
 
@@ -193,7 +193,7 @@ namespace EnhancedTwitchChat.Sprites
             // Replace each emote with a hex character; we'll draw the emote at the position of this character later on
             foreach (EmoteInfo e in parsedEmotes)
             {
-                string replaceString = $" {Drawing.spriteSpacing}{Char.ConvertFromUtf32(e.swapChar)}{Drawing.spriteSpacing}";
+                string replaceString = $"\uE969 {Drawing.spriteSpacing}{Char.ConvertFromUtf32(e.swapChar)}{Drawing.spriteSpacing} ";
                 if (!e.isEmoji)
                 {
                     string[] parts = newChatMessage.msg.Split(' ');
@@ -206,7 +206,6 @@ namespace EnhancedTwitchChat.Sprites
                 }
                 else
                 {
-                    //Plugin.Log($"Replacing {e.emoteIndex} of length {e.swapString.Length.ToString()}");
                     // Replace emojis using the Replace function, since we don't care about spacing
                     newChatMessage.msg = newChatMessage.msg.Replace(e.swapString, replaceString);
                 }
@@ -234,7 +233,7 @@ namespace EnhancedTwitchChat.Sprites
             {
                 parsedBadges.Reverse();
                 for (int i = 0; i < parsedBadges.Count; i++)
-                    badgeStr = $"{Drawing.spriteSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}{Drawing.spriteSpacing}{Drawing.spriteSpacing} {badgeStr}";
+                    badgeStr = $" {Drawing.spriteSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}{Drawing.spriteSpacing}{Drawing.spriteSpacing}{Drawing.spriteSpacing} {badgeStr}";
             }
             newChatMessage.msg = $"{badgeStr}{newChatMessage.msg}";
 

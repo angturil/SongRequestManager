@@ -174,18 +174,16 @@ namespace EnhancedTwitchChat.Sprites
                 {
                     localPathExists = true;
                     spritePath = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase).Replace("\\Plugins", "")}\\{localFilePath}";
-                    //Plugin.Log("Local path exists!");
                 }
                 else
                 {
                     if (spriteDownloadInfo.type == ImageType.Emoji)
                     {
                         Plugin.Log($"Local path did not exist for Emoji {spriteDownloadInfo.index}!");
-                        while (!CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData((Sprite)null))) yield return null;
+                        CachedSprites.TryAdd(spriteDownloadInfo.index, null);
                         Instance._numDownloading--;
                         yield break;
                     }
-                    //Plugin.Log($"Path {spritePath} does not exist!");
                 }
 
                 Sprite sprite;
@@ -195,55 +193,48 @@ namespace EnhancedTwitchChat.Sprites
                     if (web.isNetworkError || web.isHttpError)
                     {
                         Plugin.Log($"An error occured when requesting emote {spriteDownloadInfo.index}, Message: \"{web.error}\"");
-                        if (spriteDownloadInfo.type == ImageType.BTTV_Animated)
-                        {
-                            while (!CachedSprites.TryAdd(spriteDownloadInfo.index, null)) yield return null;
-                        }
-                        else
-                        {
-                            while (!CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData((Sprite)null))) yield return null;
-                        }
-                        sprite = null;
+                        CachedSprites.TryAdd(spriteDownloadInfo.index, null);
+                        Instance._numDownloading--;
+                        yield break;
+                    }
+
+                    if (spriteDownloadInfo.type == ImageType.BTTV_Animated)
+                    {
+                        CachedSprites.TryAdd(spriteDownloadInfo.index, null);
+                        yield return AnimatedSpriteDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedEmote, spriteDownloadInfo);
+                        if (!localPathExists)
+                            SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
                     }
                     else
                     {
-                        if (spriteDownloadInfo.type == ImageType.BTTV_Animated)
+                        bool success = false;
+                        try
                         {
-                            while (!CachedSprites.TryAdd(spriteDownloadInfo.index, null)) yield return null;
-                            yield return AnimatedSpriteDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedEmote, spriteDownloadInfo);
-                            if (!localPathExists)
-                                SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
+                            Texture2D tex = DownloadHandlerTexture.GetContent(web);
+                            sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0, 0), Drawing.pixelsPerUnit);
+                            success = true;
                         }
-                        else
+                        catch (Exception e)
                         {
-                            bool success = false;
-                            try
-                            {
-                                Texture2D tex = DownloadHandlerTexture.GetContent(web);
-                                sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0, 0), Drawing.pixelsPerUnit);
-                                success = true;
-                            }
-                            catch (Exception e)
-                            {
-                                Plugin.Log(e.ToString());
-                                if (File.Exists(localFilePath)) File.Delete(localFilePath);
-                                sprite = null;
-                            }
-
-                            if (!success && !isRetry)
-                            {
-                                yield return Download(origSpritePath, spriteDownloadInfo, true);
-                                yield break;
-                            }
-
-                            while (!CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData(sprite))) yield return null;
-                            yield return null;
-
-                            ChatHandler.Instance.OverlaySprite(sprite, spriteDownloadInfo);
-
-                            if (!localPathExists && success)
-                                SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
+                            Plugin.Log(e.ToString());
+                            if (File.Exists(localFilePath)) File.Delete(localFilePath);
+                            sprite = null;
                         }
+
+                        if (!success && !isRetry)
+                        {
+                            yield return Download(origSpritePath, spriteDownloadInfo, true);
+                            Instance._numDownloading--;
+                            yield break;
+                        }
+
+                        CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData(sprite));
+                        yield return null;
+
+                        ChatHandler.Instance.OverlaySprite(sprite, spriteDownloadInfo);
+
+                        if (!localPathExists && success)
+                            SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
                     }
                 }
             }

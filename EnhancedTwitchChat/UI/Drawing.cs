@@ -13,10 +13,15 @@ using AsyncTwitch;
 
 namespace EnhancedTwitchChat.UI
 {
+    public class CustomImage : Image
+    {
+        public ImageType spriteType;
+    }
+
     public class CustomText : Text
     {
         public ChatMessage messageInfo;
-        public List<Image> emoteRenderers = new List<Image>();
+        public List<CustomImage> emoteRenderers = new List<CustomImage>();
         public bool hasRendered = false;
         ~CustomText()
         {
@@ -30,13 +35,12 @@ namespace EnhancedTwitchChat.UI
     [RequireComponent(typeof(LayoutElement))]
     public class ContentSizeManager : MonoBehaviour
     {
-        public float maximumWidth = Config.Instance.ChatWidth;
         private LayoutElement _thisElement;
         public void Init()
         {
             //if (parentRect.width > maximumWidth) {
             _thisElement = GetComponent<LayoutElement>();
-            _thisElement.preferredWidth = maximumWidth;
+            _thisElement.preferredWidth = Config.Instance.ChatWidth;
         }
     };
 
@@ -109,13 +113,17 @@ namespace EnhancedTwitchChat.UI
 
         public static CustomText InitText(string text, Color textColor, float fontSize, Vector2 sizeDelta, Vector3 position, Quaternion rotation, Transform parent, TextAnchor textAlign, Material mat = null)
         {
-            GameObject newGameObj = new GameObject();
+            GameObject newGameObj = new GameObject("CustomText");
+            CustomText tmpText = newGameObj.AddComponent<CustomText>();
+            var mcs = newGameObj.AddComponent<ContentSizeManager>();
+            mcs.transform.SetParent(tmpText.rectTransform, false);
+            mcs.Init();
+            var fitter = newGameObj.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             newGameObj.AddComponent<Shadow>();
 
             CanvasScaler scaler = newGameObj.AddComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = pixelsPerUnit;
-
-            CustomText tmpText = newGameObj.AddComponent<CustomText>();
             tmpText.color = textColor;
             tmpText.rectTransform.SetParent(parent.transform, false);
             tmpText.rectTransform.localPosition = position;
@@ -125,42 +133,40 @@ namespace EnhancedTwitchChat.UI
             tmpText.supportRichText = true;
             tmpText.text = text;
             tmpText.font = LoadSystemFont(Config.Instance.FontName);
-            tmpText.fontSize = 10;
+            tmpText.font.material.mainTexture.wrapMode = TextureWrapMode.Clamp;
+            tmpText.font.material.mainTexture.filterMode = FilterMode.Trilinear;
+            tmpText.font.material.mainTexture.anisoLevel = 0;
+            tmpText.fontSize = 100;
             tmpText.verticalOverflow = VerticalWrapMode.Overflow;
             tmpText.alignment = textAlign;
             tmpText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            tmpText.resizeTextForBestFit = false;
-
-            var mcs = tmpText.gameObject.AddComponent<ContentSizeManager>();
-            mcs.transform.SetParent(tmpText.rectTransform, false);
-            mcs.Init();
-            var fitter = tmpText.gameObject.AddComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-
+            tmpText.resizeTextForBestFit = true;
+            
             if (mat)
                 tmpText.material = mat;
 
             return tmpText;
         }
 
-        public static void OverlaySprite(CustomText currentMessage, char swapChar, ObjectPool<Image> imagePool, string spriteIndex)
+        public static void OverlaySprite(CustomText currentMessage, SpriteInfo spriteInfo, ObjectPool<CustomImage> imagePool)
         {
-            CachedSpriteData cachedSpriteInfo = SpriteDownloader.CachedSprites.ContainsKey(spriteIndex) ? SpriteDownloader.CachedSprites[spriteIndex] : null;
+            CachedSpriteData cachedSpriteInfo = SpriteDownloader.CachedSprites.ContainsKey(spriteInfo.spriteIndex) ? SpriteDownloader.CachedSprites[spriteInfo.spriteIndex] : null;
 
             // If cachedSpriteInfo is null, the emote will be overlayed at a later time once it's finished being cached
             if (cachedSpriteInfo == null || (cachedSpriteInfo.sprite == null && cachedSpriteInfo.animationInfo == null))
                 return;
 
             bool animatedEmote = cachedSpriteInfo.animationInfo != null;
-            foreach (int i in Utilities.IndexOfAll(currentMessage.text, Char.ConvertFromUtf32(swapChar)))
+            foreach (int i in Utilities.IndexOfAll(currentMessage.text, Char.ConvertFromUtf32(spriteInfo.swapChar)))
             {
+                CustomImage image = null;
                 try
                 {
                     if (i > 0 && i < currentMessage.text.Count() - 1 && currentMessage.text[i - 1] == ' ' && currentMessage.text[i + 1] == ' ')
                     {
-                        Image image = imagePool.Alloc();
+                        image = imagePool.Alloc();
                         image.preserveAspect = true;
-                        image.rectTransform.sizeDelta = new Vector2(7.0f, 7.0f);
+                        //image.rectTransform.sizeDelta = new Vector2(7.0f, 7.0f);
                         image.rectTransform.pivot = new Vector2(0, 0);
 
                         if (animatedEmote)
@@ -178,6 +184,11 @@ namespace EnhancedTwitchChat.UI
                             image.sprite.texture.wrapMode = TextureWrapMode.Clamp;
                         }
                         image.rectTransform.SetParent(currentMessage.rectTransform, false);
+                        float aspectRatio = image.sprite.bounds.size.x / image.sprite.bounds.size.y;
+                        if (aspectRatio > 1)
+                            image.rectTransform.localScale = new Vector3(0.06f * aspectRatio, 0.06f * aspectRatio, 0.06f); 
+                        else
+                            image.rectTransform.localScale = new Vector3(0.06f, 0.06f, 0.06f);
 
                         TextGenerator textGen = currentMessage.cachedTextGenerator;
                         Vector3 pos = new Vector3(textGen.verts[i * 4 + 3].position.x, textGen.verts[i * 4 + 3].position.y);
@@ -189,9 +200,13 @@ namespace EnhancedTwitchChat.UI
                 }
                 catch (Exception e)
                 {
-                    Plugin.Log($"Exception {e.Message} occured when trying to overlay emote at index {i.ToString()}!");
+                    if (image)
+                        imagePool.Free(image);
+
+                    Plugin.Log($"Exception {e.ToString()} occured when trying to overlay emote at index {i.ToString()}!");
                 }
             }
         }
     };
+
 }
