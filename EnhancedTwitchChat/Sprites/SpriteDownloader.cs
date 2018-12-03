@@ -384,7 +384,6 @@ namespace EnhancedTwitchChat.Sprites
                     JSONArray emotes = json["emotes"].AsArray;
                     foreach (SimpleJSON.JSONObject o in emotes)
                     {
-                        Plugin.Log($"BTTV Channel Emote: {o["code"]}");
                         if (o["imageType"] != "gif")
                             BTTVEmoteIDs.TryAdd(o["code"], o["id"]);
                         else
