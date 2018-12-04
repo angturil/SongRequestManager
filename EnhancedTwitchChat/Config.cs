@@ -19,7 +19,7 @@ namespace EnhancedTwitchChat
 
         public float ChatScale = 1.1f;
         public float ChatWidth = 160;
-        public float LineSpacing = 2;
+        public float MessageSpacing = 2.0f;
         public int MaxMessages = 20;
 
         public float PositionX = 2.0244143f;
@@ -112,44 +112,9 @@ namespace EnhancedTwitchChat
             FilePath = filePath;
 
             if (File.Exists(filePath))
-            {
                 Load();
-            }
             else
-            {
-                // If their old config exists, rename it then load their settings
-                if (File.Exists("UserData\\BetterTwitchChat.ini"))
-                {
-                    File.Move("UserData\\BetterTwitchChat.ini", "UserData\\EnhancedTwitchChat.ini");
-                    Load();
-                    Plugin.Log("Migrated settings from BetterTwitchChat.ini to EnhancedTwitchChat.ini");
-                }
-                else
-                {
-                    string configSectionName = "BetterTwitchChat";
-                    if (ModPrefs.GetString(configSectionName, "ChannelToJoin") != String.Empty && !ModPrefs.GetBool(configSectionName, "Migrated", false))
-                    {
-                        //TwitchoAuthToken = ModPrefs.GetString(configSectionName, "oAuth_Token", string.Empty);
-                        //TwitchUsername = ModPrefs.GetString(configSectionName, "Username", string.Empty);
-                        TwitchChannel = ModPrefs.GetString(configSectionName, "ChannelToJoin", String.Empty).ToLower().Replace(" ", "");
-                        ChatPosition = new Vector3(ModPrefs.GetFloat(configSectionName, "PositionX", 2.0244143f), ModPrefs.GetFloat(configSectionName, "PositionY", 0.373768f), ModPrefs.GetFloat(configSectionName, "PositionZ", 0.08235432f));
-                        ChatRotation = new Vector3(ModPrefs.GetFloat(configSectionName, "RotationX", 2.026023f), ModPrefs.GetFloat(configSectionName, "RotationY", 97.58616f), ModPrefs.GetFloat(configSectionName, "RotationZ", 1.190764f));
-                        TextColor = new Color(ModPrefs.GetFloat(configSectionName, "TextColorRed", 1), ModPrefs.GetFloat(configSectionName, "TextColorGreen", 1), ModPrefs.GetFloat(configSectionName, "TextColorBlue", 1), ModPrefs.GetFloat(configSectionName, "TextColorAlpha", 1));
-                        BackgroundColor = new Color(ModPrefs.GetFloat(configSectionName, "BackgroundRed", 0), ModPrefs.GetFloat(configSectionName, "BackgroundGreen", 0), ModPrefs.GetFloat(configSectionName, "BackgroundBlue", 0), ModPrefs.GetFloat(configSectionName, "BackgroundAlpha", 0.5f));
-                        MaxMessages = ModPrefs.GetInt(configSectionName, "MaxChatLines", 20);
-                        ChatWidth = ModPrefs.GetFloat(configSectionName, "ChatWidth", 160);
-                        BackgroundPadding = ModPrefs.GetFloat(configSectionName, "BackgroundPadding", 4);
-                        FontName = ModPrefs.GetString(configSectionName, "SystemFontName", "Segoe UI");
-                        ReverseChatOrder = ModPrefs.GetBool(configSectionName, "ReverseChatOrder", false);
-                        LockChatPosition = ModPrefs.GetBool(configSectionName, "LockChatPosition", false);
-
-                        ModPrefs.SetBool(configSectionName, "Migrated", true);
-
-                        Plugin.Log("Migrated old config settings to EnhancedTwitchChat.ini!");
-                    }
-                    Save();
-                }
-            }
+                Save();
 
             _configWatcher = new FileSystemWatcher($"{Environment.CurrentDirectory}\\UserData")
             {

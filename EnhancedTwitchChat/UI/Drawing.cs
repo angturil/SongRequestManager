@@ -10,6 +10,9 @@ using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Sprites;
 using AsyncTwitch;
+using System.Collections;
+using static POCs.Sanjay.SharpSnippets.Drawing.ColorExtensions;
+using Random = System.Random;
 
 namespace EnhancedTwitchChat.UI
 {
@@ -38,7 +41,6 @@ namespace EnhancedTwitchChat.UI
         private LayoutElement _thisElement;
         public void Init()
         {
-            //if (parentRect.width > maximumWidth) {
             _thisElement = GetComponent<LayoutElement>();
             _thisElement.preferredWidth = Config.Instance.ChatWidth;
         }
@@ -49,7 +51,8 @@ namespace EnhancedTwitchChat.UI
         public static int pixelsPerUnit = 100;
         public static Material noGlowMaterial = null;
         public static Material noGlowMaterialUI = null;
-        public static string spriteSpacing = " ";
+        public static string spriteSpacing;
+        public static float spriteSpacingWidth;
 
         public static bool SpritesCached
         {
@@ -74,32 +77,34 @@ namespace EnhancedTwitchChat.UI
             }
         }
 
-        public static void Initialize(Transform parent)
+        public static IEnumerator Initialize(Transform parent)
         {
-            CustomText tmpText = InitText(spriteSpacing, Color.white.ColorWithAlpha(0), 10, new Vector2(1000, 1000), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.MiddleLeft);
-            while (tmpText.preferredWidth < 4)
+            spriteSpacing = "\u200A";
+            CustomText tmpText = InitText(spriteSpacing, Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.UpperLeft);
+            while (tmpText.preferredWidth < 5.3f)
             {
-                tmpText.text += " ";
+                tmpText.text += "\u200A";
+                yield return null;
             }
+            spriteSpacingWidth = tmpText.preferredWidth;
+            Plugin.Log($"Preferred width was {tmpText.preferredWidth.ToString()} with {tmpText.text.Length.ToString()} spaces");
             spriteSpacing = tmpText.text;
             GameObject.Destroy(tmpText.gameObject);
         }
 
-        private static Font LoadSystemFont(string font)
+        public static Font LoadSystemFont(string font)
         {
             bool useFallback = false;
-            if (font.Length == 0)
+            if (font.Length > 0)
             {
-                useFallback = true;
+                List<string> matchingFonts = Font.GetOSInstalledFontNames().ToList().Where(f => f.ToLower() == font.ToLower()).ToList();
+                if (matchingFonts.Count == 0)
+                    useFallback = true;
+                else
+                    font = matchingFonts.First();
             }
             else
-            {
-                List<string> installedFonts = Font.GetOSInstalledFontNames().ToList().ConvertAll(f => f.ToLower());
-                if (!installedFonts.Contains(font.ToLower()))
-                {
-                    useFallback = true;
-                }
-            }
+                useFallback = true;
 
             if (useFallback)
             {
@@ -131,16 +136,13 @@ namespace EnhancedTwitchChat.UI
             tmpText.rectTransform.pivot = new Vector2(0, 0);
             tmpText.rectTransform.sizeDelta = sizeDelta;
             tmpText.supportRichText = true;
-            tmpText.text = text;
             tmpText.font = LoadSystemFont(Config.Instance.FontName);
-            tmpText.font.material.mainTexture.wrapMode = TextureWrapMode.Clamp;
-            tmpText.font.material.mainTexture.filterMode = FilterMode.Trilinear;
-            tmpText.font.material.mainTexture.anisoLevel = 0;
-            tmpText.fontSize = 100;
+            tmpText.text = text;
+            tmpText.fontSize = 10;
             tmpText.verticalOverflow = VerticalWrapMode.Overflow;
             tmpText.alignment = textAlign;
             tmpText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            tmpText.resizeTextForBestFit = true;
+            //tmpText.resizeTextForBestFit = true;
             
             if (mat)
                 tmpText.material = mat;
@@ -162,20 +164,20 @@ namespace EnhancedTwitchChat.UI
                 CustomImage image = null;
                 try
                 {
-                    if (i > 0 && i < currentMessage.text.Count() - 1 && currentMessage.text[i - 1] == ' ' && currentMessage.text[i + 1] == ' ')
+                    if (i > 0 && i < currentMessage.text.Count())
                     {
                         image = imagePool.Alloc();
                         image.preserveAspect = true;
-                        //image.rectTransform.sizeDelta = new Vector2(7.0f, 7.0f);
                         image.rectTransform.pivot = new Vector2(0, 0);
 
                         if (animatedEmote)
                         {
                             AnimatedSprite animatedImage = image.gameObject.GetComponent<AnimatedSprite>();
-                            if (animatedImage == null)
+                            if (!animatedImage)
                                 animatedImage = image.gameObject.AddComponent<AnimatedSprite>();
 
                             animatedImage.Init(image, cachedSpriteInfo.animationInfo);
+                            image.sprite = cachedSpriteInfo.animationInfo[0].sprite;
                             animatedImage.enabled = true;
                         }
                         else
@@ -184,16 +186,18 @@ namespace EnhancedTwitchChat.UI
                             image.sprite.texture.wrapMode = TextureWrapMode.Clamp;
                         }
                         image.rectTransform.SetParent(currentMessage.rectTransform, false);
+
                         float aspectRatio = image.sprite.bounds.size.x / image.sprite.bounds.size.y;
                         if (aspectRatio > 1)
-                            image.rectTransform.localScale = new Vector3(0.06f * aspectRatio, 0.06f * aspectRatio, 0.06f); 
+                            image.rectTransform.localScale = new Vector3(0.064f * aspectRatio, 0.064f * aspectRatio, 0.064f); 
                         else
-                            image.rectTransform.localScale = new Vector3(0.06f, 0.06f, 0.06f);
+                            image.rectTransform.localScale = new Vector3(0.064f, 0.064f, 0.064f);
 
                         TextGenerator textGen = currentMessage.cachedTextGenerator;
                         Vector3 pos = new Vector3(textGen.verts[i * 4 + 3].position.x, textGen.verts[i * 4 + 3].position.y);
                         image.rectTransform.position = currentMessage.gameObject.transform.TransformPoint(pos / pixelsPerUnit - new Vector3(image.preferredWidth / pixelsPerUnit + 2.5f, image.preferredHeight / pixelsPerUnit + 0.7f));
-
+                        image.rectTransform.localPosition -= new Vector3(spriteSpacingWidth/2.3f, 0);
+                        image.color = Config.Instance.TextColor;
                         image.enabled = true;
                         currentMessage.emoteRenderers.Add(image);
                     }
@@ -206,6 +210,36 @@ namespace EnhancedTwitchChat.UI
                     Plugin.Log($"Exception {e.ToString()} occured when trying to overlay emote at index {i.ToString()}!");
                 }
             }
+        }
+
+        public static System.Drawing.Color GetPastelShade(System.Drawing.Color source)
+        {
+            return (generateColor(source, true, new HSB { H = 0, S = 0.2d, B = 255 }, new HSB { H = 360, S = 0.5d, B = 255 }));
+        }
+
+        static Random randomizer = new Random();
+        private static System.Drawing.Color generateColor(System.Drawing.Color source, bool isaShadeOfSource, HSB min, HSB max)
+        {
+            HSB hsbValues = ConvertToHSB(new RGB { R = source.R, G = source.G, B = source.B });
+            double h_double = randomizer.NextDouble();
+            double s_double = randomizer.NextDouble();
+            double b_double = randomizer.NextDouble();
+            if (max.B - min.B == 0) b_double = 0; //do not change Brightness
+            if (isaShadeOfSource)
+            {
+                min.H = hsbValues.H;
+                max.H = hsbValues.H;
+                h_double = 0;
+            }
+            hsbValues = new HSB
+            {
+                H = Convert.ToDouble(randomizer.Next(Convert.ToInt32(min.H), Convert.ToInt32(max.H))) + h_double,
+                S = Convert.ToDouble((randomizer.Next(Convert.ToInt32(min.S * 100), Convert.ToInt32(max.S * 100))) / 100d),
+                B = Convert.ToDouble(randomizer.Next(Convert.ToInt32(min.B), Convert.ToInt32(max.B))) + b_double
+            };
+            //Debug.WriteLine("H:{0} | S:{1} | B:{2} [Min_S:{3} | Max_S{4}]", hsbValues.H, _hsbValues.S, _hsbValues.B, min.S, max.S);
+            RGB rgbvalues = ConvertToRGB(hsbValues);
+            return System.Drawing.Color.FromArgb(source.A, (int)rgbvalues.R, (int)rgbvalues.G, (int)rgbvalues.B);
         }
     };
 

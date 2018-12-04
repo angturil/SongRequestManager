@@ -13,6 +13,7 @@ using EnhancedTwitchChat.Chat;
 using UnityEngine.XR;
 using EnhancedTwitchChat.UI;
 using SimpleJSON;
+using System.Text.RegularExpressions;
 
 namespace EnhancedTwitchChat.Sprites
 {
@@ -38,12 +39,13 @@ namespace EnhancedTwitchChat.Sprites
         BTTV_Animated,
         FFZ,
         Badge,
-        Emoji
+        Emoji,
+        Cheermote
     };
 
     public class ImageTypeNames
     {
-        private static string[] Names = new string[] { "None", "Twitch", "BetterTwitchTV", "BetterTwitchTV", "FrankerFaceZ", "Badges", "Emojis" };
+        private static string[] Names = new string[] { "None", "Twitch", "BetterTwitchTV", "BetterTwitchTV", "FrankerFaceZ", "Badges", "Emojis", "Cheermotes" };
 
         public static string Get(ImageType type)
         {
@@ -75,12 +77,35 @@ namespace EnhancedTwitchChat.Sprites
         }
     };
 
+    public class CheermoteTier
+    {
+        public int minBits = 0;
+        public string color = "";
+        public bool canCheer = false;
+    }
+
+    public class Cheermote
+    {
+        public List<CheermoteTier> tiers = new List<CheermoteTier>();
+
+        public string GetTier(int numBits)
+        {
+            for (int i = 1; i < tiers.Count; i++)
+            {
+                if(numBits < tiers[i].minBits)
+                    return tiers[i-1].minBits.ToString();
+            }
+            return tiers[0].minBits.ToString();
+        }
+    }
+    
     public class SpriteDownloader : MonoBehaviour
     {
         public static ConcurrentDictionary<string, string> BTTVEmoteIDs = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<string, string> FFZEmoteIDs = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<string, string> TwitchBadgeIDs = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<string, string> BTTVAnimatedEmoteIDs = new ConcurrentDictionary<string, string>();
+        public static ConcurrentDictionary<string, Cheermote> TwitchCheermoteIDs = new ConcurrentDictionary<string, Cheermote>();
 
         public static ConcurrentDictionary<string, CachedSpriteData> CachedSprites = new ConcurrentDictionary<string, CachedSpriteData>();
         public static ConcurrentStack<TextureSaveInfo> SpriteSaveQueue = new ConcurrentStack<TextureSaveInfo>();
@@ -109,6 +134,7 @@ namespace EnhancedTwitchChat.Sprites
             StartCoroutine(GetFFZChannelEmotes());
             StartCoroutine(GetTwitchChannelBadges());
             StartCoroutine(GetTwitchGlobalBadges());
+            StartCoroutine(GetCheermotes());
         }
 
         public void Update()
@@ -142,6 +168,10 @@ namespace EnhancedTwitchChat.Sprites
                             break;
                         case ImageType.Emoji:
                             StartCoroutine(Download(string.Empty, spriteDownloadInfo));
+                            break;
+                        case ImageType.Cheermote:
+                            Match match = Utilities.cheermoteRegex.Match(spriteDownloadInfo.index);
+                            StartCoroutine(Download($"https://d3aqoihi2n8ty8.cloudfront.net/actions/{(match.Groups["Prefix"].Value)}/dark/animated/{(match.Groups["Value"].Value)}/4.gif", spriteDownloadInfo));
                             break;
                     }
                     _numDownloading++;
@@ -198,7 +228,7 @@ namespace EnhancedTwitchChat.Sprites
                         yield break;
                     }
 
-                    if (spriteDownloadInfo.type == ImageType.BTTV_Animated)
+                    if (spriteDownloadInfo.type == ImageType.BTTV_Animated || spriteDownloadInfo.type == ImageType.Cheermote)
                     {
                         CachedSprites.TryAdd(spriteDownloadInfo.index, null);
                         yield return AnimatedSpriteDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedEmote, spriteDownloadInfo);
@@ -241,6 +271,45 @@ namespace EnhancedTwitchChat.Sprites
             Instance._numDownloading--;
         }
 
+        public static IEnumerator GetCheermotes()
+        {
+            int emotesCached = 0;
+            UnityWebRequest web = UnityWebRequest.Get("https://api.twitch.tv/kraken/bits/actions");
+            web.SetRequestHeader("Accept", "application/vnd.twitchtv.v5+json");
+            web.SetRequestHeader("Channel-ID", Config.Instance.TwitchChannel);
+            web.SetRequestHeader("Client-ID", "jg6ij5z8mf8jr8si22i5uq8tobnmde");
+            yield return web.SendWebRequest();
+            if (web.isNetworkError || web.isHttpError)
+            {
+                Plugin.Log($"An error occured when requesting twitch global badge listing, Message: \"{web.error}\"");
+                yield break;
+            }
+            if (web.downloadHandler.text.Length == 0) yield break;
+
+            JSONNode json = JSON.Parse(web.downloadHandler.text);
+            if (json["actions"].IsArray)
+            {
+                foreach (JSONNode node in json["actions"].AsArray.Values)
+                {
+                    Cheermote cheermote = new Cheermote();
+                    string prefix = node["prefix"].ToString().ToLower();
+                    foreach (JSONNode tier in node["tiers"].Values)
+                    {
+                        CheermoteTier newTier = new CheermoteTier();
+                        newTier.minBits = tier["min_bits"].AsInt;
+                        newTier.color = tier["color"];
+                        newTier.canCheer = tier["can_cheer"].AsBool;
+                        cheermote.tiers.Add(newTier);
+                    }
+                    cheermote.tiers = cheermote.tiers.OrderBy(t => t.minBits).ToList();
+                    TwitchCheermoteIDs.TryAdd(prefix.Substring(1, prefix.Length-2), cheermote);
+                    //Plugin.Log($"Cheermote: {prefix}");
+                    emotesCached++;
+                }
+            }
+            Plugin.Log($"Web request completed, {emotesCached.ToString()} twitch cheermotes now cached!");
+        }
+
         public static IEnumerator GetTwitchGlobalBadges()
         {
             Plugin.Log($"Downloading twitch global badge listing");
@@ -268,6 +337,7 @@ namespace EnhancedTwitchChat.Sprites
                             string versionID = version.Key;
                             string url = versionObject["image_url_4x"];
                             string index = url.Substring(url.IndexOf("/v1/") + 4).Replace("/3", "");
+                            //Plugin.Log($"Badge: {name}{versionID}");
                             TwitchBadgeIDs.TryAdd($"{name}{versionID}", index);
                             emotesCached++;
                         }

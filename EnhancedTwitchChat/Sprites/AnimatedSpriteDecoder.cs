@@ -63,9 +63,7 @@ namespace EnhancedTwitchChat.Sprites
             new Thread(() => ProcessingThread(gifData, ref frameInfo)).Start();
 
             while (!frameInfo.initialized)
-            {
                 yield return null;
-            }
 
             for (int i = 0; i < frameInfo.frameCount; i++)
             {
@@ -134,7 +132,12 @@ namespace EnhancedTwitchChat.Sprites
                     }
                 }
 
-                currentFrame.delay = (float)BitConverter.ToInt32(gifImage.GetPropertyItem(20736).Value, index) / 100.0f;
+                int delayPropertyValue = BitConverter.ToInt32(gifImage.GetPropertyItem(20736).Value, index);
+                // If the delay property is 0, assume that it's a 10fps emote
+                if (delayPropertyValue == 0)
+                    delayPropertyValue = 10;
+                
+                currentFrame.delay = (float)delayPropertyValue / 100.0f;
                 frameInfo.frames.Add(currentFrame);
                 index += 4;
                 Thread.Sleep(7);
