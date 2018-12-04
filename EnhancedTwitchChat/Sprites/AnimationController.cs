@@ -7,51 +7,60 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace EnhancedTwitchChat.Sprites {
-    class AnimControllerData {
+namespace EnhancedTwitchChat.Sprites
+{
+    class AnimControllerData
+    {
         public List<AnimationData> animationInfo;
         public int index = 0;
         public DateTime lastSwitch = DateTime.Now;
-        public AnimControllerData(List<AnimationData> animation) {
+        public AnimControllerData(List<AnimationData> animation)
+        {
             this.animationInfo = animation;
         }
     };
 
-    class AnimationController : MonoBehaviour {
+    class AnimationController : MonoBehaviour
+    {
         public static AnimationController Instance = null;
 
         private List<AnimControllerData> _registeredAnimations = new List<AnimControllerData>();
-        void Awake() {
+        void Awake()
+        {
             UnityEngine.Object.DontDestroyOnLoad(this);
 
             if (Instance == null) Instance = this;
             else Destroy(this);
         }
 
-        public void Register(List<AnimationData> _animation) {
+        public void Register(List<AnimationData> _animation)
+        {
             _registeredAnimations.Add(new AnimControllerData(_animation));
         }
 
-        public Sprite Get(List<AnimationData> animation) {
-            foreach (AnimControllerData _animation in _registeredAnimations) {
-                if (_animation.animationInfo == animation) {
+        public Sprite Get(List<AnimationData> animation)
+        {
+            foreach (AnimControllerData _animation in _registeredAnimations)
+            {
+                if (_animation.animationInfo == animation)
                     return _animation.animationInfo[_animation.index].sprite;
-                }
             }
             return null;
         }
 
-        void Update() {
-            foreach (AnimControllerData aci in _registeredAnimations) {
-                var difference = DateTime.Now - aci.lastSwitch;
+        void Update()
+        {
+            foreach (AnimControllerData animation in _registeredAnimations)
+            {
+                var difference = DateTime.Now - animation.lastSwitch;
 
-                if ((float)difference.Milliseconds / 1000 >= aci.animationInfo[aci.index].delay) {
-                    aci.lastSwitch = DateTime.Now;
-                    aci.index++;
+                if ((float)difference.Milliseconds / 1000 >= animation.animationInfo[animation.index].delay)
+                {
+                    animation.lastSwitch = DateTime.Now;
+                    animation.index++;
 
-                    if (aci.index >= aci.animationInfo.Count) {
-                        aci.index = 0;
-                    }
+                    if (animation.index >= animation.animationInfo.Count)
+                        animation.index = 0;
                 }
             }
         }

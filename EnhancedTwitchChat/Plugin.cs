@@ -20,25 +20,29 @@ using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.UI;
 using AsyncTwitch;
 
-namespace EnhancedTwitchChat {
-    public class Plugin : IPlugin {
+namespace EnhancedTwitchChat
+{
+    public class Plugin : IPlugin
+    {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "0.3.5";
+        public string Version => "1.0.0";
 
         public bool IsAtMainMenu = true;
         public bool ShouldWriteConfig = false;
         public static Plugin Instance { get; private set; }
 
-        public readonly Config Config = new Config(Path.Combine(Environment.CurrentDirectory, "UserData\\EnhancedTwitchChat.ini"));
+        private readonly Config Config = new Config(Path.Combine(Environment.CurrentDirectory, "UserData\\EnhancedTwitchChat.ini"));
 
 
         // https://api.twitch.tv/kraken/streams/ninja?client_id=jg6ij5z8mf8jr8si22i5uq8tobnmde
 
-        public static void Log(string msg) {
+        public static void Log(string msg)
+        {
             Console.WriteLine($"[EnhancedTwitchChat] {msg}");
         }
 
-        public void OnApplicationStart() {
+        public void OnApplicationStart()
+        {
             if (Instance != null) return;
 
             Instance = this;
@@ -62,13 +66,16 @@ namespace EnhancedTwitchChat {
                 IsAtMainMenu = false;
         }
 
-        public void OnLevelWasLoaded(int level) {
+        public void OnLevelWasLoaded(int level)
+        {
         }
 
-        public void OnLevelWasInitialized(int level) {
+        public void OnLevelWasInitialized(int level)
+        {
         }
-        
-        public void OnFixedUpdate() {
+
+        public void OnFixedUpdate()
+        {
         }
 
         public void OnUpdate()
@@ -77,37 +84,6 @@ namespace EnhancedTwitchChat {
             {
                 Config.Save();
                 ShouldWriteConfig = false;
-            }
-            
-            var c = GameObject.Find("Camera Plus")?.gameObject.GetComponent<Camera>();
-            if (c && !c.GetComponent<ManualCameraRenderer>())
-                c.gameObject.AddComponent<ManualCameraRenderer>();
-        }
-    }
-
-    public class ManualCameraRenderer : MonoBehaviour
-    {
-        public float fps = 60;
-        float elapsed;
-        Camera cam;
-
-        void Start()
-        {
-            cam = GetComponent<Camera>();
-            cam.enabled = false;
-        }
-
-        void Update()
-        {
-            elapsed += Time.deltaTime;
-            if (elapsed > 1.0f / fps)
-            {
-                elapsed = 0;
-                cam.enabled = true;
-            }
-            else if (cam.enabled)
-            {
-                cam.enabled = false;
             }
         }
     }

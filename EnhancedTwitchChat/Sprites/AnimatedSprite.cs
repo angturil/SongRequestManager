@@ -9,8 +9,10 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EnhancedTwitchChat.Sprites {
-    class AnimatedSprite : MonoBehaviour {
+namespace EnhancedTwitchChat.Sprites
+{
+    class AnimatedSprite : MonoBehaviour
+    {
         private Image _image;
         private List<AnimationData> _spriteList;
 
@@ -20,20 +22,22 @@ namespace EnhancedTwitchChat.Sprites {
 
         }
 
-        public void Init(Image image, List<AnimationData> sprites) {
+        public void Init(Image image, List<AnimationData> sprites)
+        {
             _spriteList = sprites;
             _image = image;
-            if (_spriteList.Count > 0) {
+            if (_spriteList.Count > 0)
                 _image.sprite = _spriteList[0].sprite;
-            }
         }
-        
-        void Update() {
+
+        void Update()
+        {
             if (_spriteList == null || _spriteList.Count <= 1 || AnimationController.Instance == null) return;
             _image.sprite = AnimationController.Instance.Get(_spriteList);
         }
 
-        void OnDestroy() {
+        void OnDestroy()
+        {
             _spriteList = null;
         }
     };
