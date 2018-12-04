@@ -1,13 +1,10 @@
 # Mod Info
-EnhancedTwitchChat is a rich text Twitch chat integration mod with full unicode, emote, and emoji support.
-
-# Beta
-The mod is currently in beta, which means you may experience some bugs. Please report any bugs via the issues tab on GitHub.
+EnhancedTwitchChat is a rich text Twitch chat integration mod with full unicode, emote, cheermote, and emoji support.
 
 # Features
 - Full Rich Text Support, see ALL of your Twitch chat when immersed in Beat Saber!
-  - This includes all Twitch badges and emotes, BetterTwitchTV emotes, FrankerFaceZ emotes, all Emojis and even animated emotes!
-  - This also includes full Unicode Support!
+  - This includes all Twitch badges, emotes, cheermotes, BetterTwitchTV emotes, FrankerFaceZ emotes, all Emojis and even animated emotes!
+  - This also includes full Unicode Support! This means you can enjoy the chat in any language!
 - Customizable User Interface
   - Change the scale, width, text/background colors, and chat order!
 - *Coming soon*
@@ -15,7 +12,7 @@ The mod is currently in beta, which means you may experience some bugs. Please r
   - More chat customization options!
 
 # Getting Started
-After installing EnhancedTwitchChat.dll, run the game once to generate the EnhancedTwitchChat.ini file in the UserData folder inside your Beat Saber directory.
+After copying the contents of EnhancedTwitchChat.zip to your Beat Saber directory, run the game once to generate the EnhancedTwitchChat.ini file in the UserData folder inside your Beat Saber directory.
 
 # Setup
 All you need to enter is the channel name which you want to join, the chat will show up to your right in game, and you can move it by pointing at it with the laser from your controller and grabbing it with the trigger. You can also move the chat towards you and away from you by pressing up and down on the analog stick or trackpad on your controller. Finally, you can use the lock button in the corner of the chat to lock the chat position in place so you don't accidentally move it.
