@@ -81,6 +81,7 @@ namespace EnhancedTwitchChat.UI
         {
             spriteSpacing = "\u200A";
             CustomText tmpText = InitText(spriteSpacing, Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.UpperLeft);
+            yield return null;
             while (tmpText.preferredWidth < 5.3f)
             {
                 tmpText.text += "\u200A";
@@ -113,7 +114,7 @@ namespace EnhancedTwitchChat.UI
                 Plugin.Instance.ShouldWriteConfig = true;
                 Plugin.Log($"Invalid font name specified! Falling back to Segoe UI");
             }
-            return Font.CreateDynamicFontFromOSFont(font, 10);
+            return Font.CreateDynamicFontFromOSFont(font, 230);
         }
 
         public static CustomText InitText(string text, Color textColor, float fontSize, Vector2 sizeDelta, Vector3 position, Quaternion rotation, Transform parent, TextAnchor textAlign, Material mat = null)
@@ -138,7 +139,7 @@ namespace EnhancedTwitchChat.UI
             tmpText.supportRichText = true;
             tmpText.font = LoadSystemFont(Config.Instance.FontName);
             tmpText.text = text;
-            tmpText.fontSize = 10;
+            tmpText.fontSize = 230;
             tmpText.verticalOverflow = VerticalWrapMode.Overflow;
             tmpText.alignment = textAlign;
             tmpText.horizontalOverflow = HorizontalWrapMode.Wrap;

@@ -44,13 +44,11 @@ namespace EnhancedTwitchChat.Sprites
         private static Dictionary<int, string> _userColors = new Dictionary<int, string>();
         public static void Parse(ChatMessage newChatMessage)
         {
-            //Plugin.Log($"Parsing message for {(newChatMessage.twitchMessage.Author.IsBroadcaster ? "broadcaster" : "user")} {newChatMessage.twitchMessage.Author.DisplayName} with user-id {newChatMessage.twitchMessage.Author.UserID}");
+            char swapChar = (char)0xE000;
             List<EmoteInfo> parsedEmotes = new List<EmoteInfo>();
             List<BadgeInfo> parsedBadges = new List<BadgeInfo>();
 
-            char swapChar = (char)0xE000;
             bool isActionMessage = newChatMessage.msg.Substring(1).StartsWith("ACTION") && newChatMessage.msg[0] == (char)0x1;
-
             if (isActionMessage)
                 newChatMessage.msg = newChatMessage.msg.TrimEnd((char)0x1).Substring(8);
 
@@ -102,6 +100,7 @@ namespace EnhancedTwitchChat.Sprites
                 Thread.Sleep(5);
             }
 
+            // Parse and download any emojis included in the message
             var matches = Utilities.GetEmojisInString(newChatMessage.msg);
             if (matches.Count > 0)
             {
@@ -187,15 +186,15 @@ namespace EnhancedTwitchChat.Sprites
             }
             Thread.Sleep(5);
 
-            // Replace each emote with a hex character; we'll draw the emote at the position of this character later on
+            // Replace each emote with a unicode character from a private range; we'll draw the emote at the position of this character later on
             foreach (EmoteInfo e in parsedEmotes)
             {
                 string extraInfo = String.Empty;
                 if (e.spriteType == ImageType.Cheermote)
                 {
-                    Match template = Utilities.cheermoteRegex.Match(e.spriteIndex);
-                    Match real = Utilities.cheermoteRegex.Match(e.swapString);
-                    extraInfo = $"\u200A<color={SpriteDownloader.TwitchCheermoteIDs[real.Groups["Prefix"].Value].tiers.Where(t => t.minBits == Convert.ToInt32(template.Groups["Value"].Value)).First().color}><size=3><b>{real.Groups["Value"].Value}</b></size></color>\u200A";
+                    Match cheermote = Utilities.cheermoteRegex.Match(e.swapString);
+                    string numBits = cheermote.Groups["Value"].Value;
+                    extraInfo = $"\u200A<color={SpriteDownloader.TwitchCheermoteIDs[cheermote.Groups["Prefix"].Value].GetColor(Convert.ToInt32(numBits))}><size=3><b>{numBits}</b></size></color>\u200A";
                 }
                 string replaceString = $"\u00A0{Drawing.spriteSpacing}{Char.ConvertFromUtf32(e.swapChar)}{extraInfo}";
                 if (!e.isEmoji)
