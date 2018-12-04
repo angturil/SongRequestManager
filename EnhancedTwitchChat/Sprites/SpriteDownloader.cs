@@ -14,6 +14,7 @@ using UnityEngine.XR;
 using EnhancedTwitchChat.UI;
 using SimpleJSON;
 using System.Text.RegularExpressions;
+using CustomUI.Utilities;
 
 namespace EnhancedTwitchChat.Sprites
 {
@@ -87,6 +88,16 @@ namespace EnhancedTwitchChat.Sprites
     public class Cheermote
     {
         public List<CheermoteTier> tiers = new List<CheermoteTier>();
+
+        public string GetColor(int numBits)
+        {
+            for (int i = 1; i < tiers.Count; i++)
+            {
+                if (numBits < tiers[i].minBits)
+                    return tiers[i - 1].color;
+            }
+            return tiers[0].color;
+        }
 
         public string GetTier(int numBits)
         {
@@ -188,84 +199,63 @@ namespace EnhancedTwitchChat.Sprites
         {
             if (!CachedSprites.ContainsKey(spriteDownloadInfo.index))
             {
-                string origSpritePath = spritePath;
-
-                string spriteCachePath = "Cache\\Sprites";
-                if (!Directory.Exists(spriteCachePath))
-                    Directory.CreateDirectory(spriteCachePath);
-
-                string typePath = $"{spriteCachePath}\\{ImageTypeNames.Get(spriteDownloadInfo.type)}";
-                if (!Directory.Exists(typePath))
-                    Directory.CreateDirectory(typePath);
-
-                bool localPathExists = false;
-                string localFilePath = $"{typePath}\\{spriteDownloadInfo.index}";
-                if (File.Exists(localFilePath))
+                Sprite sprite = null;
+                if (spriteDownloadInfo.type != ImageType.Emoji)
                 {
-                    localPathExists = true;
-                    spritePath = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase).Replace("\\Plugins", "")}\\{localFilePath}";
-                }
-                else
-                {
-                    if (spriteDownloadInfo.type == ImageType.Emoji)
+                    string origSpritePath = spritePath;
+
+                    string spriteCachePath = "Cache\\Sprites";
+                    if (!Directory.Exists(spriteCachePath))
+                        Directory.CreateDirectory(spriteCachePath);
+
+                    string typePath = $"{spriteCachePath}\\{ImageTypeNames.Get(spriteDownloadInfo.type)}";
+                    if (!Directory.Exists(typePath))
+                        Directory.CreateDirectory(typePath);
+
+                    bool localPathExists = false;
+                    string localFilePath = $"{typePath}\\{spriteDownloadInfo.index}";
+                    if (File.Exists(localFilePath))
                     {
-                        Plugin.Log($"Local path did not exist for Emoji {spriteDownloadInfo.index}!");
-                        CachedSprites.TryAdd(spriteDownloadInfo.index, null);
-                        Instance._numDownloading--;
-                        yield break;
-                    }
-                }
-
-                Sprite sprite;
-                using (var web = UnityWebRequestTexture.GetTexture(spritePath, true))
-                {
-                    yield return web.SendWebRequest();
-                    if (web.isNetworkError || web.isHttpError)
-                    {
-                        Plugin.Log($"An error occured when requesting emote {spriteDownloadInfo.index}, Message: \"{web.error}\"");
-                        CachedSprites.TryAdd(spriteDownloadInfo.index, null);
-                        Instance._numDownloading--;
-                        yield break;
+                        localPathExists = true;
+                        spritePath = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase).Replace("\\Plugins", "")}\\{localFilePath}";
                     }
 
-                    if (spriteDownloadInfo.type == ImageType.BTTV_Animated || spriteDownloadInfo.type == ImageType.Cheermote)
+                    using (var web = UnityWebRequestTexture.GetTexture(spritePath, true))
                     {
-                        CachedSprites.TryAdd(spriteDownloadInfo.index, null);
-                        yield return AnimatedSpriteDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedEmote, spriteDownloadInfo);
-                        if (!localPathExists)
-                            SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
-                    }
-                    else
-                    {
-                        bool success = false;
-                        try
+                        yield return web.SendWebRequest();
+                        if (web.isNetworkError || web.isHttpError)
                         {
-                            Texture2D tex = DownloadHandlerTexture.GetContent(web);
-                            sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0, 0), Drawing.pixelsPerUnit);
-                            success = true;
-                        }
-                        catch (Exception e)
-                        {
-                            Plugin.Log(e.ToString());
-                            if (File.Exists(localFilePath)) File.Delete(localFilePath);
-                            sprite = null;
-                        }
-
-                        if (!success && !isRetry)
-                        {
-                            yield return Download(origSpritePath, spriteDownloadInfo, true);
+                            Plugin.Log($"An error occured when requesting emote {spriteDownloadInfo.index}, Message: \"{web.error}\"");
+                            CachedSprites.TryAdd(spriteDownloadInfo.index, null);
                             Instance._numDownloading--;
                             yield break;
                         }
-
-                        CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData(sprite));
-                        yield return null;
-
-                        ChatHandler.Instance.OverlaySprite(sprite, spriteDownloadInfo);
-
-                        if (!localPathExists && success)
-                            SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
+                        else if (spriteDownloadInfo.type == ImageType.BTTV_Animated || spriteDownloadInfo.type == ImageType.Cheermote)
+                        {
+                            CachedSprites.TryAdd(spriteDownloadInfo.index, null);
+                            yield return AnimatedSpriteDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedEmote, spriteDownloadInfo);
+                            if (!localPathExists)
+                                SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
+                        }
+                        else
+                        {
+                            sprite = UIUtilities.LoadSpriteRaw(web.downloadHandler.data);
+                            if (sprite)
+                            {
+                                if (!localPathExists)
+                                    SpriteSaveQueue.Push(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
+                            }
+                        }
                     }
+                }
+                else
+                    sprite = UIUtilities.LoadSpriteFromResources($"EnhancedTwitchChat.Resources.Emojis.{spriteDownloadInfo.index.ToLower()}");
+
+                if (sprite)
+                {
+                    CachedSprites.TryAdd(spriteDownloadInfo.index, new CachedSpriteData(sprite));
+                    yield return null;
+                    ChatHandler.Instance.OverlaySprite(sprite, spriteDownloadInfo);
                 }
             }
             Instance._numDownloading--;
