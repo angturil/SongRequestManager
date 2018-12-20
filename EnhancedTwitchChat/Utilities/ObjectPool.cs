@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace EnhancedTwitchChat
 {
-    class ObjectPool<T> where T : Component
+    public class ObjectPool<T> where T : Component
     {
         private Dictionary<T, bool> _objects;
 

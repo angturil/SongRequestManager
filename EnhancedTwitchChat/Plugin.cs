@@ -14,7 +14,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections.Concurrent;
 using UnityEditor;
-using EnhancedTwitchChat.Sprites;
+using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.UI;

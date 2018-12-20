@@ -1,4 +1,5 @@
-﻿using EnhancedTwitchChat.UI;
+﻿using CustomUI.Utilities;
+using EnhancedTwitchChat.UI;
 using EnhancedTwitchChat.Utils;
 using System;
 using System.Collections;
@@ -10,30 +11,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace EnhancedTwitchChat.Sprites
+namespace EnhancedTwitchChat.Textures
 {
-    public class AnimationData
-    {
-        public Sprite sprite;
-        public float delay;
-        public AnimationData(Sprite sprite, float delay)
-        {
-            this.sprite = sprite;
-            this.delay = delay;
-        }
-    };
-
-    public class AnimSaveData
-    {
-        public string emoteIndex;
-        public List<AnimationData> sprites;
-        public AnimSaveData(string emoteIndex, List<AnimationData> textures)
-        {
-            this.emoteIndex = emoteIndex;
-            this.sprites = textures;
-        }
-    };
-
     class GifInfo
     {
         public List<FrameInfo> frames = new List<FrameInfo>();
@@ -53,18 +32,19 @@ namespace EnhancedTwitchChat.Sprites
         }
     };
 
-    class AnimatedSpriteDecoder
+    class AnimationDecoder
     {
-        public static IEnumerator Process(byte[] gifData, Action<List<AnimationData>, SpriteDownloadInfo> callback, SpriteDownloadInfo spriteDownloadInfo)
+        public static IEnumerator Process(byte[] gifData, Action<Texture2D, Rect[], float, TextureDownloadInfo> callback, TextureDownloadInfo imageDownloadInfo)
         {
-            List<AnimationData> gifTexList = new List<AnimationData>();
+            List<Texture2D> texList = new List<Texture2D>();
             GifInfo frameInfo = new GifInfo();
             DateTime startTime = DateTime.Now;
-            new Thread(() => ProcessingThread(gifData, ref frameInfo)).Start();
-
+            Task.Run(() => ProcessingThread(gifData, ref frameInfo));
+            
             while (!frameInfo.initialized)
                 yield return null;
 
+            float delay = -1f;
             for (int i = 0; i < frameInfo.frameCount; i++)
             {
                 // The processing thread is purposely slowed down to reduce CPU load, so yield here as it won't keep up with the game if it's running at 90fps
@@ -72,6 +52,10 @@ namespace EnhancedTwitchChat.Sprites
                     yield return null;
 
                 FrameInfo currentFrameInfo = frameInfo.frames[i];
+
+                if (delay == -1f)
+                    delay = currentFrameInfo.delay;
+
                 var frameTexture = new Texture2D(currentFrameInfo.frame.Width, currentFrameInfo.frame.Height);
                 int colorIndex = 0;
                 for (int x = 0; x < currentFrameInfo.frame.Width; x++)
@@ -89,17 +73,24 @@ namespace EnhancedTwitchChat.Sprites
                 yield return null;
 
                 frameTexture.wrapMode = TextureWrapMode.Clamp;
-                gifTexList.Add(new AnimationData(Sprite.Create(frameTexture, new Rect(0, 0, frameTexture.width, frameTexture.height), new Vector2(0, 0), Drawing.pixelsPerUnit), currentFrameInfo.delay));
+
+                texList.Add(frameTexture);
 
                 // Instant callback after we decode the first frame in order to display a still image until the animated one is finished loading
                 if (callback != null && i == 0)
-                    callback(new List<AnimationData>() { gifTexList[0] }, spriteDownloadInfo);
+                {
+                    Texture2D tempTexture = new Texture2D(8192, 8192);
+                    callback(frameTexture, tempTexture.PackTextures(new Texture2D[] { frameTexture }, 2, 8192, true), delay, imageDownloadInfo);
+                }
             }
 
             yield return null;
 
+            Texture2D texture = new Texture2D(8192, 8192);
+            Rect[] atlas = texture.PackTextures(texList.ToArray(), 2, 8192, true);
+
             if (callback != null)
-                callback(gifTexList, spriteDownloadInfo);
+                callback(texture, atlas, delay, imageDownloadInfo);
 
             Plugin.Log($"Finished decoding gif! Elapsed time: {(DateTime.Now - startTime).TotalSeconds.ToString()} seconds.");
             yield break;

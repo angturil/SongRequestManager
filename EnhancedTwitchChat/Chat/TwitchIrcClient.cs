@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using EnhancedTwitchChat.Sprites;
+using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.Utils;
 using AsyncTwitch;
 using UnityEngine;
@@ -159,7 +159,7 @@ namespace EnhancedTwitchChat.Chat
                                 {
                                     string[] parts = twitchMessage.RawMessage.Split(new char[] { ' ' }, 2);
                                     Dictionary<string, string> messageComponents = parts[0].Substring(1).Split(';').ToList().ToDictionary(x => x.Substring(0, x.IndexOf('=')), y => y.Substring(y.IndexOf('=') + 1));
-                                    ChatHandler.Instance.PurgeChatMessages(messageComponents["target-user-id"]);
+                                    ChatHandler.Instance.PurgeMessagesFromUser(messageComponents["target-user-id"]);
                                 }
                                 //else if (message.Contains("USERNOTICE"))
                                 //{

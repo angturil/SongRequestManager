@@ -20,20 +20,20 @@ using static POCs.Sanjay.SharpSnippets.Drawing.ColorExtensions;
 using Random = System.Random;
 
 
-namespace EnhancedTwitchChat.Sprites
+namespace EnhancedTwitchChat.Textures
 {
-    public class SpriteInfo
+    public class ImageInfo
     {
         public char swapChar;
-        public string spriteIndex;
-        public ImageType spriteType;
+        public string textureIndex;
+        public ImageType imageType;
     }
 
-    public class BadgeInfo : SpriteInfo
+    public class BadgeInfo : ImageInfo
     {
     };
 
-    public class EmoteInfo : SpriteInfo
+    public class EmoteInfo : ImageInfo
     {
         public string swapString;
         public bool isEmoji;
@@ -58,8 +58,8 @@ namespace EnhancedTwitchChat.Sprites
                 foreach (TwitchEmote e in newChatMessage.twitchMessage.Emotes)
                 {
                     string emoteIndex = $"T{e.Id}";
-                    if (!SpriteDownloader.CachedSprites.ContainsKey(emoteIndex))
-                        SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(emoteIndex, ImageType.Twitch, newChatMessage.twitchMessage.Id));
+                    if (!TextureDownloader.CachedTextures.ContainsKey(emoteIndex))
+                        TextureDownloader.Instance.Queue(new TextureDownloadInfo(emoteIndex, ImageType.Twitch, newChatMessage.twitchMessage.Id));
                     
                     int startReplace = Convert.ToInt32(e.Index[0][0]);
                     int endReplace = Convert.ToInt32(e.Index[0][1]);
@@ -68,8 +68,8 @@ namespace EnhancedTwitchChat.Sprites
                     EmoteInfo swapInfo = new EmoteInfo();
                     swapInfo.swapChar = swapChar;
                     swapInfo.swapString = msg.Substring(startReplace, endReplace - startReplace + 1);
-                    swapInfo.spriteIndex = emoteIndex;
-                    swapInfo.spriteType = ImageType.Twitch;
+                    swapInfo.textureIndex = emoteIndex;
+                    swapInfo.imageType = ImageType.Twitch;
                     parsedEmotes.Add(swapInfo);
                     swapChar++;
                 }
@@ -83,16 +83,16 @@ namespace EnhancedTwitchChat.Sprites
                 {
                     string badgeName = $"{b.BadgeName}{b.BadgeVersion}";
                     string badgeIndex = string.Empty;
-                    if (SpriteDownloader.TwitchBadgeIDs.ContainsKey(badgeName))
+                    if (TextureDownloader.TwitchBadgeIDs.ContainsKey(badgeName))
                     {
-                        badgeIndex = SpriteDownloader.TwitchBadgeIDs[badgeName];
-                        if (!SpriteDownloader.CachedSprites.ContainsKey(badgeIndex))
-                            SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(badgeIndex, ImageType.Badge, newChatMessage.twitchMessage.Id));
+                        badgeIndex = TextureDownloader.TwitchBadgeIDs[badgeName];
+                        if (!TextureDownloader.CachedTextures.ContainsKey(badgeIndex))
+                            TextureDownloader.Instance.Queue(new TextureDownloadInfo(badgeIndex, ImageType.Badge, newChatMessage.twitchMessage.Id));
 
                         BadgeInfo swapInfo = new BadgeInfo();
                         swapInfo.swapChar = swapChar;
-                        swapInfo.spriteIndex = badgeIndex;
-                        swapInfo.spriteType = ImageType.Badge;
+                        swapInfo.textureIndex = badgeIndex;
+                        swapInfo.imageType = ImageType.Badge;
                         parsedBadges.Add(swapInfo);
                         swapChar++;
                     }
@@ -113,18 +113,18 @@ namespace EnhancedTwitchChat.Sprites
                     if (emojiIndex != String.Empty)
                     {
                         emojiIndex += ".png";
-                        if (!SpriteDownloader.CachedSprites.ContainsKey(emojiIndex))
-                            SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.twitchMessage.Id));
+                        if (!TextureDownloader.CachedTextures.ContainsKey(emojiIndex))
+                            TextureDownloader.Instance.Queue(new TextureDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.twitchMessage.Id));
 
                         if (!foundEmojis.Contains(emojiIndex))
                         {
                             foundEmojis.Add(emojiIndex);
                             EmoteInfo swapInfo = new EmoteInfo();
-                            swapInfo.spriteType = ImageType.Emoji;
+                            swapInfo.imageType = ImageType.Emoji;
                             swapInfo.isEmoji = true;
                             swapInfo.swapChar = swapChar;
                             swapInfo.swapString = replaceString;
-                            swapInfo.spriteIndex = emojiIndex;
+                            swapInfo.textureIndex = emojiIndex;
                             parsedEmotes.Add(swapInfo);
                             swapChar++;
                         }
@@ -140,46 +140,46 @@ namespace EnhancedTwitchChat.Sprites
             {
                 string word = w;
                 //Plugin.Log($"WORD: {word}");
-                string spriteIndex = String.Empty;
-                ImageType spriteType = ImageType.None;
-                if (SpriteDownloader.BTTVEmoteIDs.ContainsKey(word))
+                string textureIndex = String.Empty;
+                ImageType imageType = ImageType.None;
+                if (TextureDownloader.BTTVEmoteIDs.ContainsKey(word))
                 {
-                    spriteIndex = $"B{SpriteDownloader.BTTVEmoteIDs[word]}";
-                    spriteType = ImageType.BTTV;
+                    textureIndex = $"B{TextureDownloader.BTTVEmoteIDs[word]}";
+                    imageType = ImageType.BTTV;
                 }
-                else if (SpriteDownloader.BTTVAnimatedEmoteIDs.ContainsKey(word))
+                else if (TextureDownloader.BTTVAnimatedEmoteIDs.ContainsKey(word))
                 {
-                    spriteIndex = $"AB{SpriteDownloader.BTTVAnimatedEmoteIDs[word]}";
-                    spriteType = ImageType.BTTV_Animated;
+                    textureIndex = $"AB{TextureDownloader.BTTVAnimatedEmoteIDs[word]}";
+                    imageType = ImageType.BTTV_Animated;
                 }
-                else if (SpriteDownloader.FFZEmoteIDs.ContainsKey(word))
+                else if (TextureDownloader.FFZEmoteIDs.ContainsKey(word))
                 {
-                    spriteIndex = $"F{SpriteDownloader.FFZEmoteIDs[word]}";
-                    spriteType = ImageType.FFZ;
+                    textureIndex = $"F{TextureDownloader.FFZEmoteIDs[word]}";
+                    imageType = ImageType.FFZ;
                 }
                 else if (newChatMessage.twitchMessage.GaveBits && Utilities.cheermoteRegex.IsMatch(word.ToLower()))
                 {
                     Match match = Utilities.cheermoteRegex.Match(word.ToLower());
                     string prefix = match.Groups["Prefix"].Value;
-                    if (SpriteDownloader.TwitchCheermoteIDs.ContainsKey(prefix))
+                    if (TextureDownloader.TwitchCheermoteIDs.ContainsKey(prefix))
                     {
                         int bits = Convert.ToInt32(match.Groups["Value"].Value);
-                        string tier = SpriteDownloader.TwitchCheermoteIDs[prefix].GetTier(bits);
-                        spriteIndex = $"{prefix}{tier}";
-                        spriteType = ImageType.Cheermote;
+                        string tier = TextureDownloader.TwitchCheermoteIDs[prefix].GetTier(bits);
+                        textureIndex = $"{prefix}{tier}";
+                        imageType = ImageType.Cheermote;
                     }
                 }
 
-                if (spriteType != ImageType.None)
+                if (imageType != ImageType.None)
                 {
-                    if (!SpriteDownloader.CachedSprites.ContainsKey(spriteIndex))
-                        SpriteDownloader.Instance.Queue(new SpriteDownloadInfo(spriteIndex, spriteType, newChatMessage.twitchMessage.Id));
+                    if (!TextureDownloader.CachedTextures.ContainsKey(textureIndex))
+                        TextureDownloader.Instance.Queue(new TextureDownloadInfo(textureIndex, imageType, newChatMessage.twitchMessage.Id));
 
                     EmoteInfo swapInfo = new EmoteInfo();
-                    swapInfo.spriteType = spriteType;
+                    swapInfo.imageType = imageType;
                     swapInfo.swapChar = swapChar;
                     swapInfo.swapString = word;
-                    swapInfo.spriteIndex = spriteIndex;
+                    swapInfo.textureIndex = textureIndex;
                     parsedEmotes.Add(swapInfo);
                     swapChar++;
                 }
@@ -190,13 +190,13 @@ namespace EnhancedTwitchChat.Sprites
             foreach (EmoteInfo e in parsedEmotes)
             {
                 string extraInfo = String.Empty;
-                if (e.spriteType == ImageType.Cheermote)
+                if (e.imageType == ImageType.Cheermote)
                 {
                     Match cheermote = Utilities.cheermoteRegex.Match(e.swapString);
                     string numBits = cheermote.Groups["Value"].Value;
-                    extraInfo = $"\u200A<color={SpriteDownloader.TwitchCheermoteIDs[cheermote.Groups["Prefix"].Value].GetColor(Convert.ToInt32(numBits))}><size=3><b>{numBits}</b></size></color>\u200A";
+                    extraInfo = $"\u200A<color={TextureDownloader.TwitchCheermoteIDs[cheermote.Groups["Prefix"].Value].GetColor(Convert.ToInt32(numBits))}><size=3><b>{numBits}</b></size></color>\u200A";
                 }
-                string replaceString = $"\u00A0{Drawing.spriteSpacing}{Char.ConvertFromUtf32(e.swapChar)}{extraInfo}";
+                string replaceString = $"\u00A0{Drawing.imageSpacing}{Char.ConvertFromUtf32(e.swapChar)}{extraInfo}";
                 if (!e.isEmoji)
                 {
                     string[] parts = newChatMessage.msg.Split(' ');
@@ -247,7 +247,7 @@ namespace EnhancedTwitchChat.Sprites
             {
                 parsedBadges.Reverse();
                 for (int i = 0; i < parsedBadges.Count; i++)
-                    badgeStr = $" {Drawing.spriteSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}\u2004{badgeStr}";
+                    badgeStr = $" {Drawing.imageSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}\u2004{badgeStr}";
             }
             newChatMessage.msg = $"{badgeStr}\u2004{newChatMessage.msg}";
 

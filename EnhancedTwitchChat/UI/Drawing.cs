@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
-using EnhancedTwitchChat.Sprites;
+using EnhancedTwitchChat.Textures;
 using AsyncTwitch;
 using System.Collections;
 using static POCs.Sanjay.SharpSnippets.Drawing.ColorExtensions;
@@ -16,9 +16,11 @@ using Random = System.Random;
 
 namespace EnhancedTwitchChat.UI
 {
-    public class CustomImage : Image
+    public class CustomImage : RawImage
     {
-        public ImageType spriteType;
+        public string textureIndex;
+        public ImageType imageType;
+        public Rect origUV;
     }
 
     public class CustomText : Text
@@ -28,7 +30,7 @@ namespace EnhancedTwitchChat.UI
         public bool hasRendered = false;
         ~CustomText()
         {
-            foreach (Image i in emoteRenderers)
+            foreach (CustomImage i in emoteRenderers)
             {
                 Destroy(i.gameObject);
             }
@@ -51,10 +53,10 @@ namespace EnhancedTwitchChat.UI
         public static int pixelsPerUnit = 100;
         public static Material noGlowMaterial = null;
         public static Material noGlowMaterialUI = null;
-        public static string spriteSpacing;
-        public static float spriteSpacingWidth;
+        public static string imageSpacing;
+        public static float imageSpacingWidth;
 
-        public static bool SpritesCached
+        public static bool MaterialsCached
         {
             get
             {
@@ -79,17 +81,17 @@ namespace EnhancedTwitchChat.UI
 
         public static IEnumerator Initialize(Transform parent)
         {
-            spriteSpacing = "\u200A";
-            CustomText tmpText = InitText(spriteSpacing, Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.UpperLeft);
+            imageSpacing = "\u200A";
+            CustomText tmpText = InitText(imageSpacing, Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.UpperLeft);
             yield return null;
             while (tmpText.preferredWidth < 5.3f)
             {
                 tmpText.text += "\u200A";
                 yield return null;
             }
-            spriteSpacingWidth = tmpText.preferredWidth;
+            imageSpacingWidth = tmpText.preferredWidth;
             Plugin.Log($"Preferred width was {tmpText.preferredWidth.ToString()} with {tmpText.text.Length.ToString()} spaces");
-            spriteSpacing = tmpText.text;
+            imageSpacing = tmpText.text;
             GameObject.Destroy(tmpText.gameObject);
         }
 
@@ -150,54 +152,53 @@ namespace EnhancedTwitchChat.UI
 
             return tmpText;
         }
-
-        public static void OverlaySprite(CustomText currentMessage, SpriteInfo spriteInfo, ObjectPool<CustomImage> imagePool)
+        
+        public static void OverlayImage(CustomText currentMessage, ImageInfo imageInfo)
         {
-            CachedSpriteData cachedSpriteInfo = SpriteDownloader.CachedSprites.ContainsKey(spriteInfo.spriteIndex) ? SpriteDownloader.CachedSprites[spriteInfo.spriteIndex] : null;
+            CachedTextureData cachedTextureData = TextureDownloader.CachedTextures.ContainsKey(imageInfo.textureIndex) ? TextureDownloader.CachedTextures[imageInfo.textureIndex] : null;
 
-            // If cachedSpriteInfo is null, the emote will be overlayed at a later time once it's finished being cached
-            if (cachedSpriteInfo == null || (cachedSpriteInfo.sprite == null && cachedSpriteInfo.animationInfo == null))
+            // If cachedTextureData is null, the emote will be overlayed at a later time once it's finished being cached
+            if (cachedTextureData == null || (cachedTextureData.texture == null && cachedTextureData.animationInfo == null))
                 return;
 
-            bool animatedEmote = cachedSpriteInfo.animationInfo != null;
-            foreach (int i in Utilities.IndexOfAll(currentMessage.text, Char.ConvertFromUtf32(spriteInfo.swapChar)))
+            float delay = cachedTextureData.delay;
+            bool animatedEmote = cachedTextureData.animationInfo != null;
+            foreach (int i in Utilities.IndexOfAll(currentMessage.text, Char.ConvertFromUtf32(imageInfo.swapChar)))
             {
                 CustomImage image = null;
                 try
                 {
                     if (i > 0 && i < currentMessage.text.Count())
                     {
-                        image = imagePool.Alloc();
-                        image.preserveAspect = true;
+                        image = ChatHandler.Instance.imagePool.Alloc();
+                        image.textureIndex = imageInfo.textureIndex;
+                        image.imageType = imageInfo.imageType;
+
+                        //image.preserveAspect = true;
                         image.rectTransform.pivot = new Vector2(0, 0);
+                        image.texture = cachedTextureData.texture;
+                        image.texture.wrapMode = TextureWrapMode.Clamp;
 
                         if (animatedEmote)
                         {
-                            AnimatedSprite animatedImage = image.gameObject.GetComponent<AnimatedSprite>();
-                            if (!animatedImage)
-                                animatedImage = image.gameObject.AddComponent<AnimatedSprite>();
+                            TextureAnimator texAnimator = image.gameObject.GetComponent<TextureAnimator>();
+                            if (!texAnimator)
+                                texAnimator = image.gameObject.AddComponent<TextureAnimator>();
+                            texAnimator.Init(imageInfo.textureIndex, delay, image, cachedTextureData);
+                        }
 
-                            animatedImage.Init(image, cachedSpriteInfo.animationInfo);
-                            image.sprite = cachedSpriteInfo.animationInfo[0].sprite;
-                            animatedImage.enabled = true;
-                        }
-                        else
-                        {
-                            image.sprite = cachedSpriteInfo.sprite;
-                            image.sprite.texture.wrapMode = TextureWrapMode.Clamp;
-                        }
                         image.rectTransform.SetParent(currentMessage.rectTransform, false);
 
-                        float aspectRatio = image.sprite.bounds.size.x / image.sprite.bounds.size.y;
+                        float aspectRatio = cachedTextureData.width / cachedTextureData.height;
                         if (aspectRatio > 1)
-                            image.rectTransform.localScale = new Vector3(0.064f * aspectRatio, 0.064f * aspectRatio, 0.064f); 
+                            image.rectTransform.localScale = new Vector3(0.064f * aspectRatio, 0.064f, 0.064f); 
                         else
                             image.rectTransform.localScale = new Vector3(0.064f, 0.064f, 0.064f);
 
                         TextGenerator textGen = currentMessage.cachedTextGenerator;
                         Vector3 pos = new Vector3(textGen.verts[i * 4 + 3].position.x, textGen.verts[i * 4 + 3].position.y);
-                        image.rectTransform.position = currentMessage.gameObject.transform.TransformPoint(pos / pixelsPerUnit - new Vector3(image.preferredWidth / pixelsPerUnit + 2.5f, image.preferredHeight / pixelsPerUnit + 0.7f));
-                        image.rectTransform.localPosition -= new Vector3(spriteSpacingWidth/2.3f, 0);
+                        image.rectTransform.position = currentMessage.gameObject.transform.TransformPoint(pos / pixelsPerUnit - new Vector3(cachedTextureData.width / pixelsPerUnit + 2.5f, cachedTextureData.height / pixelsPerUnit + 1f));
+                        image.rectTransform.localPosition -= new Vector3(imageSpacingWidth/2.3f, 0);
                         image.color = Config.Instance.TextColor;
                         image.enabled = true;
                         currentMessage.emoteRenderers.Add(image);
@@ -206,7 +207,7 @@ namespace EnhancedTwitchChat.UI
                 catch (Exception e)
                 {
                     if (image)
-                        imagePool.Free(image);
+                        ChatHandler.Instance.imagePool.Free(image);
 
                     Plugin.Log($"Exception {e.ToString()} occured when trying to overlay emote at index {i.ToString()}!");
                 }
