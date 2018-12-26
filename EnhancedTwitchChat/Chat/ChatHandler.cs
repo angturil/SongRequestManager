@@ -43,6 +43,8 @@ namespace EnhancedTwitchChat
         private int _waitForFrames = 0;
         private bool _configChanged = false;
         private ConcurrentStack<string> _timeoutQueue = new ConcurrentStack<string>();
+        private ChatMover _movePointer = null;
+        private LockToggle _lockPointer = null;
 
         public void Awake()
         {
@@ -93,8 +95,6 @@ namespace EnhancedTwitchChat
             Plugin.Log("EnhancedTwitchChat initialized");
         }
 
-        private ChatMover _movePointer = null;
-        private LockToggle _lockPointer = null;
         public void SceneManager_activeSceneChanged(Scene from, Scene to)
         {
             var _vrPointer = to.name == "GameCore" ? Resources.FindObjectsOfTypeAll<VRPointer>().Last() : Resources.FindObjectsOfTypeAll<VRPointer>().First();
