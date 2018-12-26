@@ -119,9 +119,10 @@ namespace EnhancedTwitchChat
 
         private void OnConfigChanged()
         {
-            TwitchConnection.Instance.JoinRoom(TwitchIRCClient.CurrentChannel);
-            UpdateChatUI();
+            if(TwitchIRCClient.CurrentChannel != String.Empty)
+                TwitchConnection.Instance.JoinRoom(TwitchIRCClient.CurrentChannel);
 
+            UpdateChatUI();
             _canvasRectTransform.localScale = new Vector3(0.012f * Config.Instance.ChatScale, 0.012f * Config.Instance.ChatScale, 0.012f * Config.Instance.ChatScale);
             _lockButtonSphere.localScale = new Vector3(0.15f * Config.Instance.ChatScale, 0.15f * Config.Instance.ChatScale, 0.001f * Config.Instance.ChatScale);
             background.color = Config.Instance.BackgroundColor;
