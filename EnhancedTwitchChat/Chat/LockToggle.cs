@@ -20,23 +20,16 @@ namespace EnhancedTwitchChat.Chat
         protected bool _raycastHitTarget = false;
 
         protected const float MaxLaserDistance = 50;
-        protected static LockToggle _this;
-
+        
         public void Init(Image lockImage, Transform lockSphere)
         {
-            _this = this;
             _vrPointer = GetComponent<VRPointer>();
             _lockSphere = lockSphere;
             _lockImage = lockImage;
         }
-
+        
         public void Update()
         {
-            if (this != _this)
-            {
-                Destroy(this);
-                return;
-            }
             if (_vrPointer.vrController != null)
             {
                 if (_vrController != null && _vrPointer.vrController != _vrController) return;

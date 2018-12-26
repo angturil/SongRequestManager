@@ -25,7 +25,7 @@ namespace EnhancedTwitchChat
     public class Plugin : IPlugin
     {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "1.0.0";
+        public string Version => "1.0.2";
 
         public bool IsAtMainMenu = true;
         public bool ShouldWriteConfig = false;
@@ -47,7 +47,7 @@ namespace EnhancedTwitchChat
 
             Instance = this;
 
-            new GameObject("EnhancedTwitchChatChatHandler").AddComponent<ChatHandler>();
+            new GameObject("EnhancedTwitchChatHandler").AddComponent<ChatHandler>();
             new Thread(() => TwitchIRCClient.Initialize()).Start();
 
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
@@ -64,6 +64,8 @@ namespace EnhancedTwitchChat
 
             else if (arg1.name == "GameCore")
                 IsAtMainMenu = false;
+            
+            ChatHandler.Instance?.SceneManager_activeSceneChanged(arg0, arg1);
         }
 
         public void OnLevelWasLoaded(int level)

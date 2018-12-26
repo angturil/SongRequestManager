@@ -87,22 +87,29 @@ namespace EnhancedTwitchChat
             InitializeChatUI();
 
             // Subscribe to events
-            SceneManager.sceneLoaded += SceneManagerOnSceneLoaded;
             Config.Instance.ConfigChangedEvent += PluginOnConfigChangedEvent;
 
             initialized = true;
             Plugin.Log("EnhancedTwitchChat initialized");
         }
 
-        private void SceneManagerOnSceneLoaded(Scene scene, LoadSceneMode mode)
+        private ChatMover _movePointer = null;
+        private LockToggle _lockPointer = null;
+        public void SceneManager_activeSceneChanged(Scene from, Scene to)
         {
-            var pointer = Resources.FindObjectsOfTypeAll<VRPointer>().FirstOrDefault();
-            if (pointer == null) return;
-            var movePointer = pointer.gameObject.AddComponent<ChatMover>();
-            movePointer.Init(_chatMoverCube);
+            var _vrPointer = to.name == "GameCore" ? Resources.FindObjectsOfTypeAll<VRPointer>().Last() : Resources.FindObjectsOfTypeAll<VRPointer>().First();
+            if (_vrPointer == null) return;
 
-            var lockPointer = pointer.gameObject.AddComponent<LockToggle>();
-            lockPointer.Init(lockButtonImage, _lockButtonSphere);
+            if (_movePointer)
+                Destroy(_movePointer);
+            _movePointer = _vrPointer.gameObject.AddComponent<ChatMover>();
+            _movePointer.Init(_chatMoverCube);
+
+            if (_lockPointer)
+                Destroy(_lockPointer);
+            _lockPointer = _vrPointer.gameObject.AddComponent<LockToggle>();
+            _lockPointer.Init(lockButtonImage, _lockButtonSphere);
+            Plugin.Log($"ActiveSceneChanged! ({from.name} -> {to.name})");
         }
         
         private void PluginOnConfigChangedEvent(Config config)
@@ -112,7 +119,7 @@ namespace EnhancedTwitchChat
 
         private void OnConfigChanged()
         {
-            TwitchConnection.Instance.JoinRoom(Config.Instance.TwitchChannel);
+            TwitchConnection.Instance.JoinRoom(TwitchIRCClient.CurrentChannel);
             UpdateChatUI();
 
             _canvasRectTransform.localScale = new Vector3(0.012f * Config.Instance.ChatScale, 0.012f * Config.Instance.ChatScale, 0.012f * Config.Instance.ChatScale);
@@ -137,15 +144,22 @@ namespace EnhancedTwitchChat
             if (Drawing.MaterialsCached)
             {
                 // Wait a few seconds after we've connect to the chat, then send our welcome message
-                if (displayStatusMessage && (TwitchIRCClient.ChannelIds[Config.Instance.TwitchChannel] != String.Empty || (DateTime.Now - TwitchIRCClient.ConnectionTime).TotalSeconds >= 5))
+                if (displayStatusMessage && (TwitchIRCClient.CurrentChannelValid || (DateTime.Now - TwitchIRCClient.ConnectionTime).TotalSeconds >= 5))
                 {
-                    TextureDownloader.Instance.Init();
-
                     string msg;
-                    if (TwitchIRCClient.ChannelIds[Config.Instance.TwitchChannel] != String.Empty)
-                        msg = $"Success joining channel \"{Config.Instance.TwitchChannel}\"";
+                    if (TwitchConnection.IsConnected)
+                    {
+                        TextureDownloader.Instance.Init();
+
+                        if (TwitchIRCClient.CurrentChannel == String.Empty)
+                            msg = $"Welcome to Enhanced Twitch Chat! To continue, enter your Twitch channel name in <i>UserData\\EnhancedTwitchChat.ini</i>, which is located in your Beat Saber directory.";
+                        else if (TwitchIRCClient.CurrentChannelValid)
+                            msg = $"Success joining channel \"{TwitchIRCClient.CurrentChannel}\"";
+                        else
+                            msg = $"Failed to join channel \"{TwitchIRCClient.CurrentChannel}\". Please enter a valid Twitch channel name in <i>EnhancedTwitchChat.ini</i> or <i>AsyncTwitchConfig.json</i>, then try again.";
+                    }
                     else
-                        msg = $"Failed to join channel \"{Config.Instance.TwitchChannel}\"";
+                        msg = "Failed to login to Twitch! Please check your login info in <i>UserData\\AsyncTwitchConfig.json</i>, then try again.\r\n\r\n<b>NOTE:</b> <i>You are not required to enter anything in AsyncTwitchConfig.json</i>! Enhanced Twitch Chat supports anonymous login; all you need to enter is your channel name! If you aren't using AsyncTwitch for anything else, it's safe to delete the AsyncTwitchConfig.json.";
 
                     TwitchMessage tmpMessage = new TwitchMessage();
                     tmpMessage.Author = new ChatUser();

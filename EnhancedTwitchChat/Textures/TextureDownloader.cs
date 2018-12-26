@@ -283,7 +283,7 @@ namespace EnhancedTwitchChat.Textures
             int emotesCached = 0;
             UnityWebRequest web = UnityWebRequest.Get("https://api.twitch.tv/kraken/bits/actions");
             web.SetRequestHeader("Accept", "application/vnd.twitchtv.v5+json");
-            web.SetRequestHeader("Channel-ID", Config.Instance.TwitchChannel);
+            web.SetRequestHeader("Channel-ID", TwitchIRCClient.CurrentChannel);
             web.SetRequestHeader("Client-ID", "jg6ij5z8mf8jr8si22i5uq8tobnmde");
             yield return web.SendWebRequest();
             if (web.isNetworkError || web.isHttpError)
@@ -356,13 +356,13 @@ namespace EnhancedTwitchChat.Textures
 
         public static IEnumerator GetTwitchChannelBadges()
         {
-            while (TwitchIRCClient.ChannelIds[Config.Instance.TwitchChannel] == String.Empty)
+            while (TwitchIRCClient.ChannelIds[TwitchIRCClient.CurrentChannel] == String.Empty)
             {
                 yield return null;
             }
             Plugin.Log($"Downloading twitch channel badge listing");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get($"https://badges.twitch.tv/v1/badges/channels/{TwitchIRCClient.ChannelIds[Config.Instance.TwitchChannel]}/display"))
+            using (var web = UnityWebRequest.Get($"https://badges.twitch.tv/v1/badges/channels/{TwitchIRCClient.ChannelIds[TwitchIRCClient.CurrentChannel]}/display"))
             {
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)
@@ -435,9 +435,9 @@ namespace EnhancedTwitchChat.Textures
 
         public static IEnumerator GetBTTVChannelEmotes()
         {
-            Plugin.Log($"Downloading BTTV emotes for channel {Config.Instance.TwitchChannel}");
+            Plugin.Log($"Downloading BTTV emotes for channel {TwitchIRCClient.CurrentChannel}");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get($"https://api.betterttv.net/2/channels/{Config.Instance.TwitchChannel}"))
+            using (var web = UnityWebRequest.Get($"https://api.betterttv.net/2/channels/{TwitchIRCClient.CurrentChannel}"))
             {
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)
@@ -495,9 +495,9 @@ namespace EnhancedTwitchChat.Textures
         }
         public static IEnumerator GetFFZChannelEmotes()
         {
-            Plugin.Log($"Downloading FFZ emotes for channel {Config.Instance.TwitchChannel}");
+            Plugin.Log($"Downloading FFZ emotes for channel {TwitchIRCClient.CurrentChannel}");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get($"https://api.frankerfacez.com/v1/room/{Config.Instance.TwitchChannel}"))
+            using (var web = UnityWebRequest.Get($"https://api.frankerfacez.com/v1/room/{TwitchIRCClient.CurrentChannel}"))
             {
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)

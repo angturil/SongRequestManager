@@ -239,7 +239,7 @@ namespace EnhancedTwitchChat.Textures
             newChatMessage.twitchMessage.Author.Color = (displayColor == null || displayColor == string.Empty) ? _userColors[newChatMessage.twitchMessage.Author.DisplayName.GetHashCode()] : displayColor;
 
             // Add the users name to the message with the correct color
-            newChatMessage.msg = $"<color={newChatMessage.twitchMessage.Author.Color}><b>{newChatMessage.twitchMessage.Author.DisplayName}</b></color><color=#00000000>|</color>{newChatMessage.msg}";
+            newChatMessage.msg = $"<color={newChatMessage.twitchMessage.Author.Color}><b>{newChatMessage.twitchMessage.Author.DisplayName}</b></color>: {newChatMessage.msg}";
 
             // Prepend the users badges to the front of the message
             string badgeStr = String.Empty;
@@ -247,9 +247,9 @@ namespace EnhancedTwitchChat.Textures
             {
                 parsedBadges.Reverse();
                 for (int i = 0; i < parsedBadges.Count; i++)
-                    badgeStr = $" {Drawing.imageSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}\u2004{badgeStr}";
+                    badgeStr = $"{Drawing.imageSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}\u2004{badgeStr}";
             }
-            newChatMessage.msg = $"{badgeStr}\u2004{newChatMessage.msg}";
+            newChatMessage.msg = $"{badgeStr}{newChatMessage.msg}";
 
             // Italicize action messages and make the whole message the color of the users name
             if (isActionMessage)
