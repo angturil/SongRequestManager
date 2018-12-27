@@ -14,15 +14,15 @@ EnhancedTwitchChat is a rich text Twitch chat integration mod with full unicode,
 # Installation
 After copying the contents of EnhancedTwitchChat.zip to your Beat Saber directory, run the game once to generate the EnhancedTwitchChat.ini file in the UserData folder inside your Beat Saber directory.
 
-# Setup
-All you need to enter is the channel name which you want to join, the chat will show up to your right in game, and you can move it by pointing at it with the laser from your controller and grabbing it with the trigger. You can also move the chat towards you and away from you by pressing up and down on the analog stick or trackpad on your controller. Finally, you can use the lock button in the corner of the chat to lock the chat position in place so you don't accidentally move it.
+# Usage
+All you need to enter is the channel name which you want to join (see the `Setup` section below), the chat will show up to your right in game, and you can move it by pointing at it with the laser from your controller and grabbing it with the trigger. You can also move the chat towards you and away from you by pressing up and down on the analog stick or trackpad on your controller. Finally, you can use the lock button in the corner of the chat to lock the chat position in place so you don't accidentally move it.
 
-# Config
-For the rest of the setup, you will have to manually edit the config file (in UserData\EnhancedTwitchChat.ini).  *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values:
+# Setup
+In order to setup the mod, you will have to manually edit the config file (in UserData\EnhancedTwitchChat.ini).  *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values (**NOTE:** The only required config option is TwitchChannel):
 
 | Option                     | Description                                                                                                                  |
 |----------------------------|------------------------------------------------------------------------------------------------------------------------------|
-| **TwitchChannel**          | The name of the Twitch channel whos chat you want to join                                                                    |
+| **TwitchChannel***          | The name of the Twitch channel whos chat you want to join                                                                    |
 | **FontName**               | The name of the system font that should be used for chat messages. You can specify any font installed on your computer!      |
 | **ChatScale**              | How large the chat messages/emotes should be displayed.                                                                      |
 | **ChatWidth**              | The width of the chat, regardless of ChatScale.                                                                              |
