@@ -247,9 +247,9 @@ namespace EnhancedTwitchChat.Textures
             {
                 parsedBadges.Reverse();
                 for (int i = 0; i < parsedBadges.Count; i++)
-                    badgeStr = $"{Drawing.imageSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}\u2004{badgeStr}";
+                    badgeStr = $"\u200A{Drawing.imageSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}\u2004{badgeStr}";
             }
-            newChatMessage.msg = $"{badgeStr}{newChatMessage.msg}";
+            newChatMessage.msg = $"{badgeStr}\u200A{newChatMessage.msg}";
 
             // Finally, store our parsedEmotes and parsedBadges lists and render the message
             newChatMessage.parsedEmotes = parsedEmotes;
