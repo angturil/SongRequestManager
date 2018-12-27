@@ -239,7 +239,7 @@ namespace EnhancedTwitchChat.Textures
             newChatMessage.twitchMessage.Author.Color = (displayColor == null || displayColor == string.Empty) ? _userColors[newChatMessage.twitchMessage.Author.DisplayName.GetHashCode()] : displayColor;
 
             // Add the users name to the message with the correct color
-            newChatMessage.msg = $"<color={newChatMessage.twitchMessage.Author.Color}><b>{newChatMessage.twitchMessage.Author.DisplayName}</b></color>: {newChatMessage.msg}";
+            newChatMessage.msg = $"<color={newChatMessage.twitchMessage.Author.Color}><b>{newChatMessage.twitchMessage.Author.DisplayName}</b></color>{(isActionMessage ? String.Empty : ":")} {newChatMessage.msg}";
 
             // Prepend the users badges to the front of the message
             string badgeStr = String.Empty;
@@ -251,13 +251,10 @@ namespace EnhancedTwitchChat.Textures
             }
             newChatMessage.msg = $"{badgeStr}{newChatMessage.msg}";
 
-            // Italicize action messages and make the whole message the color of the users name
-            if (isActionMessage)
-                newChatMessage.msg = $"<i><color={newChatMessage.twitchMessage.Author.Color}>{newChatMessage.msg}</color></i>";
-
             // Finally, store our parsedEmotes and parsedBadges lists and render the message
             newChatMessage.parsedEmotes = parsedEmotes;
             newChatMessage.parsedBadges = parsedBadges;
+            newChatMessage.isActionMessage = isActionMessage;
             TwitchIRCClient.RenderQueue.Push(newChatMessage);
         }
     };

@@ -290,7 +290,11 @@ namespace EnhancedTwitchChat
                     msg = _testMessage.text.Substring(_testMessage.cachedTextGenerator.lines[i].startCharIdx);
                 else
                     msg = _testMessage.text.Substring(_testMessage.cachedTextGenerator.lines[i].startCharIdx, _testMessage.cachedTextGenerator.lines[i+1].startCharIdx - _testMessage.cachedTextGenerator.lines[i].startCharIdx);
-                
+
+                // Italicize action messages and make the whole message the color of the users name
+                if (messageInfo.isActionMessage)
+                    msg = $"<i><color={messageInfo.twitchMessage.Author.Color}>{msg}</color></i>";
+
                 if (!Config.Instance.ReverseChatOrder)
                 {
                     currentMessage = _chatMessages.First();

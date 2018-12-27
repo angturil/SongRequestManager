@@ -25,14 +25,14 @@ namespace EnhancedTwitchChat.UI
 
         private Shadow _shadow;
 
-        protected override void Start()
+        protected override void Awake()
         {
+            base.Awake();
+
             textureAnimator = gameObject.AddComponent<TextureAnimator>();
             _shadow = gameObject.AddComponent<Shadow>();
             textureAnimator.enabled = false;
             origUV = uvRect;
-
-            base.Start();
         }
     }
 

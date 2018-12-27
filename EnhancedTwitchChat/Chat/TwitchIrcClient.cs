@@ -17,6 +17,7 @@ namespace EnhancedTwitchChat.Chat
         public TwitchMessage twitchMessage = new TwitchMessage();
         public List<EmoteInfo> parsedEmotes = new List<EmoteInfo>();
         public List<BadgeInfo> parsedBadges = new List<BadgeInfo>();
+        public bool isActionMessage = false;
 
         public ChatMessage(string msg, TwitchMessage messageInfo)
         {
