@@ -128,6 +128,7 @@ namespace EnhancedTwitchChat.Textures
         public static ConcurrentStack<TextureSaveInfo> ImageSaveQueue = new ConcurrentStack<TextureSaveInfo>();
         private ConcurrentStack<TextureDownloadInfo> _downloadQueue = new ConcurrentStack<TextureDownloadInfo>();
         private int _numDownloading = 0;
+        private int _waitForFrames = 0;
         public static TextureDownloader Instance = null;
         
         public void Awake()
@@ -156,10 +157,16 @@ namespace EnhancedTwitchChat.Textures
 
         public void Update()
         {
-            // Skip this frame if our fps is low
-            float fps = 1.0f / Time.deltaTime;
-            if (!Plugin.Instance.IsAtMainMenu && fps < XRDevice.refreshRate - 5)
+            if (_waitForFrames > 0)
+            {
+                _waitForFrames--;
                 return;
+            }
+
+            // Skip this frame if our fps is low
+            //float fps = 1.0f / Time.deltaTime;
+            //if (!Plugin.Instance.IsAtMainMenu && fps < XRDevice.refreshRate - 5)
+            //    return;
 
             // Download any emotes we need cached for one of our messages
             if (_downloadQueue.Count > 0 && _numDownloading < 2)
@@ -183,12 +190,12 @@ namespace EnhancedTwitchChat.Textures
                         case ImageType.Badge:
                             StartCoroutine(Download($"https://static-cdn.jtvnw.net/badges/v1/{imageDownloadInfo.textureIndex}/3", imageDownloadInfo));
                             break;
-                        case ImageType.Emoji:
-                            StartCoroutine(Download(string.Empty, imageDownloadInfo));
-                            break;
                         case ImageType.Cheermote:
                             Match match = Utilities.cheermoteRegex.Match(imageDownloadInfo.textureIndex);
                             StartCoroutine(Download($"https://d3aqoihi2n8ty8.cloudfront.net/actions/{(match.Groups["Prefix"].Value)}/dark/animated/{(match.Groups["Value"].Value)}/4.gif", imageDownloadInfo));
+                            break;
+                        case ImageType.Emoji:
+                            StartCoroutine(Download(string.Empty, imageDownloadInfo));
                             break;
                     }
                     _numDownloading++;
@@ -231,6 +238,7 @@ namespace EnhancedTwitchChat.Textures
 
                     bool localPathExists = false;
                     string localFilePath = $"{typePath}\\{imageDownloadInfo.textureIndex}";
+
                     if (File.Exists(localFilePath))
                     {
                         localPathExists = true;
@@ -276,6 +284,11 @@ namespace EnhancedTwitchChat.Textures
                 }
             }
             Instance._numDownloading--;
+
+            if (Plugin.Instance.IsAtMainMenu)
+                Instance._waitForFrames = 5;
+            else
+                Instance._waitForFrames = 15;
         }
 
         public static IEnumerator GetCheermotes()
@@ -461,6 +474,28 @@ namespace EnhancedTwitchChat.Textures
                 }
                 Plugin.Log($"Web request completed, {emotesCached.ToString()} BTTV channel emotes now cached!");
             }
+
+            yield return PreloadBTTVAnimatedEmotes();
+        }
+        
+        public static IEnumerator PreloadBTTVAnimatedEmotes()
+        {
+            int count = 0;
+            foreach (string emoteIndex in BTTVAnimatedEmoteIDs.Values)
+            {
+                if (!Plugin.Instance.IsAtMainMenu)
+                    yield return new WaitUntil(() => Plugin.Instance.IsAtMainMenu);
+
+                if (!CachedTextures.ContainsKey(emoteIndex))
+                {
+                    TextureDownloadInfo downloadInfo = new TextureDownloadInfo("AB" + emoteIndex, ImageType.BTTV_Animated, "!NOTSET!");
+                    Plugin.Log($"Precaching {emoteIndex}");
+                    Instance.Queue(downloadInfo);
+                    count++;
+                    yield return new WaitUntil(() => !Instance._downloadQueue.Contains(downloadInfo));
+                }
+            }
+            Plugin.Log($"Precached {count.ToString()} animated emotes successfully!");
         }
 
         public static IEnumerator GetFFZGlobalEmotes()

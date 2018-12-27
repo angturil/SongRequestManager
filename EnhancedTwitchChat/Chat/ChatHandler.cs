@@ -62,22 +62,18 @@ namespace EnhancedTwitchChat
                 // OnAlloc
                 ((CustomImage image) =>
                 {
-                    image.origUV = image.uvRect;
                     image.material = Drawing.noGlowMaterialUI;
-                    var shadow = image.gameObject.GetComponent<Shadow>();
-                    if (shadow == null) shadow = image.gameObject.AddComponent<Shadow>();
                 }),
                 // OnFree
                 ((CustomImage image) =>
                 {
                     image.uvRect = image.origUV;
-                    image.enabled = false;
-                    var anim = image.GetComponent<TextureAnimator>();
-                    if (anim)
+                    if (image.textureAnimator.enabled)
                     {
-                        anim.CancelInvoke();
-                        anim.enabled = false;
+                        image.textureAnimator.CancelInvoke();
+                        image.textureAnimator.enabled = false;
                     }
+                    image.enabled = false;
                 })
             );
 
@@ -185,10 +181,10 @@ namespace EnhancedTwitchChat
                     return;
                 }
 
-                // Wait try to display any new chat messages if our fps is tanking
-                float fps = 1.0f / Time.deltaTime;
-                if (!Plugin.Instance.IsAtMainMenu && fps < XRDevice.refreshRate - 5)
-                    return;
+                //// Wait try to display any new chat messages if our fps is tanking
+                //float fps = 1.0f / Time.deltaTime;
+                //if (!Plugin.Instance.IsAtMainMenu && fps < XRDevice.refreshRate - 5)
+                //    return;
 
                 // Display any messages that we've cached all the resources for and prepared for rendering
                 if (TwitchIRCClient.RenderQueue.Count > 0 && !_messageRendering)
@@ -199,7 +195,7 @@ namespace EnhancedTwitchChat
 
                 // Save images to file when we're at the main menu
                 else if (Plugin.Instance.IsAtMainMenu && TextureDownloader.ImageSaveQueue.Count > 0 && TextureDownloader.ImageSaveQueue.TryPop(out var saveInfo))
-                    File.WriteAllBytes(saveInfo.path, saveInfo.data);
+                    File.WriteAllBytes(saveInfo.path,  saveInfo.data);
             }
         }
 
@@ -229,7 +225,9 @@ namespace EnhancedTwitchChat
             StartCoroutine(Drawing.Initialize(gameObject.transform));
 
             _lockedSprite = UIUtilities.LoadSpriteFromResources("EnhancedTwitchChat.Resources.LockedIcon.png");
+            _lockedSprite.texture.wrapMode = TextureWrapMode.Clamp;
             _unlockedSprite = UIUtilities.LoadSpriteFromResources("EnhancedTwitchChat.Resources.UnlockedIcon.png");
+            _unlockedSprite.texture.wrapMode = TextureWrapMode.Clamp;
 
             _twitchChatCanvas = gameObject.AddComponent<Canvas>();
             _twitchChatCanvas.renderMode = RenderMode.WorldSpace;
@@ -266,7 +264,7 @@ namespace EnhancedTwitchChat
             _lockButtonSphere = lockButtonPrimitive.transform;
             _lockButtonSphere.localScale = new Vector3(0.15f * Config.Instance.ChatScale, 0.15f * Config.Instance.ChatScale, 0.001f);
             
-            while (_chatMessages.Count < Config.Instance.MaxMessages)
+            while (_chatMessages.Count < Config.Instance.MaxChatLines)
             {
                 var currentMessage = Drawing.InitText("", Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), gameObject.transform, TextAnchor.UpperLeft, Drawing.noGlowMaterialUI);
                 if (!Config.Instance.ReverseChatOrder) _chatMessages.Add(currentMessage);
@@ -274,46 +272,64 @@ namespace EnhancedTwitchChat
             }
         }
 
+        private CustomText _testMessage = null;
         private IEnumerator AddNewChatMessage(string msg, ChatMessage messageInfo)
         {
             _messageRendering = true;
             CustomText currentMessage = null;
 
-            if (!Config.Instance.ReverseChatOrder)
+            if(_testMessage == null)
+                _testMessage = Drawing.InitText("", Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), gameObject.transform, TextAnchor.UpperLeft);
+
+            _testMessage.text = msg;
+            yield return null;
+
+            for(int i=0; i<_testMessage.cachedTextGenerator.lineCount; i++)
             {
-                currentMessage = _chatMessages.First();
-                _chatMessages.RemoveAt(0);
-                _chatMessages.Add(currentMessage);
+                if (i == _testMessage.cachedTextGenerator.lineCount - 1)
+                    msg = _testMessage.text.Substring(_testMessage.cachedTextGenerator.lines[i].startCharIdx);
+                else
+                    msg = _testMessage.text.Substring(_testMessage.cachedTextGenerator.lines[i].startCharIdx, _testMessage.cachedTextGenerator.lines[i+1].startCharIdx - _testMessage.cachedTextGenerator.lines[i].startCharIdx);
+                
+                if (!Config.Instance.ReverseChatOrder)
+                {
+                    currentMessage = _chatMessages.First();
+                    _chatMessages.RemoveAt(0);
+                    _chatMessages.Add(currentMessage);
+                }
+                else
+                {
+                    currentMessage = _chatMessages.Last();
+                    _chatMessages.Remove(currentMessage);
+                    _chatMessages.Insert(0, currentMessage);
+                }
+                currentMessage.hasRendered = false;
+                currentMessage.text = msg;
+                currentMessage.messageInfo = messageInfo;
+                currentMessage.material = Drawing.noGlowMaterialUI;
+                currentMessage.color = Config.Instance.TextColor;
+
+                FreeImages(currentMessage);
+                UpdateChatUI();
+
+                yield return null;
+
+                currentMessage.color = Config.Instance.TextColor;
+                foreach (BadgeInfo b in messageInfo.parsedBadges)
+                    Drawing.OverlayImage(currentMessage, b);
+
+                foreach (EmoteInfo e in messageInfo.parsedEmotes)
+                    Drawing.OverlayImage(currentMessage, e);
+
+                currentMessage.hasRendered = true;
             }
+            _testMessage.text = "";
+
+            if (Plugin.Instance.IsAtMainMenu)
+                _waitForFrames = 3;
             else
-            {
-                currentMessage = _chatMessages.Last();
-                _chatMessages.Remove(currentMessage);
-                _chatMessages.Insert(0, currentMessage);
-            }
-            currentMessage.hasRendered = false;
-            currentMessage.text = msg;
-            currentMessage.messageInfo = messageInfo;
-            currentMessage.material = Drawing.noGlowMaterialUI;
-            currentMessage.color = Config.Instance.TextColor;
+                _waitForFrames = 10;
 
-            FreeImages(currentMessage);
-            UpdateChatUI();
-
-            yield return null;
-            
-            currentMessage.color = Config.Instance.TextColor;
-            foreach (BadgeInfo b in messageInfo.parsedBadges)
-                Drawing.OverlayImage(currentMessage, b);
-
-            foreach (EmoteInfo e in messageInfo.parsedEmotes)
-                Drawing.OverlayImage(currentMessage, e);
-
-            yield return null;
-            
-            currentMessage.hasRendered = true;
-
-            _waitForFrames = 3;
             _messageRendering = false;
         }
 
@@ -404,17 +420,25 @@ namespace EnhancedTwitchChat
 
         private void PurgeChatMessagesInternal(string userID)
         {
+            bool purged = false;
             foreach (CustomText currentMessage in _chatMessages)
             {
                 if (currentMessage.messageInfo == null) continue;
 
                 if (currentMessage.messageInfo.twitchMessage.Author.UserID == userID)
                 {
-                    currentMessage.text = $"<color={currentMessage.messageInfo.twitchMessage.Author.Color}><b>{currentMessage.messageInfo.twitchMessage.Author.DisplayName}</b></color> <message deleted>";
+                    string userName = $"<color={currentMessage.messageInfo.twitchMessage.Author.Color}><b>{currentMessage.messageInfo.twitchMessage.Author.DisplayName}</b></color>:";
+                    if (currentMessage.text.Contains(userName))
+                        currentMessage.text = $"{userName} <message deleted>";
+                    else
+                        currentMessage.text = "";
+
                     FreeImages(currentMessage);
-                    UpdateChatUI();
+                    purged = true;
                 }
             }
+            if(purged)
+                UpdateChatUI();
         }
 
         public void PurgeMessagesFromUser(string userID)

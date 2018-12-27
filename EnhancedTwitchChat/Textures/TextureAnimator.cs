@@ -12,7 +12,7 @@ using UnityEngine.UI;
 
 namespace EnhancedTwitchChat.Textures
 {
-    class TextureAnimator : MonoBehaviour
+    public class TextureAnimator : MonoBehaviour
     {
         private CustomImage _image;
         private string _textureIndex;

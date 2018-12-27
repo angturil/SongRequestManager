@@ -19,6 +19,7 @@ using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.UI;
 using AsyncTwitch;
+using System.Threading.Tasks;
 
 namespace EnhancedTwitchChat
 {
@@ -44,11 +45,10 @@ namespace EnhancedTwitchChat
         public void OnApplicationStart()
         {
             if (Instance != null) return;
-
             Instance = this;
 
             new GameObject("EnhancedTwitchChatHandler").AddComponent<ChatHandler>();
-            new Thread(() => TwitchIRCClient.Initialize()).Start();
+            Task.Run(() => TwitchIRCClient.Initialize());
 
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
         }
@@ -57,15 +57,18 @@ namespace EnhancedTwitchChat
         {
         }
 
-        private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1)
+        private void SceneManager_activeSceneChanged(Scene from, Scene to)
         {
-            if (arg1.name == "Menu")
-                IsAtMainMenu = true;
+            try
+            {
+                if (to.name == "Menu")
+                    IsAtMainMenu = true;
+                else if (to.name == "GameCore")
+                    IsAtMainMenu = false;
 
-            else if (arg1.name == "GameCore")
-                IsAtMainMenu = false;
-            
-            ChatHandler.Instance?.SceneManager_activeSceneChanged(arg0, arg1);
+                ChatHandler.Instance?.SceneManager_activeSceneChanged(from, to);
+            }
+            catch (Exception) { }
         }
 
         public void OnLevelWasLoaded(int level)

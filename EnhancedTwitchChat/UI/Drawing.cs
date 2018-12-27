@@ -21,6 +21,19 @@ namespace EnhancedTwitchChat.UI
         public string textureIndex;
         public ImageType imageType;
         public Rect origUV;
+        public TextureAnimator textureAnimator;
+
+        private Shadow _shadow;
+
+        protected override void Start()
+        {
+            textureAnimator = gameObject.AddComponent<TextureAnimator>();
+            _shadow = gameObject.AddComponent<Shadow>();
+            textureAnimator.enabled = false;
+            origUV = uvRect;
+
+            base.Start();
+        }
     }
 
     public class CustomText : Text
@@ -182,9 +195,11 @@ namespace EnhancedTwitchChat.UI
                         if (animatedEmote)
                         {
                             TextureAnimator texAnimator = image.gameObject.GetComponent<TextureAnimator>();
-                            if (!texAnimator)
-                                texAnimator = image.gameObject.AddComponent<TextureAnimator>();
-                            texAnimator.Init(imageInfo.textureIndex, delay, image, cachedTextureData);
+                            if (texAnimator)
+                            {
+                                texAnimator.Init(imageInfo.textureIndex, delay, image, cachedTextureData);
+                                texAnimator.enabled = true;
+                            }
                         }
 
                         image.rectTransform.SetParent(currentMessage.rectTransform, false);

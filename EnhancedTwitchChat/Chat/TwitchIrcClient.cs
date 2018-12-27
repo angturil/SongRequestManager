@@ -148,7 +148,7 @@ namespace EnhancedTwitchChat.Chat
                 if (!MessageQueues.ContainsKey(TwitchIRCClient.CurrentChannel))
                     MessageQueues[twitchMessage.Room.ChannelName] = new ConcurrentQueue<TwitchMessage>();
 
-                if (MessageQueues[twitchMessage.Room.ChannelName].Count > Config.Instance.MaxMessages)
+                if (MessageQueues[twitchMessage.Room.ChannelName].Count > Config.Instance.MaxChatLines)
                 {
                     if (MessageQueues[twitchMessage.Room.ChannelName].TryDequeue(out var dump))
                     {

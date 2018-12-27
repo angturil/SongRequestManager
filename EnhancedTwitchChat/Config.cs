@@ -20,7 +20,7 @@ namespace EnhancedTwitchChat
         public float ChatScale = 1.1f;
         public float ChatWidth = 160;
         public float MessageSpacing = 2.0f;
-        public int MaxMessages = 20;
+        public int MaxChatLines = 30;
 
         public float PositionX = 2.0244143f;
         public float PositionY = 0.373768f;
@@ -149,9 +149,9 @@ namespace EnhancedTwitchChat
                 BackgroundPadding = 0;
             }
 
-            if (MaxMessages < 1)
+            if (MaxChatLines < 1)
             {
-                MaxMessages = 1;
+                MaxChatLines = 1;
             }
         }
 

@@ -43,7 +43,7 @@
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\AsyncTwitch.dll</HintPath>
     </Reference>
     <Reference Include="BeatSaberCustomUI">
-      <HintPath>..\..\BeatSaber-CustomUI\bin\Debug\BeatSaberCustomUI.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\BeatSaberCustomUI.dll</HintPath>
     </Reference>
     <Reference Include="IllusionInjector, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

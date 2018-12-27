@@ -40,16 +40,17 @@ namespace EnhancedTwitchChat.Textures
             GifInfo frameInfo = new GifInfo();
             DateTime startTime = DateTime.Now;
             Task.Run(() => ProcessingThread(gifData, ref frameInfo));
-            
+
+            Texture2D texture = new Texture2D(2048, 2048);
+
             while (!frameInfo.initialized)
                 yield return null;
 
             float delay = -1f;
             for (int i = 0; i < frameInfo.frameCount; i++)
             {
-                // The processing thread is purposely slowed down to reduce CPU load, so yield here as it won't keep up with the game if it's running at 90fps
                 while (frameInfo.frames.Count - 1 < i)
-                    yield return null;
+                    yield return new WaitForSeconds(0.1f);
 
                 FrameInfo currentFrameInfo = frameInfo.frames[i];
 
@@ -68,32 +69,30 @@ namespace EnhancedTwitchChat.Textures
                     }
                 }
                 frameTexture.Apply();
-
-                // Yield here for a frame to allow the texture data to be populated
-                yield return null;
-
                 frameTexture.wrapMode = TextureWrapMode.Clamp;
 
-                texList.Add(frameTexture);
+                // Yield here for a frame to allow the texture data to be populated
+                //yield return null;
 
+                texList.Add(frameTexture);
                 // Instant callback after we decode the first frame in order to display a still image until the animated one is finished loading
                 if (callback != null && i == 0)
                 {
-                    Texture2D tempTexture = new Texture2D(8192, 8192);
-                    callback(frameTexture, tempTexture.PackTextures(new Texture2D[] { frameTexture }, 2, 8192, true), delay, imageDownloadInfo);
+                    callback(frameTexture, texture.PackTextures(new Texture2D[] { frameTexture }, 2, 2048, true), delay, imageDownloadInfo);
                 }
             }
 
-            yield return null;
+            //Plugin.Log("Packing textures in 5 sconds...");
+            //yield return new WaitForSeconds(5f);
+            //Plugin.Log("packing.");
+            Rect[] atlas = texture.PackTextures(texList.ToArray(), 2, 2048, true);
 
-            Texture2D texture = new Texture2D(8192, 8192);
-            Rect[] atlas = texture.PackTextures(texList.ToArray(), 2, 8192, true);
+            //yield return null;
 
             if (callback != null)
                 callback(texture, atlas, delay, imageDownloadInfo);
 
-            Plugin.Log($"Finished decoding gif! Elapsed time: {(DateTime.Now - startTime).TotalSeconds.ToString()} seconds.");
-            yield break;
+            Plugin.Log($"Finished decoding gif {imageDownloadInfo.textureIndex}! Elapsed time: {(DateTime.Now - startTime).TotalSeconds.ToString()} seconds.");
         }
 
         private static void ProcessingThread(byte[] gifData, ref GifInfo frameInfo)
@@ -123,6 +122,7 @@ namespace EnhancedTwitchChat.Textures
                     }
                 }
 
+
                 int delayPropertyValue = BitConverter.ToInt32(gifImage.GetPropertyItem(20736).Value, index);
                 // If the delay property is 0, assume that it's a 10fps emote
                 if (delayPropertyValue == 0)
@@ -131,7 +131,7 @@ namespace EnhancedTwitchChat.Textures
                 currentFrame.delay = (float)delayPropertyValue / 100.0f;
                 frameInfo.frames.Add(currentFrame);
                 index += 4;
-                Thread.Sleep(7);
+                Thread.Sleep(15);
             }
         }
     };
