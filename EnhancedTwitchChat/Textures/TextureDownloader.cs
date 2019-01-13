@@ -18,23 +18,32 @@ using CustomUI.Utilities;
 
 namespace EnhancedTwitchChat.Textures
 {
+    public class CachedAnimationData
+    {
+        public int index = -1;
+        public Rect[] uvs = null;
+        public float delay = -1f;
+
+        public CachedAnimationData(int index, Rect[] uvs, float delay)
+        {
+            this.index = index;
+            this.uvs = uvs;
+            this.delay = delay;
+        }
+    }
+
     public class CachedTextureData
     {
         public Texture2D texture = null;
-        public Rect[] animationInfo = null;
+        public CachedAnimationData animInfo = null;
         public float width;
         public float height;
-        public int animIndex = -1;
-        public float delay = -1f;
+
         public CachedTextureData(Texture2D texture, float width, float height)
         {
             this.texture = texture;
             this.width = width;
             this.height = height;
-        }
-        public CachedTextureData(Rect[] animationInfo)
-        {
-            this.animationInfo = animationInfo;
         }
     };
 
@@ -145,17 +154,10 @@ namespace EnhancedTwitchChat.Textures
             FFZEmoteIDs.Clear();
             TwitchBadgeIDs.Clear();
 
-            // Grab a list of bttv/ffz emotes BEFORE we join a channel and start getting spammed with messages
-            StartCoroutine(GetBTTVGlobalEmotes());
-            StartCoroutine(GetBTTVChannelEmotes());
-            StartCoroutine(GetFFZGlobalEmotes());
-            StartCoroutine(GetFFZChannelEmotes());
-            StartCoroutine(GetTwitchChannelBadges());
-            StartCoroutine(GetTwitchGlobalBadges());
-            StartCoroutine(GetCheermotes());
+            StartCoroutine(GetEmotes());
         }
 
-        public void Update()
+        public void FixedUpdate()
         {
             if (_waitForFrames > 0)
             {
@@ -264,7 +266,7 @@ namespace EnhancedTwitchChat.Textures
                         }
                         else
                         {
-                            texture = UIUtilities.LoadTextureRaw(web.downloadHandler.data);
+                            texture = DownloadHandlerTexture.GetContent(web);
                             if (texture)
                             {
                                 if (!localPathExists)
@@ -284,11 +286,39 @@ namespace EnhancedTwitchChat.Textures
                 }
             }
             Instance._numDownloading--;
+        }
 
-            if (Plugin.Instance.IsAtMainMenu)
-                Instance._waitForFrames = 5;
-            else
-                Instance._waitForFrames = 15;
+        public static IEnumerator GetEmotes()
+        {
+            yield return GetTwitchGlobalBadges();
+            yield return GetTwitchChannelBadges();
+            yield return GetCheermotes();
+            yield return GetBTTVGlobalEmotes();
+            yield return GetBTTVChannelEmotes();
+            yield return GetFFZGlobalEmotes();
+            yield return GetFFZChannelEmotes();
+            yield return PreloadAnimatedEmotes();
+        }
+
+
+        public static IEnumerator PreloadAnimatedEmotes()
+        {
+            int count = 0;
+            foreach (string emoteIndex in BTTVAnimatedEmoteIDs.Values)
+            {
+                if (!Plugin.Instance.IsAtMainMenu)
+                    yield return new WaitUntil(() => Plugin.Instance.IsAtMainMenu);
+
+                if (!CachedTextures.ContainsKey(emoteIndex))
+                {
+                    TextureDownloadInfo downloadInfo = new TextureDownloadInfo("AB" + emoteIndex, ImageType.BTTV_Animated, "!NOTSET!");
+                    Plugin.Log($"Precaching {emoteIndex}");
+                    Instance.Queue(downloadInfo);
+                    count++;
+                    yield return new WaitUntil(() => !Instance._downloadQueue.Contains(downloadInfo));
+                }
+            }
+            Plugin.Log($"Precached {count.ToString()} animated emotes successfully!");
         }
 
         public static IEnumerator GetCheermotes()
@@ -474,30 +504,8 @@ namespace EnhancedTwitchChat.Textures
                 }
                 Plugin.Log($"Web request completed, {emotesCached.ToString()} BTTV channel emotes now cached!");
             }
-
-            yield return PreloadBTTVAnimatedEmotes();
         }
         
-        public static IEnumerator PreloadBTTVAnimatedEmotes()
-        {
-            int count = 0;
-            foreach (string emoteIndex in BTTVAnimatedEmoteIDs.Values)
-            {
-                if (!Plugin.Instance.IsAtMainMenu)
-                    yield return new WaitUntil(() => Plugin.Instance.IsAtMainMenu);
-
-                if (!CachedTextures.ContainsKey(emoteIndex))
-                {
-                    TextureDownloadInfo downloadInfo = new TextureDownloadInfo("AB" + emoteIndex, ImageType.BTTV_Animated, "!NOTSET!");
-                    Plugin.Log($"Precaching {emoteIndex}");
-                    Instance.Queue(downloadInfo);
-                    count++;
-                    yield return new WaitUntil(() => !Instance._downloadQueue.Contains(downloadInfo));
-                }
-            }
-            Plugin.Log($"Precached {count.ToString()} animated emotes successfully!");
-        }
-
         public static IEnumerator GetFFZGlobalEmotes()
         {
             Plugin.Log("Downloading FFZ global emote listing");

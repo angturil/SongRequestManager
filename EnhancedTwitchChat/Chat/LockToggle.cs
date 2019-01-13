@@ -45,8 +45,8 @@ namespace EnhancedTwitchChat.Chat
                             _vrController = _vrPointer.vrController;
 
                             Config.Instance.LockChatPosition = !Config.Instance.LockChatPosition;
+                            Config.Instance.Save();
                             ChatHandler.Instance.UpdateLockButton();
-                            Plugin.Instance.ShouldWriteConfig = true;
                         }
                     }
                     else

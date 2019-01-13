@@ -50,6 +50,7 @@ namespace EnhancedTwitchChat.Chat
         public static ConcurrentStack<ChatMessage> RenderQueue = new ConcurrentStack<ChatMessage>();
         public static ConcurrentDictionary<string, ConcurrentQueue<TwitchMessage>> MessageQueues = new ConcurrentDictionary<string, ConcurrentQueue<TwitchMessage>>();
         public static Dictionary<string, string> ChannelIds = new Dictionary<string, string>();
+        public static ChatUser OurChatUser = new ChatUser();
 
         private static System.Random _random;
         private static string _lastRoomId;
@@ -138,12 +139,6 @@ namespace EnhancedTwitchChat.Chat
 
         private static void TwitchConnection_OnMessageReceived(TwitchConnection twitchCon, TwitchMessage twitchMessage)
         {
-            //if (twitchMessage.Room != null && twitchMessage.Room.ChannelName != TwitchIRCClient.CurrentChannel)
-            //{
-            //    Plugin.Log($"Channel: {twitchMessage.Room.ChannelName}, ConfigChannel: {TwitchIRCClient.CurrentChannel}");
-            //    return;
-            //}
-
             if (twitchMessage.Room != null)
             {
                 if (!MessageQueues.ContainsKey(TwitchIRCClient.CurrentChannel))
@@ -172,6 +167,7 @@ namespace EnhancedTwitchChat.Chat
         {
             while (true)
             {
+                TwitchMessage currentTwitchMessage = null;
                 try {
                     if (ChatHandler.Instance.initialized)
                     {
@@ -182,8 +178,13 @@ namespace EnhancedTwitchChat.Chat
 
                         if (MessageQueues.ContainsKey(TwitchIRCClient.CurrentChannel) && MessageQueues[TwitchIRCClient.CurrentChannel].Count > 0 && MessageQueues[TwitchIRCClient.CurrentChannel].TryDequeue(out var twitchMessage))
                         {
-                            if (twitchMessage.Author != null && twitchMessage.Author.DisplayName != String.Empty)
+                            currentTwitchMessage = twitchMessage;
+                            if (twitchMessage.Author != null && twitchMessage.Author.DisplayName != String.Empty && !twitchMessage.RawMessage.Contains("USERSTATE") && !twitchMessage.RawMessage.Contains("USERNOTICE"))
+                            {
                                 MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMessage.Content), twitchMessage));
+                                if(Config.Instance.SongRequestBot)
+                                    RequestBot.Parse(twitchMessage.Content);
+                            }
                             else
                             {
                                 if (twitchMessage.RawMessage.Contains("CLEARCHAT"))
@@ -192,29 +193,36 @@ namespace EnhancedTwitchChat.Chat
                                     Dictionary<string, string> messageComponents = parts[0].Substring(1).Split(';').ToList().ToDictionary(x => x.Substring(0, x.IndexOf('=')), y => y.Substring(y.IndexOf('=') + 1));
                                     ChatHandler.Instance.PurgeMessagesFromUser(messageComponents["target-user-id"]);
                                 }
-                                //else if (message.Contains("USERNOTICE"))
-                                //{
-                                //    switch (messageComponents["msg-id"])
+                                if(twitchMessage.RawMessage.Contains("USERSTATE"))
+                                {
+                                    OurChatUser = twitchMessage.Author;
+                                }
+
+                                //    else if (twitchMessage.RawMessage.Contains("USERNOTICE"))
                                 //    {
-                                //        case "sub":
-                                //        case "resub":
-                                //        case "subgift":
-                                //            //MessageInfo messageInfo = GetMessageInfo(twitchMessage, String.Empty, messageComponents);
-                                //            string newMsg = messageComponents["system-msg"].Replace("\\s", " ");
-                                //            SpriteParser.Parse(new ChatMessage($"<b>{newMsg.Substring(newMsg.IndexOf(" ") + 1)}</b>", twitchMessage));
-                                //            break;
+                                //        string[] parts = twitchMessage.RawMessage.Split(new char[] { ' ' }, 2);
+                                //        Dictionary<string, string> messageComponents = parts[0].Substring(1).Split(';').ToList().ToDictionary(x => x.Substring(0, x.IndexOf('=')), y => y.Substring(y.IndexOf('=') + 1));
+                                //        switch (messageComponents["msg-id"])
+                                //        {
+                                //            case "sub":
+                                //            case "resub":
+                                //            case "subgift":
+                                //                //MessageInfo messageInfo = GetMessageInfo(twitchMessage, String.Empty, messageComponents);
+                                //                string newMsg = messageComponents["system-msg"].Replace("\\s", " ");
+                                //                MessageParser.Parse(new ChatMessage($"{newMsg.Substring(newMsg.IndexOf(" ") + 1).Split(new char[] { '\n' }, 2)[0]}", twitchMessage));
+                                //                break;
+                                //        }
                                 //    }
-                                //}
                             }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Log($"Caught exception \"{ex.Message}\" from {ex.Source}");
+                    Plugin.Log($"Caught exception when parsing message \"{(currentTwitchMessage!=null?currentTwitchMessage.RawMessage:"NULL")}\", Exception: \"{ex.Message}\" from {ex.Source}");
                     Plugin.Log($"Stack trace: {ex.StackTrace}");
                 }
-                Thread.Sleep(15);
+                Thread.Sleep(100);
             }
         }
     };

@@ -15,7 +15,6 @@ namespace EnhancedTwitchChat.Textures
     public class TextureAnimator : MonoBehaviour
     {
         private CustomImage _image;
-        private string _textureIndex;
         private CachedTextureData _cachedTextureInfo;
             
         void Awake()
@@ -25,18 +24,18 @@ namespace EnhancedTwitchChat.Textures
 
         public void Init(string textureIndex, float delay, CustomImage image, CachedTextureData cachedTextureInfo)
         {
-            _textureIndex = textureIndex;
-            _cachedTextureInfo = cachedTextureInfo;
             _image = image;
+            _cachedTextureInfo = cachedTextureInfo;
             _image.texture = cachedTextureInfo.texture;
-            if(cachedTextureInfo.animationInfo.Length > 1)
-                InvokeRepeating("UpdateAnimation", 0, delay);
             enabled = true;
         }
         
-        private void UpdateAnimation()
+        private void FixedUpdate()
         {
-            _image.uvRect = _cachedTextureInfo.animationInfo[AnimationController.Instance.registeredAnimations[_cachedTextureInfo.animIndex].uvIndex];
+            if (!Config.Instance.AnimatedEmotes)
+                _image.uvRect = _cachedTextureInfo.animInfo.uvs[0];
+            else if (_cachedTextureInfo.animInfo.uvs.Length > 1)
+                _image.uvRect = _cachedTextureInfo.animInfo.uvs[AnimationController.Instance.registeredAnimations[_cachedTextureInfo.animInfo.index].uvIndex];
         }
     };
 }

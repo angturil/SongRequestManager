@@ -30,8 +30,8 @@ namespace EnhancedTwitchChat.UI
             base.Awake();
 
             textureAnimator = gameObject.AddComponent<TextureAnimator>();
-            _shadow = gameObject.AddComponent<Shadow>();
             textureAnimator.enabled = false;
+            _shadow = gameObject.AddComponent<Shadow>();
             origUV = uvRect;
         }
     }
@@ -41,23 +41,26 @@ namespace EnhancedTwitchChat.UI
         public ChatMessage messageInfo;
         public List<CustomImage> emoteRenderers = new List<CustomImage>();
         public bool hasRendered = false;
-        ~CustomText()
-        {
-            foreach (CustomImage i in emoteRenderers)
-            {
-                Destroy(i.gameObject);
-            }
-        }
     };
 
     [RequireComponent(typeof(LayoutElement))]
     public class ContentSizeManager : MonoBehaviour
     {
         private LayoutElement _thisElement;
+        private float _width;
+
         public void Init()
         {
             _thisElement = GetComponent<LayoutElement>();
-            _thisElement.preferredWidth = Config.Instance.ChatWidth;
+        }
+
+        private void FixedUpdate()
+        {
+            if (Config.Instance.ChatWidth != _width)
+            {
+                _thisElement.preferredWidth = Config.Instance.ChatWidth;
+                _width = Config.Instance.ChatWidth;
+            }
         }
     };
 
@@ -95,7 +98,7 @@ namespace EnhancedTwitchChat.UI
         public static IEnumerator Initialize(Transform parent)
         {
             imageSpacing = "\u200A";
-            CustomText tmpText = InitText(imageSpacing, Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.UpperLeft);
+            CustomText tmpText = InitText(imageSpacing, Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.UpperLeft, false);
             yield return null;
             while (tmpText.preferredWidth < 5.3f)
             {
@@ -126,27 +129,30 @@ namespace EnhancedTwitchChat.UI
             {
                 font = "Segoe UI";
                 Config.Instance.FontName = font;
-                Plugin.Instance.ShouldWriteConfig = true;
+                Config.Instance.Save();
                 Plugin.Log($"Invalid font name specified! Falling back to Segoe UI");
             }
             return Font.CreateDynamicFontFromOSFont(font, 230);
         }
 
-        public static CustomText InitText(string text, Color textColor, float fontSize, Vector2 sizeDelta, Vector3 position, Quaternion rotation, Transform parent, TextAnchor textAlign, Material mat = null)
+        public static CustomText InitText(string text, Color textColor, float fontSize, Vector2 sizeDelta, Vector3 position, Quaternion rotation, Transform parent, TextAnchor textAlign, bool wrapText, Material mat = null)
         {
             GameObject newGameObj = new GameObject("CustomText");
             CustomText tmpText = newGameObj.AddComponent<CustomText>();
-            var mcs = newGameObj.AddComponent<ContentSizeManager>();
-            mcs.transform.SetParent(tmpText.rectTransform, false);
-            mcs.Init();
-            var fitter = newGameObj.AddComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            if (wrapText)
+            {
+                var mcs = newGameObj.AddComponent<ContentSizeManager>();
+                mcs.transform.SetParent(tmpText.rectTransform, false);
+                mcs.Init();
+                var fitter = newGameObj.AddComponent<ContentSizeFitter>();
+                fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            }
             newGameObj.AddComponent<Shadow>();
 
             CanvasScaler scaler = newGameObj.AddComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = pixelsPerUnit;
             tmpText.color = textColor;
-            tmpText.rectTransform.SetParent(parent.transform, false);
+            tmpText.rectTransform.SetParent(parent, false);
             tmpText.rectTransform.localPosition = position;
             tmpText.rectTransform.localRotation = rotation;
             tmpText.rectTransform.pivot = new Vector2(0, 0);
@@ -171,11 +177,10 @@ namespace EnhancedTwitchChat.UI
             CachedTextureData cachedTextureData = TextureDownloader.CachedTextures.ContainsKey(imageInfo.textureIndex) ? TextureDownloader.CachedTextures[imageInfo.textureIndex] : null;
 
             // If cachedTextureData is null, the emote will be overlayed at a later time once it's finished being cached
-            if (cachedTextureData == null || (cachedTextureData.texture == null && cachedTextureData.animationInfo == null))
+            if (cachedTextureData == null || (cachedTextureData.texture == null && cachedTextureData.animInfo == null))
                 return;
 
-            float delay = cachedTextureData.delay;
-            bool animatedEmote = cachedTextureData.animationInfo != null;
+            bool animatedEmote = cachedTextureData.animInfo != null;
             foreach (int i in Utilities.IndexOfAll(currentMessage.text, Char.ConvertFromUtf32(imageInfo.swapChar)))
             {
                 CustomImage image = null;
@@ -186,20 +191,15 @@ namespace EnhancedTwitchChat.UI
                         image = ChatHandler.Instance.imagePool.Alloc();
                         image.textureIndex = imageInfo.textureIndex;
                         image.imageType = imageInfo.imageType;
-
-                        //image.preserveAspect = true;
+                        
                         image.rectTransform.pivot = new Vector2(0, 0);
                         image.texture = cachedTextureData.texture;
                         image.texture.wrapMode = TextureWrapMode.Clamp;
 
                         if (animatedEmote)
                         {
-                            TextureAnimator texAnimator = image.gameObject.GetComponent<TextureAnimator>();
-                            if (texAnimator)
-                            {
-                                texAnimator.Init(imageInfo.textureIndex, delay, image, cachedTextureData);
-                                texAnimator.enabled = true;
-                            }
+                            image.textureAnimator.Init(imageInfo.textureIndex, cachedTextureData.animInfo.delay, image, cachedTextureData);
+                            image.textureAnimator.enabled = true;
                         }
 
                         image.rectTransform.SetParent(currentMessage.rectTransform, false);

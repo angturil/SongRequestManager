@@ -43,14 +43,12 @@ namespace EnhancedTwitchChat.Textures
 
             Texture2D texture = new Texture2D(2048, 2048);
 
-            while (!frameInfo.initialized)
-                yield return null;
+            yield return new WaitUntil(() => { return frameInfo.initialized; });
 
             float delay = -1f;
             for (int i = 0; i < frameInfo.frameCount; i++)
             {
-                while (frameInfo.frames.Count - 1 < i)
-                    yield return new WaitForSeconds(0.1f);
+                yield return new WaitUntil(() => { return frameInfo.frames.Count - 1 >= i; });
 
                 FrameInfo currentFrameInfo = frameInfo.frames[i];
 
@@ -58,28 +56,27 @@ namespace EnhancedTwitchChat.Textures
                     delay = currentFrameInfo.delay;
 
                 var frameTexture = new Texture2D(currentFrameInfo.frame.Width, currentFrameInfo.frame.Height);
-                int colorIndex = 0;
+
+                Color32[] colors = new Color32[currentFrameInfo.frame.Width * currentFrameInfo.frame.Height];
                 for (int x = 0; x < currentFrameInfo.frame.Width; x++)
                 {
                     for (int y = 0; y < currentFrameInfo.frame.Height; y++)
                     {
-                        System.Drawing.Color sourceColor = currentFrameInfo.colors[colorIndex];
-                        frameTexture.SetPixel(x, currentFrameInfo.frame.Height - 1 - y, new Color32(sourceColor.R, sourceColor.G, sourceColor.B, sourceColor.A));
-                        colorIndex++;
+                        System.Drawing.Color sourceColor = currentFrameInfo.colors[x * currentFrameInfo.frame.Width + y];
+                        colors[(currentFrameInfo.frame.Height - y - 1) * currentFrameInfo.frame.Width + x] = new Color32(sourceColor.R, sourceColor.G, sourceColor.B, sourceColor.A);
                     }
                 }
-                frameTexture.Apply();
                 frameTexture.wrapMode = TextureWrapMode.Clamp;
+                frameTexture.SetPixels32(colors);
+                frameTexture.Apply(i == 0);
 
-                // Yield here for a frame to allow the texture data to be populated
-                //yield return null;
-
+                yield return null;
+                
                 texList.Add(frameTexture);
+                
                 // Instant callback after we decode the first frame in order to display a still image until the animated one is finished loading
-                if (callback != null && i == 0)
-                {
-                    callback(frameTexture, texture.PackTextures(new Texture2D[] { frameTexture }, 2, 2048, true), delay, imageDownloadInfo);
-                }
+                if (i == 0)
+                    callback?.Invoke(frameTexture, texture.PackTextures(new Texture2D[] { frameTexture }, 2, 2048, true), delay, imageDownloadInfo);
             }
 
             //Plugin.Log("Packing textures in 5 sconds...");
@@ -87,10 +84,9 @@ namespace EnhancedTwitchChat.Textures
             //Plugin.Log("packing.");
             Rect[] atlas = texture.PackTextures(texList.ToArray(), 2, 2048, true);
 
-            //yield return null;
+            yield return null;
 
-            if (callback != null)
-                callback(texture, atlas, delay, imageDownloadInfo);
+            callback?.Invoke(texture, atlas, delay, imageDownloadInfo);
 
             Plugin.Log($"Finished decoding gif {imageDownloadInfo.textureIndex}! Elapsed time: {(DateTime.Now - startTime).TotalSeconds.ToString()} seconds.");
         }
@@ -131,7 +127,8 @@ namespace EnhancedTwitchChat.Textures
                 currentFrame.delay = (float)delayPropertyValue / 100.0f;
                 frameInfo.frames.Add(currentFrame);
                 index += 4;
-                Thread.Sleep(15);
+
+                Thread.Sleep(25);
             }
         }
     };

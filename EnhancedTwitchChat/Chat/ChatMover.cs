@@ -72,7 +72,7 @@ namespace EnhancedTwitchChat.Chat
             }
             else if (_wasMoving)
             {
-                Plugin.Instance.ShouldWriteConfig = true;
+                Config.Instance.Save();
                 _wasMoving = false;
             }
         }
