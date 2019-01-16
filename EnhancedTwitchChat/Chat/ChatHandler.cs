@@ -42,7 +42,7 @@ namespace EnhancedTwitchChat
         private bool _messageRendering = false;
         private int _waitForFrames = 0;
         private bool _configChanged = false;
-        private ConcurrentStack<string> _timeoutQueue = new ConcurrentStack<string>();
+        private ConcurrentQueue<string> _timeoutQueue = new ConcurrentQueue<string>();
         private ChatMover _movePointer = null;
         private LockToggle _lockPointer = null;
         private string _lastFontName;
@@ -160,7 +160,7 @@ namespace EnhancedTwitchChat
                     tmpMessage.Author.Color = "#00000000";
                     tmpMessage.Author.DisplayName = String.Empty;
 
-                    TwitchIRCClient.RenderQueue.Push(new ChatMessage(msg, tmpMessage));
+                    TwitchIRCClient.RenderQueue.Enqueue(new ChatMessage(msg, tmpMessage));
 
                     displayStatusMessage = false;
                 }
@@ -169,7 +169,7 @@ namespace EnhancedTwitchChat
                     OnConfigChanged();
 
                 // Make sure to delete any purged messages right away
-                if (_timeoutQueue.Count > 0 && _timeoutQueue.TryPop(out var userID))
+                if (_timeoutQueue.Count > 0 && _timeoutQueue.TryDequeue(out var userID))
                     PurgeChatMessagesInternal(userID);
 
                 if (_waitForFrames > 0)
@@ -186,12 +186,12 @@ namespace EnhancedTwitchChat
                 // Display any messages that we've cached all the resources for and prepared for rendering
                 if (TwitchIRCClient.RenderQueue.Count > 0 && !_messageRendering)
                 {
-                    if (TwitchIRCClient.RenderQueue.TryPop(out var messageToSend))
+                    if (TwitchIRCClient.RenderQueue.TryDequeue(out var messageToSend))
                         StartCoroutine(AddNewChatMessage(messageToSend.msg, messageToSend));
                 }
 
                 // Save images to file when we're at the main menu
-                else if (Plugin.Instance.IsAtMainMenu && TextureDownloader.ImageSaveQueue.Count > 0 && TextureDownloader.ImageSaveQueue.TryPop(out var saveInfo))
+                else if (Plugin.Instance.IsAtMainMenu && TextureDownloader.ImageSaveQueue.Count > 0 && TextureDownloader.ImageSaveQueue.TryDequeue(out var saveInfo))
                     File.WriteAllBytes(saveInfo.path,  saveInfo.data);
             }
         }
@@ -291,18 +291,18 @@ namespace EnhancedTwitchChat
             var go = new GameObject();
             DontDestroyOnLoad(go);
             _testMessage = Drawing.InitText("", Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), go.transform, TextAnchor.UpperLeft, true);
-
+            _testMessage.enabled = false;
         }
-
+        
         private IEnumerator AddNewChatMessage(string msg, ChatMessage messageInfo)
         {
             _messageRendering = true;
             CustomText currentMessage = null;
             
             _testMessage.text = msg;
-
+            _testMessage.cachedTextGenerator.Populate(msg, _testMessage.GetGenerationSettings(_testMessage.rectTransform.rect.size));
             yield return null;
-            
+
             for(int i=0; i<_testMessage.cachedTextGenerator.lineCount; i++)
             {
                 msg = _testMessage.text.Substring(_testMessage.cachedTextGenerator.lines[i].startCharIdx);
@@ -456,7 +456,7 @@ namespace EnhancedTwitchChat
 
         public void PurgeMessagesFromUser(string userID)
         {
-            _timeoutQueue.Push(userID);
+            _timeoutQueue.Enqueue(userID);
         }
 
         private void FreeImages(CustomText currentMessage)

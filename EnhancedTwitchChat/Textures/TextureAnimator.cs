@@ -22,15 +22,17 @@ namespace EnhancedTwitchChat.Textures
             UnityEngine.Object.DontDestroyOnLoad(this);
         }
 
-        public void Init(string textureIndex, float delay, CustomImage image, CachedTextureData cachedTextureInfo)
+        public void Init(string textureIndex, CustomImage image, CachedTextureData cachedTextureInfo)
         {
             _image = image;
             _cachedTextureInfo = cachedTextureInfo;
             _image.texture = cachedTextureInfo.texture;
             enabled = true;
+
+            InvokeRepeating("UpdateUvs", 0, cachedTextureInfo.animInfo.delay);
         }
         
-        private void FixedUpdate()
+        private void UpdateUvs()
         {
             if (!Config.Instance.AnimatedEmotes)
                 _image.uvRect = _cachedTextureInfo.animInfo.uvs[0];

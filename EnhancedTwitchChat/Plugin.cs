@@ -53,11 +53,11 @@ namespace EnhancedTwitchChat
         {
             if (from.name == "EmptyTransition" && to.name == "Menu")
                 Config.Save(true);
-
             if (to.name == "Menu")
                 IsAtMainMenu = true;
             else if (to.name == "GameCore")
                 IsAtMainMenu = false;
+
             try
             {
                 ChatHandler.Instance?.SceneManager_activeSceneChanged(from, to);

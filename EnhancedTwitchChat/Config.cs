@@ -156,22 +156,17 @@ namespace EnhancedTwitchChat
         {
             if(!callback)
                 _saving = true;
-            if (_saving)
-                Plugin.Log("Skipping callback!");
-            else
-                Plugin.Log("Callback!");
             ConfigSerializer.SaveConfig(this, FilePath);
         }
 
         private void ConfigWatcherOnChanged(object sender, FileSystemEventArgs fileSystemEventArgs)
         {
-            Plugin.Log("Saving!");
             if (_saving)
             {
                 _saving = false;
                 return;
             }
-            Plugin.Log("Callback!");
+
             Load();
 
             if (ConfigChangedEvent != null)

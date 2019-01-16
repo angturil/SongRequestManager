@@ -69,6 +69,7 @@ namespace EnhancedTwitchChat.UI
         public static int pixelsPerUnit = 100;
         public static Material noGlowMaterial = null;
         public static Material noGlowMaterialUI = null;
+        public static Material clearMaterial = null;
         public static string imageSpacing;
         public static float imageSpacingWidth;
 
@@ -81,14 +82,14 @@ namespace EnhancedTwitchChat.UI
                     Material material = Resources.FindObjectsOfTypeAll<Material>().Where(m => m.name == "UINoGlow").FirstOrDefault();
                     if (material)
                     {
-                        noGlowMaterial = new Material(material);
-                        noGlowMaterialUI = new Material(material);
-                        ChatHandler.Instance.background.material = new Material(material);
-                        ChatHandler.Instance.lockButtonImage.material = new Material(material);
-                        var mat = new Material(material);
-                        mat.color = Color.clear;
-                        ChatHandler.Instance.chatMoverPrimitive.GetComponent<Renderer>().material = mat;
-                        ChatHandler.Instance.lockButtonPrimitive.GetComponent<Renderer>().material = mat;
+                        noGlowMaterial = Material.Instantiate(material);
+                        noGlowMaterialUI = Material.Instantiate(material);
+                        ChatHandler.Instance.background.material = Material.Instantiate(material);
+                        ChatHandler.Instance.lockButtonImage.material = Material.Instantiate(material);
+                        clearMaterial = Material.Instantiate(material);
+                        clearMaterial.color = Color.clear;
+                        ChatHandler.Instance.chatMoverPrimitive.GetComponent<Renderer>().material = clearMaterial;
+                        ChatHandler.Instance.lockButtonPrimitive.GetComponent<Renderer>().material = clearMaterial;
                     }
                 }
                 return noGlowMaterial && noGlowMaterialUI;
@@ -151,7 +152,6 @@ namespace EnhancedTwitchChat.UI
 
             CanvasScaler scaler = newGameObj.AddComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = pixelsPerUnit;
-            tmpText.color = textColor;
             tmpText.rectTransform.SetParent(parent, false);
             tmpText.rectTransform.localPosition = position;
             tmpText.rectTransform.localRotation = rotation;
@@ -164,8 +164,9 @@ namespace EnhancedTwitchChat.UI
             tmpText.verticalOverflow = VerticalWrapMode.Overflow;
             tmpText.alignment = textAlign;
             tmpText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            tmpText.color = textColor;
             //tmpText.resizeTextForBestFit = true;
-            
+
             if (mat)
                 tmpText.material = mat;
 
@@ -198,7 +199,7 @@ namespace EnhancedTwitchChat.UI
 
                         if (animatedEmote)
                         {
-                            image.textureAnimator.Init(imageInfo.textureIndex, cachedTextureData.animInfo.delay, image, cachedTextureData);
+                            image.textureAnimator.Init(imageInfo.textureIndex, image, cachedTextureData);
                             image.textureAnimator.enabled = true;
                         }
 

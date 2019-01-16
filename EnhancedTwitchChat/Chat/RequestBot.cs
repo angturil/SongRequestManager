@@ -74,7 +74,7 @@ namespace EnhancedTwitchChat.Chat
                 _requestButton.SetButtonTextSize(2.0f);
                 _requestButton.interactable = false;
                 _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
-                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Moves onto the next song request in the queue\r\n\r\n<size=60%>Use <b>!request <beatsaver-id></b> or <b>!request <song name></b> in chat to request songs!</size>")}");
+                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Moves onto the next song request in the queue\r\n\r\n<size=60%>Use <b>!request <beatsaver-id></b> or <b>!request <song name></b> to request songs!</size>")}");
                 Plugin.Log("Created request button!");
             }
             _standardLevelListViewController = Resources.FindObjectsOfTypeAll<LevelListViewController>().FirstOrDefault();

@@ -1,9 +1,13 @@
 ﻿using CustomUI.MenuButton;
 using CustomUI.Settings;
+using CustomUI.Utilities;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace EnhancedTwitchChat.UI
 {
@@ -49,14 +53,13 @@ namespace EnhancedTwitchChat.UI
             reverseChatOrder.SetValue += (order) => { Config.Instance.ReverseChatOrder = order; };
             reverseChatOrder.GetValue += () => { return Config.Instance.ReverseChatOrder; };
 
-            var songRequestsEnabled = menu.AddBool("Song Request Bot", "Enables song requests in chat! Click the \"Next Request\" button in the top right corner of your song list to move onto the next request!\r\n\r\n<size=60%>Use <b>!request <beatsaver-id></b> or <b>!request <song name></b> in chat to request songs!</size>");
+            var songRequestsEnabled = menu.AddBool("Song Request Bot", "Enables song requests in chat! Click the \"Next Request\" button in the top right corner of your song list to move onto the next request!\r\n\r\n<size=60%>Use <b>!request <beatsaver-id></b> or <b>!request <song name></b> to request songs!</size>");
             songRequestsEnabled.SetValue += (requests) => { Config.Instance.SongRequestBot = requests; };
             songRequestsEnabled.GetValue += () => { return Config.Instance.SongRequestBot; };
 
             var animatedEmotes = menu.AddBool("Animated Emotes", "Enables animated BetterTwitchTV/FrankerFaceZ/Cheermotes in the chat. When disabled, these emotes will still appear but will not be animated.");
             animatedEmotes.SetValue += (animted) => { Config.Instance.AnimatedEmotes = animted; };
             animatedEmotes.GetValue += () => { return Config.Instance.AnimatedEmotes; };
-
         }
     }
 }

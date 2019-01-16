@@ -255,7 +255,7 @@ namespace EnhancedTwitchChat.Textures
             newChatMessage.parsedEmotes = parsedEmotes;
             newChatMessage.parsedBadges = parsedBadges;
             newChatMessage.isActionMessage = isActionMessage;
-            TwitchIRCClient.RenderQueue.Push(newChatMessage);
+            TwitchIRCClient.RenderQueue.Enqueue(newChatMessage);
         }
     };
 }

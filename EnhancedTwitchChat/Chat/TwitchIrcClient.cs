@@ -47,7 +47,7 @@ namespace EnhancedTwitchChat.Chat
             }
         }
 
-        public static ConcurrentStack<ChatMessage> RenderQueue = new ConcurrentStack<ChatMessage>();
+        public static ConcurrentQueue<ChatMessage> RenderQueue = new ConcurrentQueue<ChatMessage>();
         public static ConcurrentDictionary<string, ConcurrentQueue<TwitchMessage>> MessageQueues = new ConcurrentDictionary<string, ConcurrentQueue<TwitchMessage>>();
         public static Dictionary<string, string> ChannelIds = new Dictionary<string, string>();
         public static ChatUser OurChatUser = new ChatUser();
