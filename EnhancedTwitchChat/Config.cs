@@ -46,6 +46,10 @@ namespace EnhancedTwitchChat
         public bool SongRequestBot = false;
         public bool AnimatedEmotes = true;
 
+        public string RequestCommandAliases = "request,bsr,add";
+        public int RequestLimit = 5;
+        public int RequestCooldownMinutes = 5;
+
         public event Action<Config> ConfigChangedEvent;
 
         private readonly FileSystemWatcher _configWatcher;

@@ -2,6 +2,7 @@
 using CustomUI.BeatSaber;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Textures;
+using EnhancedTwitchChat.UI;
 using EnhancedTwitchChat.Utils;
 using HMUI;
 using SimpleJSON;
@@ -32,6 +33,7 @@ namespace EnhancedTwitchChat.Chat
     {
         public class RequestInfo
         {
+            public ChatUser requestor;
             public string request;
             public bool isBeatSaverId;
         }
@@ -44,22 +46,11 @@ namespace EnhancedTwitchChat.Chat
         public static ConcurrentQueue<JSONObject> FinalRequestQueue = new ConcurrentQueue<JSONObject>();
         private bool _checkingQueue = false;
         private static Button _requestButton;
-        private static LevelListViewController _standardLevelListViewController = null;
+
         private static FlowCoordinator _levelSelectionFlowCoordinator;
         private static DismissableNavigationController _levelSelectionNavigationController;
         private static Queue<string> _botMessageQueue = new Queue<string>();
-
-        private static List<IBeatmapLevel> CurrentLevels
-        {
-            get
-            {
-                return ReflectionUtil.GetPrivateField<IBeatmapLevel[]>(_standardLevelListViewController, "_levels").ToList();
-            }
-            set
-            {
-                _standardLevelListViewController.SetLevels(value.ToArray());
-            }
-        }
+        private static Dictionary<string, Action<ChatUser,string>> Commands = new Dictionary<string, Action<ChatUser,string>>();
 
         public static void OnLoad()
         {
@@ -77,7 +68,8 @@ namespace EnhancedTwitchChat.Chat
                 BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Moves onto the next song request in the queue\r\n\r\n<size=60%>Use <b>!request <beatsaver-id></b> or <b>!request <song name></b> to request songs!</size>")}");
                 Plugin.Log("Created request button!");
             }
-            _standardLevelListViewController = Resources.FindObjectsOfTypeAll<LevelListViewController>().FirstOrDefault();
+
+            SongListUtils.Initialize();
 
             if (_instance) return;
             new GameObject("EnhancedTwitchChatRequestBot").AddComponent<RequestBot>();
@@ -87,6 +79,8 @@ namespace EnhancedTwitchChat.Chat
         {
             DontDestroyOnLoad(gameObject);
             _instance = this;
+
+            InitializeCommands();
         }
 
         private void FixedUpdate()
@@ -125,8 +119,16 @@ namespace EnhancedTwitchChat.Chat
             _botMessageQueue.Enqueue(message);
         }
         
+        class RequestUserTracker
+        {
+            public int numRequests = 0;
+            public DateTime resetTime = DateTime.Now;
+        }
+
+        private Dictionary<string, RequestUserTracker> _requestTracker = new Dictionary<string, RequestUserTracker>();
         private IEnumerator CheckRequest(RequestInfo requestInfo)
         {
+            ChatUser requestor = requestInfo.requestor;
             string request = requestInfo.request;
             if (requestInfo.isBeatSaverId)
             {
@@ -140,7 +142,7 @@ namespace EnhancedTwitchChat.Chat
                     }
                 }
             }
-
+            Plugin.Log("8");
             string requestUrl = requestInfo.isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
             using (var web = UnityWebRequest.Get($"{requestUrl}/{request}"))
             {
@@ -160,6 +162,7 @@ namespace EnhancedTwitchChat.Chat
                     _checkingQueue = false;
                     yield break;
                 }
+                yield return null;
                 
                 JSONObject song = !result["songs"].IsArray ? result["song"].AsObject : result["songs"].AsArray[0].AsObject;
                 if (FinalRequestQueue.Any(j => j["version"] == song["version"]))
@@ -170,6 +173,7 @@ namespace EnhancedTwitchChat.Chat
                 }
                 else
                 {
+                    _requestTracker[requestor.UserID].numRequests++;
                     FinalRequestQueue.Enqueue(song);
                     _requestButton.interactable = true;
                     _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
@@ -194,6 +198,7 @@ namespace EnhancedTwitchChat.Chat
                     string songIndex = song["version"], songName = song["songName"];
                     string currentSongDirectory = $"{Environment.CurrentDirectory}\\CustomSongs\\{songIndex}";
                     string songHash = ((string)song["hashMd5"]).ToUpper();
+                    bool retried = false;
 
                 retry:
                     CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
@@ -210,7 +215,7 @@ namespace EnhancedTwitchChat.Chat
                         string localPath = $"{Environment.CurrentDirectory}\\.requestcache\\{songIndex}.zip";
                         yield return Utilities.DownloadFile(song["downloadUrl"], localPath);
                         yield return Utilities.ExtractZip(localPath, currentSongDirectory);
-                        yield return RefreshSongs(false, false);
+                        yield return SongListUtils.RefreshSongs(false, false, true);
 
                         Utilities.EmptyDirectory(".requestcache", true);
                         levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
@@ -223,12 +228,13 @@ namespace EnhancedTwitchChat.Chat
                     if (levels.Length > 0)
                     {
                         Plugin.Log($"Scrolling to level {levels[0].levelID}");
-                        if (!ScrollToLevel(levels[0].levelID))
+                        if (!SongListUtils.ScrollToLevel(levels[0].levelID) && !retried)
                         {
                             var tempLevels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
                             foreach (CustomLevel l in tempLevels)
                                 SongLoader.CustomLevels.Remove(l);
 
+                            retried = true;
                             goto retry;
                         }
                     }
@@ -239,87 +245,61 @@ namespace EnhancedTwitchChat.Chat
                 }
             }
         }
-
-        private static void RefreshSongBrowser()
+        
+        private void InitializeCommands()
         {
-            var _songBrowserUI = SongBrowserApplication.Instance.GetPrivateField<SongBrowserPlugin.UI.SongBrowserUI>("_songBrowserUI");
-            if (_songBrowserUI)
+            foreach (string c in Config.Instance.RequestCommandAliases.Split(','))
             {
-                _songBrowserUI.UpdateSongList();
-                _songBrowserUI.RefreshSongList();
+                Commands.Add(c, ProcessSongRequest);
+                Plugin.Log($"Added command alias \"{c}\" for song requests.");
             }
         }
 
-        private static IEnumerator RefreshSongs(bool fullRefresh = false, bool selectOldLevel = true)
+        private void ProcessSongRequest(ChatUser requestor, string request)
         {
-            if (!SongLoader.AreSongsLoaded) yield break;
+            if (!_requestTracker.ContainsKey(requestor.UserID))
+                _requestTracker.Add(requestor.UserID, new RequestUserTracker());
 
-            if (!_standardLevelListViewController) yield break;
-
-            // Grab the currently selected level id so we can restore it after refreshing
-            string selectedLevelId = _standardLevelListViewController.selectedLevel?.levelID;
-
-            // Wait until song loader is finished loading, then refresh the song list
-            while (SongLoader.AreSongsLoading) yield return null;
-            SongLoader.Instance.RefreshSongs(fullRefresh);
-            while (SongLoader.AreSongsLoading) yield return null;
-
-            // If song browser is installed, update/refresh it
-            if (Utilities.IsModInstalled("Song Browser"))
-                RefreshSongBrowser();
-
-            // Set the row index to the previously selected song
-            if (selectOldLevel)
-                ScrollToLevel(selectedLevelId);
-        }
-
-        private static bool ScrollToLevel(string levelID)
-        {
-            var table = ReflectionUtil.GetPrivateField<LevelListTableView>(_standardLevelListViewController, "_levelListTableView");
-            if (table)
+            // Only rate limit users who aren't mods or the broadcaster
+            if (!requestor.IsMod && !requestor.IsBroadcaster)
             {
-                TableView tableView = table.GetComponentInChildren<TableView>();
-                tableView.ReloadData();
-
-                var levels = CurrentLevels.Where(l => l.levelID == levelID).ToArray();
-                if (levels.Length > 0)
+                if (_requestTracker[requestor.UserID].resetTime <= DateTime.Now)
                 {
-                    Plugin.Log("Found level!");
-                    int row = table.RowNumberForLevelID(levelID);
-                    tableView.SelectRow(row, true);
-                    tableView.ScrollToRow(row, true);
-                    Plugin.Log("Success scrolling to new song!");
-                    return true;
+                    _requestTracker[requestor.UserID].resetTime = DateTime.Now.AddMinutes(Config.Instance.RequestCooldownMinutes);
+                    _requestTracker[requestor.UserID].numRequests = 0;
+                }
+                if (_requestTracker[requestor.UserID].numRequests >= Config.Instance.RequestLimit)
+                {
+                    var time = (_requestTracker[requestor.UserID].resetTime - DateTime.Now);
+                    QueueChatMessage($"{requestor.DisplayName}, you can make another request in{(time.Minutes > 0 ? $" {time.Minutes} minute{(time.Minutes > 1 ? "s" : "")}" : "")} {time.Seconds} second{(time.Seconds > 1 ? "s" : "")}.");
+                    return;
                 }
             }
-            Plugin.Log($"Failed to scroll to {levelID}!");
-            return false;
+
+            RequestInfo newRequest = new RequestInfo()
+            {
+                requestor = requestor,
+                request = request,
+                isBeatSaverId = _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request)
+            };
+
+            if (!newRequest.isBeatSaverId && request.Length < 3)
+                _instance.QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
+            else if (!UnverifiedRequestQueue.Contains(newRequest))
+                UnverifiedRequestQueue.Enqueue(newRequest);
         }
 
-        public static void Parse(string request)
+        public static void Parse(ChatUser user,  string request)
         {
             if (!_instance) return;
+            if (!request.StartsWith("!")) return;
 
-            if (request.StartsWith("!request"))
-            {
-                string[] msgParts = request.Split(new char[] { ' ' }, 2);
-                if (msgParts.Length <= 1)
-                    return;
+            string[] parts = request.Split(new char[] { ' ' }, 2);
+            if (parts.Length <= 1) return;
 
-                if (msgParts[1].Length > 0)
-                {
-                    string content = msgParts[1];
-                    RequestInfo newRequest = new RequestInfo()
-                    {
-                        request = content,
-                        isBeatSaverId = _digitRegex.IsMatch(content) || _beatSaverRegex.IsMatch(content)
-                    };
-                    if(!newRequest.isBeatSaverId && content.Length < 3)
-                        _instance.QueueChatMessage($"Request \"{content}\" is too short- Beat Saver searches must be at least 3 characters!");
-                    else if (!UnverifiedRequestQueue.Contains(newRequest))
-                        UnverifiedRequestQueue.Enqueue(newRequest);
-                }
-            }
+            string command = parts[0].Substring(1)?.ToLower();
+            if(Commands.ContainsKey(command))
+                Commands[command]?.Invoke(user, parts[1]);
         }
 
         public static void NextRequest()

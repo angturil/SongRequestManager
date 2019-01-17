@@ -183,7 +183,7 @@ namespace EnhancedTwitchChat.Chat
                             {
                                 MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMessage.Content), twitchMessage));
                                 if(Config.Instance.SongRequestBot)
-                                    RequestBot.Parse(twitchMessage.Content);
+                                    RequestBot.Parse(twitchMessage.Author, twitchMessage.Content);
                             }
                             else
                             {

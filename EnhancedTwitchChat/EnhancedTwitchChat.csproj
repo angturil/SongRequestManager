@@ -27,7 +27,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;/unsafe</DefineConstants>
+    <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -138,6 +138,7 @@
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UI\Settings.cs" />
+    <Compile Include="UI\SongListUtils.cs" />
     <Compile Include="Utilities\ObjectPool.cs" />
     <Compile Include="Utilities\ReflectionUtil.cs" />
     <Compile Include="Chat\TwitchIrcClient.cs" />
