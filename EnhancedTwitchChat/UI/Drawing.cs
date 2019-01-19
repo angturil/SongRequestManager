@@ -22,13 +22,13 @@ namespace EnhancedTwitchChat.UI
     {
         public string spriteIndex;
         public ImageType imageType;
-        //public Shadow shadow;
+        public Shadow shadow;
         protected override void Awake()
         {
             base.Awake();
 
-            //shadow = gameObject.AddComponent<Shadow>();
-            //shadow.effectDistance = new Vector2(10f, -10f);
+            shadow = gameObject.AddComponent<Shadow>();
+            shadow.effectDistance = new Vector2(10f, -10f);
         }
     }
 
@@ -138,8 +138,8 @@ namespace EnhancedTwitchChat.UI
 
         public static IEnumerator Initialize(Transform parent)
         {
-            imageSpacing = "\u200A";
-            CustomText tmpText = InitText(imageSpacing, Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.UpperLeft, false);
+            var tmpImageSpacing = "\u200A";
+            CustomText tmpText = InitText(tmpImageSpacing, Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.UpperLeft, false);
             yield return null;
             while (tmpText.preferredWidth < 5.3f)
             {
@@ -147,7 +147,7 @@ namespace EnhancedTwitchChat.UI
                 yield return null;
             }
             imageSpacingWidth = tmpText.preferredWidth;
-            Plugin.Log($"Preferred width was {tmpText.preferredWidth.ToString()} with {tmpText.text.Length.ToString()} spaces");
+            //Plugin.Log($"Preferred width was {tmpText.preferredWidth.ToString()} with {tmpText.text.Length.ToString()} spaces");
             imageSpacing = tmpText.text;
             GameObject.Destroy(tmpText.gameObject);
         }
@@ -188,7 +188,7 @@ namespace EnhancedTwitchChat.UI
                 var fitter = newGameObj.AddComponent<ContentSizeFitter>();
                 fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             }
-            //newGameObj.AddComponent<Shadow>();
+            newGameObj.AddComponent<Shadow>();
 
             CanvasScaler scaler = newGameObj.AddComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = pixelsPerUnit;
@@ -235,6 +235,7 @@ namespace EnhancedTwitchChat.UI
                         image.imageType = imageInfo.imageType;
                         image.rectTransform.pivot = new Vector2(0, 0);
                         image.sprite = cachedTextureData.sprite;
+                        image.preserveAspect = false;
                         if(image.sprite)
                             image.sprite.texture.wrapMode = TextureWrapMode.Clamp;
                         
@@ -254,25 +255,27 @@ namespace EnhancedTwitchChat.UI
                         if (animatedEmote)
                         {
                             image.material = cachedTextureData.animInfo.imageMaterial;
+                            image.shadow.enabled = false;
 
-                            //// Add a shadow to our animated image (the regular unity shadows won't work with this material)
-                            //shadow = ChatHandler.Instance.imagePool.Alloc();
-                            //shadow.material = cachedTextureData.animInfo.shadowMaterial;
-                            //shadow.sprite = null;
-                            //shadow.spriteIndex = imageInfo.textureIndex;
-                            //shadow.imageType = imageInfo.imageType;
-                            //shadow.rectTransform.pivot = new Vector2(0, 0);
-                            //shadow.rectTransform.localScale = image.rectTransform.localScale;
-                            //shadow.rectTransform.SetParent(currentMessage.rectTransform, false);
-                            //shadow.rectTransform.position = image.rectTransform.position;
-                            //shadow.rectTransform.localPosition += new Vector3(0.6f, -0.6f, 0.05f);
+                            // Add a shadow to our animated image (the regular unity shadows won't work with this material)
+                            shadow = ChatHandler.Instance.imagePool.Alloc();
+                            shadow.shadow.enabled = false;
+                            shadow.material = cachedTextureData.animInfo.shadowMaterial;
+                            shadow.sprite = null;
+                            shadow.spriteIndex = imageInfo.textureIndex;
+                            shadow.imageType = imageInfo.imageType;
+                            shadow.rectTransform.pivot = new Vector2(0, 0);
+                            shadow.rectTransform.localScale = image.rectTransform.localScale;
+                            shadow.rectTransform.SetParent(currentMessage.rectTransform, false);
+                            shadow.rectTransform.position = image.rectTransform.position;
+                            shadow.rectTransform.localPosition += new Vector3(0.6f, -0.6f, 0.05f);
 
-                            //shadow.enabled = true;
-                            //currentMessage.emoteRenderers.Add(shadow);
+                            shadow.enabled = true;
+                            currentMessage.emoteRenderers.Add(shadow);
                         }
                         else
                         {
-                            //image.shadow.enabled = true;
+                            image.shadow.enabled = true;
                             image.material = Drawing.noGlowMaterialUI;
                         }
 

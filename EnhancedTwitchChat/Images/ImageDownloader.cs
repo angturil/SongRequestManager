@@ -143,7 +143,6 @@ namespace EnhancedTwitchChat.Textures
         private ConcurrentQueue<TextureDownloadInfo> _animationDownloadQueue = new ConcurrentQueue<TextureDownloadInfo>();
         private bool _imageDownloading = false;
         private bool _animatedImageDownloading = false;
-        private int _waitForFrames = 0;
         public static ImageDownloader Instance = null;
         
         public void Awake()
@@ -165,12 +164,6 @@ namespace EnhancedTwitchChat.Textures
 
         public void FixedUpdate()
         {
-            if (_waitForFrames > 0)
-            {
-                _waitForFrames--;
-                return;
-            }
-            
             if (_imageDownloadQueue.Count > 0 && !_imageDownloading)
             {
                 // Download any images that aren't animated
@@ -233,6 +226,7 @@ namespace EnhancedTwitchChat.Textures
             bool isAnimated = imageDownloadInfo.type == ImageType.BTTV_Animated || imageDownloadInfo.type == ImageType.Cheermote;
             if (!CachedTextures.ContainsKey(imageDownloadInfo.spriteIndex))
             {
+                int _waitForFrames = 5;
                 Plugin.Log($"Downloading {imageDownloadInfo.spriteIndex}");
                 if (isAnimated)
                     Instance._animatedImageDownloading = true;
@@ -291,8 +285,15 @@ namespace EnhancedTwitchChat.Textures
                             yield return AnimationDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedImage, imageDownloadInfo);
                             if (!localPathExists)
                                 ImageSaveQueue.Enqueue(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
+
+                            _waitForFrames = 10;
+                            while (_waitForFrames > 0)
+                            {
+                                _waitForFrames--;
+                                yield return null;
+                            }
+
                             Instance._animatedImageDownloading = false;
-                            Instance._waitForFrames = 10;
                             yield break;
                         }
                         else
@@ -315,8 +316,14 @@ namespace EnhancedTwitchChat.Textures
                     yield return null;
                     ChatHandler.Instance.OverlayImage(sprite, imageDownloadInfo);
                 }
+
+                _waitForFrames = 5;
+                while (_waitForFrames > 0)
+                {
+                    _waitForFrames--;
+                    yield return null;
+                }
                 Instance._imageDownloading = false;
-                Instance._waitForFrames = 5;
             }
         }
 

@@ -32,7 +32,7 @@ namespace EnhancedTwitchChat
         public ObjectPool<CustomImage> imagePool;
 
         private Canvas _twitchChatCanvas = null;
-        private List<CustomText> _chatMessages = new List<CustomText>();
+        private Queue<CustomText> _chatMessages = new Queue<CustomText>();
         private Transform _chatMoverCube;
         private Transform _lockButtonSphere;
         private float _currentBackgroundHeight;
@@ -220,11 +220,11 @@ namespace EnhancedTwitchChat
         private void InitializeChatUI()
         {
             // Precache a pool of images objects that will be used for displaying emotes/badges later on
-            imagePool = new ObjectPool<CustomImage>(Config.Instance.MaxChatLines * 2,
+            imagePool = new ObjectPool<CustomImage>(0,
                 // OnAlloc
                 ((CustomImage image) =>
                 {
-                    //image.shadow.enabled = false;
+                    image.shadow.enabled = false;
                 }),
                 // OnFree
                 ((CustomImage image) =>
@@ -277,11 +277,8 @@ namespace EnhancedTwitchChat
             _lockButtonSphere.localScale = new Vector3(0.15f * Config.Instance.ChatScale, 0.15f * Config.Instance.ChatScale, 0.001f);
 
             while (_chatMessages.Count < Config.Instance.MaxChatLines)
-            {
-                var currentMessage = Drawing.InitText("", Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), gameObject.transform, TextAnchor.UpperLeft, false);
-                if (!Config.Instance.ReverseChatOrder) _chatMessages.Add(currentMessage);
-                else _chatMessages.Insert(0, currentMessage);
-            }
+                _chatMessages.Enqueue(Drawing.InitText("", Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), gameObject.transform, TextAnchor.UpperLeft, false));
+
             var go = new GameObject();
             DontDestroyOnLoad(go);
             _testMessage = Drawing.InitText("", Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), go.transform, TextAnchor.UpperLeft, true);
@@ -299,31 +296,22 @@ namespace EnhancedTwitchChat
 
             for(int i=0; i<_testMessage.cachedTextGenerator.lineCount; i++)
             {
-                msg = _testMessage.text.Substring(_testMessage.cachedTextGenerator.lines[i].startCharIdx);
-                if(i < _testMessage.cachedTextGenerator.lineCount-1)
-                    msg = msg.Substring(0, _testMessage.cachedTextGenerator.lines[i + 1].startCharIdx - _testMessage.cachedTextGenerator.lines[i].startCharIdx);
+                int index = Config.Instance.ReverseChatOrder ? _testMessage.cachedTextGenerator.lineCount - 1 - i : i;
+                msg = _testMessage.text.Substring(_testMessage.cachedTextGenerator.lines[index].startCharIdx);
+                if(index < _testMessage.cachedTextGenerator.lineCount-1)
+                    msg = msg.Substring(0, _testMessage.cachedTextGenerator.lines[index + 1].startCharIdx - _testMessage.cachedTextGenerator.lines[index].startCharIdx);
                 
                 // Italicize action messages and make the whole message the color of the users name
                 if (messageInfo.isActionMessage)
                     msg = $"<i><color={messageInfo.twitchMessage.Author.Color}>{msg}</color></i>";
 
-                if (!Config.Instance.ReverseChatOrder)
-                {
-                    currentMessage = _chatMessages.First();
-                    _chatMessages.RemoveAt(0);
-                    _chatMessages.Add(currentMessage);
-                }
-                else
-                {
-                    currentMessage = _chatMessages.Last();
-                    _chatMessages.Remove(currentMessage);
-                    _chatMessages.Insert(0, currentMessage);
-                }
+                currentMessage = _chatMessages.Dequeue();
                 currentMessage.hasRendered = false;
                 currentMessage.text = msg;
                 currentMessage.messageInfo = messageInfo;
                 currentMessage.material = Drawing.noGlowMaterialUI;
                 currentMessage.color = Config.Instance.TextColor;
+                _chatMessages.Enqueue(currentMessage);
 
                 FreeImages(currentMessage);
                 UpdateChatUI();
@@ -484,12 +472,14 @@ namespace EnhancedTwitchChat
                 float currentYValue = 0;
 
                 float initialYValue = currentYValue;
-                for (int i = 0; i < _chatMessages.Count(); i++)
+                var _tmpArray = _chatMessages.ToArray();
+                for (int i = 0; i < _tmpArray.Length; i++)
                 {
-                    if (_chatMessages[i].text != "")
+                    int index = Config.Instance.ReverseChatOrder ? _tmpArray.Length - 1 - i : i;
+                    if (_tmpArray[index].text != "")
                     {
-                        _chatMessages[i].transform.localPosition = new Vector3(-Config.Instance.ChatWidth / 2, currentYValue, 0);
-                        currentYValue -= (_chatMessages[i].preferredHeight + (i < _chatMessages.Count() - 1 ? Config.Instance.MessageSpacing + 1.5f : 0));
+                        _tmpArray[index].transform.localPosition = new Vector3(-Config.Instance.ChatWidth / 2, currentYValue, 0);
+                        currentYValue -= (_tmpArray[index].preferredHeight + (i < _chatMessages.Count() - 1 ? Config.Instance.MessageSpacing + 1.5f : 0));
                     }
                 }
                 _currentBackgroundHeight = (initialYValue - currentYValue) + Config.Instance.BackgroundPadding * 2;
