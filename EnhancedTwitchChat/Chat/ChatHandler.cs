@@ -61,7 +61,7 @@ namespace EnhancedTwitchChat
             DontDestroyOnLoad(gameObject);
             
             // Startup the texture downloader and anim controller
-            new GameObject("EnhancedTwitchChatTextureDownloader").AddComponent<TextureDownloader>();
+            new GameObject("EnhancedTwitchChatTextureDownloader").AddComponent<ImageDownloader>();
             new GameObject("EnhancedTwitchChatAnimationController").AddComponent<AnimationController>();
 
             // Initialize the chats UI
@@ -143,7 +143,7 @@ namespace EnhancedTwitchChat
                     string msg;
                     if (TwitchConnection.IsConnected)
                     {
-                        TextureDownloader.Instance.Init();
+                        ImageDownloader.Instance.Init();
 
                         if (TwitchIRCClient.CurrentChannel == String.Empty)
                             msg = $"Welcome to Enhanced Twitch Chat! To continue, enter your Twitch channel name in <i>UserData\\EnhancedTwitchChat.ini</i>, which is located in your Beat Saber directory.";
@@ -191,7 +191,7 @@ namespace EnhancedTwitchChat
                 }
 
                 // Save images to file when we're at the main menu
-                else if (Plugin.Instance.IsAtMainMenu && TextureDownloader.ImageSaveQueue.Count > 0 && TextureDownloader.ImageSaveQueue.TryDequeue(out var saveInfo))
+                else if (Plugin.Instance.IsAtMainMenu && ImageDownloader.ImageSaveQueue.Count > 0 && ImageDownloader.ImageSaveQueue.TryDequeue(out var saveInfo))
                     File.WriteAllBytes(saveInfo.path,  saveInfo.data);
             }
         }
@@ -224,18 +224,12 @@ namespace EnhancedTwitchChat
                 // OnAlloc
                 ((CustomImage image) =>
                 {
-                    image.material = Drawing.noGlowMaterialUI;
+                    //image.shadow.enabled = false;
                 }),
                 // OnFree
                 ((CustomImage image) =>
                 {
-                    image.texture = null;
-                    image.uvRect = image.origUV;
-                    if (image.textureAnimator.enabled)
-                    {
-                        image.textureAnimator.CancelInvoke();
-                        image.textureAnimator.enabled = false;
-                    }
+                    image.material = null;
                     image.enabled = false;
                 })
             );
@@ -351,27 +345,27 @@ namespace EnhancedTwitchChat
             _messageRendering = false;
         }
 
-        public void OverlayImage(Texture2D texture, TextureDownloadInfo imageDownloadInfo)
+        public void OverlayImage(Sprite sprite, TextureDownloadInfo imageDownloadInfo)
         {
             try
             {
-                string textureIndex = imageDownloadInfo.textureIndex;
+                string spriteIndex = imageDownloadInfo.spriteIndex;
                 string messageIndex = imageDownloadInfo.messageIndex;
                 foreach (CustomText currentMessage in _chatMessages)
                 {
                     if (currentMessage.messageInfo == null || !currentMessage.hasRendered) continue;
 
-                    if (!textureIndex.StartsWith("AB"))
+                    if (!spriteIndex.StartsWith("AB"))
                     {
                         foreach (EmoteInfo e in currentMessage.messageInfo.parsedEmotes)
                         {
-                            if (e.textureIndex == textureIndex)
+                            if (e.textureIndex == spriteIndex)
                                 Drawing.OverlayImage(currentMessage, e);
                         }
 
                         foreach (BadgeInfo b in currentMessage.messageInfo.parsedBadges)
                         {
-                            if (b.textureIndex == textureIndex)
+                            if (b.textureIndex == spriteIndex)
                                 Drawing.OverlayImage(currentMessage, b);
                         }
                     }
@@ -387,12 +381,12 @@ namespace EnhancedTwitchChat
         {
             try
             {
-                string textureIndex = imageDownloadInfo.textureIndex;
+                string spriteIndex = imageDownloadInfo.spriteIndex;
                 string messageIndex = imageDownloadInfo.messageIndex;
-                if (TextureDownloader.CachedTextures.ContainsKey(textureIndex))
+                if (ImageDownloader.CachedTextures.ContainsKey(spriteIndex))
                 {
                     // If the animated image already exists, check if its only a single frame and replace it with the full animation if so
-                    var animationInfo = TextureDownloader.CachedTextures[textureIndex]?.animInfo;
+                    var animationInfo = ImageDownloader.CachedTextures[spriteIndex]?.animInfo;
                     if (animationInfo != null && animationInfo.uvs.Length == 1)
                     {
                         foreach (CustomText currentMessage in _chatMessages)
@@ -400,7 +394,7 @@ namespace EnhancedTwitchChat
                             for (int i = currentMessage.emoteRenderers.Count - 1; i >= 0; i--)
                             {
                                 CustomImage img = currentMessage.emoteRenderers[i];
-                                if (img.textureIndex == textureIndex)
+                                if (img.spriteIndex == spriteIndex)
                                 {
                                     imagePool.Free(img);
                                     currentMessage.emoteRenderers.RemoveAt(i);
@@ -411,8 +405,20 @@ namespace EnhancedTwitchChat
                 }
 
                 // Setup our CachedTextureData and CachedAnimationData, registering the animation if there is more than one uv in the array
-                TextureDownloader.CachedTextures[textureIndex] = new CachedTextureData(texture, uvs[0].width, uvs[0].height);
-                TextureDownloader.CachedTextures[textureIndex].animInfo = new CachedAnimationData(uvs.Length > 1 ? AnimationController.Instance.Register(textureIndex, uvs.Length, delay) : 0, uvs, delay);
+                ImageDownloader.CachedTextures[spriteIndex] = new CachedSpriteData(null, uvs[0].width, uvs[0].height);
+                ImageDownloader.CachedTextures[spriteIndex].animInfo = new CachedAnimationData(uvs.Length > 1 ? AnimationController.Instance.Register(spriteIndex, uvs, delay) : 0, texture, uvs, delay);
+
+                var _shadowMaterial = Instantiate(Drawing.CropMaterialColorMultiply);
+                _shadowMaterial.mainTexture = texture;
+                _shadowMaterial.SetVector("_CropFactors", new Vector4(uvs[0].x, uvs[0].y, uvs[0].width, uvs[0].height));
+                _shadowMaterial.SetColor("_Color", Color.black.ColorWithAlpha(0.2f));
+                _shadowMaterial.renderQueue = 3001;
+                ImageDownloader.CachedTextures[spriteIndex].animInfo.shadowMaterial = _shadowMaterial;
+
+                var _animMaterial = Instantiate(Drawing.CropMaterial);
+                _animMaterial.mainTexture = texture;
+                _animMaterial.SetVector("_CropFactors", new Vector4(uvs[0].x, uvs[0].y, uvs[0].width, uvs[0].height));
+                ImageDownloader.CachedTextures[spriteIndex].animInfo.imageMaterial = _animMaterial;
 
                 foreach (CustomText currentMessage in _chatMessages)
                 {
@@ -420,7 +426,7 @@ namespace EnhancedTwitchChat
                     
                     foreach (EmoteInfo e in currentMessage.messageInfo.parsedEmotes)
                     {
-                        if (e.textureIndex == textureIndex)
+                        if (e.textureIndex == spriteIndex)
                             Drawing.OverlayImage(currentMessage, e);
                     }
                 }
@@ -488,7 +494,7 @@ namespace EnhancedTwitchChat
                 }
                 _currentBackgroundHeight = (initialYValue - currentYValue) + Config.Instance.BackgroundPadding * 2;
                 background.rectTransform.sizeDelta = new Vector2(Config.Instance.ChatWidth + Config.Instance.BackgroundPadding * 2, _currentBackgroundHeight);
-                background.rectTransform.position = _twitchChatCanvas.transform.TransformPoint(new Vector3(-Config.Instance.ChatWidth / 2 - Config.Instance.BackgroundPadding, (initialYValue - _currentBackgroundHeight + Config.Instance.BackgroundPadding), 0));
+                background.rectTransform.position = _twitchChatCanvas.transform.TransformPoint(new Vector3(-Config.Instance.ChatWidth / 2 - Config.Instance.BackgroundPadding, (initialYValue - _currentBackgroundHeight + Config.Instance.BackgroundPadding), 0.1f));
             }
         }
 

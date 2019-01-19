@@ -21,27 +21,31 @@ namespace EnhancedTwitchChat.Textures
     public class CachedAnimationData
     {
         public int index = -1;
-        public Rect[] uvs = null;
         public float delay = -1f;
+        public Material imageMaterial;
+        public Material shadowMaterial;
+        public Texture2D textureAtlas;
+        public Rect[] uvs = null;
 
-        public CachedAnimationData(int index, Rect[] uvs, float delay)
+        public CachedAnimationData(int index, Texture2D textureAtlas, Rect[] uvs, float delay)
         {
             this.index = index;
+            this.textureAtlas = textureAtlas;
             this.uvs = uvs;
             this.delay = delay;
         }
     }
 
-    public class CachedTextureData
+    public class CachedSpriteData
     {
-        public Texture2D texture = null;
+        public Sprite sprite = null;
         public CachedAnimationData animInfo = null;
         public float width;
         public float height;
 
-        public CachedTextureData(Texture2D texture, float width, float height)
+        public CachedSpriteData(Sprite sprite, float width, float height)
         {
-            this.texture = texture;
+            this.sprite = sprite;
             this.width = width;
             this.height = height;
         }
@@ -71,12 +75,12 @@ namespace EnhancedTwitchChat.Textures
 
     public class TextureDownloadInfo
     {
-        public string textureIndex;
+        public string spriteIndex;
         public ImageType type;
         public string messageIndex;
         public TextureDownloadInfo(string index, ImageType type, string messageIndex)
         {
-            this.textureIndex = index;
+            this.spriteIndex = index;
             this.type = type;
             this.messageIndex = messageIndex;
         }
@@ -125,7 +129,7 @@ namespace EnhancedTwitchChat.Textures
         }
     }
     
-    public class TextureDownloader : MonoBehaviour
+    public class ImageDownloader : MonoBehaviour
     {
         public static ConcurrentDictionary<string, string> BTTVEmoteIDs = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<string, string> FFZEmoteIDs = new ConcurrentDictionary<string, string>();
@@ -133,14 +137,14 @@ namespace EnhancedTwitchChat.Textures
         public static ConcurrentDictionary<string, string> BTTVAnimatedEmoteIDs = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<string, Cheermote> TwitchCheermoteIDs = new ConcurrentDictionary<string, Cheermote>();
 
-        public static ConcurrentDictionary<string, CachedTextureData> CachedTextures = new ConcurrentDictionary<string, CachedTextureData>();
+        public static ConcurrentDictionary<string, CachedSpriteData> CachedTextures = new ConcurrentDictionary<string, CachedSpriteData>();
         public static ConcurrentQueue<TextureSaveInfo> ImageSaveQueue = new ConcurrentQueue<TextureSaveInfo>();
         private ConcurrentQueue<TextureDownloadInfo> _imageDownloadQueue = new ConcurrentQueue<TextureDownloadInfo>();
         private ConcurrentQueue<TextureDownloadInfo> _animationDownloadQueue = new ConcurrentQueue<TextureDownloadInfo>();
         private bool _imageDownloading = false;
         private bool _animatedImageDownloading = false;
         private int _waitForFrames = 0;
-        public static TextureDownloader Instance = null;
+        public static ImageDownloader Instance = null;
         
         public void Awake()
         {
@@ -175,16 +179,16 @@ namespace EnhancedTwitchChat.Textures
                     switch (imageDownloadInfo.type)
                     {
                         case ImageType.Twitch:
-                            StartCoroutine(Download($"https://static-cdn.jtvnw.net/emoticons/v1/{imageDownloadInfo.textureIndex.Substring(1)}/3.0", imageDownloadInfo));
+                            StartCoroutine(Download($"https://static-cdn.jtvnw.net/emoticons/v1/{imageDownloadInfo.spriteIndex.Substring(1)}/3.0", imageDownloadInfo));
                             break;
                         case ImageType.BTTV:
-                            StartCoroutine(Download($"https://cdn.betterttv.net/emote/{imageDownloadInfo.textureIndex.Substring(1)}/3x", imageDownloadInfo));
+                            StartCoroutine(Download($"https://cdn.betterttv.net/emote/{imageDownloadInfo.spriteIndex.Substring(1)}/3x", imageDownloadInfo));
                             break;
                         case ImageType.FFZ:
-                            StartCoroutine(Download($"https://cdn.frankerfacez.com/{imageDownloadInfo.textureIndex.Substring(1)}", imageDownloadInfo));
+                            StartCoroutine(Download($"https://cdn.frankerfacez.com/{imageDownloadInfo.spriteIndex.Substring(1)}", imageDownloadInfo));
                             break;
                         case ImageType.Badge:
-                            StartCoroutine(Download($"https://static-cdn.jtvnw.net/badges/v1/{imageDownloadInfo.textureIndex}/3", imageDownloadInfo));
+                            StartCoroutine(Download($"https://static-cdn.jtvnw.net/badges/v1/{imageDownloadInfo.spriteIndex}/3", imageDownloadInfo));
                             break;
                         case ImageType.Emoji:
                             StartCoroutine(Download(string.Empty, imageDownloadInfo));
@@ -203,10 +207,10 @@ namespace EnhancedTwitchChat.Textures
                     switch (imageDownloadInfo.type)
                     {
                         case ImageType.BTTV_Animated:
-                            StartCoroutine(Download($"https://cdn.betterttv.net/emote/{imageDownloadInfo.textureIndex.Substring(2)}/3x", imageDownloadInfo));
+                            StartCoroutine(Download($"https://cdn.betterttv.net/emote/{imageDownloadInfo.spriteIndex.Substring(2)}/3x", imageDownloadInfo));
                             break;
                         case ImageType.Cheermote:
-                            Match match = Utilities.cheermoteRegex.Match(imageDownloadInfo.textureIndex);
+                            Match match = Utilities.cheermoteRegex.Match(imageDownloadInfo.spriteIndex);
                             StartCoroutine(Download($"https://d3aqoihi2n8ty8.cloudfront.net/actions/{(match.Groups["Prefix"].Value)}/dark/animated/{(match.Groups["Value"].Value)}/4.gif", imageDownloadInfo));
                             break;
                         default:
@@ -227,15 +231,15 @@ namespace EnhancedTwitchChat.Textures
         public static IEnumerator Download(string imagePath, TextureDownloadInfo imageDownloadInfo, bool isRetry = false)
         {
             bool isAnimated = imageDownloadInfo.type == ImageType.BTTV_Animated || imageDownloadInfo.type == ImageType.Cheermote;
-            if (!CachedTextures.ContainsKey(imageDownloadInfo.textureIndex))
+            if (!CachedTextures.ContainsKey(imageDownloadInfo.spriteIndex))
             {
-                Plugin.Log($"Downloading {imageDownloadInfo.textureIndex}");
+                Plugin.Log($"Downloading {imageDownloadInfo.spriteIndex}");
                 if (isAnimated)
                     Instance._animatedImageDownloading = true;
                 else
                     Instance._imageDownloading = true;
                 
-                Texture2D texture = null;
+                Sprite sprite = null;
                 if (imageDownloadInfo.type != ImageType.Emoji)
                 {
                     string origImagePath = imagePath;
@@ -260,7 +264,7 @@ namespace EnhancedTwitchChat.Textures
                         Directory.CreateDirectory(typePath);
 
                     bool localPathExists = false;
-                    string localFilePath = $"{typePath}\\{imageDownloadInfo.textureIndex}";
+                    string localFilePath = $"{typePath}\\{imageDownloadInfo.spriteIndex}";
 
                     if (File.Exists(localFilePath))
                     {
@@ -273,8 +277,8 @@ namespace EnhancedTwitchChat.Textures
                         yield return web.SendWebRequest();
                         if (web.isNetworkError || web.isHttpError)
                         {
-                            Plugin.Log($"An error occured when requesting emote {imageDownloadInfo.textureIndex}, Message: \"{web.error}\"");
-                            CachedTextures.TryAdd(imageDownloadInfo.textureIndex, null);
+                            Plugin.Log($"An error occured when requesting emote {imageDownloadInfo.spriteIndex}, Message: \"{web.error}\"");
+                            CachedTextures.TryAdd(imageDownloadInfo.spriteIndex, null);
                             if (isAnimated)
                                 Instance._animatedImageDownloading = false;
                             else
@@ -283,17 +287,18 @@ namespace EnhancedTwitchChat.Textures
                         }
                         else if (isAnimated)
                         {
-                            CachedTextures.TryAdd(imageDownloadInfo.textureIndex, null);
+                            CachedTextures.TryAdd(imageDownloadInfo.spriteIndex, null);
                             yield return AnimationDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedImage, imageDownloadInfo);
                             if (!localPathExists)
                                 ImageSaveQueue.Enqueue(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
                             Instance._animatedImageDownloading = false;
+                            Instance._waitForFrames = 10;
                             yield break;
                         }
                         else
                         {
-                            texture = DownloadHandlerTexture.GetContent(web);
-                            if (texture)
+                            sprite = UIUtilities.LoadSpriteFromTexture(DownloadHandlerTexture.GetContent(web));
+                            if (sprite)
                             {
                                 if (!localPathExists)
                                     ImageSaveQueue.Enqueue(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
@@ -302,15 +307,16 @@ namespace EnhancedTwitchChat.Textures
                     }
                 }
                 else
-                    texture = UIUtilities.LoadTextureFromResources($"EnhancedTwitchChat.Resources.Emojis.{imageDownloadInfo.textureIndex.ToLower()}");
+                    sprite = UIUtilities.LoadSpriteFromResources($"EnhancedTwitchChat.Resources.Emojis.{imageDownloadInfo.spriteIndex.ToLower()}");
 
-                if (texture)
+                if (sprite)
                 {
-                    CachedTextures.TryAdd(imageDownloadInfo.textureIndex, new CachedTextureData(texture, texture.width, texture.height));
+                    CachedTextures.TryAdd(imageDownloadInfo.spriteIndex, new CachedSpriteData(sprite, sprite.texture.width, sprite.texture.height));
                     yield return null;
-                    ChatHandler.Instance.OverlayImage(texture, imageDownloadInfo);
+                    ChatHandler.Instance.OverlayImage(sprite, imageDownloadInfo);
                 }
                 Instance._imageDownloading = false;
+                Instance._waitForFrames = 5;
             }
         }
 
@@ -492,7 +498,7 @@ namespace EnhancedTwitchChat.Textures
                             if (o["imageType"] != "gif")
                                 BTTVEmoteIDs.TryAdd(o["code"], o["id"]);
                             else
-                                TextureDownloader.BTTVAnimatedEmoteIDs.TryAdd(o["code"], o["id"]);
+                                ImageDownloader.BTTVAnimatedEmoteIDs.TryAdd(o["code"], o["id"]);
                             emotesCached++;
                         }
                     }
@@ -523,7 +529,7 @@ namespace EnhancedTwitchChat.Textures
                         if (o["imageType"] != "gif")
                             BTTVEmoteIDs.TryAdd(o["code"], o["id"]);
                         else
-                            TextureDownloader.BTTVAnimatedEmoteIDs.TryAdd(o["code"], o["id"]);
+                            ImageDownloader.BTTVAnimatedEmoteIDs.TryAdd(o["code"], o["id"]);
                         emotesCached++;
                     }
                 }

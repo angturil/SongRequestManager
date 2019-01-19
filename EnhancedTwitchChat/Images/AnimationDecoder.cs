@@ -34,22 +34,53 @@ namespace EnhancedTwitchChat.Textures
             }
         };
 
+        private static int GetTextureSize(GifInfo frameInfo, int i)
+        {
+            int testNum = 2;
+        retry:
+            int numFrames = frameInfo.frameCount;
+            // Make sure the number of frames is cleanly divisible by our testNum
+            if (!(numFrames % testNum != 0))
+                numFrames += numFrames % testNum;
+
+            int numFramesInRow = numFrames / testNum;
+            int numFramesInColumn = numFrames / numFramesInRow;
+
+            if (numFramesInRow > numFramesInColumn)
+            {
+                testNum += 2;
+                goto retry;
+            }
+
+            var textureWidth = Mathf.Clamp(numFramesInRow * frameInfo.frames[i].frame.Width, 0, 2048);
+            var textureHeight = Mathf.Clamp(numFramesInColumn * frameInfo.frames[i].frame.Height, 0, 2048);
+            return Mathf.Max(textureWidth, textureHeight);
+        }
+
         public static IEnumerator Process(byte[] gifData, Action<Texture2D, Rect[], float, TextureDownloadInfo> callback, TextureDownloadInfo imageDownloadInfo)
         {
-            Plugin.Log($"Started decoding gif {imageDownloadInfo.textureIndex}");
+            Plugin.Log($"Started decoding gif {imageDownloadInfo.spriteIndex}");
 
             List<Texture2D> texList = new List<Texture2D>();
             GifInfo frameInfo = new GifInfo();
             DateTime startTime = DateTime.Now;
             Task.Run(() => ProcessingThread(gifData, ref frameInfo));
-            Texture2D texture = new Texture2D(2048, 2048);
             yield return new WaitUntil(() => { return frameInfo.initialized; });
 
+
+            int textureSize = 2048;
+            Texture2D texture = null;
             float delay = -1f;
             for (int i = 0; i < frameInfo.frameCount; i++)
             {
                 yield return new WaitUntil(() => { return frameInfo.frames.Count > i; });
                 //Plugin.Log($"Frame {i} is ready for processing! Frame is {frameInfo.frames[i].frame.Width}x{frameInfo.frames[i].frame.Height}");
+
+                if(texture == null)
+                {
+                    textureSize = GetTextureSize(frameInfo, i);
+                    texture = new Texture2D(textureSize, textureSize);
+                }
 
                 FrameInfo currentFrameInfo = frameInfo.frames[i];
                 if (delay == -1f)
@@ -84,13 +115,14 @@ namespace EnhancedTwitchChat.Textures
                 
                 // Instant callback after we decode the first frame in order to display a still image until the animated one is finished loading
                 if (i == 0)
-                    callback?.Invoke(frameTexture, texture.PackTextures(new Texture2D[] { frameTexture }, 2, 2048, true), delay, imageDownloadInfo);
+                   callback?.Invoke(frameTexture, texture.PackTextures(new Texture2D[] { frameTexture }, 2, textureSize, true), delay, imageDownloadInfo);
             }
-            Rect[] atlas = texture.PackTextures(texList.ToArray(), 2, 2048, true);
+            Rect[] atlas = texture.PackTextures(texList.ToArray(), 2, textureSize, true);
+
             yield return null;
 
             callback?.Invoke(texture, atlas, delay, imageDownloadInfo);
-            Plugin.Log($"Finished decoding gif {imageDownloadInfo.textureIndex}! Elapsed time: {(DateTime.Now - startTime).TotalSeconds} seconds.");
+            Plugin.Log($"Finished decoding gif {imageDownloadInfo.spriteIndex}! Elapsed time: {(DateTime.Now - startTime).TotalSeconds} seconds.");
         }
 
         private static void ProcessingThread(byte[] gifData, ref GifInfo frameInfo)

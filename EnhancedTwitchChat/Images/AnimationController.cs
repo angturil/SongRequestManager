@@ -14,15 +14,15 @@ namespace EnhancedTwitchChat.Textures
     class AnimControllerData
     {
         public string textureIndex;
-        public int animCount = 0;
         public float delay = 10;
         public int uvIndex = 0;
         public DateTime lastSwitch = DateTime.Now;
-        public AnimControllerData(string textureIndex, int animCount, float delay)
+        public Rect[] uvs;
+        public AnimControllerData(string textureIndex, Rect[] uvs, float delay)
         {
             this.textureIndex = textureIndex;
-            this.animCount = animCount;
             this.delay = delay;
+            this.uvs = uvs;
         }
     };
 
@@ -39,9 +39,9 @@ namespace EnhancedTwitchChat.Textures
             else Destroy(this);
         }
 
-        public int Register(string textureIndex, int animCount, float delay)
+        public int Register(string textureIndex, Rect[] uvs, float delay)
         {
-            AnimControllerData newAnim = new AnimControllerData(textureIndex, animCount, delay);
+            AnimControllerData newAnim = new AnimControllerData(textureIndex, uvs, delay);
             registeredAnimations.Add(newAnim);
             return registeredAnimations.IndexOf(newAnim);
         }
@@ -56,9 +56,13 @@ namespace EnhancedTwitchChat.Textures
                 {
                     animation.lastSwitch = DateTime.Now;
                     animation.uvIndex++;
-
-                    if (animation.uvIndex >= animation.animCount)
+                    
+                    if (animation.uvIndex >= animation.uvs.Length)
                         animation.uvIndex = 0;
+
+                    Rect uv = animation.uvs[animation.uvIndex];
+                    ImageDownloader.CachedTextures[animation.textureIndex].animInfo.shadowMaterial?.SetVector("_CropFactors", new Vector4(uv.x, uv.y, uv.width, uv.height));
+                    ImageDownloader.CachedTextures[animation.textureIndex].animInfo.imageMaterial?.SetVector("_CropFactors", new Vector4(uv.x, uv.y, uv.width, uv.height));
                 }
             }
         }

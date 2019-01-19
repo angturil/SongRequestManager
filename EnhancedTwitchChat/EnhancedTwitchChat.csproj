@@ -128,11 +128,10 @@
     <Compile Include="Config.cs" />
     <Compile Include="Chat\ChatMover.cs" />
     <Compile Include="Chat\LockToggle.cs" />
-    <Compile Include="Textures\TextureAnimator.cs" />
-    <Compile Include="Textures\AnimationController.cs" />
-    <Compile Include="Textures\TextureDownloader.cs" />
+    <Compile Include="Images\AnimationController.cs" />
+    <Compile Include="Images\ImageDownloader.cs" />
     <Compile Include="Chat\MessageParser.cs" />
-    <Compile Include="Textures\AnimationDecoder.cs" />
+    <Compile Include="Images\AnimationDecoder.cs" />
     <Compile Include="Chat\ChatHandler.cs" />
     <Compile Include="UI\Drawing.cs" />
     <Compile Include="Plugin.cs" />
@@ -2837,6 +2836,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources\Emojis\5527c58c-fb7d-422d-b71b-f309dcb85cc1" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Assets" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

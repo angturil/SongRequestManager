@@ -13,26 +13,22 @@ using AsyncTwitch;
 using System.Collections;
 using static POCs.Sanjay.SharpSnippets.Drawing.ColorExtensions;
 using Random = System.Random;
+using CustomUI.Utilities;
+using System.Reflection;
 
 namespace EnhancedTwitchChat.UI
 {
-    public class CustomImage : RawImage
+    public class CustomImage : Image
     {
-        public string textureIndex;
+        public string spriteIndex;
         public ImageType imageType;
-        public Rect origUV;
-        public TextureAnimator textureAnimator;
-
-        private Shadow _shadow;
-
+        //public Shadow shadow;
         protected override void Awake()
         {
             base.Awake();
 
-            textureAnimator = gameObject.AddComponent<TextureAnimator>();
-            textureAnimator.enabled = false;
-            _shadow = gameObject.AddComponent<Shadow>();
-            origUV = uvRect;
+            //shadow = gameObject.AddComponent<Shadow>();
+            //shadow.effectDistance = new Vector2(10f, -10f);
         }
     }
 
@@ -96,6 +92,50 @@ namespace EnhancedTwitchChat.UI
             }
         }
 
+        private static AssetBundle _assets = null;
+        private static AssetBundle Assets
+        {
+            get
+            {
+                if(!_assets)
+                    _assets = AssetBundle.LoadFromMemory(UIUtilities.GetResource(Assembly.GetExecutingAssembly(), "EnhancedTwitchChat.Resources.Assets"));
+                return _assets;
+            }
+        }
+
+        private static Material _testMaterial = null;
+        public static Material TestMaterial
+        {
+            get
+            {
+                if (!_testMaterial)
+                    _testMaterial = new Material(Assets.LoadAsset<Shader>("TestShader"));
+                return _testMaterial;
+            }
+        }
+
+        private static Material _cropMaterial = null;
+        public static Material CropMaterial
+        {
+            get
+            {
+                if (!_cropMaterial)
+                    _cropMaterial = new Material(Assets.LoadAsset<Shader>("Crop"));
+                return _cropMaterial;
+            }
+        }
+
+        private static Material _cropMaterialColorMultiply = null;
+        public static Material CropMaterialColorMultiply
+        {
+            get
+            {
+                if (!_cropMaterialColorMultiply)
+                    _cropMaterialColorMultiply = new Material(Assets.LoadAsset<Shader>("CropColourMultiply"));
+                return _cropMaterialColorMultiply;
+            }
+        }
+
         public static IEnumerator Initialize(Transform parent)
         {
             imageSpacing = "\u200A";
@@ -148,7 +188,7 @@ namespace EnhancedTwitchChat.UI
                 var fitter = newGameObj.AddComponent<ContentSizeFitter>();
                 fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             }
-            newGameObj.AddComponent<Shadow>();
+            //newGameObj.AddComponent<Shadow>();
 
             CanvasScaler scaler = newGameObj.AddComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = pixelsPerUnit;
@@ -165,6 +205,7 @@ namespace EnhancedTwitchChat.UI
             tmpText.alignment = textAlign;
             tmpText.horizontalOverflow = HorizontalWrapMode.Wrap;
             tmpText.color = textColor;
+            tmpText.material.renderQueue = 3001;
             //tmpText.resizeTextForBestFit = true;
 
             if (mat)
@@ -175,34 +216,28 @@ namespace EnhancedTwitchChat.UI
         
         public static void OverlayImage(CustomText currentMessage, ImageInfo imageInfo)
         {
-            CachedTextureData cachedTextureData = TextureDownloader.CachedTextures.ContainsKey(imageInfo.textureIndex) ? TextureDownloader.CachedTextures[imageInfo.textureIndex] : null;
+            CachedSpriteData cachedTextureData = ImageDownloader.CachedTextures.ContainsKey(imageInfo.textureIndex) ? ImageDownloader.CachedTextures[imageInfo.textureIndex] : null;
 
             // If cachedTextureData is null, the emote will be overlayed at a later time once it's finished being cached
-            if (cachedTextureData == null || (cachedTextureData.texture == null && cachedTextureData.animInfo == null))
+            if (cachedTextureData == null || (cachedTextureData.sprite == null && cachedTextureData.animInfo == null))
                 return;
 
             bool animatedEmote = cachedTextureData.animInfo != null;
             foreach (int i in Utilities.IndexOfAll(currentMessage.text, Char.ConvertFromUtf32(imageInfo.swapChar)))
             {
-                CustomImage image = null;
+                CustomImage image = null, shadow = null;
                 try
                 {
                     if (i > 0 && i < currentMessage.text.Count())
                     {
                         image = ChatHandler.Instance.imagePool.Alloc();
-                        image.textureIndex = imageInfo.textureIndex;
+                        image.spriteIndex = imageInfo.textureIndex;
                         image.imageType = imageInfo.imageType;
-                        
                         image.rectTransform.pivot = new Vector2(0, 0);
-                        image.texture = cachedTextureData.texture;
-                        image.texture.wrapMode = TextureWrapMode.Clamp;
-
-                        if (animatedEmote)
-                        {
-                            image.textureAnimator.Init(imageInfo.textureIndex, image, cachedTextureData);
-                            image.textureAnimator.enabled = true;
-                        }
-
+                        image.sprite = cachedTextureData.sprite;
+                        if(image.sprite)
+                            image.sprite.texture.wrapMode = TextureWrapMode.Clamp;
+                        
                         image.rectTransform.SetParent(currentMessage.rectTransform, false);
 
                         float aspectRatio = cachedTextureData.width / cachedTextureData.height;
@@ -213,9 +248,35 @@ namespace EnhancedTwitchChat.UI
 
                         TextGenerator textGen = currentMessage.cachedTextGenerator;
                         Vector3 pos = new Vector3(textGen.verts[i * 4 + 3].position.x, textGen.verts[i * 4 + 3].position.y);
-                        image.rectTransform.position = currentMessage.gameObject.transform.TransformPoint(pos / pixelsPerUnit - new Vector3(cachedTextureData.width / pixelsPerUnit + 2.5f, cachedTextureData.height / pixelsPerUnit + 1f));
+                        image.rectTransform.position = currentMessage.gameObject.transform.TransformPoint(pos / pixelsPerUnit - new Vector3(cachedTextureData.width / pixelsPerUnit + 2.5f, cachedTextureData.height / pixelsPerUnit + 1f) + new Vector3(0,0,-0.1f));
                         image.rectTransform.localPosition -= new Vector3(imageSpacingWidth/2.3f, 0);
-                        image.color = Config.Instance.TextColor;
+
+                        if (animatedEmote)
+                        {
+                            image.material = cachedTextureData.animInfo.imageMaterial;
+
+                            //// Add a shadow to our animated image (the regular unity shadows won't work with this material)
+                            //shadow = ChatHandler.Instance.imagePool.Alloc();
+                            //shadow.material = cachedTextureData.animInfo.shadowMaterial;
+                            //shadow.sprite = null;
+                            //shadow.spriteIndex = imageInfo.textureIndex;
+                            //shadow.imageType = imageInfo.imageType;
+                            //shadow.rectTransform.pivot = new Vector2(0, 0);
+                            //shadow.rectTransform.localScale = image.rectTransform.localScale;
+                            //shadow.rectTransform.SetParent(currentMessage.rectTransform, false);
+                            //shadow.rectTransform.position = image.rectTransform.position;
+                            //shadow.rectTransform.localPosition += new Vector3(0.6f, -0.6f, 0.05f);
+
+                            //shadow.enabled = true;
+                            //currentMessage.emoteRenderers.Add(shadow);
+                        }
+                        else
+                        {
+                            //image.shadow.enabled = true;
+                            image.material = Drawing.noGlowMaterialUI;
+                        }
+
+
                         image.enabled = true;
                         currentMessage.emoteRenderers.Add(image);
                     }
