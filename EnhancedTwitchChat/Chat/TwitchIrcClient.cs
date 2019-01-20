@@ -35,7 +35,8 @@ namespace EnhancedTwitchChat.Chat
         {
             get
             {
-                return (Config.Instance.TwitchChannel == String.Empty) ? TwitchConnection.Instance?.GetPrivateField<AsyncTwitch.Config>("_loginInfo").ChannelName : Config.Instance.TwitchChannel;
+                _currentChannel = (Config.Instance.TwitchChannel == String.Empty) ? TwitchConnection.Instance?.GetPrivateField<AsyncTwitch.Config>("_loginInfo").ChannelName : Config.Instance.TwitchChannel;
+                return _currentChannel;
             }
         }
         public static bool CurrentChannelValid
@@ -50,6 +51,7 @@ namespace EnhancedTwitchChat.Chat
         public static ConcurrentDictionary<string, ConcurrentQueue<TwitchMessage>> MessageQueues = new ConcurrentDictionary<string, ConcurrentQueue<TwitchMessage>>();
         public static Dictionary<string, string> ChannelIds = new Dictionary<string, string>();
         public static ChatUser OurChatUser = new ChatUser();
+        public static bool Initialized = false;
 
         private static System.Random _random;
         private static string _lastRoomId;
@@ -87,21 +89,25 @@ namespace EnhancedTwitchChat.Chat
             }
             Plugin.Log("Twitch connection initialized successfully!");
 
-            // Wait until the AsyncTwitch socket connection is established, then assume the IRC connection is active a second later
-            while (!TwitchConnection.IsConnected) Thread.Sleep(50);
-            Thread.Sleep(2000);
-
-            // Register AsyncTwitch callbacks, then join the channel in the EnhancedTwitchChat config
+            // Register AsyncTwitch callbacks
             TwitchConnection.Instance.RegisterOnMessageReceived(TwitchConnection_OnMessageReceived);
             TwitchConnection.Instance.RegisterOnChannelJoined(TwitchConnection_OnChannelJoined);
             TwitchConnection.Instance.RegisterOnChannelParted(TwitchConnection_OnChannelParted);
             TwitchConnection.Instance.RegisterOnRoomStateChanged(TwitchConnection_OnRoomstateChanged);
-            if(TwitchIRCClient.CurrentChannel != String.Empty)
+
+            // Wait until the AsyncTwitch socket connection is established, then assume the IRC connection is active a second later
+            while (!TwitchConnection.IsConnected) Thread.Sleep(50);
+            Thread.Sleep(2000);
+
+            // Join the channel in the EnhancedTwitchChat config, if it's not blank
+            if (TwitchIRCClient.CurrentChannel != String.Empty)
                 TwitchConnection.Instance.JoinRoom(TwitchIRCClient.CurrentChannel);
 
             // Display a message in the chat informing the user whether or not the connection to the channel was successful
             ConnectionTime = DateTime.Now;
             ChatHandler.Instance.displayStatusMessage = true;
+
+            Initialized = true;
 
             // Process any messages we receive from AsyncTwitch
             ProcessingThread();

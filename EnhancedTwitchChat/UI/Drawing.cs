@@ -255,31 +255,31 @@ namespace EnhancedTwitchChat.UI
                         if (animatedEmote)
                         {
                             image.material = cachedTextureData.animInfo.imageMaterial;
-                            image.shadow.enabled = false;
+                            //image.shadow.enabled = false;
+                            if (Config.Instance.DrawShadows)
+                            {
+                                // Add a shadow to our animated image (the regular unity shadows won't work with this material)
+                                shadow = ChatHandler.Instance.imagePool.Alloc();
+                                shadow.material = cachedTextureData.animInfo.shadowMaterial;
+                                shadow.sprite = null;
+                                shadow.spriteIndex = imageInfo.textureIndex;
+                                shadow.imageType = imageInfo.imageType;
+                                shadow.rectTransform.pivot = new Vector2(0, 0);
+                                shadow.rectTransform.localScale = image.rectTransform.localScale;
+                                shadow.rectTransform.SetParent(currentMessage.rectTransform, false);
+                                shadow.rectTransform.position = image.rectTransform.position;
+                                shadow.rectTransform.localPosition += new Vector3(0.6f, -0.6f, 0.05f);
 
-                            // Add a shadow to our animated image (the regular unity shadows won't work with this material)
-                            shadow = ChatHandler.Instance.imagePool.Alloc();
-                            shadow.shadow.enabled = false;
-                            shadow.material = cachedTextureData.animInfo.shadowMaterial;
-                            shadow.sprite = null;
-                            shadow.spriteIndex = imageInfo.textureIndex;
-                            shadow.imageType = imageInfo.imageType;
-                            shadow.rectTransform.pivot = new Vector2(0, 0);
-                            shadow.rectTransform.localScale = image.rectTransform.localScale;
-                            shadow.rectTransform.SetParent(currentMessage.rectTransform, false);
-                            shadow.rectTransform.position = image.rectTransform.position;
-                            shadow.rectTransform.localPosition += new Vector3(0.6f, -0.6f, 0.05f);
-
-                            shadow.enabled = true;
-                            currentMessage.emoteRenderers.Add(shadow);
+                                shadow.enabled = true;
+                                currentMessage.emoteRenderers.Add(shadow);
+                            }
                         }
                         else
                         {
-                            image.shadow.enabled = true;
                             image.material = Drawing.noGlowMaterialUI;
+                            if (Config.Instance.DrawShadows)
+                                image.shadow.enabled = true;
                         }
-
-
                         image.enabled = true;
                         currentMessage.emoteRenderers.Add(image);
                     }

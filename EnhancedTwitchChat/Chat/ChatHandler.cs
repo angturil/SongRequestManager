@@ -105,15 +105,17 @@ namespace EnhancedTwitchChat
             //if (lastChannel != String.Empty)
             //    TwitchConnection.Instance.PartRoom(lastChannel);
             Plugin.Log("OnConfigChanged");
-            if (TwitchIRCClient.CurrentChannel != lastChannel)
+            if (TwitchIRCClient.Initialized)
             {
-                if(TwitchIRCClient.CurrentChannel != String.Empty)
-                    TwitchConnection.Instance.JoinRoom(TwitchIRCClient.CurrentChannel);
-                TwitchIRCClient.ConnectionTime = DateTime.Now;
-                displayStatusMessage = true;
+                if (TwitchIRCClient.CurrentChannel != lastChannel)
+                {
+                    if (TwitchIRCClient.CurrentChannel != String.Empty)
+                        TwitchConnection.Instance.JoinRoom(TwitchIRCClient.CurrentChannel);
+                    TwitchIRCClient.ConnectionTime = DateTime.Now;
+                    displayStatusMessage = true;
+                }
+                lastChannel = TwitchIRCClient.CurrentChannel;
             }
-            lastChannel = TwitchIRCClient.CurrentChannel;
-            
             if (Config.Instance.FontName != _lastFontName)
             {
                 StartCoroutine(Drawing.Initialize(gameObject.transform));
@@ -399,12 +401,15 @@ namespace EnhancedTwitchChat
                 ImageDownloader.CachedTextures[spriteIndex] = new CachedSpriteData(null, uvs[0].width, uvs[0].height);
                 ImageDownloader.CachedTextures[spriteIndex].animInfo = new CachedAnimationData(uvs.Length > 1 ? AnimationController.Instance.Register(spriteIndex, uvs, delay) : 0, texture, uvs, delay);
 
-                var _shadowMaterial = Instantiate(Drawing.CropMaterialColorMultiply);
-                _shadowMaterial.mainTexture = texture;
-                _shadowMaterial.SetVector("_CropFactors", new Vector4(uvs[0].x, uvs[0].y, uvs[0].width, uvs[0].height));
-                _shadowMaterial.SetColor("_Color", Color.black.ColorWithAlpha(0.2f));
-                _shadowMaterial.renderQueue = 3001;
-                ImageDownloader.CachedTextures[spriteIndex].animInfo.shadowMaterial = _shadowMaterial;
+                if (Config.Instance.DrawShadows)
+                {
+                    var _shadowMaterial = Instantiate(Drawing.CropMaterialColorMultiply);
+                    _shadowMaterial.mainTexture = texture;
+                    _shadowMaterial.SetVector("_CropFactors", new Vector4(uvs[0].x, uvs[0].y, uvs[0].width, uvs[0].height));
+                    _shadowMaterial.SetColor("_Color", Color.black.ColorWithAlpha(0.2f));
+                    _shadowMaterial.renderQueue = 3001;
+                    ImageDownloader.CachedTextures[spriteIndex].animInfo.shadowMaterial = _shadowMaterial;
+                }
 
                 var _animMaterial = Instantiate(Drawing.CropMaterial);
                 _animMaterial.mainTexture = texture;
