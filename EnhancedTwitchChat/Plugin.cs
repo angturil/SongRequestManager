@@ -7,6 +7,8 @@ using IllusionPlugin;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.UI;
 using System.Threading.Tasks;
+using System.Collections;
+using CustomUI.BeatSaber;
 
 namespace EnhancedTwitchChat
 {
@@ -34,6 +36,15 @@ namespace EnhancedTwitchChat
 
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
+
+            SharedCoroutineStarter.instance.StartCoroutine(CheckIfUserHasEnteredChannelName());
+        }
+
+        private IEnumerator CheckIfUserHasEnteredChannelName()
+        {
+            yield return new WaitUntil(() => SceneManager.GetActiveScene().name == "Menu");
+            if(TwitchIRCClient.CurrentChannel == String.Empty)
+                yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { Config.Instance.TwitchChannel = channelName; Config.Instance.Save(true); }));
         }
 
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)

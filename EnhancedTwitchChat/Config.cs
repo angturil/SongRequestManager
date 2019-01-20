@@ -1,6 +1,7 @@
 ﻿using IllusionPlugin;
 using System;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -140,11 +141,6 @@ namespace EnhancedTwitchChat
         public void Load()
         {
             ConfigSerializer.LoadConfig(this, FilePath);
-            if (TwitchChannel.Length > 0)
-                TwitchChannel = TwitchChannel.ToLower().Replace(" ", "");
-            //else {
-            //TwitchChannel = TwitchUsername;
-            //}
             if (BackgroundPadding < 0)
             {
                 BackgroundPadding = 0;
@@ -153,6 +149,18 @@ namespace EnhancedTwitchChat
             if (MaxChatLines < 1)
             {
                 MaxChatLines = 1;
+            }
+
+            if (TwitchChannel.Length > 0)
+            {
+                if (TwitchChannel.Contains("/"))
+                {
+                    var tmpChannelName = TwitchChannel.TrimEnd('/').Split('/').Last();
+                    Plugin.Log($"Changing twitch channel to {tmpChannelName}");
+                    TwitchChannel = tmpChannelName;
+                    Save();
+                }
+                TwitchChannel = TwitchChannel.ToLower().Replace(" ", "");
             }
         }
 

@@ -35,8 +35,7 @@ namespace EnhancedTwitchChat.Chat
         {
             get
             {
-                _currentChannel = (Config.Instance.TwitchChannel == String.Empty) ? TwitchConnection.Instance?.GetPrivateField<AsyncTwitch.Config>("_loginInfo").ChannelName : Config.Instance.TwitchChannel;
-                return _currentChannel;
+                return (Config.Instance.TwitchChannel == String.Empty) ? TwitchConnection.Instance?.GetPrivateField<AsyncTwitch.Config>("_loginInfo").ChannelName : Config.Instance.TwitchChannel;
             }
         }
         public static bool CurrentChannelValid

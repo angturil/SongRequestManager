@@ -64,6 +64,9 @@ namespace EnhancedTwitchChat
             new GameObject("EnhancedTwitchChatTextureDownloader").AddComponent<ImageDownloader>();
             new GameObject("EnhancedTwitchChatAnimationController").AddComponent<AnimationController>();
 
+            // Stop config updated callback when we haven't switched channels
+            lastChannel = TwitchIRCClient.CurrentChannel;
+
             // Initialize the chats UI
             InitializeChatUI();
 
@@ -146,14 +149,14 @@ namespace EnhancedTwitchChat
                         ImageDownloader.Instance.Init();
 
                         if (TwitchIRCClient.CurrentChannel == String.Empty)
-                            msg = $"Welcome to Enhanced Twitch Chat! To continue, enter your Twitch channel name in <i>UserData\\EnhancedTwitchChat.ini</i>, which is located in your Beat Saber directory.";
+                            msg = $"Welcome to Enhanced Twitch Chat! To continue, enter your Twitch channel name in the Enhanced Twitch Chat settings submenu, or manually in UserData\\EnhancedTwitchChat.ini, which is located in your Beat Saber directory.";
                         else if (TwitchIRCClient.CurrentChannelValid)
                             msg = $"Success joining channel \"{TwitchIRCClient.CurrentChannel}\"";
                         else
-                            msg = $"Failed to join channel \"{TwitchIRCClient.CurrentChannel}\". Please enter a valid Twitch channel name in <i>EnhancedTwitchChat.ini</i> or <i>AsyncTwitchConfig.json</i>, then try again.";
+                            msg = $"Failed to join channel \"{TwitchIRCClient.CurrentChannel}\". Please enter a valid Twitch channel name in the Enhanced Twitch Chat settings submenu, or manually in EnhancedTwitchChat.ini or AsyncTwitchConfig.json, then try again.";
                     }
                     else
-                        msg = "Failed to login to Twitch! Please check your login info in <i>UserData\\AsyncTwitchConfig.json</i>, then try again.\r\n\r\n<b>NOTE:</b> <i>You are not required to enter anything in AsyncTwitchConfig.json</i>! Enhanced Twitch Chat supports anonymous login; all you need to enter is your channel name! If you aren't using AsyncTwitch for anything else, it's safe to delete the AsyncTwitchConfig.json.";
+                        msg = "Failed to login to Twitch! Please check your login info in UserData\\AsyncTwitchConfig.json (username/oauth), then try again.\r\n\r\n<b>NOTE:</b> You are not required to enter anything in AsyncTwitchConfig.json! Enhanced Twitch Chat supports anonymous login; all you need to enter is your channel name! If you aren't using AsyncTwitch for anything else, it's safe to delete the AsyncTwitchConfig.json.";
 
                     TwitchMessage tmpMessage = new TwitchMessage();
                     tmpMessage.Author = new ChatUser();
