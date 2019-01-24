@@ -1,5 +1,6 @@
 ﻿using IllusionPlugin;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -7,11 +8,16 @@ using UnityEngine.UI;
 
 namespace EnhancedTwitchChat
 {
+    public class OldConfigOptions
+    {
+        public string TwitchChannel = "";
+    }
+
     public class Config
     {
         public string FilePath { get; }
 
-        public string TwitchChannel = "";
+        public string TwitchChannelName = "";
         //public string TwitchUsername = "";
         //public string TwitchoAuthToken = "";
         public string FontName = "Segoe UI";
@@ -51,6 +57,7 @@ namespace EnhancedTwitchChat
         public string RequestCommandAliases = "request,bsr,add";
         public int RequestLimit = 5;
         public int RequestCooldownMinutes = 5;
+        public string SongBlacklist = "";
 
         public event Action<Config> ConfigChangedEvent;
 
@@ -58,6 +65,25 @@ namespace EnhancedTwitchChat
         private bool _saving;
 
         public static Config Instance = null;
+
+        public List<string> Blacklist
+        {
+            get
+            {
+                List<string> blacklist = new List<string>();
+                if (SongBlacklist != String.Empty)
+                {
+                    foreach (string s in SongBlacklist.Split(','))
+                        blacklist.Add(s);
+                }
+                return blacklist;
+            }
+            set
+            {
+                SongBlacklist = string.Join(",", value.Distinct());
+                Save();
+            }
+        }
 
         public Color TextColor
         {
@@ -119,8 +145,23 @@ namespace EnhancedTwitchChat
             Instance = this;
             FilePath = filePath;
 
-            if (File.Exists(filePath))
+            if(!Directory.Exists(Path.GetDirectoryName(FilePath)))
+                Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
+
+            if (File.Exists(FilePath))
+            {
+                var text = File.ReadAllText(FilePath);
+                if(text.Contains("TwitchChannel="))
+                {
+                    var oldConfig = new OldConfigOptions();
+                    ConfigSerializer.LoadConfig(oldConfig, FilePath);
+
+                    TwitchChannelName = oldConfig.TwitchChannel;
+
+                    Save();
+                }
                 Load();
+            }
             else
                 Save();
 
@@ -152,16 +193,16 @@ namespace EnhancedTwitchChat
                 MaxChatLines = 1;
             }
 
-            if (TwitchChannel.Length > 0)
+            if (TwitchChannelName.Length > 0)
             {
-                if (TwitchChannel.Contains("/"))
+                if (TwitchChannelName.Contains("/"))
                 {
-                    var tmpChannelName = TwitchChannel.TrimEnd('/').Split('/').Last();
+                    var tmpChannelName = TwitchChannelName.TrimEnd('/').Split('/').Last();
                     Plugin.Log($"Changing twitch channel to {tmpChannelName}");
-                    TwitchChannel = tmpChannelName;
+                    TwitchChannelName = tmpChannelName;
                     Save();
                 }
-                TwitchChannel = TwitchChannel.ToLower().Replace(" ", "");
+                TwitchChannelName = TwitchChannelName.ToLower().Replace(" ", "");
             }
         }
 

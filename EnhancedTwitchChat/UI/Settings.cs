@@ -33,8 +33,8 @@ namespace EnhancedTwitchChat.UI
         {
             var menu = SettingsUI.CreateSubMenu("Enhanced Twitch Chat");
             var channelName = menu.AddString("Twitch Channel Name", "The name of the channel you want Enhanced Twitch Chat to monitor");
-            channelName.SetValue += (channel) => { Config.Instance.TwitchChannel = channel; };
-            channelName.GetValue += () => { return Config.Instance.TwitchChannel; };
+            channelName.SetValue += (channel) => { Config.Instance.TwitchChannelName = channel; };
+            channelName.GetValue += () => { return Config.Instance.TwitchChannelName; };
 
             var fontName = menu.AddString("Menu Font Name", "The name of the system font you want to use for the chat. This can be any font you've installed on your computer!");
             fontName.SetValue += (font) => { Config.Instance.FontName = font; };

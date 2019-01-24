@@ -1,8 +1,10 @@
-﻿using EnhancedTwitchChat.Utils;
+﻿using BeatSaverDownloader.UI;
+using EnhancedTwitchChat.Utils;
 using HMUI;
 using SongBrowserPlugin;
 using SongBrowserPlugin.DataAccess;
 using SongLoaderPlugin;
+using SongLoaderPlugin.OverrideClasses;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -16,6 +18,9 @@ namespace EnhancedTwitchChat.UI
     class SongListUtils
     {
         private static LevelListViewController _standardLevelListViewController = null;
+        private static bool _initialized = false;
+        private static bool _songBrowserInstalled = false;
+        private static bool _songDownloaderInstalled = false;
 
         private static List<IBeatmapLevel> CurrentLevels
         {
@@ -32,18 +37,52 @@ namespace EnhancedTwitchChat.UI
         public static void Initialize()
         {
             _standardLevelListViewController = Resources.FindObjectsOfTypeAll<LevelListViewController>().FirstOrDefault();
-        }
 
-        private static void RefreshSongBrowser(bool resetFilterMode = false)
+            if(!_initialized)
+            {
+                try
+                {
+                    _songBrowserInstalled = Utilities.IsModInstalled("Song Browser");
+                    _songDownloaderInstalled = Utilities.IsModInstalled("BeatSaver Downloader");
+                    _initialized = true;
+                } catch (Exception e)
+                {
+                    Plugin.Log($"Exception {e}");
+                }
+            }
+        }
+        private enum SongBrowserAction { Refresh = 1, ResetFilter = 2 }
+        private static void ExecuteSongBrowserAction(SongBrowserAction action)
         {
             var _songBrowserUI = SongBrowserApplication.Instance.GetPrivateField<SongBrowserPlugin.UI.SongBrowserUI>("_songBrowserUI");
             if (_songBrowserUI)
             {
-                if(resetFilterMode)
+                if (action.HasFlag(SongBrowserAction.ResetFilter))
+                {
                     _songBrowserUI.Model.Settings.filterMode = SongFilterMode.None;
-                _songBrowserUI.UpdateSongList();
-                _songBrowserUI.RefreshSongList();
+                    if (!action.HasFlag(SongBrowserAction.Refresh))
+                        action |= SongBrowserAction.Refresh;
+                }
+                if (action.HasFlag(SongBrowserAction.Refresh))
+                {
+                    _songBrowserUI.UpdateSongList();
+                    _songBrowserUI.RefreshSongList();
+                }
             }
+        }
+        
+        private enum SongDownloaderAction { ResetFilter = 1 }
+        private static void ExecuteSongDownloaderAction(SongDownloaderAction action)
+        {
+            if(action.HasFlag(SongDownloaderAction.ResetFilter))
+            {
+                SongListTweaks.Instance.SetLevels(SongListTweaks.Instance.GetPrivateField<BeatmapCharacteristicSO>("_lastCharacteristic"), SongListTweaks.lastSortMode, "");
+            }
+        }
+
+        public static void RemoveDuplicates()
+        {
+            _standardLevelListViewController.SetLevels(CurrentLevels.Distinct().ToArray());
         }
         
         public static IEnumerator RefreshSongs(bool fullRefresh = false, bool selectOldLevel = true, bool resetFilterMode = false)
@@ -61,8 +100,11 @@ namespace EnhancedTwitchChat.UI
             while (SongLoader.AreSongsLoading) yield return null;
 
             // If song browser is installed, update/refresh it
-            if (Utilities.IsModInstalled("Song Browser"))
-                RefreshSongBrowser(resetFilterMode);
+            if (_songBrowserInstalled)
+                ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
+            // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+            else if (resetFilterMode && _songDownloaderInstalled)
+                ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
             
             // Set the row index to the previously selected song
             if (selectOldLevel)
@@ -74,20 +116,24 @@ namespace EnhancedTwitchChat.UI
             var table = ReflectionUtil.GetPrivateField<LevelListTableView>(_standardLevelListViewController, "_levelListTableView");
             if (table)
             {
+                RemoveDuplicates();
+
                 TableView tableView = table.GetComponentInChildren<TableView>();
                 tableView.ReloadData();
 
                 var levels = CurrentLevels.Where(l => l.levelID == levelID).ToArray();
                 if (levels.Length > 0)
                 {
-                    Plugin.Log("Found level!");
                     int row = table.RowNumberForLevelID(levelID);
                     tableView.SelectRow(row, true);
                     tableView.ScrollToRow(row, true);
-                    Plugin.Log("Success scrolling to new song!");
                     return true;
                 }
             }
+            var tempLevels = SongLoader.CustomLevels.Where(l => l.levelID == levelID).ToArray();
+            foreach (CustomLevel l in tempLevels)
+                SongLoader.CustomLevels.Remove(l);
+
             Plugin.Log($"Failed to scroll to {levelID}!");
             return false;
         }

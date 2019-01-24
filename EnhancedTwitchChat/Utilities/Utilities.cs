@@ -14,6 +14,7 @@ using IllusionInjector;
 using IllusionPlugin;
 using System.Reflection;
 using System.IO.Compression;
+using CustomUI.Utilities;
 
 namespace EnhancedTwitchChat.Utils
 {
@@ -264,41 +265,33 @@ namespace EnhancedTwitchChat.Utils
             return Image.FromStream(new MemoryStream(byteArrayIn));
         }
 
+        public static IEnumerator DownloadSpriteAsync(string url, Action<Sprite> downloadCompleted)
+        {
+            using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(url))
+            {
+                yield return www.SendWebRequest();
+
+                if (www.isNetworkError || www.isHttpError)
+                {
+                    Plugin.Log($"Http request error! {www.error}");
+                    yield break;
+                }
+                Plugin.Log($"Success downloading \"{url}\"");
+                downloadCompleted?.Invoke(UIUtilities.LoadSpriteFromTexture(DownloadHandlerTexture.GetContent(www)));
+            }
+        }
+        
         public static IEnumerator DownloadFile(string url, string path)
         {
-            UnityWebRequest www = UnityWebRequest.Get(url);
-
-            bool timeout = false;
-            float time = 0f;
-
-            UnityWebRequestAsyncOperation asyncRequest = www.SendWebRequest();
-
-            while (!asyncRequest.isDone || asyncRequest.progress < 1f)
+            using (UnityWebRequest www = UnityWebRequest.Get(url))
             {
-                yield return null;
+                yield return www.SendWebRequest();
 
-                time += Time.deltaTime;
-
-                if (time >= 15f && asyncRequest.progress == 0f)
+                if (www.isNetworkError || www.isHttpError)
                 {
-                    www.Abort();
-                    timeout = true;
+                    Plugin.Log($"Http request error! {www.error}");
+                    yield break;
                 }
-            }
-
-            if (www.isNetworkError || www.isHttpError || timeout)
-            {
-                if (timeout)
-                {
-                    Plugin.Log("Http request timeout!");
-                }
-                else
-                {
-                    Plugin.Log("Http request error!");
-                }
-            }
-            else
-            {
                 Plugin.Log($"Success downloading \"{url}\"");
                 byte[] data = www.downloadHandler.data;
                 try

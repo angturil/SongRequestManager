@@ -247,9 +247,8 @@ namespace EnhancedTwitchChat.Textures
                         if (!Directory.Exists(imageCachePath))
                             Directory.Move(oldSpriteCachePath, imageCachePath);
                         else
-                            Directory.Delete(oldSpriteCachePath);
+                            Directory.Delete(oldSpriteCachePath, true);
                     }
-
                     if (!Directory.Exists(imageCachePath))
                         Directory.CreateDirectory(imageCachePath);
 

@@ -8,6 +8,7 @@ using AsyncTwitch;
 using UnityEngine;
 using System.Threading;
 using CustomUI.Utilities;
+using EnhancedTwitchChat.Bot;
 
 namespace EnhancedTwitchChat.Chat
 {
@@ -35,7 +36,7 @@ namespace EnhancedTwitchChat.Chat
         {
             get
             {
-                _currentChannel = (Config.Instance.TwitchChannel == String.Empty) ? TwitchConnection.Instance?.GetPrivateField<AsyncTwitch.Config>("_loginInfo").ChannelName : Config.Instance.TwitchChannel;
+                _currentChannel = (Config.Instance.TwitchChannelName == String.Empty) ? TwitchConnection.Instance?.GetPrivateField<AsyncTwitch.Config>("_loginInfo").ChannelName : Config.Instance.TwitchChannelName;
                 return _currentChannel;
             }
         }

@@ -27,10 +27,22 @@ using VRUI;
 using Image = UnityEngine.UI.Image;
 using Toggle = UnityEngine.UI.Toggle;
 
-namespace EnhancedTwitchChat.Chat
+namespace EnhancedTwitchChat.Bot
 {
     public class RequestBot : MonoBehaviour
     {
+
+        public class SongRequest
+        {
+            public JSONObject song;
+            public ChatUser requestor;
+            public SongRequest(JSONObject song, ChatUser requestor)
+            {
+                this.song = song;
+                this.requestor = requestor;
+            }
+        }
+
         public class RequestInfo
         {
             public ChatUser requestor;
@@ -38,19 +50,31 @@ namespace EnhancedTwitchChat.Chat
             public bool isBeatSaverId;
         }
 
+        class RequestUserTracker
+        {
+            public int numRequests = 0;
+            public DateTime resetTime = DateTime.Now;
+        }
+        
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
 
-        private static RequestBot _instance;
+        public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
-        public static ConcurrentQueue<JSONObject> FinalRequestQueue = new ConcurrentQueue<JSONObject>();
-        private bool _checkingQueue = false;
+        public static List<SongRequest> FinalRequestQueue = new List<SongRequest>();
+        public static Action<JSONObject> SongRequestQueued;
+        public static Action<JSONObject> SongRequestDequeued;
         private static Button _requestButton;
+        private static bool _checkingQueue = false;
 
         private static FlowCoordinator _levelSelectionFlowCoordinator;
         private static DismissableNavigationController _levelSelectionNavigationController;
         private static Queue<string> _botMessageQueue = new Queue<string>();
         private static Dictionary<string, Action<ChatUser,string>> Commands = new Dictionary<string, Action<ChatUser,string>>();
+
+        private static List<string> _songBlacklist = new List<string>();
+        private static CustomMenu _songRequestMenu = null;
+        private static RequestBotListViewController _songRequestListViewController = null;
 
         public static void OnLoad()
         {
@@ -60,29 +84,40 @@ namespace EnhancedTwitchChat.Chat
 
             if (_levelSelectionNavigationController)
             {
-                _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.transform as RectTransform, "QuitButton", new Vector2(60f, 36.8f), new Vector2(15.0f, 5.5f), () => RequestBot.NextRequest(), "Next Request");
+                if(_songRequestMenu == null)
+                {
+                    _songRequestMenu = BeatSaberUI.CreateCustomMenu<CustomMenu>("Song Request Queue");
+                    _songRequestListViewController = BeatSaberUI.CreateViewController<RequestBotListViewController>();
+                    _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
+                }
+                
+                _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f), 
+                    new Vector2(15.0f, 5.5f), () => {_requestButton.interactable = false;_songRequestMenu.Present();_requestButton.interactable = true;}, "Song Requests");
+
                 _requestButton.gameObject.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
                 _requestButton.SetButtonTextSize(2.0f);
                 _requestButton.interactable = false;
                 _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
-                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Moves onto the next song request in the queue\r\n\r\n<size=60%>Use <b>!request <beatsaver-id></b> or <b>!request <song name></b> to request songs!</size>")}");
+                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
                 Plugin.Log("Created request button!");
             }
 
             SongListUtils.Initialize();
 
-            if (_instance) return;
+            if (Instance) return;
             new GameObject("EnhancedTwitchChatRequestBot").AddComponent<RequestBot>();
+
         }
 
         private void Awake()
         {
             DontDestroyOnLoad(gameObject);
-            _instance = this;
+            Instance = this;
+            _songBlacklist = Config.Instance.Blacklist;
 
             InitializeCommands();
         }
-
+        
         private void FixedUpdate()
         {
             if (UnverifiedRequestQueue.Count > 0)
@@ -90,7 +125,6 @@ namespace EnhancedTwitchChat.Chat
                 if (!_checkingQueue && UnverifiedRequestQueue.TryDequeue(out var requestInfo))
                 {
                     StartCoroutine(CheckRequest(requestInfo));
-                    _checkingQueue = true;
                 }
             }
 
@@ -118,31 +152,26 @@ namespace EnhancedTwitchChat.Chat
         {
             _botMessageQueue.Enqueue(message);
         }
-        
-        class RequestUserTracker
-        {
-            public int numRequests = 0;
-            public DateTime resetTime = DateTime.Now;
-        }
 
         private Dictionary<string, RequestUserTracker> _requestTracker = new Dictionary<string, RequestUserTracker>();
         private IEnumerator CheckRequest(RequestInfo requestInfo)
         {
+            _checkingQueue = true;
             ChatUser requestor = requestInfo.requestor;
             string request = requestInfo.request;
             if (requestInfo.isBeatSaverId)
             {
-                foreach (JSONObject r in FinalRequestQueue.ToArray())
+                foreach (SongRequest req in FinalRequestQueue.ToArray())
                 {
-                    if (((string)r["version"]).StartsWith(request))
+                    var song = req.song;
+                    if (((string)song["version"]).StartsWith(request))
                     {
-                        QueueChatMessage($"Request {r["songName"]} by {r["authorName"]} already exists in queue!");
+                        QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!");
                         _checkingQueue = false;
                         yield break;
                     }
                 }
             }
-            Plugin.Log("8");
             string requestUrl = requestInfo.isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
             using (var web = UnityWebRequest.Get($"{requestUrl}/{request}"))
             {
@@ -154,7 +183,7 @@ namespace EnhancedTwitchChat.Chat
                     _checkingQueue = false;
                     yield break;
                 }
-
+                
                 JSONNode result = JSON.Parse(web.downloadHandler.text);
                 if (result["songs"].IsArray && result["total"].AsInt == 0)
                 {
@@ -164,88 +193,90 @@ namespace EnhancedTwitchChat.Chat
                 }
                 yield return null;
                 
+
                 JSONObject song = !result["songs"].IsArray ? result["song"].AsObject : result["songs"].AsArray[0].AsObject;
-                if (FinalRequestQueue.Any(j => j["version"] == song["version"]))
+                if (FinalRequestQueue.Any(req => req.song["version"] == song["version"]))
                 {
-                    QueueChatMessage($"Request {song["songName"]} by {song["authorName"]} already exists in queue!");
+                    QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!");
                     _checkingQueue = false;
                     yield break;
                 }
                 else
                 {
+                    if (_songBlacklist.Contains(song["id"]))
+                    {
+                        QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} is blacklisted!");
+                        _checkingQueue = false;
+                        yield break;
+                    }
+
                     _requestTracker[requestor.UserID].numRequests++;
-                    FinalRequestQueue.Enqueue(song);
-                    _requestButton.interactable = true;
-                    _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
-                    QueueChatMessage($"Request {song["songName"]} by {song["authorName"]} added to queue.");
+                    FinalRequestQueue.Add(new SongRequest(song, requestor));
+                    UpdateRequestButton();
+                    QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} added to queue.");
+
+                    SongRequestQueued?.Invoke(song);
                 }
             }
             _checkingQueue = false;
         }
 
-        private static IEnumerator ProcessNextRequest()
+        private static IEnumerator ProcessSongRequest(int index = -1)
         {
             if (FinalRequestQueue.Count > 0)
             {
-                if (FinalRequestQueue.TryDequeue(out var song))
+                SongRequest request = index == -1 ? FinalRequestQueue.First() : FinalRequestQueue.ElementAt(index);
+                JSONObject song = request.song;
+                FinalRequestQueue.Remove(request);
+                UpdateRequestButton();
+
+                bool retried = false;
+                string songIndex = song["version"], songName = song["songName"].Value;
+                string currentSongDirectory = $"{Environment.CurrentDirectory}\\CustomSongs\\{songIndex}";
+                string songHash = ((string)song["hashMd5"]).ToUpper();
+            retry:
+                CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
+                if (levels.Length == 0)
                 {
-                    if (FinalRequestQueue.Count == 0)
+                    Utilities.EmptyDirectory(".requestcache", false);
+
+                    if (Directory.Exists(currentSongDirectory))
                     {
-                        _requestButton.interactable = false;
-                        _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
+                        Utilities.EmptyDirectory(currentSongDirectory, true);
+                        Plugin.Log($"Deleting {currentSongDirectory}");
                     }
+                        
+                    string localPath = $"{Environment.CurrentDirectory}\\.requestcache\\{songIndex}.zip";
+                    yield return Utilities.DownloadFile(song["downloadUrl"], localPath);
+                    yield return Utilities.ExtractZip(localPath, currentSongDirectory);
+                    yield return SongListUtils.RefreshSongs(false, false, true);
 
-                    string songIndex = song["version"], songName = song["songName"];
-                    string currentSongDirectory = $"{Environment.CurrentDirectory}\\CustomSongs\\{songIndex}";
-                    string songHash = ((string)song["hashMd5"]).ToUpper();
-                    bool retried = false;
+                    Utilities.EmptyDirectory(".requestcache", true);
+                    levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
+                }
+                else
+                {
+                    Plugin.Log($"Song {songName} already exists!");
+                }
 
-                retry:
-                    CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
-                    if (levels.Length == 0)
+                if (levels.Length > 0)
+                {
+                    Plugin.Log($"Scrolling to level {levels[0].levelID}");
+                    if (!SongListUtils.ScrollToLevel(levels[0].levelID) && !retried)
                     {
-                        Utilities.EmptyDirectory(".requestcache", false);
-
-                        if (Directory.Exists(currentSongDirectory))
-                        {
-                            Utilities.EmptyDirectory(currentSongDirectory, true);
-                            Plugin.Log($"Deleting {currentSongDirectory}");
-                        }
-
-                        string localPath = $"{Environment.CurrentDirectory}\\.requestcache\\{songIndex}.zip";
-                        yield return Utilities.DownloadFile(song["downloadUrl"], localPath);
-                        yield return Utilities.ExtractZip(localPath, currentSongDirectory);
-                        yield return SongListUtils.RefreshSongs(false, false, true);
-
-                        Utilities.EmptyDirectory(".requestcache", true);
-                        levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
-                    }
-                    else
-                    {
-                        Plugin.Log($"Song {songName} already exists!");
-                    }
-
-                    if (levels.Length > 0)
-                    {
-                        Plugin.Log($"Scrolling to level {levels[0].levelID}");
-                        if (!SongListUtils.ScrollToLevel(levels[0].levelID) && !retried)
-                        {
-                            var tempLevels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
-                            foreach (CustomLevel l in tempLevels)
-                                SongLoader.CustomLevels.Remove(l);
-
-                            retried = true;
-                            goto retry;
-                        }
-                    }
-                    else
-                    {
-                        Plugin.Log("Failed to find new level!");
+                        retried = true;
+                        goto retry;
                     }
                 }
+                else
+                {
+                    Plugin.Log("Failed to find new level!");
+                }
+                _songRequestMenu.Dismiss();
+                SongRequestDequeued?.Invoke(song);
             }
         }
-        
+
         private void InitializeCommands()
         {
             foreach (string c in Config.Instance.RequestCommandAliases.Split(','))
@@ -284,27 +315,72 @@ namespace EnhancedTwitchChat.Chat
             };
 
             if (!newRequest.isBeatSaverId && request.Length < 3)
-                _instance.QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
+                Instance.QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
             else if (!UnverifiedRequestQueue.Contains(newRequest))
                 UnverifiedRequestQueue.Enqueue(newRequest);
         }
-
-        public static void Parse(ChatUser user,  string request)
+        
+        private static void UpdateRequestButton()
         {
-            if (!_instance) return;
-            if (!request.StartsWith("!")) return;
+            if (FinalRequestQueue.Count == 0)
+            {
+                _requestButton.interactable = false;
+                _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
+            }
+            else
+            {
+                _requestButton.interactable = true;
+                _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
+            }
+        }
+        
+        public static void Blacklist(int index)
+        {
+            // Add the song to the blacklist
+            SongRequest request = FinalRequestQueue.ElementAt(index);
+            JSONObject song = request.song;
+            _songBlacklist.Add(request.song["id"]);
+            Config.Instance.Blacklist = _songBlacklist;
 
-            string[] parts = request.Split(new char[] { ' ' }, 2);
-            if (parts.Length <= 1) return;
+            Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} is now blacklisted!");
 
-            string command = parts[0].Substring(1)?.ToLower();
-            if(Commands.ContainsKey(command))
-                Commands[command]?.Invoke(user, parts[1]);
+            // Then skip the request
+            Skip(index);
         }
 
-        public static void NextRequest()
+        public static void Skip(int index)
         {
-            _instance?.StartCoroutine(ProcessNextRequest());
+            // Remove the song from the queue, then update the request button
+            SongRequest request = FinalRequestQueue.ElementAt(index);
+            FinalRequestQueue.RemoveAt(index);
+            UpdateRequestButton();
+            SongRequestDequeued?.Invoke(request.song);
+            
+            // Dismiss the request queue menu if there are no more song requests
+            if (FinalRequestQueue.Count == 0 && _songRequestMenu.customFlowCoordinator.isActivated)
+                _songRequestMenu.Dismiss();
+        }
+
+        public static void Process(int index)
+        {
+            Instance?.StartCoroutine(ProcessSongRequest(index));
+        }
+
+        public static void Next()
+        {
+            Instance?.StartCoroutine(ProcessSongRequest());
+        }
+
+        public static void Parse(ChatUser user, string request)
+        {
+            if (!Instance) return;
+            if (!request.StartsWith("!")) return;
+            string[] parts = request.Split(new char[] { ' ' }, 2);
+            if (parts.Length <= 1) return;
+            
+            string command = parts[0].Substring(1)?.ToLower();
+            if (Commands.ContainsKey(command))
+                Commands[command]?.Invoke(user, parts[1]);
         }
     }
 }

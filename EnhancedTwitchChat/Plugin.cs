@@ -9,6 +9,7 @@ using EnhancedTwitchChat.UI;
 using System.Threading.Tasks;
 using System.Collections;
 using CustomUI.BeatSaber;
+using EnhancedTwitchChat.Bot;
 
 namespace EnhancedTwitchChat
 {
@@ -44,7 +45,7 @@ namespace EnhancedTwitchChat
         {
             yield return new WaitUntil(() => SceneManager.GetActiveScene().name == "Menu");
             if(TwitchIRCClient.CurrentChannel == String.Empty)
-                yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { Config.Instance.TwitchChannel = channelName; Config.Instance.Save(true); }));
+                yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { Config.Instance.TwitchChannelName = channelName; Config.Instance.Save(true); }));
         }
 
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
