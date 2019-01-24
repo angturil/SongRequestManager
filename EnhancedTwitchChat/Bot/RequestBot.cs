@@ -48,6 +48,12 @@ namespace EnhancedTwitchChat.Bot
             public ChatUser requestor;
             public string request;
             public bool isBeatSaverId;
+            public RequestInfo(ChatUser requestor, string request, bool isBeatSaverId)
+            {
+                this.requestor = requestor;
+                this.request = request;
+                this.isBeatSaverId = isBeatSaverId;
+            }
         }
 
         class RequestUserTracker
@@ -307,13 +313,7 @@ namespace EnhancedTwitchChat.Bot
                 }
             }
 
-            RequestInfo newRequest = new RequestInfo()
-            {
-                requestor = requestor,
-                request = request,
-                isBeatSaverId = _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request)
-            };
-
+            RequestInfo newRequest = new RequestInfo(requestor, request, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request));
             if (!newRequest.isBeatSaverId && request.Length < 3)
                 Instance.QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
             else if (!UnverifiedRequestQueue.Contains(newRequest))
