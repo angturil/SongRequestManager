@@ -1,16 +1,23 @@
 ﻿using IllusionPlugin;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace EnhancedTwitchChat
 {
+    public class OldConfigOptions
+    {
+        public string TwitchChannel = "";
+    }
+
     public class Config
     {
         public string FilePath { get; }
 
-        public string TwitchChannel = "";
+        public string TwitchChannelName = "";
         //public string TwitchUsername = "";
         //public string TwitchoAuthToken = "";
         public string FontName = "Segoe UI";
@@ -20,7 +27,7 @@ namespace EnhancedTwitchChat
         public float ChatScale = 1.1f;
         public float ChatWidth = 160;
         public float MessageSpacing = 2.0f;
-        public int MaxMessages = 20;
+        public int MaxChatLines = 30;
 
         public float PositionX = 2.0244143f;
         public float PositionY = 0.373768f;
@@ -43,6 +50,14 @@ namespace EnhancedTwitchChat
 
         public bool LockChatPosition = false;
         public bool ReverseChatOrder = false;
+        public bool SongRequestBot = false;
+        public bool AnimatedEmotes = true;
+        public bool DrawShadows = false;
+
+        public string RequestCommandAliases = "request,bsr,add";
+        public int RequestLimit = 5;
+        public int RequestCooldownMinutes = 5;
+        public string SongBlacklist = "";
 
         public event Action<Config> ConfigChangedEvent;
 
@@ -50,6 +65,25 @@ namespace EnhancedTwitchChat
         private bool _saving;
 
         public static Config Instance = null;
+
+        public List<string> Blacklist
+        {
+            get
+            {
+                List<string> blacklist = new List<string>();
+                if (SongBlacklist != String.Empty)
+                {
+                    foreach (string s in SongBlacklist.Split(','))
+                        blacklist.Add(s);
+                }
+                return blacklist;
+            }
+            set
+            {
+                SongBlacklist = string.Join(",", value.Distinct());
+                Save();
+            }
+        }
 
         public Color TextColor
         {
@@ -111,8 +145,23 @@ namespace EnhancedTwitchChat
             Instance = this;
             FilePath = filePath;
 
-            if (File.Exists(filePath))
+            if(!Directory.Exists(Path.GetDirectoryName(FilePath)))
+                Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
+
+            if (File.Exists(FilePath))
+            {
+                var text = File.ReadAllText(FilePath);
+                if(text.Contains("TwitchChannel="))
+                {
+                    var oldConfig = new OldConfigOptions();
+                    ConfigSerializer.LoadConfig(oldConfig, FilePath);
+
+                    TwitchChannelName = oldConfig.TwitchChannel;
+
+                    Save();
+                }
                 Load();
+            }
             else
                 Save();
 
@@ -129,30 +178,39 @@ namespace EnhancedTwitchChat
         {
             _configWatcher.Changed -= ConfigWatcherOnChanged;
         }
-
-        public void Save()
-        {
-            _saving = true;
-            ConfigSerializer.SaveConfig(this, FilePath);
-        }
+        
 
         public void Load()
         {
             ConfigSerializer.LoadConfig(this, FilePath);
-            if (TwitchChannel.Length > 0)
-                TwitchChannel = TwitchChannel.ToLower().Replace(" ", "");
-            //else {
-            //TwitchChannel = TwitchUsername;
-            //}
             if (BackgroundPadding < 0)
             {
                 BackgroundPadding = 0;
             }
 
-            if (MaxMessages < 1)
+            if (MaxChatLines < 1)
             {
-                MaxMessages = 1;
+                MaxChatLines = 1;
             }
+
+            if (TwitchChannelName.Length > 0)
+            {
+                if (TwitchChannelName.Contains("/"))
+                {
+                    var tmpChannelName = TwitchChannelName.TrimEnd('/').Split('/').Last();
+                    Plugin.Log($"Changing twitch channel to {tmpChannelName}");
+                    TwitchChannelName = tmpChannelName;
+                    Save();
+                }
+                TwitchChannelName = TwitchChannelName.ToLower().Replace(" ", "");
+            }
+        }
+
+        public void Save(bool callback = false)
+        {
+            if(!callback)
+                _saving = true;
+            ConfigSerializer.SaveConfig(this, FilePath);
         }
 
         private void ConfigWatcherOnChanged(object sender, FileSystemEventArgs fileSystemEventArgs)

@@ -3,39 +3,25 @@ using System.Linq;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using VRUIControls;
-using System.Threading;
-using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Net;
 using IllusionPlugin;
-using UnityEngine.UI;
-using TMPro;
-using System.Collections.Concurrent;
-using UnityEditor;
-using EnhancedTwitchChat.Sprites;
-using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.UI;
-using AsyncTwitch;
+using System.Threading.Tasks;
+using System.Collections;
+using CustomUI.BeatSaber;
+using EnhancedTwitchChat.Bot;
 
 namespace EnhancedTwitchChat
 {
     public class Plugin : IPlugin
     {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "1.0.0";
+        public string Version => "1.1.0";
 
         public bool IsAtMainMenu = true;
-        public bool ShouldWriteConfig = false;
         public static Plugin Instance { get; private set; }
-
         private readonly Config Config = new Config(Path.Combine(Environment.CurrentDirectory, "UserData\\EnhancedTwitchChat.ini"));
-
-
-        // https://api.twitch.tv/kraken/streams/ninja?client_id=jg6ij5z8mf8jr8si22i5uq8tobnmde
-
+        
         public static void Log(string msg)
         {
             Console.WriteLine($"[EnhancedTwitchChat] {msg}");
@@ -44,26 +30,51 @@ namespace EnhancedTwitchChat
         public void OnApplicationStart()
         {
             if (Instance != null) return;
-
             Instance = this;
 
-            new GameObject("EnhancedTwitchChatChatHandler").AddComponent<ChatHandler>();
-            new Thread(() => TwitchIRCClient.Initialize()).Start();
+            ChatHandler.OnLoad();
+            Task.Run(() => TwitchIRCClient.Initialize());
 
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
+            SceneManager.sceneLoaded += SceneManager_sceneLoaded;
+
+            SharedCoroutineStarter.instance.StartCoroutine(CheckIfUserHasEnteredChannelName());
+        }
+
+        private IEnumerator CheckIfUserHasEnteredChannelName()
+        {
+            yield return new WaitUntil(() => SceneManager.GetActiveScene().name == "Menu");
+            if(TwitchIRCClient.CurrentChannel == String.Empty)
+                yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { Config.Instance.TwitchChannelName = channelName; Config.Instance.Save(true); }));
+        }
+
+        private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
+        {
+            if (arg0.name == "Menu")
+            {
+                Settings.OnLoad();
+                RequestBot.OnLoad();
+            }
         }
 
         public void OnApplicationQuit()
         {
         }
 
-        private void SceneManager_activeSceneChanged(Scene arg0, Scene arg1)
+        private void SceneManager_activeSceneChanged(Scene from, Scene to)
         {
-            if (arg1.name == "Menu")
+            if (from.name == "EmptyTransition" && to.name == "Menu")
+                Config.Save(true);
+            if (to.name == "Menu")
                 IsAtMainMenu = true;
-
-            else if (arg1.name == "GameCore")
+            else if (to.name == "GameCore")
                 IsAtMainMenu = false;
+
+            try
+            {
+                ChatHandler.Instance?.SceneManager_activeSceneChanged(from, to);
+            }
+            catch { }
         }
 
         public void OnLevelWasLoaded(int level)
@@ -80,11 +91,6 @@ namespace EnhancedTwitchChat
 
         public void OnUpdate()
         {
-            if (ShouldWriteConfig)
-            {
-                Config.Save();
-                ShouldWriteConfig = false;
-            }
         }
     }
 }

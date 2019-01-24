@@ -19,27 +19,20 @@ namespace EnhancedTwitchChat.Chat
         protected Quaternion _realRot;
         protected VRPointer _vrPointer;
         protected bool _wasMoving = false;
-        protected static ChatMover _this;
 
         protected const float MinScrollDistance = 0.25f;
         protected const float MaxLaserDistance = 50;
-
+        
         public void Init(Transform moverCube)
         {
-            _this = this;
-            _vrPointer = GetComponent<VRPointer>();
             _moverCube = moverCube;
+            _vrPointer = GetComponent<VRPointer>();
         }
 
         // This code was straight copied from xyonico's camera+ mod, so all credit goes to him :)
         public void Update()
         {
-            if (this != _this)
-            {
-                Destroy(this);
-                return;
-            }
-
+            //Plugin.Log($"ChatMover! VRPointer: {(_vrPointer != null ? "NOT NULL" : "NULL")}");
             if (Config.Instance.LockChatPosition) return;
             if (_vrPointer.vrController != null)
             {
@@ -79,7 +72,7 @@ namespace EnhancedTwitchChat.Chat
             }
             else if (_wasMoving)
             {
-                Plugin.Instance.ShouldWriteConfig = true;
+                Config.Instance.Save();
                 _wasMoving = false;
             }
         }

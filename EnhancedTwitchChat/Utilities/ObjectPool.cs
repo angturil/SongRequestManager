@@ -7,10 +7,9 @@ using UnityEngine;
 
 namespace EnhancedTwitchChat
 {
-    class ObjectPool<T> where T : Component
+    public class ObjectPool<T> where T : Component
     {
-        private Dictionary<T, bool> _objects;
-
+        private Stack<T> _freeObjects;
         private Action<T> OnAlloc;
         private Action<T> OnFree;
 
@@ -18,19 +17,19 @@ namespace EnhancedTwitchChat
         {
             this.OnAlloc = OnAlloc;
             this.OnFree = OnFree;
-            this._objects = new Dictionary<T, bool>();
+            this._freeObjects = new Stack<T>();
 
             while (initialCount > 0)
             {
-                _objects[internalAlloc()] = false;
+                _freeObjects.Push(internalAlloc());
                 initialCount--;
             }
         }
 
         ~ObjectPool()
         {
-            foreach(KeyValuePair<T, bool> obj in _objects)
-                UnityEngine.Object.Destroy(obj.Key.gameObject);
+            foreach(T obj in _freeObjects)
+                UnityEngine.Object.Destroy(obj.gameObject);
         }
 
         private T internalAlloc()
@@ -43,29 +42,18 @@ namespace EnhancedTwitchChat
         public T Alloc()
         {
             T obj = null;
-            foreach (KeyValuePair<T, bool> kvp in _objects)
-            {
-                if (!kvp.Value)
-                    obj = kvp.Key;
-            }
-            if (obj == null) obj = internalAlloc();
-
-            if (OnAlloc != null)
-                OnAlloc(obj);
-
-            _objects[obj] = true;
-
+            if (_freeObjects.Count > 0)
+                obj = _freeObjects.Pop();
+            if(!obj)
+                obj = internalAlloc();
+            OnAlloc?.Invoke(obj);
             return obj;
         }
 
         public void Free(T obj) {
-            if (_objects.ContainsKey(obj))
-            {
-                _objects[obj] = false;
-
-                if (OnFree != null)
-                    OnFree(obj);
-            }
+            if (obj == null) return;
+            _freeObjects.Push(obj);
+            OnFree?.Invoke(obj);
         }
     }
 }
