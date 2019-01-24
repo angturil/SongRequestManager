@@ -25,12 +25,12 @@ Copy EnhancedTwitchChat.dll to your Beat Saber\Plugins folder, and install all o
 All you need to enter is the channel name which you want to join (see the `Setup` section below), the chat will show up to your right in game, and you can move it by pointing at it with the laser from your controller and grabbing it with the trigger. You can also move the chat towards you and away from you by pressing up and down on the analog stick or trackpad on your controller. Finally, you can use the lock button in the corner of the chat to lock the chat position in place so you don't accidentally move it.
 
 # Setup
-Most common options can be configured directly via the Beat Saber settings menu in the Enhanced Twitch Chat submenu, as seen here:
+Most common options can be configured directly via the Beat Saber settings menu in the Enhanced Twitch Chat submenu, as seen in the image below. *Keep in mind that in order for song requests to appear in chat, you need to fill out AsyncTwitchConfig.json in its entirety!* [Click here for information on how to setup AsyncTwitch!](https://www.modsaber.org/mod/asynctwitchlib/1.1.6)
 ![Enhanced Twitch Chat settings menu](https://i.imgur.com/GSPmjPb.jpg)
 
+# Config
 For the rest of the config options, you will have to manually edit the config file (in UserData\EnhancedTwitchChat.ini).  *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values (**NOTE:** The only required config option is TwitchChannel):
 
-# Config
 | Option | Description |
 | - | - |
 | **TwitchChannelName** | The name of the Twitch channel whos chat you want to join (this is your Twitch username if you want to join your own channel) |
