@@ -59,4 +59,4 @@ For the rest of the config options, you will have to manually edit the config fi
 To compile this mod simply clone the repo and update the project references to reference the corresponding assemblies in the `Beat Saber\Beat Saber_Data\Managed` folder, then compile. You may need to remove the post build event if your Beat Saber directory isn't at the same location as mine.
 
 # Download
-[Click here to download the latest EnhancedTwitchChat.dll](https://github.com/brian91292/BeatSaber-EnhancedTwitchChat/releases/latest)
+[Click here to download the latest EnhancedTwitchChat.dll](https://www.modsaber.org/mod/enhanced-twitch-chat/1.1.0)
