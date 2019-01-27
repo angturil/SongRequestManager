@@ -29,7 +29,7 @@ Most common options can be configured directly via the Beat Saber settings menu 
 ![Enhanced Twitch Chat settings menu](https://i.imgur.com/GSPmjPb.jpg)
 
 # Config
-For the rest of the config options, you will have to manually edit the config file (in UserData\EnhancedTwitchChat.ini).  *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values (**NOTE:** The only required config option is TwitchChannel):
+For the rest of the config options, you will have to manually edit the config file (in UserData\EnhancedTwitchChat.ini).  *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values (**NOTE:** The only required config option is TwitchChannelName):
 
 | Option | Description |
 | - | - |
