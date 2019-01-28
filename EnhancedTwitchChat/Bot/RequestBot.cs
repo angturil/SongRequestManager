@@ -102,8 +102,8 @@ namespace EnhancedTwitchChat.Bot
 
                 _requestButton.gameObject.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
                 _requestButton.SetButtonTextSize(2.0f);
-                _requestButton.interactable = false;
-                _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
+                _requestButton.interactable = FinalRequestQueue.Count > 0;
+                _requestButton.gameObject.GetComponentInChildren<Image>().color = FinalRequestQueue.Count > 0 ? Color.green : Color.red;
                 BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
                 Plugin.Log("Created request button!");
             }
