@@ -227,7 +227,7 @@ namespace EnhancedTwitchChat.Textures
             if (!CachedTextures.ContainsKey(imageDownloadInfo.spriteIndex))
             {
                 int _waitForFrames = 5;
-                Plugin.Log($"Downloading {imageDownloadInfo.spriteIndex}");
+                //Plugin.Log($"Downloading {imageDownloadInfo.spriteIndex}");
                 if (isAnimated)
                     Instance._animatedImageDownloading = true;
                 else
