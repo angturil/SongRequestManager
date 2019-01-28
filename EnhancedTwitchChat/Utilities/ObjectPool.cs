@@ -10,11 +10,13 @@ namespace EnhancedTwitchChat
     public class ObjectPool<T> where T : Component
     {
         private Stack<T> _freeObjects;
+        private Action<T> FirstAlloc;
         private Action<T> OnAlloc;
         private Action<T> OnFree;
 
-        public ObjectPool(int initialCount = 0, Action<T> OnAlloc = null, Action<T> OnFree = null)
+        public ObjectPool(int initialCount = 0, Action<T> FirstAlloc = null, Action<T> OnAlloc = null, Action<T> OnFree = null)
         {
+            this.FirstAlloc = FirstAlloc;
             this.OnAlloc = OnAlloc;
             this.OnFree = OnFree;
             this._freeObjects = new Stack<T>();
@@ -36,6 +38,7 @@ namespace EnhancedTwitchChat
         {
             T newObj = new GameObject().AddComponent<T>();
             UnityEngine.GameObject.DontDestroyOnLoad(newObj.gameObject);
+            FirstAlloc?.Invoke(newObj);
             return newObj;
         }
 

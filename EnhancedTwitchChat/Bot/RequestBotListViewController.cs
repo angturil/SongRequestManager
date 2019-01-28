@@ -121,7 +121,7 @@ namespace EnhancedTwitchChat.Bot
             _warningTitle.color = Color.red;
             _warningTitle.alignment = TextAlignmentOptions.Center;
             _warningTitle.enableWordWrapping = true;
-
+            
             _warningMessage = new GameObject("WarningText").AddComponent<TextMeshProUGUI>();
             _warningMessage.rectTransform.SetParent(confirmContainer, false);
             _warningMessage.rectTransform.anchoredPosition = new Vector2(0, 0f);
