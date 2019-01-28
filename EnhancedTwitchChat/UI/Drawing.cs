@@ -103,17 +103,6 @@ namespace EnhancedTwitchChat.UI
             }
         }
 
-        private static Material _testMaterial = null;
-        public static Material TestMaterial
-        {
-            get
-            {
-                if (!_testMaterial)
-                    _testMaterial = new Material(Assets.LoadAsset<Shader>("TestShader"));
-                return _testMaterial;
-            }
-        }
-
         private static Material _cropMaterial = null;
         public static Material CropMaterial
         {

@@ -226,6 +226,8 @@ namespace EnhancedTwitchChat
         {
             // Precache a pool of images objects that will be used for displaying emotes/badges later on
             imagePool = new ObjectPool<CustomImage>(0,
+                // FirstAlloc
+                null,
                 // OnAlloc
                 ((CustomImage image) =>
                 {

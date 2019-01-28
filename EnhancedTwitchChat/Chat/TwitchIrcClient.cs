@@ -67,7 +67,7 @@ namespace EnhancedTwitchChat.Chat
                 ChatHandler.Instance.displayStatusMessage = true;
                 return;
             }
-
+            OurChatUser.DisplayName = "Request Bot";
             InitAsyncTwitch();
         }
 

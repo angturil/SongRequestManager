@@ -101,7 +101,7 @@ namespace EnhancedTwitchChat.UI
 
             // If song browser is installed, update/refresh it
             if (_songBrowserInstalled)
-                ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
+                ExecuteSongBrowserAction(resetFilterMode ? SongBrowserAction.ResetFilter : SongBrowserAction.Refresh);
             // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
             else if (resetFilterMode && _songDownloaderInstalled)
                 ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
