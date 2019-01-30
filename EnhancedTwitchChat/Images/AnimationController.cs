@@ -46,7 +46,7 @@ namespace EnhancedTwitchChat.Textures
             return registeredAnimations.IndexOf(newAnim);
         }
 
-        void FixedUpdate()
+        void Update()
         {
             foreach (AnimControllerData animation in registeredAnimations)
             {

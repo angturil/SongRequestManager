@@ -1,5 +1,4 @@
-﻿using AsyncTwitch;
-using CustomUI.BeatSaber;
+﻿using CustomUI.BeatSaber;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.UI;
@@ -35,8 +34,8 @@ namespace EnhancedTwitchChat.Bot
         public class SongRequest
         {
             public JSONObject song;
-            public ChatUser requestor;
-            public SongRequest(JSONObject song, ChatUser requestor)
+            public TwitchUser requestor;
+            public SongRequest(JSONObject song, TwitchUser requestor)
             {
                 this.song = song;
                 this.requestor = requestor;
@@ -45,10 +44,10 @@ namespace EnhancedTwitchChat.Bot
 
         public class RequestInfo
         {
-            public ChatUser requestor;
+            public TwitchUser requestor;
             public string request;
             public bool isBeatSaverId;
-            public RequestInfo(ChatUser requestor, string request, bool isBeatSaverId)
+            public RequestInfo(TwitchUser requestor, string request, bool isBeatSaverId)
             {
                 this.requestor = requestor;
                 this.request = request;
@@ -76,7 +75,7 @@ namespace EnhancedTwitchChat.Bot
         private static FlowCoordinator _levelSelectionFlowCoordinator;
         private static DismissableNavigationController _levelSelectionNavigationController;
         private static Queue<string> _botMessageQueue = new Queue<string>();
-        private static Dictionary<string, Action<ChatUser,string>> Commands = new Dictionary<string, Action<ChatUser,string>>();
+        private static Dictionary<string, Action<TwitchUser, string>> Commands = new Dictionary<string, Action<TwitchUser, string>>();
 
         private static List<string> _songBlacklist = new List<string>();
         private static CustomMenu _songRequestMenu = null;
@@ -143,9 +142,9 @@ namespace EnhancedTwitchChat.Bot
             try
             {
                 Plugin.Log($"Sending message: \"{message}\"");
-                TwitchConnection.Instance.SendRawMessage($"PRIVMSG #{TwitchIRCClient.CurrentChannel} :{message}");
+                TwitchWebSocketClient.SendMessage($"PRIVMSG #{Config.Instance.TwitchChannelName} :{message}");
                 TwitchMessage tmpMessage = new TwitchMessage();
-                tmpMessage.Author = TwitchIRCClient.OurChatUser;
+                tmpMessage.user = TwitchWebSocketClient.OurTwitchUser;
                 MessageParser.Parse(new ChatMessage(message, tmpMessage));
             }
             catch (Exception e)
@@ -163,7 +162,7 @@ namespace EnhancedTwitchChat.Bot
         private IEnumerator CheckRequest(RequestInfo requestInfo)
         {
             _checkingQueue = true;
-            ChatUser requestor = requestInfo.requestor;
+            TwitchUser requestor = requestInfo.requestor;
             string request = requestInfo.request;
             if (requestInfo.isBeatSaverId)
             {
@@ -216,7 +215,7 @@ namespace EnhancedTwitchChat.Bot
                         yield break;
                     }
 
-                    _requestTracker[requestor.UserID].numRequests++;
+                    _requestTracker[requestor.id].numRequests++;
                     FinalRequestQueue.Add(new SongRequest(song, requestor));
                     UpdateRequestButton();
                     QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} added to queue.");
@@ -292,23 +291,23 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-        private void ProcessSongRequest(ChatUser requestor, string request)
+        private void ProcessSongRequest(TwitchUser requestor, string request)
         {
-            if (!_requestTracker.ContainsKey(requestor.UserID))
-                _requestTracker.Add(requestor.UserID, new RequestUserTracker());
+            if (!_requestTracker.ContainsKey(requestor.id))
+                _requestTracker.Add(requestor.id, new RequestUserTracker());
 
             // Only rate limit users who aren't mods or the broadcaster
-            if (!requestor.IsMod && !requestor.IsBroadcaster)
+            if (!requestor.isMod && !requestor.isBroadcaster)
             {
-                if (_requestTracker[requestor.UserID].resetTime <= DateTime.Now)
+                if (_requestTracker[requestor.id].resetTime <= DateTime.Now)
                 {
-                    _requestTracker[requestor.UserID].resetTime = DateTime.Now.AddMinutes(Config.Instance.RequestCooldownMinutes);
-                    _requestTracker[requestor.UserID].numRequests = 0;
+                    _requestTracker[requestor.id].resetTime = DateTime.Now.AddMinutes(Config.Instance.RequestCooldownMinutes);
+                    _requestTracker[requestor.id].numRequests = 0;
                 }
-                if (_requestTracker[requestor.UserID].numRequests >= Config.Instance.RequestLimit)
+                if (_requestTracker[requestor.id].numRequests >= Config.Instance.RequestLimit)
                 {
-                    var time = (_requestTracker[requestor.UserID].resetTime - DateTime.Now);
-                    QueueChatMessage($"{requestor.DisplayName}, you can make another request in{(time.Minutes > 0 ? $" {time.Minutes} minute{(time.Minutes > 1 ? "s" : "")}" : "")} {time.Seconds} second{(time.Seconds > 1 ? "s" : "")}.");
+                    var time = (_requestTracker[requestor.id].resetTime - DateTime.Now);
+                    QueueChatMessage($"{requestor.displayName}, you can make another request in{(time.Minutes > 0 ? $" {time.Minutes} minute{(time.Minutes > 1 ? "s" : "")}" : "")} {time.Seconds} second{(time.Seconds > 1 ? "s" : "")}.");
                     return;
                 }
             }
@@ -371,7 +370,7 @@ namespace EnhancedTwitchChat.Bot
             Instance?.StartCoroutine(ProcessSongRequest());
         }
 
-        public static void Parse(ChatUser user, string request)
+        public static void Parse(TwitchUser user, string request)
         {
             if (!Instance) return;
             if (!request.StartsWith("!")) return;

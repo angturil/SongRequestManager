@@ -32,9 +32,8 @@ namespace EnhancedTwitchChat
         {
             if (Instance != null) return;
             Instance = this;
-
             ChatHandler.OnLoad();
-            Task.Run(() => TwitchIRCClient.Initialize());
+            Task.Run(() => TwitchWebSocketClient.Initialize());
 
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
@@ -45,7 +44,7 @@ namespace EnhancedTwitchChat
         private IEnumerator CheckIfUserHasEnteredChannelName()
         {
             yield return new WaitUntil(() => SceneManager.GetActiveScene().name == "Menu");
-            if(TwitchIRCClient.CurrentChannel == String.Empty)
+            if(Config.Instance.TwitchChannelName == String.Empty)
                 yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { Config.Instance.TwitchChannelName = channelName; Config.Instance.Save(true); }));
         }
         

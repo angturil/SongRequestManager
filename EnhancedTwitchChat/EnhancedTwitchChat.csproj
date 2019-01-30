@@ -36,10 +36,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp" />
-    <Reference Include="AsyncTwitch, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\AsyncTwitch.dll</HintPath>
-    </Reference>
     <Reference Include="BeatSaberCustomUI">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\BeatSaberCustomUI.dll</HintPath>
     </Reference>
@@ -130,6 +126,86 @@
   <ItemGroup>
     <Compile Include="Bot\RequestBot.cs" />
     <Compile Include="Bot\RequestBotListViewController.cs" />
+    <Compile Include="Chat\MessageHandlers.cs" />
+    <Compile Include="Chat\TwitchMessage.cs" />
+    <Compile Include="Chat\TwitchWebSocketClient.cs" />
+    <Compile Include="Chat\websocket-sharp\ByteOrder.cs" />
+    <Compile Include="Chat\websocket-sharp\CloseEventArgs.cs" />
+    <Compile Include="Chat\websocket-sharp\CloseStatusCode.cs" />
+    <Compile Include="Chat\websocket-sharp\CompressionMethod.cs" />
+    <Compile Include="Chat\websocket-sharp\ErrorEventArgs.cs" />
+    <Compile Include="Chat\websocket-sharp\Ext.cs" />
+    <Compile Include="Chat\websocket-sharp\Fin.cs" />
+    <Compile Include="Chat\websocket-sharp\HttpBase.cs" />
+    <Compile Include="Chat\websocket-sharp\HttpRequest.cs" />
+    <Compile Include="Chat\websocket-sharp\HttpResponse.cs" />
+    <Compile Include="Chat\websocket-sharp\LogData.cs" />
+    <Compile Include="Chat\websocket-sharp\Logger.cs" />
+    <Compile Include="Chat\websocket-sharp\LogLevel.cs" />
+    <Compile Include="Chat\websocket-sharp\Mask.cs" />
+    <Compile Include="Chat\websocket-sharp\MessageEventArgs.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\AuthenticationBase.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\AuthenticationChallenge.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\AuthenticationResponse.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\AuthenticationSchemes.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\Chunk.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\ChunkedRequestStream.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\ChunkStream.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\ClientSslConfiguration.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\Cookie.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\CookieCollection.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\CookieException.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\EndPointListener.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\EndPointManager.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpBasicIdentity.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpConnection.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpDigestIdentity.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpHeaderInfo.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpHeaderType.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpListener.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpListenerAsyncResult.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpListenerContext.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpListenerException.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpListenerPrefix.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpListenerPrefixCollection.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpListenerRequest.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpListenerResponse.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpRequestHeader.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpResponseHeader.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpStatusCode.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpStreamAsyncResult.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpUtility.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\HttpVersion.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\InputChunkState.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\InputState.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\LineState.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\NetworkCredential.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\QueryStringCollection.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\ReadBufferState.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\RequestStream.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\ResponseStream.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\ServerSslConfiguration.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\WebHeaderCollection.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\WebSockets\HttpListenerWebSocketContext.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\WebSockets\TcpListenerWebSocketContext.cs" />
+    <Compile Include="Chat\websocket-sharp\Net\WebSockets\WebSocketContext.cs" />
+    <Compile Include="Chat\websocket-sharp\Opcode.cs" />
+    <Compile Include="Chat\websocket-sharp\PayloadData.cs" />
+    <Compile Include="Chat\websocket-sharp\Rsv.cs" />
+    <Compile Include="Chat\websocket-sharp\Server\HttpRequestEventArgs.cs" />
+    <Compile Include="Chat\websocket-sharp\Server\HttpServer.cs" />
+    <Compile Include="Chat\websocket-sharp\Server\IWebSocketSession.cs" />
+    <Compile Include="Chat\websocket-sharp\Server\ServerState.cs" />
+    <Compile Include="Chat\websocket-sharp\Server\WebSocketBehavior.cs" />
+    <Compile Include="Chat\websocket-sharp\Server\WebSocketServer.cs" />
+    <Compile Include="Chat\websocket-sharp\Server\WebSocketServiceHost.cs" />
+    <Compile Include="Chat\websocket-sharp\Server\WebSocketServiceHost`1.cs" />
+    <Compile Include="Chat\websocket-sharp\Server\WebSocketServiceManager.cs" />
+    <Compile Include="Chat\websocket-sharp\Server\WebSocketSessionManager.cs" />
+    <Compile Include="Chat\websocket-sharp\WebSocket.cs" />
+    <Compile Include="Chat\websocket-sharp\WebSocketException.cs" />
+    <Compile Include="Chat\websocket-sharp\WebSocketFrame.cs" />
+    <Compile Include="Chat\websocket-sharp\WebSocketState.cs" />
     <Compile Include="UI\ColorExtensions.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Chat\ChatMover.cs" />
@@ -146,7 +222,6 @@
     <Compile Include="UI\SongListUtils.cs" />
     <Compile Include="Utilities\ObjectPool.cs" />
     <Compile Include="Utilities\ReflectionUtil.cs" />
-    <Compile Include="Chat\TwitchIrcClient.cs" />
     <Compile Include="Utilities\Utilities.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -2845,6 +2920,11 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources\Assets" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Chat\websocket-sharp\doc\.gitignore" />
+    <None Include="Chat\websocket-sharp\doc\doc.sh" />
+    <None Include="Chat\websocket-sharp\websocket-sharp.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

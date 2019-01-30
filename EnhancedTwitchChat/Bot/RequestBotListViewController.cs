@@ -243,7 +243,7 @@ namespace EnhancedTwitchChat.Bot
             LevelListTableCell _tableCell = Instantiate(_songListTableCellInstance);
             RequestBot.SongRequest request = SongInfoForRow(row);
             JSONObject song = request.song;
-            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.DisplayName}");
+            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}");
             _tableCell.songName = song["songName"];
             _tableCell.author = song["authorName"];
             if (SongLoader.AreSongsLoaded)

@@ -18,6 +18,8 @@ namespace EnhancedTwitchChat
         public string FilePath { get; }
 
         public string TwitchChannelName = "";
+        public string TwitchUsername = "";
+        public string TwitchOAuthToken = "";
         //public string TwitchUsername = "";
         //public string TwitchoAuthToken = "";
         public string FontName = "Segoe UI";
@@ -162,8 +164,7 @@ namespace EnhancedTwitchChat
                 }
                 Load();
             }
-            else
-                Save();
+            Save();
 
             _configWatcher = new FileSystemWatcher($"{Environment.CurrentDirectory}\\UserData")
             {
