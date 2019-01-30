@@ -54,6 +54,7 @@ namespace EnhancedTwitchChat.Chat
             _messageHandlers.Add("PRIVMSG", MessageHandlers.PRIVMSG);
             _messageHandlers.Add("ROOMSTATE", MessageHandlers.ROOMSTATE);
             _messageHandlers.Add("USERNOTICE", MessageHandlers.USERNOTICE);
+            _messageHandlers.Add("USERSTATE", MessageHandlers.USERSTATE);
             _messageHandlers.Add("CLEARCHAT", MessageHandlers.CLEARCHAT);
             _messageHandlers.Add("CLEARMSG", MessageHandlers.CLEARMSG);
             _messageHandlers.Add("MODE", MessageHandlers.MODE);
@@ -116,7 +117,7 @@ namespace EnhancedTwitchChat.Chat
                 Plugin.Log("Ping... Pong.");
                 _ws.Send("PONG :tmi.twitch.tv");
             }
-
+            
             var messageType = _twitchMessageRegex.Match(rawMessage);
             if (messageType.Length == 0)
             {
@@ -124,13 +125,17 @@ namespace EnhancedTwitchChat.Chat
                 return;
             }
 
+            string channelName = messageType.Groups["ChannelName"].Value;
+            if (channelName != Config.Instance.TwitchChannelName)
+                return;
+
             // Instantiate our twitch message
             TwitchMessage twitchMsg = new TwitchMessage();
             twitchMsg.rawMessage = rawMessage;
             twitchMsg.message = _messageRegex.Match(twitchMsg.rawMessage).Groups["Message"].Value;
             twitchMsg.hostString = messageType.Groups["HostName"].Value;
             twitchMsg.messageType = messageType.Groups["MessageType"].Value;
-            twitchMsg.channelName = messageType.Groups["ChannelName"].Value;
+            twitchMsg.channelName = channelName;
 
             // Find all the message tags
             var tags = _tagRegex.Matches(rawMessage);

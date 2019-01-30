@@ -41,7 +41,7 @@ namespace EnhancedTwitchChat.Textures
     public class MessageParser : MonoBehaviour
     {
         private static readonly Regex _emoteRegex = new Regex(@"(?<EmoteIndex>[0-9]+):(?<StartIndex>[^-]+)-(?<EndIndex>[^,^\/\s^;]+)");
-        private static readonly Regex _badgeRegex = new Regex(@"(?<BadgeName>[a-z,0-9,_-]+)\/(?<BadgeVersion>[^,^;]+)");
+        private static readonly Regex _badgeRegex = new Regex(@"(?<BadgeName>[a-z,0-9,_-]+)\/(?<BadgeVersion>[^,^;]+),*");
 
         private static Dictionary<int, string> _userColors = new Dictionary<int, string>();
         public static void Parse(ChatMessage newChatMessage)
@@ -78,7 +78,7 @@ namespace EnhancedTwitchChat.Textures
                 }
                 Thread.Sleep(5);
             }
-
+            
             var badges = _badgeRegex.Matches(newChatMessage.twitchMessage.user.badges);
             // Parse and download any twitch badges included in the message
             if (badges.Count > 0)

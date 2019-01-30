@@ -479,7 +479,7 @@ namespace EnhancedTwitchChat
                 {
                     string userName = $"<color={currentMessage.messageInfo.twitchMessage.user.color}><b>{currentMessage.messageInfo.twitchMessage.user.displayName}</b></color>:";
                     if (currentMessage.text.Contains(userName))
-                        currentMessage.text = $"{userName} <message deleted>";
+                        currentMessage.text = $"{userName}: <message deleted>";
                     else
                         currentMessage.text = "";
 
