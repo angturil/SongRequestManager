@@ -59,9 +59,7 @@ namespace EnhancedTwitchChat.Chat
             _messageHandlers.Add("CLEARMSG", MessageHandlers.CLEARMSG);
             _messageHandlers.Add("MODE", MessageHandlers.MODE);
             _messageHandlers.Add("JOIN", MessageHandlers.JOIN);
-
-            // TODO HANDLE USERSTATE
-
+            
             // Create our websocket object and setup the callbacks
             _ws = new WebSocketSharp.WebSocket("wss://irc-ws.chat.twitch.tv:443");
             _ws.OnOpen += (sender, e) =>
@@ -143,8 +141,6 @@ namespace EnhancedTwitchChat.Chat
             // Call the appropriate handler for this messageType
             if (_messageHandlers.ContainsKey(twitchMsg.messageType))
                 _messageHandlers[twitchMsg.messageType]?.Invoke(twitchMsg, tags);
-            else
-                Plugin.Log($"Unhandled message that met criteria! {rawMessage}");
         }
     }
 }

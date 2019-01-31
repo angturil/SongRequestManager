@@ -111,8 +111,6 @@ namespace EnhancedTwitchChat.Chat
 
         public static void USERNOTICE(TwitchMessage twitchMsg, MatchCollection tags)
         {
-            Plugin.Log($"Raw USERNOTICE: {twitchMsg.rawMessage}");
-
             foreach (Match t in tags)
                 ParseMessageTag(t, ref twitchMsg);
 
@@ -131,7 +129,6 @@ namespace EnhancedTwitchChat.Chat
                         break;
                 }
             }
-            
             switch(msgId)
             {
                 case "sub":
