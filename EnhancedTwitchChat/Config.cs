@@ -226,7 +226,7 @@ namespace EnhancedTwitchChat
 
             ImportAsyncTwitchConfig();
 
-            if (!TwitchOAuthToken.StartsWith("oauth:"))
+            if (TwitchOAuthToken != String.Empty && !TwitchOAuthToken.StartsWith("oauth:"))
                 TwitchOAuthToken = "oauth:" + TwitchOAuthToken;
 
             if (TwitchChannelName.Length > 0)
