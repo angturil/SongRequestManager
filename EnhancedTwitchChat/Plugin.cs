@@ -17,7 +17,7 @@ namespace EnhancedTwitchChat
     public class Plugin : IPlugin
     {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "1.1.3";
+        public string Version => "1.1.4";
 
         public bool IsAtMainMenu = true;
         public static Plugin Instance { get; private set; }

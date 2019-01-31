@@ -1,4 +1,5 @@
 ﻿using IllusionPlugin;
+using SimpleJSON;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,8 +21,6 @@ namespace EnhancedTwitchChat
         public string TwitchChannelName = "";
         public string TwitchUsername = "";
         public string TwitchOAuthToken = "";
-        //public string TwitchUsername = "";
-        //public string TwitchoAuthToken = "";
         public string FontName = "Segoe UI";
         //public int BombBitValue;
         //public int TwitchBitBalance;
@@ -152,21 +151,20 @@ namespace EnhancedTwitchChat
 
             if (File.Exists(FilePath))
             {
-                var text = File.ReadAllText(FilePath);
-                if(text.Contains("TwitchChannel="))
+                Load();
+                
+                if (File.ReadAllText(FilePath).Contains("TwitchChannel="))
                 {
                     var oldConfig = new OldConfigOptions();
                     ConfigSerializer.LoadConfig(oldConfig, FilePath);
 
                     TwitchChannelName = oldConfig.TwitchChannel;
-
-                    Save();
                 }
-                Load();
             }
+            CorrectConfigSettings();
             Save();
 
-            _configWatcher = new FileSystemWatcher($"{Environment.CurrentDirectory}\\UserData")
+            _configWatcher = new FileSystemWatcher(Path.Combine(Environment.CurrentDirectory, "UserData"))
             {
                 NotifyFilter = NotifyFilters.LastWrite,
                 Filter = "EnhancedTwitchChat.ini",
@@ -179,20 +177,57 @@ namespace EnhancedTwitchChat
         {
             _configWatcher.Changed -= ConfigWatcherOnChanged;
         }
-        
 
         public void Load()
         {
             ConfigSerializer.LoadConfig(this, FilePath);
-            if (BackgroundPadding < 0)
-            {
-                BackgroundPadding = 0;
-            }
 
-            if (MaxChatLines < 1)
+            CorrectConfigSettings();
+        }
+
+        public void Save(bool callback = false)
+        {
+            if (!callback)
+                _saving = true;
+            ConfigSerializer.SaveConfig(this, FilePath);
+        }
+
+        private void ImportAsyncTwitchConfig()
+        {
+            try
             {
-                MaxChatLines = 1;
+                string asyncTwitchConfig = Path.Combine(Environment.CurrentDirectory, "UserData", "AsyncTwitchConfig.json");
+                if (File.Exists(asyncTwitchConfig))
+                {
+                    JSONNode node = JSON.Parse(File.ReadAllText(asyncTwitchConfig));
+                    if (!node.IsNull)
+                    {
+                        if (node["Username"].IsString && TwitchUsername == String.Empty)
+                            TwitchUsername = node["Username"].Value;
+                        if (node["ChannelName"].IsString && TwitchChannelName == String.Empty)
+                            TwitchChannelName = node["ChannelName"].Value;
+                        if (node["OauthKey"].IsString && TwitchOAuthToken == String.Empty)
+                            TwitchOAuthToken = node["OauthKey"].Value;
+                    }
+                }
             }
+            catch (Exception e)
+            {
+                Plugin.Log($"Error when trying to parse AsyncTwitchConfig! {e}");
+            }
+        }
+
+        private void CorrectConfigSettings()
+        {
+            if (BackgroundPadding < 0)
+                BackgroundPadding = 0;
+            if (MaxChatLines < 1)
+                MaxChatLines = 1;
+
+            ImportAsyncTwitchConfig();
+
+            if (!TwitchOAuthToken.StartsWith("oauth:"))
+                TwitchOAuthToken = "oauth:" + TwitchOAuthToken;
 
             if (TwitchChannelName.Length > 0)
             {
@@ -205,13 +240,6 @@ namespace EnhancedTwitchChat
                 }
                 TwitchChannelName = TwitchChannelName.ToLower().Replace(" ", "");
             }
-        }
-
-        public void Save(bool callback = false)
-        {
-            if(!callback)
-                _saving = true;
-            ConfigSerializer.SaveConfig(this, FilePath);
         }
 
         private void ConfigWatcherOnChanged(object sender, FileSystemEventArgs fileSystemEventArgs)
