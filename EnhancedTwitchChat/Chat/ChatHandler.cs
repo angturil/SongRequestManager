@@ -13,7 +13,6 @@ using System.IO;
 using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.UI;
-using AsyncTwitch;
 using UnityEngine.XR;
 using CustomUI.Utilities;
 
@@ -65,7 +64,7 @@ namespace EnhancedTwitchChat
             new GameObject("EnhancedTwitchChatAnimationController").AddComponent<AnimationController>();
 
             // Stop config updated callback when we haven't switched channels
-            lastChannel = TwitchIRCClient.CurrentChannel;
+            lastChannel = Config.Instance.TwitchChannelName;
 
             // Initialize the chats UI
             InitializeChatUI();
@@ -105,16 +104,16 @@ namespace EnhancedTwitchChat
             //if (lastChannel != String.Empty)
             //    TwitchConnection.Instance.PartRoom(lastChannel);
             Plugin.Log("OnConfigChanged");
-            if (TwitchIRCClient.Initialized)
+            if (TwitchWebSocketClient.Initialized)
             {
-                if (TwitchIRCClient.CurrentChannel != lastChannel)
+                if (Config.Instance.TwitchChannelName != lastChannel)
                 {
-                    if (TwitchIRCClient.CurrentChannel != String.Empty)
-                        TwitchConnection.Instance.JoinRoom(TwitchIRCClient.CurrentChannel);
-                    TwitchIRCClient.ConnectionTime = DateTime.Now;
+                    if (Config.Instance.TwitchChannelName != String.Empty)
+                        TwitchWebSocketClient.JoinChannel(Config.Instance.TwitchChannelName);
+                    TwitchWebSocketClient.ConnectionTime = DateTime.Now;
                     displayStatusMessage = true;
                 }
-                lastChannel = TwitchIRCClient.CurrentChannel;
+                lastChannel = Config.Instance.TwitchChannelName;
             }
             if (Config.Instance.FontName != _lastFontName)
             {
@@ -143,29 +142,28 @@ namespace EnhancedTwitchChat
             if (Drawing.MaterialsCached)
             {
                 // Wait a few seconds after we've connect to the chat, then send our welcome message
-                if (displayStatusMessage && (TwitchIRCClient.CurrentChannelValid || (DateTime.Now - TwitchIRCClient.ConnectionTime).TotalSeconds >= 5))
+                if (displayStatusMessage && (TwitchWebSocketClient.IsChannelValid || (DateTime.Now - TwitchWebSocketClient.ConnectionTime).TotalSeconds >= 5))
                 {
                     string msg;
-                    if (TwitchConnection.IsConnected)
+                    if (TwitchWebSocketClient.Initialized)
                     {
                         ImageDownloader.Instance.Init();
 
-                        if (TwitchIRCClient.CurrentChannel == String.Empty)
+                        if (Config.Instance.TwitchChannelName == String.Empty)
                             msg = $"Welcome to Enhanced Twitch Chat! To continue, enter your Twitch channel name in the Enhanced Twitch Chat settings submenu, or manually in UserData\\EnhancedTwitchChat.ini, which is located in your Beat Saber directory.";
-                        else if (TwitchIRCClient.CurrentChannelValid)
-                            msg = $"Success joining channel \"{TwitchIRCClient.CurrentChannel}\"";
+                        else if (TwitchWebSocketClient.IsChannelValid)
+                            msg = $"Success joining channel \"{Config.Instance.TwitchChannelName}\"";
                         else
-                            msg = $"Failed to join channel \"{TwitchIRCClient.CurrentChannel}\". Please enter a valid Twitch channel name in the Enhanced Twitch Chat settings submenu, or manually in EnhancedTwitchChat.ini or AsyncTwitchConfig.json, then try again.";
+                            msg = $"Failed to join channel \"{Config.Instance.TwitchChannelName}\". Please enter a valid Twitch channel name in the Enhanced Twitch Chat settings submenu, or manually in EnhancedTwitchChat.ini, then try again.";
                     }
                     else
-                        msg = "Failed to login to Twitch! Please check your login info in UserData\\AsyncTwitchConfig.json (username/oauth), then try again.\r\n\r\n<b>NOTE:</b> You are not required to enter anything in AsyncTwitchConfig.json! Enhanced Twitch Chat supports anonymous login; all you need to enter is your channel name! If you aren't using AsyncTwitch for anything else, it's safe to delete the AsyncTwitchConfig.json.";
+                        msg = "Failed to login to Twitch! Please check your login info in UserData\\EnhancedTwitchChat.ini, then try again.";
 
                     TwitchMessage tmpMessage = new TwitchMessage();
-                    tmpMessage.Author = new ChatUser();
-                    tmpMessage.Author.Color = "#00000000";
-                    tmpMessage.Author.DisplayName = String.Empty;
+                    tmpMessage.user.color = "#00000000";
+                    tmpMessage.user.displayName = String.Empty;
 
-                    TwitchIRCClient.RenderQueue.Enqueue(new ChatMessage(msg, tmpMessage));
+                    TwitchWebSocketClient.RenderQueue.Enqueue(new ChatMessage(msg, tmpMessage));
 
                     displayStatusMessage = false;
                 }
@@ -189,9 +187,9 @@ namespace EnhancedTwitchChat
                 //    return;
 
                 // Display any messages that we've cached all the resources for and prepared for rendering
-                if (TwitchIRCClient.RenderQueue.Count > 0 && !_messageRendering)
+                if (TwitchWebSocketClient.RenderQueue.Count > 0 && !_messageRendering)
                 {
-                    if (TwitchIRCClient.RenderQueue.TryDequeue(out var messageToSend))
+                    if (TwitchWebSocketClient.RenderQueue.TryDequeue(out var messageToSend))
                         StartCoroutine(AddNewChatMessage(messageToSend.msg, messageToSend));
                 }
 
@@ -310,7 +308,7 @@ namespace EnhancedTwitchChat
                 
                 // Italicize action messages and make the whole message the color of the users name
                 if (messageInfo.isActionMessage)
-                    msg = $"<i><color={messageInfo.twitchMessage.Author.Color}>{msg}</color></i>";
+                    msg = $"<i><color={messageInfo.twitchMessage.user.color}>{msg}</color></i>";
 
                 currentMessage = _chatMessages.Dequeue();
                 currentMessage.hasRendered = false;
@@ -435,6 +433,18 @@ namespace EnhancedTwitchChat
             }
         }
 
+        private bool PurgeChatMessage(CustomText currentMessage)
+        {
+            string userName = $"<color={currentMessage.messageInfo.twitchMessage.user.color}><b>{currentMessage.messageInfo.twitchMessage.user.displayName}</b></color>:";
+            if (currentMessage.text.Contains(userName))
+                currentMessage.text = $"{userName} <message deleted>";
+            else
+                currentMessage.text = "";
+
+            FreeImages(currentMessage);
+            return true;
+        }
+
         private void PurgeChatMessagesInternal(string userID)
         {
             bool purged = false;
@@ -442,9 +452,9 @@ namespace EnhancedTwitchChat
             {
                 if (currentMessage.messageInfo == null) continue;
 
-                if (currentMessage.messageInfo.twitchMessage.Author.UserID == userID)
+                if (currentMessage.messageInfo.twitchMessage.user.id == userID)
                 {
-                    string userName = $"<color={currentMessage.messageInfo.twitchMessage.Author.Color}><b>{currentMessage.messageInfo.twitchMessage.Author.DisplayName}</b></color>:";
+                    string userName = $"<color={currentMessage.messageInfo.twitchMessage.user.color}><b>{currentMessage.messageInfo.twitchMessage.user.displayName}</b></color>:";
                     if (currentMessage.text.Contains(userName))
                         currentMessage.text = $"{userName} <message deleted>";
                     else
@@ -455,6 +465,29 @@ namespace EnhancedTwitchChat
                 }
             }
             if(purged)
+                UpdateChatUI();
+        }
+
+        public void PurgeChatMessageById(string messageId)
+        {
+            bool purged = false;
+            foreach (CustomText currentMessage in _chatMessages)
+            {
+                if (currentMessage.messageInfo == null) continue;
+
+                if (currentMessage.messageInfo.twitchMessage.id == messageId)
+                {
+                    string userName = $"<color={currentMessage.messageInfo.twitchMessage.user.color}><b>{currentMessage.messageInfo.twitchMessage.user.displayName}</b></color>:";
+                    if (currentMessage.text.Contains(userName))
+                        currentMessage.text = $"{userName}: <message deleted>";
+                    else
+                        currentMessage.text = "";
+
+                    FreeImages(currentMessage);
+                    purged = true;
+                }
+            }
+            if (purged)
                 UpdateChatUI();
         }
 

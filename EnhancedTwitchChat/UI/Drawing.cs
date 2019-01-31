@@ -9,7 +9,6 @@ using UnityEngine.UI;
 using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Textures;
-using AsyncTwitch;
 using System.Collections;
 using static POCs.Sanjay.SharpSnippets.Drawing.ColorExtensions;
 using Random = System.Random;

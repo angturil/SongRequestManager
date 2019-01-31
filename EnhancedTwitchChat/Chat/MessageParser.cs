@@ -15,7 +15,6 @@ using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using System.Text.RegularExpressions;
 using EnhancedTwitchChat.UI;
-using AsyncTwitch;
 using static POCs.Sanjay.SharpSnippets.Drawing.ColorExtensions;
 using Random = System.Random;
 
@@ -41,6 +40,9 @@ namespace EnhancedTwitchChat.Textures
 
     public class MessageParser : MonoBehaviour
     {
+        private static readonly Regex _emoteRegex = new Regex(@"(?<EmoteIndex>[0-9]+):(?<StartIndex>[^-]+)-(?<EndIndex>[^,^\/\s^;]+)");
+        private static readonly Regex _badgeRegex = new Regex(@"(?<BadgeName>[a-z,0-9,_-]+)\/(?<BadgeVersion>[^,^;]+),*");
+
         private static Dictionary<int, string> _userColors = new Dictionary<int, string>();
         public static void Parse(ChatMessage newChatMessage)
         {
@@ -52,19 +54,20 @@ namespace EnhancedTwitchChat.Textures
             if (isActionMessage)
                 newChatMessage.msg = newChatMessage.msg.TrimEnd((char)0x1).Substring(8);
 
+            var emotes = _emoteRegex.Matches(newChatMessage.twitchMessage.emotes);
             // Parse and download any twitch emotes in the message
-            if (newChatMessage.twitchMessage.Emotes.Count() > 0)
+            if (emotes.Count > 0)
             {
-                foreach (TwitchEmote e in newChatMessage.twitchMessage.Emotes)
+                foreach (Match e in emotes)
                 {
-                    string emoteIndex = $"T{e.Id}";
+                    string emoteIndex = $"T{e.Groups["EmoteIndex"].Value}";
                     if (!ImageDownloader.CachedTextures.ContainsKey(emoteIndex))
-                        ImageDownloader.Instance.Queue(new TextureDownloadInfo(emoteIndex, ImageType.Twitch, newChatMessage.twitchMessage.Id));
+                        ImageDownloader.Instance.Queue(new TextureDownloadInfo(emoteIndex, ImageType.Twitch, newChatMessage.twitchMessage.id));
                     
-                    int startReplace = Convert.ToInt32(e.Index[0][0]);
-                    int endReplace = Convert.ToInt32(e.Index[0][1]);
+                    int startReplace = Convert.ToInt32(e.Groups["StartIndex"].Value);
+                    int endReplace = Convert.ToInt32(e.Groups["EndIndex"].Value);
                     string msg = newChatMessage.msg;
-
+                    
                     EmoteInfo swapInfo = new EmoteInfo();
                     swapInfo.swapChar = swapChar;
                     swapInfo.swapString = msg.Substring(startReplace, endReplace - startReplace + 1);
@@ -75,19 +78,20 @@ namespace EnhancedTwitchChat.Textures
                 }
                 Thread.Sleep(5);
             }
-
+            
+            var badges = _badgeRegex.Matches(newChatMessage.twitchMessage.user.badges);
             // Parse and download any twitch badges included in the message
-            if (newChatMessage.twitchMessage.Author.Badges.Count() > 0)
+            if (badges.Count > 0)
             {
-                foreach (Badge b in newChatMessage.twitchMessage.Author.Badges)
+                foreach (Match b in badges)
                 {
-                    string badgeName = $"{b.BadgeName}{b.BadgeVersion}";
+                    string badgeName = $"{b.Groups["BadgeName"].Value}{b.Groups["BadgeVersion"].Value}";
                     string badgeIndex = string.Empty;
                     if (ImageDownloader.TwitchBadgeIDs.ContainsKey(badgeName))
                     {
                         badgeIndex = ImageDownloader.TwitchBadgeIDs[badgeName];
                         if (!ImageDownloader.CachedTextures.ContainsKey(badgeIndex))
-                            ImageDownloader.Instance.Queue(new TextureDownloadInfo(badgeIndex, ImageType.Badge, newChatMessage.twitchMessage.Id));
+                            ImageDownloader.Instance.Queue(new TextureDownloadInfo(badgeIndex, ImageType.Badge, newChatMessage.twitchMessage.id));
 
                         BadgeInfo swapInfo = new BadgeInfo();
                         swapInfo.swapChar = swapChar;
@@ -114,7 +118,7 @@ namespace EnhancedTwitchChat.Textures
                     {
                         emojiIndex += ".png";
                         if (!ImageDownloader.CachedTextures.ContainsKey(emojiIndex))
-                            ImageDownloader.Instance.Queue(new TextureDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.twitchMessage.Id));
+                            ImageDownloader.Instance.Queue(new TextureDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.twitchMessage.id));
 
                         if (!foundEmojis.Contains(emojiIndex))
                         {
@@ -157,7 +161,7 @@ namespace EnhancedTwitchChat.Textures
                     textureIndex = $"F{ImageDownloader.FFZEmoteIDs[word]}";
                     imageType = ImageType.FFZ;
                 }
-                else if (newChatMessage.twitchMessage.GaveBits && Utilities.cheermoteRegex.IsMatch(word.ToLower()))
+                else if (newChatMessage.twitchMessage.bits > 0 && Utilities.cheermoteRegex.IsMatch(word.ToLower()))
                 {
                     Match match = Utilities.cheermoteRegex.Match(word.ToLower());
                     string prefix = match.Groups["Prefix"].Value;
@@ -173,7 +177,7 @@ namespace EnhancedTwitchChat.Textures
                 if (imageType != ImageType.None)
                 {
                     if (!ImageDownloader.CachedTextures.ContainsKey(textureIndex))
-                        ImageDownloader.Instance.Queue(new TextureDownloadInfo(textureIndex, imageType, newChatMessage.twitchMessage.Id));
+                        ImageDownloader.Instance.Queue(new TextureDownloadInfo(textureIndex, imageType, newChatMessage.twitchMessage.id));
 
                     EmoteInfo swapInfo = new EmoteInfo();
                     swapInfo.imageType = imageType;
@@ -221,11 +225,11 @@ namespace EnhancedTwitchChat.Textures
             //    msg = $"<mark=#ffff0050>{msg}</mark>";
             //}
 
-            string displayColor = newChatMessage.twitchMessage.Author.Color;
-            if ((displayColor == null || displayColor == String.Empty) && !_userColors.ContainsKey(newChatMessage.twitchMessage.Author.DisplayName.GetHashCode()))
+            string displayColor = newChatMessage.twitchMessage.user.color;
+            if ((displayColor == null || displayColor == String.Empty) && !_userColors.ContainsKey(newChatMessage.twitchMessage.user.displayName.GetHashCode()))
             {
                 // Generate a random color
-                Random rand = new Random(newChatMessage.twitchMessage.Author.DisplayName.GetHashCode());
+                Random rand = new Random(newChatMessage.twitchMessage.user.displayName.GetHashCode());
                 int r = rand.Next(255);
                 int g = rand.Next(255);
                 int b = rand.Next(255);
@@ -234,12 +238,12 @@ namespace EnhancedTwitchChat.Textures
                 System.Drawing.Color pastelColor = Drawing.GetPastelShade(System.Drawing.Color.FromArgb(255, r, g, b));
                 int argb = ((int)pastelColor.R << 16) + ((int)pastelColor.G << 8) + (int)pastelColor.B;
                 string colorString = String.Format("#{0:X6}", argb) + "FF";
-                _userColors.Add(newChatMessage.twitchMessage.Author.DisplayName.GetHashCode(), colorString);
+                _userColors.Add(newChatMessage.twitchMessage.user.displayName.GetHashCode(), colorString);
             }
-            newChatMessage.twitchMessage.Author.Color = (displayColor == null || displayColor == string.Empty) ? _userColors[newChatMessage.twitchMessage.Author.DisplayName.GetHashCode()] : displayColor;
+            newChatMessage.twitchMessage.user.color = (displayColor == null || displayColor == string.Empty) ? _userColors[newChatMessage.twitchMessage.user.displayName.GetHashCode()] : displayColor;
 
             // Add the users name to the message with the correct color
-            newChatMessage.msg = $"<color={newChatMessage.twitchMessage.Author.Color}><b>{newChatMessage.twitchMessage.Author.DisplayName}</b></color>{(isActionMessage ? String.Empty : ":")} {newChatMessage.msg}";
+            newChatMessage.msg = $"<color={newChatMessage.twitchMessage.user.color}><b>{newChatMessage.twitchMessage.user.displayName}</b></color>{(isActionMessage ? String.Empty : ":")} {newChatMessage.msg}";
 
             // Prepend the users badges to the front of the message
             string badgeStr = String.Empty;
@@ -255,7 +259,7 @@ namespace EnhancedTwitchChat.Textures
             newChatMessage.parsedEmotes = parsedEmotes;
             newChatMessage.parsedBadges = parsedBadges;
             newChatMessage.isActionMessage = isActionMessage;
-            TwitchIRCClient.RenderQueue.Enqueue(newChatMessage);
+            TwitchWebSocketClient.RenderQueue.Enqueue(newChatMessage);
         }
 
     };
