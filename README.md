@@ -34,6 +34,8 @@ For the rest of the config options, you will have to manually edit the config fi
 | Option | Description |
 | - | - |
 | **TwitchChannelName** | The name of the Twitch channel whos chat you want to join (this is your Twitch username if you want to join your own channel) |
+| **TwitchUsername** | Your twitch username for the account you want to send messages as in chat (only matters if you're using the request bot) |
+| **TwitchOAuthToken** | The oauth token corresponding to the TwitchUsername entered above ([Click here to generate an oauth token](https://twitchapps.com/tmi/))  |
 | **FontName** | The name of the system font that should be used for chat messages. You can specify any font installed on your computer! |
 | **ChatScale** | How large the chat messages/emotes should be displayed. |
 | **ChatWidth** | The width of the chat, regardless of ChatScale. |
@@ -53,7 +55,6 @@ For the rest of the config options, you will have to manually edit the config fi
 | **RequestLimit** | The maximum number of requests a user can make within the amount of time defined in RequestCooldownMinutes. |
 | **RequestCooldownMinutes** | A user can make as many requests as are defined in RequestLimit within this amount of time. |
 | **SongBlacklist** | A list of BeatSaver ids that are not allowed to be requested. |
-
 
 # Compiling
 To compile this mod simply clone the repo and update the project references to reference the corresponding assemblies in the `Beat Saber\Beat Saber_Data\Managed` folder, then compile. You may need to remove the post build event if your Beat Saber directory isn't at the same location as mine.
