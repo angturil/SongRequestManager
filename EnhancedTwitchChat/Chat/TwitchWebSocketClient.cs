@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 namespace EnhancedTwitchChat.Chat
 {
@@ -41,7 +42,20 @@ namespace EnhancedTwitchChat.Chat
         public static DateTime ConnectionTime;
         public static TwitchUser OurTwitchUser = new TwitchUser("Request Bot");
 
-        public static bool IsChannelValid {
+        private static Queue<string> _sendQueue = new Queue<string>();
+        private static int _messagesSent = 0;
+        private static int _sendResetInterval = 30;
+        private static DateTime _sendLimitResetTime = DateTime.Now;
+        private static int _messageLimit
+        {
+            get
+            {
+                return (OurTwitchUser.isBroadcaster || OurTwitchUser.isMod) ? 100 : 20;
+            }
+        }
+
+        public static bool IsChannelValid
+        {
             get
             {
                 return TwitchWebSocketClient.ChannelInfo.ContainsKey(Config.Instance.TwitchChannelName) && ChannelInfo[Config.Instance.TwitchChannelName].roomId != String.Empty;
@@ -87,12 +101,36 @@ namespace EnhancedTwitchChat.Chat
                 
             // Then start the connection
             _ws.ConnectAsync();
+            ProcessSendQueue();
         }
 
-        public static void SendMessage(string msg, Action<bool> OnCompleted = null)
+        private static void ProcessSendQueue()
         {
-            if(_ws.IsConnected) 
-                _ws.SendAsync(msg, (success) => { OnCompleted?.Invoke(success); });
+            while(true)
+            {
+                if (_sendLimitResetTime < DateTime.Now)
+                {
+                    _messagesSent = 0;
+                    _sendLimitResetTime = DateTime.Now.AddSeconds(_sendResetInterval);
+                }
+
+                if (_sendQueue.Count > 0)
+                {
+                    if (_messagesSent < _messageLimit)
+                    {
+                        _ws.SendAsync(_sendQueue.Dequeue(), (succes) => { });
+                        _messagesSent++;
+                    }
+                }
+
+                Thread.Sleep(250);
+            }
+        }
+
+        public static void SendMessage(string msg)
+        {
+            if (_ws.IsConnected)
+                _sendQueue.Enqueue(msg);
         }
 
         public static void JoinChannel(string channel)
@@ -114,6 +152,7 @@ namespace EnhancedTwitchChat.Chat
             {
                 Plugin.Log("Ping... Pong.");
                 _ws.Send("PONG :tmi.twitch.tv");
+                return;
             }
             
             var messageType = _twitchMessageRegex.Match(rawMessage);

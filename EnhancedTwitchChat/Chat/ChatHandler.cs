@@ -47,7 +47,7 @@ namespace EnhancedTwitchChat
         private string _lastFontName;
         private CustomText _testMessage = null;
         private readonly WaitUntil _delay = new WaitUntil(() => { return Instance._waitForFrames == 0; });
-
+        
         public static void OnLoad()
         {
             if (Instance) return;
