@@ -42,10 +42,11 @@ namespace EnhancedTwitchChat.Chat
         public static DateTime ConnectionTime;
         public static TwitchUser OurTwitchUser = new TwitchUser("Request Bot");
 
+        private static DateTime _sendLimitResetTime = DateTime.Now;
         private static Queue<string> _sendQueue = new Queue<string>();
         private static int _messagesSent = 0;
         private static int _sendResetInterval = 30;
-        private static DateTime _sendLimitResetTime = DateTime.Now;
+        private static int _reconnectCooldown = 500;
         private static int _messageLimit
         {
             get
@@ -78,7 +79,10 @@ namespace EnhancedTwitchChat.Chat
             _ws = new WebSocketSharp.WebSocket("wss://irc-ws.chat.twitch.tv:443");
             _ws.OnOpen += (sender, e) =>
             {
-                Plugin.Log("Connected! Sending login info!");
+                // Reset our reconnect cooldown timer
+                _reconnectCooldown = 500;
+
+                Plugin.Log("Connected to Twitch!");
                 _ws.Send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
 
                 string username = Config.Instance.TwitchUsername;
@@ -97,11 +101,31 @@ namespace EnhancedTwitchChat.Chat
 
                 Initialized = true;
             };
+
+            _ws.OnClose += (sender, e) =>
+            {
+                Plugin.Log("Twitch connection terminated.");
+                Reconnect();
+            };
+
+            _ws.OnError += (sender, e) =>
+            {
+                Plugin.Log($"An error occured in the twitch connection! Error: {e.Message}, Exception: {e.Exception}");
+                Reconnect();
+            };
+
             _ws.OnMessage += Ws_OnMessage;
                 
             // Then start the connection
             _ws.ConnectAsync();
             ProcessSendQueue();
+        }
+
+        private static void Reconnect()
+        {
+            Thread.Sleep(_reconnectCooldown *= 2);
+            Plugin.Log("Attempting to reconnect...");
+            _ws.ConnectAsync();
         }
 
         private static void ProcessSendQueue()

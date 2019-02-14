@@ -338,6 +338,7 @@ namespace EnhancedTwitchChat.Textures
             yield return PreloadAnimatedEmotes();
         }
 
+        
         public static IEnumerator PreloadAnimatedEmotes()
         {
             int count = 0;
@@ -361,37 +362,39 @@ namespace EnhancedTwitchChat.Textures
         public static IEnumerator GetCheermotes()
         {
             int emotesCached = 0;
-            UnityWebRequest web = UnityWebRequest.Get("https://api.twitch.tv/kraken/bits/actions");
-            web.SetRequestHeader("Accept", "application/vnd.twitchtv.v5+json");
-            web.SetRequestHeader("Channel-ID", Config.Instance.TwitchChannelName);
-            web.SetRequestHeader("Client-ID", "jg6ij5z8mf8jr8si22i5uq8tobnmde");
-            yield return web.SendWebRequest();
-            if (web.isNetworkError || web.isHttpError)
+            using (UnityWebRequest web = UnityWebRequest.Get("https://api.twitch.tv/kraken/bits/actions"))
             {
-                Plugin.Log($"An error occured when requesting twitch global badge listing, Message: \"{web.error}\"");
-                yield break;
-            }
-            if (web.downloadHandler.text.Length == 0) yield break;
-
-            JSONNode json = JSON.Parse(web.downloadHandler.text);
-            if (json["actions"].IsArray)
-            {
-                foreach (JSONNode node in json["actions"].AsArray.Values)
+                web.SetRequestHeader("Accept", "application/vnd.twitchtv.v5+json");
+                web.SetRequestHeader("Channel-ID", Config.Instance.TwitchChannelName);
+                web.SetRequestHeader("Client-ID", "jg6ij5z8mf8jr8si22i5uq8tobnmde");
+                yield return web.SendWebRequest();
+                if (web.isNetworkError || web.isHttpError)
                 {
-                    Cheermote cheermote = new Cheermote();
-                    string prefix = node["prefix"].ToString().ToLower();
-                    foreach (JSONNode tier in node["tiers"].Values)
+                    Plugin.Log($"An error occured when requesting twitch global badge listing, Message: \"{web.error}\"");
+                    yield break;
+                }
+                if (web.downloadHandler.text.Length == 0) yield break;
+
+                JSONNode json = JSON.Parse(web.downloadHandler.text);
+                if (json["actions"].IsArray)
+                {
+                    foreach (JSONNode node in json["actions"].AsArray.Values)
                     {
-                        CheermoteTier newTier = new CheermoteTier();
-                        newTier.minBits = tier["min_bits"].AsInt;
-                        newTier.color = tier["color"];
-                        newTier.canCheer = tier["can_cheer"].AsBool;
-                        cheermote.tiers.Add(newTier);
+                        Cheermote cheermote = new Cheermote();
+                        string prefix = node["prefix"].ToString().ToLower();
+                        foreach (JSONNode tier in node["tiers"].Values)
+                        {
+                            CheermoteTier newTier = new CheermoteTier();
+                            newTier.minBits = tier["min_bits"].AsInt;
+                            newTier.color = tier["color"];
+                            newTier.canCheer = tier["can_cheer"].AsBool;
+                            cheermote.tiers.Add(newTier);
+                        }
+                        cheermote.tiers = cheermote.tiers.OrderBy(t => t.minBits).ToList();
+                        TwitchCheermoteIDs.TryAdd(prefix.Substring(1, prefix.Length - 2), cheermote);
+                        //Plugin.Log($"Cheermote: {prefix}");
+                        emotesCached++;
                     }
-                    cheermote.tiers = cheermote.tiers.OrderBy(t => t.minBits).ToList();
-                    TwitchCheermoteIDs.TryAdd(prefix.Substring(1, prefix.Length-2), cheermote);
-                    //Plugin.Log($"Cheermote: {prefix}");
-                    emotesCached++;
                 }
             }
             Plugin.Log($"Web request completed, {emotesCached.ToString()} twitch cheermotes now cached!");

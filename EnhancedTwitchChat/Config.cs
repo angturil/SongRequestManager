@@ -54,10 +54,12 @@ namespace EnhancedTwitchChat
         public bool AnimatedEmotes = true;
         public bool DrawShadows = false;
         public bool SongRequestBot = false;
+        public bool PersistentRequestQueue = true;
 
         public string RequestCommandAliases = "request,bsr,add";
         public int RequestLimit = 5;
         public int RequestCooldownMinutes = 5;
+        public string SongRequestQueue = "";
         public string SongBlacklist = "";
 
         public event Action<Config> ConfigChangedEvent;
@@ -82,6 +84,25 @@ namespace EnhancedTwitchChat
             set
             {
                 SongBlacklist = string.Join(",", value.Distinct());
+                Save();
+            }
+        }
+        
+        public List<string> RequestQueue
+        {
+            get
+            {
+                List<string> queue = new List<string>();
+                if (SongRequestQueue != String.Empty)
+                {
+                    foreach (string s in SongRequestQueue.Split(','))
+                        queue.Add(s);
+                }
+                return queue;
+            }
+            set
+            {
+                SongRequestQueue = string.Join(",", value.Distinct());
                 Save();
             }
         }

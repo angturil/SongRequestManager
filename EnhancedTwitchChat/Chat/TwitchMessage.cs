@@ -36,7 +36,6 @@ namespace EnhancedTwitchChat.Chat
 
     public class TwitchUser
     {
-        bool isValid = false;
         public string displayName = "";
         public string id = "";
         public string color = "";

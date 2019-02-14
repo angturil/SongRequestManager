@@ -270,7 +270,7 @@ namespace EnhancedTwitchChat.Utils
             using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(url))
             {
                 yield return www.SendWebRequest();
-
+                
                 if (www.isNetworkError || www.isHttpError)
                 {
                     Plugin.Log($"Http request error! {www.error}");
@@ -292,7 +292,7 @@ namespace EnhancedTwitchChat.Utils
                     Plugin.Log($"Http request error! {www.error}");
                     yield break;
                 }
-                Plugin.Log($"Success downloading \"{url}\"");
+                //Plugin.Log($"Success downloading \"{url}\"");
                 byte[] data = www.downloadHandler.data;
                 try
                 {
@@ -300,7 +300,7 @@ namespace EnhancedTwitchChat.Utils
                         Directory.CreateDirectory(Path.GetDirectoryName(path));
 
                     File.WriteAllBytes(path, data);
-                    Plugin.Log("Downloaded file!");
+                    //Plugin.Log("Downloaded file!");
                 }
                 catch (Exception)
                 {

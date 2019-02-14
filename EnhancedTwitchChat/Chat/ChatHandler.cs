@@ -254,7 +254,7 @@ namespace EnhancedTwitchChat
             scaler.dynamicPixelsPerUnit = Drawing.pixelsPerUnit;
             _canvasRectTransform = _twitchChatCanvas.GetComponent<RectTransform>();
             _canvasRectTransform.localScale = new Vector3(0.012f * Config.Instance.ChatScale, 0.012f * Config.Instance.ChatScale, 0.012f * Config.Instance.ChatScale);
-
+            
             background = new GameObject("EnhancedTwitchChatBackground").AddComponent<Image>();
             background.rectTransform.SetParent(gameObject.transform, false);
             background.color = Config.Instance.BackgroundColor;

@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using System.Collections;
 using CustomUI.BeatSaber;
 using EnhancedTwitchChat.Bot;
-using CustomUI.MenuButton;
 
 namespace EnhancedTwitchChat
 {
