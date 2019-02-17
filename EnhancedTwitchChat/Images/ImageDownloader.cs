@@ -361,6 +361,7 @@ namespace EnhancedTwitchChat.Textures
 
         public static IEnumerator GetCheermotes()
         {
+            Plugin.Log($"Downloading twitch cheermote listing");
             int emotesCached = 0;
             using (UnityWebRequest web = UnityWebRequest.Get("https://api.twitch.tv/kraken/bits/actions"))
             {

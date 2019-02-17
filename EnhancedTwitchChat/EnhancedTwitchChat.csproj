@@ -36,7 +36,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp" />
-    <Reference Include="BeatSaberCustomUI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="BeatSaberCustomUI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
     <Reference Include="BeatSaverDownloader" />
     <Reference Include="IllusionInjector, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="IllusionPlugin" />

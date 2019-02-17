@@ -54,6 +54,44 @@ namespace EnhancedTwitchChat.Textures
             if (isActionMessage)
                 newChatMessage.msg = newChatMessage.msg.TrimEnd((char)0x1).Substring(8);
 
+            string emojilessMessage = newChatMessage.msg;
+            // Parse and download any emojis included in the message
+            var matches = Utilities.GetEmojisInString(newChatMessage.msg);
+            if (matches.Count > 0)
+            {
+                List<string> foundEmojis = new List<string>();
+                foreach (Match m in matches)
+                {
+                    string emojiIndex = Utilities.WebParseEmojiRegExMatchEvaluator(m);
+                    string replaceString = m.Value;
+
+                    // Build up a copy of the message with no emojis so we can parse out our twitch emotes properly
+                    emojilessMessage = emojilessMessage.Replace(m.Value, " ");
+
+                    if (emojiIndex != String.Empty)
+                    {
+                        emojiIndex += ".png";
+                        if (!ImageDownloader.CachedTextures.ContainsKey(emojiIndex))
+                            ImageDownloader.Instance.Queue(new TextureDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.twitchMessage.id));
+
+                        if (!foundEmojis.Contains(emojiIndex))
+                        {
+                            foundEmojis.Add(emojiIndex);
+                            EmoteInfo swapInfo = new EmoteInfo();
+                            swapInfo.imageType = ImageType.Emoji;
+                            swapInfo.isEmoji = true;
+                            swapInfo.swapChar = swapChar;
+                            swapInfo.swapString = replaceString;
+                            swapInfo.textureIndex = emojiIndex;
+                            parsedEmotes.Add(swapInfo);
+                            swapChar++;
+                        }
+                    }
+                }
+                parsedEmotes = parsedEmotes.OrderByDescending(o => o.swapString.Length).ToList();
+                Thread.Sleep(5);
+            }
+
             var emotes = _emoteRegex.Matches(newChatMessage.twitchMessage.emotes);
             // Parse and download any twitch emotes in the message
             if (emotes.Count > 0)
@@ -66,11 +104,10 @@ namespace EnhancedTwitchChat.Textures
                     
                     int startReplace = Convert.ToInt32(e.Groups["StartIndex"].Value);
                     int endReplace = Convert.ToInt32(e.Groups["EndIndex"].Value);
-                    string msg = newChatMessage.msg;
                     
                     EmoteInfo swapInfo = new EmoteInfo();
                     swapInfo.swapChar = swapChar;
-                    swapInfo.swapString = msg.Substring(startReplace, endReplace - startReplace + 1);
+                    swapInfo.swapString = emojilessMessage.Substring(startReplace, endReplace - startReplace + 1);
                     swapInfo.textureIndex = emoteIndex;
                     swapInfo.imageType = ImageType.Twitch;
                     parsedEmotes.Add(swapInfo);
@@ -103,41 +140,7 @@ namespace EnhancedTwitchChat.Textures
                 }
                 Thread.Sleep(5);
             }
-
-            // Parse and download any emojis included in the message
-            var matches = Utilities.GetEmojisInString(newChatMessage.msg);
-            if (matches.Count > 0)
-            {
-                List<string> foundEmojis = new List<string>();
-                foreach (Match m in matches)
-                {
-                    string emojiIndex = Utilities.WebParseEmojiRegExMatchEvaluator(m);
-                    string replaceString = m.Value;
-
-                    if (emojiIndex != String.Empty)
-                    {
-                        emojiIndex += ".png";
-                        if (!ImageDownloader.CachedTextures.ContainsKey(emojiIndex))
-                            ImageDownloader.Instance.Queue(new TextureDownloadInfo(emojiIndex, ImageType.Emoji, newChatMessage.twitchMessage.id));
-
-                        if (!foundEmojis.Contains(emojiIndex))
-                        {
-                            foundEmojis.Add(emojiIndex);
-                            EmoteInfo swapInfo = new EmoteInfo();
-                            swapInfo.imageType = ImageType.Emoji;
-                            swapInfo.isEmoji = true;
-                            swapInfo.swapChar = swapChar;
-                            swapInfo.swapString = replaceString;
-                            swapInfo.textureIndex = emojiIndex;
-                            parsedEmotes.Add(swapInfo);
-                            swapChar++;
-                        }
-                    }
-                }
-                parsedEmotes = parsedEmotes.OrderByDescending(o => o.swapString.Length).ToList();
-                Thread.Sleep(5);
-            }
-
+            
             // Parse and download any BTTV/FFZ emotes and cheeremotes in the message
             string[] msgParts = newChatMessage.msg.Split(' ').Distinct().ToArray();
             foreach (string w in msgParts)

@@ -820,7 +820,7 @@ namespace WebSocketSharp
                   return;
                 }
 
-                if (nread == 0 || nread == len) {
+                if (nread == len) {
                   if (completed != null) {
                     dest.Close ();
                     completed (dest.ToArray ());
