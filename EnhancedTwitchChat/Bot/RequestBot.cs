@@ -30,15 +30,25 @@ namespace EnhancedTwitchChat.Bot
 {
     public class RequestBot : MonoBehaviour
     {
+        public enum RequestStatus
+        {
+            Invalid,
+            Queued,
+            Blacklisted,
+            Skipped,
+            Completed
+        }
 
         public class SongRequest
         {
             public JSONObject song;
             public TwitchUser requestor;
-            public SongRequest(JSONObject song, TwitchUser requestor)
+            public RequestStatus status;
+            public SongRequest(JSONObject song, TwitchUser requestor, RequestStatus status = RequestStatus.Invalid)
             {
                 this.song = song;
                 this.requestor = requestor;
+                this.status = status;
             }
         }
 
@@ -68,6 +78,7 @@ namespace EnhancedTwitchChat.Bot
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
         public static List<SongRequest> FinalRequestQueue = new List<SongRequest>();
+        public static List<SongRequest> SongRequestHistory = new List<SongRequest>();
         public static Action<JSONObject> SongRequestQueued;
         public static Action<JSONObject> SongRequestDequeued;
         private static Button _requestButton;
@@ -112,7 +123,6 @@ namespace EnhancedTwitchChat.Bot
 
             if (Instance) return;
             new GameObject("EnhancedTwitchChatRequestBot").AddComponent<RequestBot>();
-
         }
         
         private void Awake()
@@ -125,12 +135,12 @@ namespace EnhancedTwitchChat.Bot
                 _persistentRequestQueue = Config.Instance.RequestQueue;
 
             if(_persistentRequestQueue.Count > 0)
-                GetRequestInfo();
+                LoadPersistentRequestQueue();
 
             InitializeCommands();
         }
 
-        private void GetRequestInfo()
+        private void LoadPersistentRequestQueue()
         {
             foreach(string request in _persistentRequestQueue)
             {
@@ -243,10 +253,10 @@ namespace EnhancedTwitchChat.Bot
                         _requestTracker[requestor.id].numRequests++;
                     if (!isPersistent)
                     {
-                        _persistentRequestQueue.Add($"{requestInfo.requestor.displayName}/{song["id"]}");
+                        _persistentRequestQueue.Add($"{requestInfo.requestor.displayName}/{song["id"].Value}");
                         Config.Instance.RequestQueue = _persistentRequestQueue;
                     }
-                    FinalRequestQueue.Add(new SongRequest(song, requestor));
+                    FinalRequestQueue.Add(new SongRequest(song, requestor, RequestStatus.Queued));
                     UpdateRequestButton();
                     if (!isPersistent)
                         QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} added to queue.");
@@ -257,21 +267,26 @@ namespace EnhancedTwitchChat.Bot
             _checkingQueue = false;
         }
 
-        private static IEnumerator ProcessSongRequest(int index = -1)
+        private static IEnumerator ProcessSongRequest(int index, bool fromHistory = false)
         {
             if (FinalRequestQueue.Count > 0)
             {
-                SongRequest request = index == -1 ? FinalRequestQueue.First() : FinalRequestQueue.ElementAt(index);
-                JSONObject song = request.song;
-                FinalRequestQueue.Remove(request);
-                _persistentRequestQueue.Remove($"{request.requestor.displayName}/{song["id"]}");
-                Config.Instance.RequestQueue = _persistentRequestQueue;
-                UpdateRequestButton();
+                
+                SongRequest request = null;
+                if(!fromHistory)
+                {
+                    SetRequestStatus(index, RequestStatus.Completed);
+                    request = index == -1 ? DequeueRequest(0) : DequeueRequest(index);
+                }
+                else
+                {
+                    request = SongRequestHistory.ElementAt(index);
+                }
 
                 bool retried = false;
-                string songIndex = song["version"], songName = song["songName"].Value;
-                string currentSongDirectory = $"{Environment.CurrentDirectory}\\CustomSongs\\{songIndex}";
-                string songHash = ((string)song["hashMd5"]).ToUpper();
+                string songIndex = request.song["version"].Value, songName = request.song["songName"].Value;
+                string currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
+                string songHash = request.song["hashMd5"].Value.ToUpper();
             retry:
                 CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
                 if (levels.Length == 0)
@@ -284,8 +299,8 @@ namespace EnhancedTwitchChat.Bot
                         Plugin.Log($"Deleting {currentSongDirectory}");
                     }
                         
-                    string localPath = $"{Environment.CurrentDirectory}\\.requestcache\\{songIndex}.zip";
-                    yield return Utilities.DownloadFile(song["downloadUrl"], localPath);
+                    string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
+                    yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
                     yield return Utilities.ExtractZip(localPath, currentSongDirectory);
                     yield return SongListUtils.RefreshSongs(false, false, true);
 
@@ -311,7 +326,6 @@ namespace EnhancedTwitchChat.Bot
                     Plugin.Log("Failed to find new level!");
                 }
                 _songRequestMenu.Dismiss();
-                SongRequestDequeued?.Invoke(song);
             }
         }
 
@@ -365,49 +379,60 @@ namespace EnhancedTwitchChat.Bot
                 _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
             }
         }
+
+        public static void DequeueRequest(SongRequest request)
+        {
+            SongRequestHistory.Insert(0, request);
+            FinalRequestQueue.Remove(request);
+            _persistentRequestQueue.Remove($"{request.requestor.displayName}/{request.song["id"]}");
+            Config.Instance.RequestQueue = _persistentRequestQueue;
+            UpdateRequestButton();
+
+            SongRequestDequeued?.Invoke(request.song);
+        }
+
+        public static SongRequest DequeueRequest(int index)
+        {
+            SongRequest request = FinalRequestQueue.ElementAt(index);
+            if (request != null)
+                DequeueRequest(request);
+            return request;
+        }
+
+        public static void SetRequestStatus(int index, RequestStatus status)
+        {
+            FinalRequestQueue[index].status = status;
+        }
         
         public static void Blacklist(int index)
         {
             // Add the song to the blacklist
             SongRequest request = FinalRequestQueue.ElementAt(index);
-            JSONObject song = request.song;
-            _songBlacklist.Add(request.song["id"]);
+            _songBlacklist.Add(request.song["id"].Value);
             Config.Instance.Blacklist = _songBlacklist;
-
-            _persistentRequestQueue.Remove($"{request.requestor.displayName}/{song["id"]}");
-            Config.Instance.RequestQueue = _persistentRequestQueue;
-
-            Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} is now blacklisted!");
+            Instance.QueueChatMessage($"{request.song["songName"].Value} by {request.song["authorName"].Value} is now blacklisted!");
 
             // Then skip the request
-            Skip(index);
+            Skip(index, RequestStatus.Blacklisted);
         }
 
-        public static void Skip(int index)
+        public static void Skip(int index, RequestStatus status = RequestStatus.Skipped)
         {
-            // Remove the song from the queue, then update the request button
-            SongRequest request = FinalRequestQueue.ElementAt(index);
-            FinalRequestQueue.RemoveAt(index);
-            UpdateRequestButton();
-            SongRequestDequeued?.Invoke(request.song);
+            // Set the final status of the request
+            SetRequestStatus(index, status);
 
-            // Remove from our persistent song request list
-            _persistentRequestQueue.Remove($"{request.requestor.displayName}/{request.song["id"]}");
-            Config.Instance.RequestQueue = _persistentRequestQueue;
-
-            // Dismiss the request queue menu if there are no more song requests
-            if (FinalRequestQueue.Count == 0 && _songRequestMenu.customFlowCoordinator.isActivated)
-                _songRequestMenu.Dismiss();
+            // Then dequeue it
+            DequeueRequest(index);
         }
 
-        public static void Process(int index)
+        public static void Process(int index, bool fromHistory)
         {
-            Instance?.StartCoroutine(ProcessSongRequest(index));
+            Instance?.StartCoroutine(ProcessSongRequest(index, fromHistory));
         }
 
         public static void Next()
         {
-            Instance?.StartCoroutine(ProcessSongRequest());
+            Instance?.StartCoroutine(ProcessSongRequest(-1));
         }
 
         public static void Parse(TwitchUser user, string request)

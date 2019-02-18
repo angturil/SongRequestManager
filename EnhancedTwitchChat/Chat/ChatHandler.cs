@@ -98,16 +98,16 @@ namespace EnhancedTwitchChat
             _configChanged = true;
         }
 
-        string lastChannel = "!NOTSET!";
+        string lastChannel = "";
         private void OnConfigChanged()
         {
-            //if (lastChannel != String.Empty)
-            //    TwitchConnection.Instance.PartRoom(lastChannel);
             Plugin.Log("OnConfigChanged");
             if (TwitchWebSocketClient.Initialized)
             {
                 if (Config.Instance.TwitchChannelName != lastChannel)
                 {
+                    if (lastChannel != String.Empty)
+                        TwitchWebSocketClient.PartChannel(lastChannel);
                     if (Config.Instance.TwitchChannelName != String.Empty)
                         TwitchWebSocketClient.JoinChannel(Config.Instance.TwitchChannelName);
                     TwitchWebSocketClient.ConnectionTime = DateTime.Now;
@@ -216,7 +216,7 @@ namespace EnhancedTwitchChat
                 _lockButtonSphere.eulerAngles = Config.Instance.ChatRotation;
                 lockButtonImage.rectTransform.eulerAngles = Config.Instance.ChatRotation;
                 lockButtonImage.rectTransform.position = background.rectTransform.TransformPoint((Config.Instance.ReverseChatOrder ? LocalCorners[2] : LocalCorners[3]) - new Vector3(lockButtonImage.rectTransform.sizeDelta.x / 2, lockButtonImage.rectTransform.sizeDelta.y / 2));
-                _lockButtonSphere.position = lockButtonImage.rectTransform.TransformPoint(new Vector3(_lockButtonSphere.transform.localScale.x / 2 * Drawing.pixelsPerUnit, _lockButtonSphere.transform.localScale.y / 2 * Drawing.pixelsPerUnit, -0.01f) / Config.Instance.ChatScale);
+                _lockButtonSphere.position = lockButtonImage.rectTransform.TransformPoint(new Vector3(lockButtonImage.preferredWidth/Drawing.pixelsPerUnit, lockButtonImage.preferredHeight/Drawing.pixelsPerUnit, 0));
             }
         }
 

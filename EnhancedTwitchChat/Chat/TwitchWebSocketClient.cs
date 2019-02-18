@@ -59,7 +59,7 @@ namespace EnhancedTwitchChat.Chat
         {
             get
             {
-                return TwitchWebSocketClient.ChannelInfo.ContainsKey(Config.Instance.TwitchChannelName) && ChannelInfo[Config.Instance.TwitchChannelName].roomId != String.Empty;
+                return ChannelInfo.ContainsKey(Config.Instance.TwitchChannelName) && ChannelInfo[Config.Instance.TwitchChannelName].roomId != String.Empty;
             }
         }
 
