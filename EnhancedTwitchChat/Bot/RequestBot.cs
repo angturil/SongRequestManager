@@ -30,13 +30,14 @@ namespace EnhancedTwitchChat.Bot
 {
     public class RequestBot : MonoBehaviour
     {
+        [Flags]
         public enum RequestStatus
         {
             Invalid,
             Queued,
             Blacklisted,
             Skipped,
-            Completed
+            Played
         }
 
         public class SongRequest
@@ -275,7 +276,7 @@ namespace EnhancedTwitchChat.Bot
                 SongRequest request = null;
                 if(!fromHistory)
                 {
-                    SetRequestStatus(index, RequestStatus.Completed);
+                    SetRequestStatus(index, RequestStatus.Played);
                     request = index == -1 ? DequeueRequest(0) : DequeueRequest(index);
                 }
                 else
@@ -399,21 +400,29 @@ namespace EnhancedTwitchChat.Bot
             return request;
         }
 
-        public static void SetRequestStatus(int index, RequestStatus status)
+        public static void SetRequestStatus(int index, RequestStatus status, bool fromHistory = false)
         {
-            FinalRequestQueue[index].status = status;
+            if (!fromHistory)
+                FinalRequestQueue[index].status = status;
+            else
+                SongRequestHistory[index].status = status;
         }
         
-        public static void Blacklist(int index)
+        public static void Blacklist(int index, bool fromHistory)
         {
             // Add the song to the blacklist
-            SongRequest request = FinalRequestQueue.ElementAt(index);
+            SongRequest request = fromHistory ? SongRequestHistory.ElementAt(index) : FinalRequestQueue.ElementAt(index);
             _songBlacklist.Add(request.song["id"].Value);
             Config.Instance.Blacklist = _songBlacklist;
             Instance.QueueChatMessage($"{request.song["songName"].Value} by {request.song["authorName"].Value} is now blacklisted!");
 
-            // Then skip the request
-            Skip(index, RequestStatus.Blacklisted);
+            if (!fromHistory)
+            {
+                // Then skip the request
+                Skip(index, RequestStatus.Blacklisted);
+            }
+            else
+                SetRequestStatus(index, RequestStatus.Blacklisted, fromHistory);
         }
 
         public static void Skip(int index, RequestStatus status = RequestStatus.Skipped)

@@ -169,41 +169,51 @@ namespace EnhancedTwitchChat.Chat
         
         private static void Ws_OnMessage(object sender, WebSocketSharp.MessageEventArgs ev)
         {
-            if (!ev.IsText) return;
-
-            string rawMessage = ev.Data.TrimEnd();
-            if (rawMessage.StartsWith("PING"))
+            try
             {
-                Plugin.Log("Ping... Pong.");
-                _ws.Send("PONG :tmi.twitch.tv");
-                return;
+                if (!ev.IsText) return;
+                
+                Plugin.Log($"RawMsg: {ev.Data}");
+                string rawMessage = ev.Data.TrimEnd();
+                if (rawMessage.StartsWith("PING"))
+                {
+                    Plugin.Log("Ping... Pong.");
+                    _ws.Send("PONG :tmi.twitch.tv");
+                    return;
+                }
+
+                var messageType = _twitchMessageRegex.Match(rawMessage);
+                if (messageType.Length == 0)
+                {
+                    Plugin.Log($"Unhandled message: {rawMessage}");
+                    return;
+                }
+
+                string channelName = messageType.Groups["ChannelName"].Value;
+                if (channelName != Config.Instance.TwitchChannelName)
+                    return;
+
+                // Instantiate our twitch message
+                TwitchMessage twitchMsg = new TwitchMessage();
+                twitchMsg.rawMessage = rawMessage;
+                twitchMsg.message = _messageRegex.Match(twitchMsg.rawMessage).Groups["Message"].Value;
+                twitchMsg.hostString = messageType.Groups["HostName"].Value;
+                twitchMsg.messageType = messageType.Groups["MessageType"].Value;
+                twitchMsg.channelName = channelName;
+
+                // Find all the message tags
+                var tags = _tagRegex.Matches(rawMessage);
+
+                Plugin.Log($"{RenderQueue.Count} chat messages are currently queued for rendering!");
+
+                // Call the appropriate handler for this messageType
+                if (_messageHandlers.ContainsKey(twitchMsg.messageType))
+                    _messageHandlers[twitchMsg.messageType]?.Invoke(twitchMsg, tags);
             }
-            
-            var messageType = _twitchMessageRegex.Match(rawMessage);
-            if (messageType.Length == 0)
+            catch (Exception ex)
             {
-                Plugin.Log($"Unhandled message: {rawMessage}");
-                return;
+                Plugin.Log(ex.ToString());
             }
-
-            string channelName = messageType.Groups["ChannelName"].Value;
-            if (channelName != Config.Instance.TwitchChannelName)
-                return;
-
-            // Instantiate our twitch message
-            TwitchMessage twitchMsg = new TwitchMessage();
-            twitchMsg.rawMessage = rawMessage;
-            twitchMsg.message = _messageRegex.Match(twitchMsg.rawMessage).Groups["Message"].Value;
-            twitchMsg.hostString = messageType.Groups["HostName"].Value;
-            twitchMsg.messageType = messageType.Groups["MessageType"].Value;
-            twitchMsg.channelName = channelName;
-
-            // Find all the message tags
-            var tags = _tagRegex.Matches(rawMessage);
-
-            // Call the appropriate handler for this messageType
-            if (_messageHandlers.ContainsKey(twitchMsg.messageType))
-                _messageHandlers[twitchMsg.messageType]?.Invoke(twitchMsg, tags);
         }
     }
 }
