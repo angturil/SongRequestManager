@@ -44,12 +44,14 @@ namespace EnhancedTwitchChat.Bot
         {
             public JSONObject song;
             public TwitchUser requestor;
+            public DateTime requestTime;
             public RequestStatus status;
-            public SongRequest(JSONObject song, TwitchUser requestor, RequestStatus status = RequestStatus.Invalid)
+            public SongRequest(JSONObject song, TwitchUser requestor, DateTime requestTime, RequestStatus status = RequestStatus.Invalid)
             {
                 this.song = song;
                 this.requestor = requestor;
                 this.status = status;
+                this.requestTime = requestTime;
             }
         }
 
@@ -59,11 +61,13 @@ namespace EnhancedTwitchChat.Bot
             public string request;
             public bool isBeatSaverId;
             public bool isPersistent = false;
-            public RequestInfo(TwitchUser requestor, string request, bool isBeatSaverId)
+            public DateTime requestTime;
+            public RequestInfo(TwitchUser requestor, string request, DateTime requestTime, bool isBeatSaverId)
             {
                 this.requestor = requestor;
                 this.request = request;
                 this.isBeatSaverId = isBeatSaverId;
+                this.requestTime = requestTime;
             }
         }
 
@@ -146,10 +150,13 @@ namespace EnhancedTwitchChat.Bot
             foreach(string request in _persistentRequestQueue)
             {
                 string[] parts = request.Split('/');
-                RequestInfo info = new RequestInfo(new TwitchUser(parts[0]), parts[1], true);
-                info.isPersistent = true;
-                Plugin.Log($"Checking request from {parts[0]}, song id is {parts[1]}");
-                UnverifiedRequestQueue.Enqueue(info);
+                if (parts.Length > 1)
+                {
+                    RequestInfo info = new RequestInfo(new TwitchUser(parts[0]), parts[1], parts.Length > 2 ? DateTime.FromFileTime(long.Parse(parts[2])) : DateTime.UtcNow, true);
+                    info.isPersistent = true;
+                    Plugin.Log($"Checking request from {parts[0]}, song id is {parts[1]}");
+                    UnverifiedRequestQueue.Enqueue(info);
+                }
             }
         }
 
@@ -254,10 +261,10 @@ namespace EnhancedTwitchChat.Bot
                         _requestTracker[requestor.id].numRequests++;
                     if (!isPersistent)
                     {
-                        _persistentRequestQueue.Add($"{requestInfo.requestor.displayName}/{song["id"].Value}");
+                        _persistentRequestQueue.Add($"{requestInfo.requestor.displayName}/{song["id"].Value}/{DateTime.UtcNow.ToFileTime()}");
                         Config.Instance.RequestQueue = _persistentRequestQueue;
                     }
-                    FinalRequestQueue.Add(new SongRequest(song, requestor, RequestStatus.Queued));
+                    FinalRequestQueue.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued));
                     UpdateRequestButton();
                     if (!isPersistent)
                         QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} added to queue.");
@@ -360,7 +367,7 @@ namespace EnhancedTwitchChat.Bot
                 }
             }
 
-            RequestInfo newRequest = new RequestInfo(requestor, request, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request));
+            RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request));
             if (!newRequest.isBeatSaverId && request.Length < 3)
                 Instance.QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
             else if (!UnverifiedRequestQueue.Contains(newRequest))
@@ -385,7 +392,7 @@ namespace EnhancedTwitchChat.Bot
         {
             SongRequestHistory.Insert(0, request);
             FinalRequestQueue.Remove(request);
-            _persistentRequestQueue.Remove($"{request.requestor.displayName}/{request.song["id"]}");
+            _persistentRequestQueue.Remove($"{request.requestor.displayName}/{request.song["id"]}/{request.requestTime.ToFileTime()}");
             Config.Instance.RequestQueue = _persistentRequestQueue;
             UpdateRequestButton();
 
