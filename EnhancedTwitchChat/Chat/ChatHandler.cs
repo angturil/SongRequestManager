@@ -90,7 +90,7 @@ namespace EnhancedTwitchChat
                 Destroy(_lockPointer);
             _lockPointer = _vrPointer.gameObject.AddComponent<LockToggle>();
             _lockPointer.Init(lockButtonImage, _lockButtonSphere);
-            Plugin.Log($"ActiveSceneChanged! ({from.name} -> {to.name})");
+            Plugin.Log($"{from.name} -> {to.name}");
         }
         
         private void PluginOnConfigChangedEvent(Config config)

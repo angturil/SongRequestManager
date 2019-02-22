@@ -246,7 +246,7 @@ namespace EnhancedTwitchChat.Bot
 
         private CustomLevel CustomLevelForRow(int row)
         {
-            var levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(((string)SongInfoForRow(row).song["hashMd5"]).ToUpper()))?.ToArray();
+            var levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith((SongInfoForRow(row).song["hashMd5"].Value).ToUpper()))?.ToArray();
             if (levels.Count() > 0)
                 return levels[0];
             return null;
@@ -281,14 +281,18 @@ namespace EnhancedTwitchChat.Bot
         public override TableCell CellForRow(int row)
         {
             LevelListTableCell _tableCell = _customListTableView.DequeueReusableCellForIdentifier("LevelListTableCell") as LevelListTableCell;
-            if(!_tableCell)
+            if (!_tableCell)
+            {
                 _tableCell = Instantiate(_songListTableCellInstance);
+                _tableCell.reuseIdentifier = "LevelListTableCell";
+            } 
+            _tableCell.coverImage = null;
 
             RequestBot.SongRequest request = SongInfoForRow(row);
             JSONObject song = request.song;
             BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}");
-            _tableCell.songName = song["songName"];
-            _tableCell.author = song["authorName"];
+            _tableCell.songName = song["songName"].Value;
+            _tableCell.author = song["authorName"].Value;
             if (SongLoader.AreSongsLoaded)
             {
                 CustomLevel level = CustomLevelForRow(row);
@@ -297,10 +301,9 @@ namespace EnhancedTwitchChat.Bot
             }
             if (_tableCell.coverImage == null)
             {
-                string url = song["coverUrl"];
-                _tableCell.coverImage = GetSongCoverArt(url, (sprite) => { _cachedSprites[url] =  sprite; _customListTableView.ReloadData(); });
+                string url = song["coverUrl"].Value;
+                _tableCell.coverImage = GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); });
             }
-            _tableCell.reuseIdentifier = "LevelListTableCell";
             return _tableCell;
         }
     }

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Collections;
 using CustomUI.BeatSaber;
 using EnhancedTwitchChat.Bot;
+using System.Runtime.CompilerServices;
 
 namespace EnhancedTwitchChat
 {
@@ -21,12 +22,15 @@ namespace EnhancedTwitchChat
         public bool IsAtMainMenu = true;
         public static Plugin Instance { get; private set; }
         private readonly Config Config = new Config(Path.Combine(Environment.CurrentDirectory, "UserData\\EnhancedTwitchChat.ini"));
-        
-        public static void Log(string msg)
-        {
-            Console.WriteLine($"[EnhancedTwitchChat] {msg}");
-        }
 
+        public static void Log(string text,
+                        [CallerFilePath] string file = "",
+                        [CallerMemberName] string member = "",
+                        [CallerLineNumber] int line = 0)
+        {
+            Console.WriteLine("[EnhancedTwitchChat] {0}->{1}({2}): {3}", Path.GetFileName(file), member, line, text);
+        }
+        
         public void OnApplicationStart()
         {
             if (Instance != null) return;
