@@ -41,8 +41,7 @@ namespace EnhancedTwitchChat.Chat
         public static Dictionary<string, TwitchRoom> ChannelInfo = new Dictionary<string, TwitchRoom>();
         public static DateTime ConnectionTime;
         public static TwitchUser OurTwitchUser = new TwitchUser("Request Bot");
-
-        private static Task _reconnectTask = null;
+        
         private static DateTime _sendLimitResetTime = DateTime.Now;
         private static Queue<string> _sendQueue = new Queue<string>();
         private static int _messagesSent = 0;
