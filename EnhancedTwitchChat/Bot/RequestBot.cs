@@ -107,13 +107,6 @@ namespace EnhancedTwitchChat.Bot
 
             if (_levelSelectionNavigationController)
             {
-                if(_songRequestMenu == null)
-                {
-                    _songRequestMenu = BeatSaberUI.CreateCustomMenu<CustomMenu>("Song Request Queue");
-                    _songRequestListViewController = BeatSaberUI.CreateViewController<RequestBotListViewController>();
-                    _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
-                }
-                
                 _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f), 
                     new Vector2(15.0f, 5.5f), () => {_requestButton.interactable = false;_songRequestMenu.Present();_requestButton.interactable = true;}, "Song Requests");
 
@@ -122,6 +115,15 @@ namespace EnhancedTwitchChat.Bot
                 UpdateRequestButton();
                 BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
                 Plugin.Log("Created request button!");
+            }
+
+            if (_songRequestListViewController == null)
+                _songRequestListViewController = BeatSaberUI.CreateViewController<RequestBotListViewController>();
+
+            if (_songRequestMenu == null)
+            {
+                _songRequestMenu = BeatSaberUI.CreateCustomMenu<CustomMenu>("Song Request Queue");
+                _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
             }
 
             SongListUtils.Initialize();
@@ -136,15 +138,15 @@ namespace EnhancedTwitchChat.Bot
             Instance = this;
             _songBlacklist = Config.Instance.Blacklist;
 
-            if(Config.Instance.PersistentRequestQueue)
+            if (Config.Instance.PersistentRequestQueue)
+            {
                 _persistentRequestQueue = Config.Instance.RequestQueue;
-
-            if(_persistentRequestQueue.Count > 0)
-                LoadPersistentRequestQueue();
-
+                if (_persistentRequestQueue.Count > 0)
+                    LoadPersistentRequestQueue();
+            }
             InitializeCommands();
         }
-
+        
         private void LoadPersistentRequestQueue()
         {
             foreach(string request in _persistentRequestQueue)
@@ -169,7 +171,7 @@ namespace EnhancedTwitchChat.Bot
                     StartCoroutine(CheckRequest(requestInfo));
                 }
             }
-
+            
             if (_botMessageQueue.Count > 0)
                 SendChatMessage(_botMessageQueue.Dequeue());
         }
@@ -207,7 +209,7 @@ namespace EnhancedTwitchChat.Bot
                 foreach (SongRequest req in FinalRequestQueue.ToArray())
                 {
                     var song = req.song;
-                    if (((string)song["version"]).StartsWith(request))
+                    if (song["id"].Value == request || song["version"].Value == request)
                     {
                         if(!isPersistent)
                             QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!");
@@ -269,7 +271,14 @@ namespace EnhancedTwitchChat.Bot
                     if (!isPersistent)
                         QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} added to queue.");
 
-                    SongRequestQueued?.Invoke(song);
+                    try
+                    {
+                        SongRequestQueued?.Invoke(song);
+                    }
+                    catch(Exception ex)
+                    {
+                        Plugin.Log(ex.ToString());
+                    }
                 }
             }
             _checkingQueue = false;
@@ -279,7 +288,6 @@ namespace EnhancedTwitchChat.Bot
         {
             if (FinalRequestQueue.Count > 0)
             {
-                
                 SongRequest request = null;
                 if(!fromHistory)
                 {
@@ -290,6 +298,14 @@ namespace EnhancedTwitchChat.Bot
                 {
                     request = SongRequestHistory.ElementAt(index);
                 }
+
+                if (request == null)
+                {
+                    Plugin.Log("Can't process a null request! Aborting!");
+                    yield break;
+                }
+                else
+                    Plugin.Log($"Processing song request {request.song["songName"].Value}");
 
                 bool retried = false;
                 string songIndex = request.song["version"].Value, songName = request.song["songName"].Value;
@@ -378,12 +394,12 @@ namespace EnhancedTwitchChat.Bot
         {
             if (FinalRequestQueue.Count == 0)
             {
-                _requestButton.interactable = false;
+                //_requestButton.interactable = false;
                 _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
             }
             else
             {
-                _requestButton.interactable = true;
+                //_requestButton.interactable = true;
                 _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
             }
         }
@@ -392,11 +408,22 @@ namespace EnhancedTwitchChat.Bot
         {
             SongRequestHistory.Insert(0, request);
             FinalRequestQueue.Remove(request);
-            _persistentRequestQueue.Remove($"{request.requestor.displayName}/{request.song["id"]}/{request.requestTime.ToFileTime()}");
-            Config.Instance.RequestQueue = _persistentRequestQueue;
+            
+            var matches = _persistentRequestQueue.Where(r => r != null && r.StartsWith($"{request.requestor.displayName}/{request.song["id"]}"));
+            if (matches.Count() > 0)
+            {
+                _persistentRequestQueue.Remove(matches.First());
+                Config.Instance.RequestQueue = _persistentRequestQueue;
+            }
             UpdateRequestButton();
-
-            SongRequestDequeued?.Invoke(request.song);
+            try
+            {
+                SongRequestDequeued?.Invoke(request.song);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log(ex.ToString());
+            }
         }
 
         public static SongRequest DequeueRequest(int index)

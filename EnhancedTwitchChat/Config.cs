@@ -88,6 +88,7 @@ namespace EnhancedTwitchChat
             }
         }
         
+
         public List<string> RequestQueue
         {
             get

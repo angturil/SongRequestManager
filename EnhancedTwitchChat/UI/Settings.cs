@@ -9,6 +9,8 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Threading.Tasks;
+using EnhancedTwitchChat.Chat;
 
 namespace EnhancedTwitchChat.UI
 {
@@ -32,6 +34,12 @@ namespace EnhancedTwitchChat.UI
 
         public static void OnLoad()
         {
+            var reconnectButton = MenuButtonUI.AddButton("Reconnect to Twitch", "Click this button if your twitch chat stops working, and hopefully with some luck it will fix it.", () =>
+            {
+                Task.Run(() => TwitchWebSocketClient.Connect());
+            });
+
+
             var menu = SettingsUI.CreateSubMenu("Enhanced Twitch Chat");
             var channelName = menu.AddString("Twitch Channel Name", "The name of the channel you want Enhanced Twitch Chat to monitor");
             channelName.SetValue += (channel) => { Config.Instance.TwitchChannelName = channel; };

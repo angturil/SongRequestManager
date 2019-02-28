@@ -42,11 +42,13 @@ namespace EnhancedTwitchChat.Chat
         public static DateTime ConnectionTime;
         public static TwitchUser OurTwitchUser = new TwitchUser("Request Bot");
 
+        private static Task _reconnectTask = null;
         private static DateTime _sendLimitResetTime = DateTime.Now;
         private static Queue<string> _sendQueue = new Queue<string>();
         private static int _messagesSent = 0;
         private static int _sendResetInterval = 30;
         private static int _reconnectCooldown = 500;
+        private static int _fullReconnects = -1;
         private static int _messageLimit
         {
             get
@@ -62,7 +64,7 @@ namespace EnhancedTwitchChat.Chat
                 return ChannelInfo.ContainsKey(Config.Instance.TwitchChannelName) && ChannelInfo[Config.Instance.TwitchChannelName].roomId != String.Empty;
             }
         }
-
+        
         public static void Initialize()
         {
             // Initialize our message handlers
@@ -74,81 +76,167 @@ namespace EnhancedTwitchChat.Chat
             _messageHandlers.Add("CLEARMSG", MessageHandlers.CLEARMSG);
             _messageHandlers.Add("MODE", MessageHandlers.MODE);
             _messageHandlers.Add("JOIN", MessageHandlers.JOIN);
-            
-            // Create our websocket object and setup the callbacks
-            _ws = new WebSocketSharp.WebSocket("wss://irc-ws.chat.twitch.tv:443");
-            _ws.OnOpen += (sender, e) =>
+
+            Connect();
+        }
+
+        public static void Shutdown()
+        {
+            if (Initialized)
             {
-                // Reset our reconnect cooldown timer
-                _reconnectCooldown = 500;
+                Initialized = false;
+                if (_ws.IsConnected)
+                    _ws.Close();
+            }
+        }
 
-                Plugin.Log("Connected to Twitch!");
-                _ws.Send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
+        public static void Connect()
+        {
+            if (Plugin.Instance.IsApplicationExiting)
+                return;
 
-                string username = Config.Instance.TwitchUsername;
-                if (username == String.Empty || Config.Instance.TwitchOAuthToken == String.Empty)
-                    username = "justinfan" + _rand.Next(10000, 1000000);
-                else
-                    _ws.Send($"PASS {Config.Instance.TwitchOAuthToken}");
-                _ws.Send($"NICK {username}");
-
-                if(Config.Instance.TwitchChannelName != String.Empty)
-                    _ws.Send($"JOIN #{Config.Instance.TwitchChannelName}");
-
-                // Display a message in the chat informing the user whether or not the connection to the channel was successful
-                ConnectionTime = DateTime.Now;
-                ChatHandler.Instance.displayStatusMessage = true;
-
-                Initialized = true;
-            };
-
-            _ws.OnClose += (sender, e) =>
+            try
             {
-                Plugin.Log("Twitch connection terminated.");
-                Reconnect();
-            };
-
-            _ws.OnError += (sender, e) =>
+                if (_ws != null && _ws.IsConnected)
+                {
+                    Plugin.Log("Closing existing connnection to Twitch!");
+                    _ws.Close();
+                }
+            }
+            catch (Exception ex)
             {
-                Plugin.Log($"An error occured in the twitch connection! Error: {e.Message}, Exception: {e.Exception}");
-                Reconnect();
-            };
+                Plugin.Log(ex.ToString());
+            }
+            _fullReconnects++;
 
-            _ws.OnMessage += Ws_OnMessage;
-                
-            // Then start the connection
-            _ws.ConnectAsync();
-            ProcessSendQueue();
+            try
+            {
+                // Create our websocket object and setup the callbacks
+                using (_ws = new WebSocketSharp.WebSocket("wss://irc-ws.chat.twitch.tv:443"))
+                {
+                    _ws.OnOpen += (sender, e) =>
+                    {
+                        // Reset our reconnect cooldown timer
+                        _reconnectCooldown = 500;
+
+                        Plugin.Log("Connected to Twitch!");
+                        _ws.Send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
+
+                        string username = Config.Instance.TwitchUsername;
+                        if (username == String.Empty || Config.Instance.TwitchOAuthToken == String.Empty)
+                            username = "justinfan" + _rand.Next(10000, 1000000);
+                        else
+                            _ws.Send($"PASS {Config.Instance.TwitchOAuthToken}");
+                        _ws.Send($"NICK {username}");
+
+                        if (Config.Instance.TwitchChannelName != String.Empty)
+                            _ws.Send($"JOIN #{Config.Instance.TwitchChannelName}");
+
+                        // Display a message in the chat informing the user whether or not the connection to the channel was successful
+                        ConnectionTime = DateTime.Now;
+                        ChatHandler.Instance.displayStatusMessage = true;
+                        Initialized = true;
+                    };
+
+                    _ws.OnClose += (sender, e) =>
+                    {
+                        Plugin.Log("Twitch connection terminated.");
+                        Initialized = false;
+                    };
+
+                    _ws.OnError += (sender, e) =>
+                    {
+                        Plugin.Log($"An error occured in the twitch connection! Error: {e.Message}, Exception: {e.Exception}");
+                        Initialized = false;
+                    };
+
+                    _ws.OnMessage += Ws_OnMessage;
+
+                    // Then start the connection
+                    _ws.Connect();
+
+                    // Create a new task to reconnect automatically if the connection dies for some unknown reason
+                    _reconnectTask = Task.Run(() =>
+                    {
+                        Thread.Sleep(5000);
+                        try
+                        {
+                            while (Initialized && _ws.IsConnected && _ws.IsAlive)
+                            {
+                                //Plugin.Log("Connected and alive!");
+                                Thread.Sleep(500);
+                            }
+                        }
+                        catch(ThreadAbortException)
+                        {
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            Plugin.Log(ex.ToString());
+                        }
+                        
+                        Plugin.Log("Twitch connection died...");
+                        Thread.Sleep(_reconnectCooldown *= 2);
+                        Plugin.Log("Reconnecting!");
+                        Connect();
+                    });
+                    ProcessSendQueue(_fullReconnects);
+                }
+            }
+            catch (ThreadAbortException)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log(ex.ToString());
+                Thread.Sleep(_reconnectCooldown *= 2);
+                Connect();
+            }
         }
 
         private static void Reconnect()
         {
+            if (Plugin.Instance.IsApplicationExiting)
+                return;
+
             Thread.Sleep(_reconnectCooldown *= 2);
             Plugin.Log("Attempting to reconnect...");
-            _ws.ConnectAsync();
+            _ws.Connect();
         }
 
-        private static void ProcessSendQueue()
+        private static void ProcessSendQueue(int fullReconnects)
         {
-            while(true)
+            while(!Plugin.Instance.IsApplicationExiting && _fullReconnects == fullReconnects)
             {
-                if (_sendLimitResetTime < DateTime.Now)
+                if (_ws.IsConnected)
                 {
-                    _messagesSent = 0;
-                    _sendLimitResetTime = DateTime.Now.AddSeconds(_sendResetInterval);
-                }
-
-                if (_sendQueue.Count > 0)
-                {
-                    if (_messagesSent < _messageLimit)
+                    if (_sendLimitResetTime < DateTime.Now)
                     {
-                        _ws.SendAsync(_sendQueue.Dequeue(), (succes) => { });
-                        _messagesSent++;
+                        _messagesSent = 0;
+                        _sendLimitResetTime = DateTime.Now.AddSeconds(_sendResetInterval);
+                    }
+
+                    if (_sendQueue.Count > 0)
+                    {
+                        if (_messagesSent < _messageLimit)
+                        {
+                            string msg = _sendQueue.Dequeue();
+                            Plugin.Log($"Sending message {msg}");
+                            _ws.Send(msg);
+                            _messagesSent++;
+                        }
                     }
                 }
-
+                else
+                {
+                    Plugin.Log("Websocket was not connected! Reconnecting!");
+                    Reconnect();
+                }
                 Thread.Sleep(250);
             }
+            Plugin.Log("Exiting!");
         }
 
         public static void SendMessage(string msg)
@@ -203,9 +291,7 @@ namespace EnhancedTwitchChat.Chat
 
                 // Find all the message tags
                 var tags = _tagRegex.Matches(rawMessage);
-
-                Plugin.Log($"{RenderQueue.Count} chat messages are currently queued for rendering!");
-
+                
                 // Call the appropriate handler for this messageType
                 if (_messageHandlers.ContainsKey(twitchMsg.messageType))
                     _messageHandlers[twitchMsg.messageType]?.Invoke(twitchMsg, tags);

@@ -20,6 +20,7 @@ namespace EnhancedTwitchChat
         public string Version => "1.1.4";
 
         public bool IsAtMainMenu = true;
+        public bool IsApplicationExiting = false;
         public static Plugin Instance { get; private set; }
         private readonly Config Config = new Config(Path.Combine(Environment.CurrentDirectory, "UserData\\EnhancedTwitchChat.ini"));
 
@@ -28,24 +29,27 @@ namespace EnhancedTwitchChat
                         [CallerMemberName] string member = "",
                         [CallerLineNumber] int line = 0)
         {
-            Console.WriteLine("[EnhancedTwitchChat] {0}->{1}({2}): {3}", Path.GetFileName(file), member, line, text);
+            Debug.Log($"[EnhancedTwitchChat] {Path.GetFileName(file)}->{member}({line}): {text}");
         }
         
         public void OnApplicationStart()
         {
             if (Instance != null) return;
             Instance = this;
+
+            SharedCoroutineStarter.instance.StartCoroutine(DelayedStartup());
+        }
+
+        private IEnumerator DelayedStartup()
+        {
+            yield return new WaitForSeconds(0.5f);
+
             ChatHandler.OnLoad();
             Task.Run(() => TwitchWebSocketClient.Initialize());
 
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
 
-            SharedCoroutineStarter.instance.StartCoroutine(CheckIfUserHasEnteredChannelName());
-        }
-
-        private IEnumerator CheckIfUserHasEnteredChannelName()
-        {
             yield return new WaitUntil(() => SceneManager.GetActiveScene().name == "Menu");
             if(Config.Instance.TwitchChannelName == String.Empty)
                 yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { Config.Instance.TwitchChannelName = channelName; Config.Instance.Save(true); }));
@@ -62,6 +66,8 @@ namespace EnhancedTwitchChat
 
         public void OnApplicationQuit()
         {
+            IsApplicationExiting = true;
+            TwitchWebSocketClient.Shutdown();
         }
 
         private void SceneManager_activeSceneChanged(Scene from, Scene to)

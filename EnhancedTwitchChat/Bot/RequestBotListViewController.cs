@@ -50,14 +50,14 @@ namespace EnhancedTwitchChat.Bot
             {
                 if (!SongLoader.AreSongsLoaded)
                     SongLoader.SongsLoadedEvent += SongLoader_SongsLoadedEvent;
-
+                
                 InitConfirmationDialog();
 
                 _songListTableCellInstance = Resources.FindObjectsOfTypeAll<LevelListTableCell>().First(x => (x.name == "LevelListTableCell"));
                 _songPreviewPlayer = Resources.FindObjectsOfTypeAll<SongPreviewPlayer>().FirstOrDefault();
                 DidSelectRowEvent += DidSelectRow;
-                RequestBot.SongRequestQueued += (song) => RefreshTable();
-                RequestBot.SongRequestDequeued += (song) => RefreshTable();
+                RequestBot.SongRequestQueued = (song) => _customListTableView?.ReloadData();
+                RequestBot.SongRequestDequeued = (song) => _customListTableView?.ReloadData();
 
                 RectTransform container = new GameObject("CustomListContainer", typeof(RectTransform)).transform as RectTransform;
                 container.SetParent(rectTransform, false);
@@ -141,7 +141,6 @@ namespace EnhancedTwitchChat.Bot
                 BeatSaberUI.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");
             }
             base.DidActivate(firstActivation, type);
-            RefreshTable();
             UpdateRequestUI();
             SetUIInteractivity(true);
         }
@@ -238,7 +237,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void SongLoader_SongsLoadedEvent(SongLoader arg1, List<CustomLevel> arg2)
         {
-            RefreshTable();
+            _customListTableView?.ReloadData();
         }
 
         private void SetUIInteractivity(bool interactive)
@@ -249,23 +248,7 @@ namespace EnhancedTwitchChat.Bot
             _blacklistButton.interactable = interactive;
             _historyButton.interactable = interactive;
         }
-
-        private void RefreshTable()
-        {
-            if (isActivated)
-            {
-                _customListTableView?.ReloadData();
-                if (_customListTableView.dataSource.NumberOfRows() > 0)
-                {
-                    while (_customListTableView.dataSource.NumberOfRows() <= _selectedRow)
-                        _selectedRow--;
-
-                    _customListTableView.SelectRow(_selectedRow, true);
-                    _customListTableView.ScrollToRow(_selectedRow, true);
-                }
-            }
-        }
-
+        
         private CustomLevel CustomLevelForRow(int row)
         {
             var levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith((SongInfoForRow(row).song["hashMd5"].Value).ToUpper()))?.ToArray();

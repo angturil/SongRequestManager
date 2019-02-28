@@ -75,7 +75,7 @@ namespace EnhancedTwitchChat
             initialized = true;
             Plugin.Log("EnhancedTwitchChat initialized");
         }
-
+        
         public void SceneManager_activeSceneChanged(Scene from, Scene to)
         {
             var _vrPointer = to.name == "GameCore" ? Resources.FindObjectsOfTypeAll<VRPointer>().Last() : Resources.FindObjectsOfTypeAll<VRPointer>().First();
@@ -334,7 +334,6 @@ namespace EnhancedTwitchChat
                 yield return _delay;
             }
             _testMessage.text = "";
-
             _messageRendering = false;
         }
 
