@@ -155,7 +155,7 @@ namespace EnhancedTwitchChat.Chat
                     _ws.Connect();
 
                     // Create a new task to reconnect automatically if the connection dies for some unknown reason
-                    _reconnectTask = Task.Run(() =>
+                    Task.Run(() =>
                     {
                         Thread.Sleep(5000);
                         try
