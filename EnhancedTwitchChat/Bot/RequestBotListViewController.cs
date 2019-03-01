@@ -24,7 +24,7 @@ namespace EnhancedTwitchChat.Bot
         private CustomViewController _confirmationViewController;
         private LevelListTableCell _songListTableCellInstance;
         private SongPreviewPlayer _songPreviewPlayer;
-        private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton,_blacklastButton,_queueButton;
+        private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton,_BLLastButton,_queueButton;
         private TextMeshProUGUI _warningTitle, _warningMessage;
         private HoverHint _historyHintText;
         private int _requestRow = 0;
@@ -103,13 +103,13 @@ namespace EnhancedTwitchChat.Bot
                 BeatSaberUI.AddHintText(_blacklistButton.transform as RectTransform, "Block the selected request from being queued in the future.");
 
                 // Blacklist previous button
-                _blacklastButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
-                _blacklastButton.ToggleWordWrapping(false);
-                (_blacklastButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 20f);
-                _blacklastButton.SetButtonText("BL Last");
+                _BLLastButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
+                _BLLastButton.ToggleWordWrapping(false);
+                (_BLLastButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 20f);
+                _BLLastButton.SetButtonText("BL Last");
                 //_blacklistButton.GetComponentInChildren<Image>().color = Color.red;
-                _blacklastButton.onClick.RemoveAllListeners();
-                _blacklastButton.onClick.AddListener(delegate ()
+                _BLLastButton.onClick.RemoveAllListeners();
+                _BLLastButton.onClick.AddListener(delegate ()
                 {
                     _onConfirm = () => {
                         RequestBot.Blacklist(currentsong);
@@ -122,7 +122,7 @@ namespace EnhancedTwitchChat.Bot
                         _confirmationDialog.Present();
                     }
                 });
-                BeatSaberUI.AddHintText(_blacklastButton.transform as RectTransform, "Block the selected request from being queued in the future.");
+                BeatSaberUI.AddHintText(_BLLastButton.transform as RectTransform, "Block the selected request from being queued in the future.");
 
                 // Skip button
                 _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
@@ -187,7 +187,7 @@ namespace EnhancedTwitchChat.Bot
                 _queueButton.onClick.AddListener(delegate ()
                 {
                     RequestBot.QueueOpen = !RequestBot.QueueOpen;
-                    RequestBot.QueueStatus(RequestBot.QueueOpen ? "Queue is open." : "Queue is closed.");
+                    RequestBot.Writequeuestatustofile(RequestBot.QueueOpen ? "Queue is open." : "Queue is closed.");
                     RequestBot.Instance.QueueChatMessage(RequestBot.QueueOpen ? "Queue is open." : "Queue is closed.");
                     UpdateRequestUI();
                 });

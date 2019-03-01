@@ -148,8 +148,8 @@ namespace EnhancedTwitchChat.Bot
             SongListUtils.Initialize();
 
             Directory.CreateDirectory($"{Environment.CurrentDirectory}\\requestqueue");
-            QueueListStatus();
-            QueueStatus(QueueOpen ? "Queue is open" : "Queue is closed");
+            writequeuesummarytofile();
+            Writequeuestatustofile(QueueOpen ? "Queue is open" : "Queue is closed");
 
 
             if (Instance) return;
@@ -517,7 +517,7 @@ namespace EnhancedTwitchChat.Bot
                 _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
             }
 
-            RequestBot.QueueListStatus(); // Write out queue status to file
+            RequestBot.writequeuesummarytofile(); // Write out queue status to file
         }
 
 
@@ -611,7 +611,7 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("queue", ListQueue);
             Commands.Add("unblock", UnBan);
             Commands.Add("block", Block);
-            Commands.Add("remove", Unqueue);
+            Commands.Add("remove", Unqueuesong);
             Commands.Add("clearqueue", Clearqueue);
             Commands.Add("mtt", mtt);
             Commands.Add("remap", Remap);
@@ -624,12 +624,12 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("wrongsong", WrongSong);
             Commands.Add("wrong", WrongSong);
             Commands.Add("oops", WrongSong);
-            Commands.Add("blist", ListBanlist);
+            Commands.Add("blist", showBanlist);
             Commands.Add("open", openQueue);
             Commands.Add("close", closeQueue);
             Commands.Add("restore", restoredeck);
-            Commands.Add("commandlist", commandlist);
-            Commands.Add("played", songsplayed);
+            Commands.Add("commandlist", showCommandlist);
+            Commands.Add("played", showSongsplayed);
 
 #if PRIVATE
 
@@ -642,12 +642,12 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("deck",createdeck);
             Commands.Add("unloaddeck",unloaddeck);
             Commands.Add("requested",ListPlayedlist);       
-            Commands.Add("mapper",addMapper);
+            Commands.Add("mapper", addsongsbymapper);
             Commands.Add("addsongs",addSongs);
             Commands.Add("loaddecks",loaddecks);
             Commands.Add("decklist",decklist);
-            Commands.Add("deckfilteron",deckonly);
-            Commands.Add("deckfilteroff",deckonlyoff);
+            Commands.Add("deckfilteron", filterbyDeckonly);
+            Commands.Add("deckfilteroff", disableDeckfiltering);
             Commands.Add("badmappers",mapperBlacklist);
             Commands.Add("mapperblacklist",mapperBlacklist);
 
@@ -862,7 +862,7 @@ namespace EnhancedTwitchChat.Bot
 
 
 
-        private void commandlist(TwitchUser requestor, string request)
+        private void showCommandlist(TwitchUser requestor, string request)
         {
             if (!requestor.isBroadcaster && !requestor.isMod) return;
 
@@ -878,7 +878,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void deckonly(TwitchUser requestor, string request)
+        private void filterbyDeckonly(TwitchUser requestor, string request)
         {
             if (!requestor.isBroadcaster) return;
 
@@ -910,7 +910,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void deckonlyoff(TwitchUser requestor, string request)
+        private void disableDeckfiltering(TwitchUser requestor, string request)
         {
 
             QueueChatMessage($"Requests no longer limited to loaded decks.");
@@ -1008,11 +1008,11 @@ namespace EnhancedTwitchChat.Bot
                 return;
             }
 
-            StartCoroutine(addnewsongs(requestor, request));
+            StartCoroutine(addsongsFromnewest(requestor, request));
 
         }
 
-        private IEnumerator addnewsongs(TwitchUser requestor, string request)
+        private IEnumerator addsongsFromnewest(TwitchUser requestor, string request)
         {
 
             int totalSongs = 0;
@@ -1097,7 +1097,7 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
-        private IEnumerator addMappers(TwitchUser requestor, string request)
+        private IEnumerator addsongsBymapper(TwitchUser requestor, string request)
         {
             int totalSongs = 0;
 
@@ -1266,7 +1266,7 @@ namespace EnhancedTwitchChat.Bot
 
 
 
-        private void addMapper(TwitchUser requestor, string request)
+        private void addsongsbymapper(TwitchUser requestor, string request)
         {
             if (!requestor.isBroadcaster)
             {
@@ -1275,7 +1275,7 @@ namespace EnhancedTwitchChat.Bot
 
             }
 
-            StartCoroutine(addMappers(requestor, request));
+            StartCoroutine(addsongsBymapper(requestor, request));
 
         }
 
@@ -1400,7 +1400,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void songsplayed(TwitchUser requestor, string request)
+        private void showSongsplayed(TwitchUser requestor, string request)
         {
 
             if (played.Count == 0)
@@ -1431,7 +1431,7 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
-        private static void QueueListStatus()
+        private static void writequeuesummarytofile()
         {
 
 #if !PRIVATE
@@ -1488,7 +1488,7 @@ namespace EnhancedTwitchChat.Bot
             return true;
         }
 
-        public static void QueueStatus(string status)
+        public static void Writequeuestatustofile(string status)
         {
             //#if !PRIVATE
             //return;
@@ -1580,7 +1580,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void ListBanlist(TwitchUser requestor, string request)
+        private void showBanlist(TwitchUser requestor, string request)
         {
 
             if (!requestor.isMod && !requestor.isBroadcaster) return;
@@ -1715,7 +1715,7 @@ namespace EnhancedTwitchChat.Bot
 
 
 
-        private void Unqueue(TwitchUser requestor, string request)
+        private void Unqueuesong(TwitchUser requestor, string request)
         {
 
             if (!requestor.isMod && !requestor.isBroadcaster) return;
@@ -1798,7 +1798,7 @@ namespace EnhancedTwitchChat.Bot
                         FinalRequestQueue.Insert(0, req);
                         SongRequestQueued?.Invoke(song);
 
-                        QueueListStatus();
+                        writequeuesummarytofile();
 
                         QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) promoted.");
                         return;
@@ -1817,7 +1817,7 @@ namespace EnhancedTwitchChat.Bot
                         FinalRequestQueue.Insert(0, req);
                         SongRequestQueued?.Invoke(song);
 
-                        QueueListStatus();
+                        writequeuesummarytofile();
 
                         QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) promoted.");
                         return;
@@ -1860,7 +1860,7 @@ namespace EnhancedTwitchChat.Bot
                         FinalRequestQueue.Add(req);
                         SongRequestQueued?.Invoke(song);
 
-                        QueueListStatus();
+                        writequeuesummarytofile();
 
                         QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) demoted.");
                         return;
@@ -1879,7 +1879,7 @@ namespace EnhancedTwitchChat.Bot
                         FinalRequestQueue.Add(req);
                         SongRequestQueued?.Invoke(song);
 
-                        QueueListStatus();
+                        writequeuesummarytofile();
 
                         QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) demoted.");
                         return;
@@ -1898,6 +1898,14 @@ namespace EnhancedTwitchChat.Bot
 
             Writedeck(requestor, "justcleared");
 
+            foreach (var song in FinalRequestQueue)
+                {
+                SongRequestHistory.Insert(0, song);
+
+                }
+
+            _persistentRequestQueue.Clear();
+            Config.Instance.RequestQueue = _persistentRequestQueue;
 
             FinalRequestQueue.Clear();
             UpdateRequestButton();
@@ -2000,7 +2008,7 @@ namespace EnhancedTwitchChat.Bot
 
             QueueOpen = true;
             QueueChatMessage("Queue is now open.");
-            QueueStatus("Queue is open");
+            Writequeuestatustofile("Queue is open");
 
         }
 
@@ -2010,7 +2018,7 @@ namespace EnhancedTwitchChat.Bot
 
             QueueOpen = false;
             QueueChatMessage("Queue is now closed.");
-            QueueStatus("Queue is closed");
+            Writequeuestatustofile("Queue is closed");
         }
 
 
@@ -2018,6 +2026,7 @@ namespace EnhancedTwitchChat.Bot
         {
             Instance?.StartCoroutine(ProcessSongRequest(index));
         }
+
 
 
 
