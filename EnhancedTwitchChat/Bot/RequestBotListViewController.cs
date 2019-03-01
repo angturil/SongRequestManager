@@ -24,7 +24,7 @@ namespace EnhancedTwitchChat.Bot
         private CustomViewController _confirmationViewController;
         private LevelListTableCell _songListTableCellInstance;
         private SongPreviewPlayer _songPreviewPlayer;
-        private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton;
+        private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton,_blacklastButton,_queueButton;
         private TextMeshProUGUI _warningTitle, _warningMessage;
         private HoverHint _historyHintText;
         private int _requestRow = 0;
@@ -44,6 +44,8 @@ namespace EnhancedTwitchChat.Bot
         private Action _onConfirm;
         private bool isShowingHistory = false;
         private bool confirmDialogActive = false;
+
+        static RequestBot.SongRequest currentsong = null;
         protected override void DidActivate(bool firstActivation, ActivationType type)
         {
             if (firstActivation)
@@ -100,6 +102,28 @@ namespace EnhancedTwitchChat.Bot
                 });
                 BeatSaberUI.AddHintText(_blacklistButton.transform as RectTransform, "Block the selected request from being queued in the future.");
 
+                // Blacklist previous button
+                _blacklastButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
+                _blacklastButton.ToggleWordWrapping(false);
+                (_blacklastButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 20f);
+                _blacklastButton.SetButtonText("BL Last");
+                //_blacklistButton.GetComponentInChildren<Image>().color = Color.red;
+                _blacklastButton.onClick.RemoveAllListeners();
+                _blacklastButton.onClick.AddListener(delegate ()
+                {
+                    _onConfirm = () => {
+                        RequestBot.Blacklist(currentsong);
+                    };
+
+                    if (!(currentsong is null))
+                    {
+                        _warningTitle.text = "Blacklist Song Warning";
+                        _warningMessage.text = $"Blacklisting {currentsong.song["songName"].Value} by {currentsong.song["authorName"].Value}\r\nDo you want to continue?";
+                        _confirmationDialog.Present();
+                    }
+                });
+                BeatSaberUI.AddHintText(_blacklastButton.transform as RectTransform, "Block the selected request from being queued in the future.");
+
                 // Skip button
                 _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
                 _skipButton.ToggleWordWrapping(false);
@@ -111,6 +135,7 @@ namespace EnhancedTwitchChat.Bot
                 {
                     _onConfirm = () =>
                     {
+                        currentsong = RequestBot.FinalRequestQueue[_selectedRow];
                         RequestBot.Skip(_selectedRow);
                         if (_selectedRow > 0)
                             _selectedRow--;
@@ -134,11 +159,39 @@ namespace EnhancedTwitchChat.Bot
                 {
                     if (NumberOfRows() > 0)
                     {
+                        currentsong = RequestBot.FinalRequestQueue[_selectedRow];
+                        RequestBot.played.Add(RequestBot.FinalRequestQueue[_selectedRow].song);
                         SetUIInteractivity(false);
+
+                        var requestor = RequestBot.FinalRequestQueue[_selectedRow].requestor;
+                        if (RequestBot._requestTracker.ContainsKey(requestor.id))
+                        {
+
+                            RequestBot._requestTracker[requestor.id].numRequests--;
+                           
+                        }
+
                         RequestBot.Process(_selectedRow, isShowingHistory);
                     }
                 });
                 BeatSaberUI.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");
+
+                // Queue button
+                _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
+                _queueButton.ToggleWordWrapping(false);
+                (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(-24f, 30f);
+                _queueButton.SetButtonText(RequestBot.QueueOpen ? "Q OPEN" : "Q CLOSED");
+                _queueButton.GetComponentInChildren<Image>().color = RequestBot.QueueOpen ? Color.green : Color.red; ;
+                _queueButton.interactable = true;
+                _queueButton.onClick.RemoveAllListeners();
+                _queueButton.onClick.AddListener(delegate ()
+                {
+                    RequestBot.QueueOpen = !RequestBot.QueueOpen;
+                    RequestBot.QueueStatus(RequestBot.QueueOpen ? "Queue is open." : "Queue is closed.");
+                    RequestBot.Instance.QueueChatMessage(RequestBot.QueueOpen ? "Queue is open." : "Queue is closed.");
+                    UpdateRequestUI();
+                });
+                BeatSaberUI.AddHintText(_queueButton.transform as RectTransform, "Open/Close the queue.");
             }
             base.DidActivate(firstActivation, type);
             UpdateRequestUI();
@@ -155,6 +208,12 @@ namespace EnhancedTwitchChat.Bot
 
         private void UpdateRequestUI(bool selectRowCallback = false)
         {
+
+            _playButton.GetComponentInChildren<Image>().color = RequestBot.FinalRequestQueue.Count > 0 ? Color.white : Color.red; ;
+
+            _queueButton.SetButtonText(RequestBot.QueueOpen ? "Q OPEN" : "Q CLOSED");
+            _queueButton.GetComponentInChildren<Image>().color = RequestBot.QueueOpen ? Color.green : Color.red; ;
+
             _historyHintText.text = isShowingHistory ? "Go back to your current song request queue." : "View the history of song requests from the current session.";
             _historyButton.SetButtonText(isShowingHistory ? "Requests" : "History");
             _playButton.SetButtonText(isShowingHistory ? "Replay" : "Play");

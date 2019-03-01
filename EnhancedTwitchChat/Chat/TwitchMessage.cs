@@ -34,6 +34,7 @@ namespace EnhancedTwitchChat.Chat
         }
     }
 
+
     public class TwitchUser
     {
         public string displayName = "";
@@ -44,6 +45,7 @@ namespace EnhancedTwitchChat.Chat
         public bool isMod;
         public bool isSub;
         public bool isTurbo;
+        public bool isVip;
         public TwitchUser(string username = "")
         {
             displayName = username;

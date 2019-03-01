@@ -57,10 +57,17 @@ namespace EnhancedTwitchChat
         public bool PersistentRequestQueue = true;
 
         public string RequestCommandAliases = "request,bsr,add";
+
         public int RequestLimit = 5;
-        public int RequestCooldownMinutes = 5;
+        public int SubRequestLimit = 5;
+        public int ModRequestLimit = 200;
+        public int VipRequestLimit = 3;
+        public int RequestCooldownMinutes = 0;
+
         public string SongRequestQueue = "";
         public string SongBlacklist = "";
+        public string DeckList = "fun hard challenge dance";
+
 
         public event Action<Config> ConfigChangedEvent;
 
@@ -69,11 +76,11 @@ namespace EnhancedTwitchChat
 
         public static Config Instance = null;
 
-        public List<string> Blacklist
+        public HashSet<string> Blacklist
         {
             get
             {
-                List<string> blacklist = new List<string>();
+                HashSet<string> blacklist = new HashSet<string>();
                 if (SongBlacklist != String.Empty)
                 {
                     foreach (string s in SongBlacklist.Split(','))
