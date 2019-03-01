@@ -1,4 +1,5 @@
-﻿
+﻿//#define PRIVATE 
+
 using CustomUI.BeatSaber;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Textures;
@@ -81,6 +82,7 @@ namespace EnhancedTwitchChat.Bot
         
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex _alphanumeric=new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);      // To be used to filter filenames
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
@@ -1519,6 +1521,12 @@ namespace EnhancedTwitchChat.Bot
             try
             {
 
+                if (!_alphanumeric.IsMatch(request))
+                    {
+                    QueueChatMessage("usage: writedeck <alphanumeric deck name>");
+                    return;
+                    }
+
                 int count = 0;
 
                 if (FinalRequestQueue.Count == 0)
@@ -2063,6 +2071,8 @@ namespace EnhancedTwitchChat.Bot
             if (Commands.ContainsKey(command))
                 Commands[command]?.Invoke(user, parts[1]);
         }
+
+
 
     }
 }
