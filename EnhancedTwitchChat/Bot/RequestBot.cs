@@ -901,9 +901,11 @@ namespace EnhancedTwitchChat.Bot
                         whitelist.Add(entry);
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    throw;
+                    Plugin.Log(ex.ToString());
+                    return;
+                    
                 }
             }
 
@@ -1349,9 +1351,9 @@ namespace EnhancedTwitchChat.Bot
 
                 fileWriter.Close();
             }
-        catch   
+        catch (Exception ex)
             {
-
+                Plugin.Log(ex.ToString());
             }
         }
 
@@ -1371,8 +1373,9 @@ namespace EnhancedTwitchChat.Bot
                 }
 
             }
-            catch
+            catch (Exception ex)
             {
+                Plugin.Log(ex.ToString());
             }
         }
 
@@ -1508,9 +1511,9 @@ namespace EnhancedTwitchChat.Bot
             fileWriter.Close();
             }
 
-        catch
+        catch (Exception ex)
             {
-
+                Plugin.Log(ex.ToString());
             }
 
         }
@@ -2025,8 +2028,9 @@ namespace EnhancedTwitchChat.Bot
             RequestBotListViewController.Instance.UpdateRequestUI();
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+            Plugin.Log(ex.ToString());
             }
 
         }
@@ -2044,8 +2048,9 @@ namespace EnhancedTwitchChat.Bot
                 RequestBotListViewController.Instance.UpdateRequestUI();
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Plugin.Log(ex.ToString());
             }
 
 
