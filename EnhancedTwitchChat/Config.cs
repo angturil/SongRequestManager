@@ -54,11 +54,29 @@ namespace EnhancedTwitchChat
         public bool AnimatedEmotes = true;
         public bool DrawShadows = false;
         public bool SongRequestBot = false;
+        public bool PersistentRequestQueue = true;
 
         public string RequestCommandAliases = "request,bsr,add";
+
         public int RequestLimit = 5;
-        public int RequestCooldownMinutes = 5;
+        public int SubRequestLimit = 5;
+        public int ModRequestLimit = 10;
+        public int VipRequestLimit = 3; // currently ignored, vip's get +1 over base will discuss
+        public int RequestCooldownMinutes = 0;
+
+        public string SongRequestQueue = "";
         public string SongBlacklist = "";
+        public string DeckList = "fun hard challenge dance";
+
+        public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list.
+        public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed
+        public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
+        public bool ApplyAllFiltersToBroadcaster = false;
+        public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS
+
+        public int maxaddnewscanrange = 80; // How far down the list to scan
+        public int maxaddnewresults = 10;  // Max results per command
+
 
         public event Action<Config> ConfigChangedEvent;
 
@@ -67,11 +85,11 @@ namespace EnhancedTwitchChat
 
         public static Config Instance = null;
 
-        public List<string> Blacklist
+        public HashSet<string> Blacklist
         {
             get
             {
-                List<string> blacklist = new List<string>();
+                HashSet<string> blacklist = new HashSet<string>();
                 if (SongBlacklist != String.Empty)
                 {
                     foreach (string s in SongBlacklist.Split(','))
@@ -82,6 +100,26 @@ namespace EnhancedTwitchChat
             set
             {
                 SongBlacklist = string.Join(",", value.Distinct());
+                Save();
+            }
+        }
+        
+
+        public List<string> RequestQueue
+        {
+            get
+            {
+                List<string> queue = new List<string>();
+                if (SongRequestQueue != String.Empty)
+                {
+                    foreach (string s in SongRequestQueue.Split(','))
+                        queue.Add(s);
+                }
+                return queue;
+            }
+            set
+            {
+                SongRequestQueue = string.Join(",", value.Distinct());
                 Save();
             }
         }

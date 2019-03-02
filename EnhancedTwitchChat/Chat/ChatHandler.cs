@@ -47,7 +47,7 @@ namespace EnhancedTwitchChat
         private string _lastFontName;
         private CustomText _testMessage = null;
         private readonly WaitUntil _delay = new WaitUntil(() => { return Instance._waitForFrames == 0; });
-
+        
         public static void OnLoad()
         {
             if (Instance) return;
@@ -75,7 +75,7 @@ namespace EnhancedTwitchChat
             initialized = true;
             Plugin.Log("EnhancedTwitchChat initialized");
         }
-
+        
         public void SceneManager_activeSceneChanged(Scene from, Scene to)
         {
             var _vrPointer = to.name == "GameCore" ? Resources.FindObjectsOfTypeAll<VRPointer>().Last() : Resources.FindObjectsOfTypeAll<VRPointer>().First();
@@ -90,7 +90,7 @@ namespace EnhancedTwitchChat
                 Destroy(_lockPointer);
             _lockPointer = _vrPointer.gameObject.AddComponent<LockToggle>();
             _lockPointer.Init(lockButtonImage, _lockButtonSphere);
-            Plugin.Log($"ActiveSceneChanged! ({from.name} -> {to.name})");
+            Plugin.Log($"{from.name} -> {to.name}");
         }
         
         private void PluginOnConfigChangedEvent(Config config)
@@ -98,16 +98,16 @@ namespace EnhancedTwitchChat
             _configChanged = true;
         }
 
-        string lastChannel = "!NOTSET!";
+        string lastChannel = "";
         private void OnConfigChanged()
         {
-            //if (lastChannel != String.Empty)
-            //    TwitchConnection.Instance.PartRoom(lastChannel);
             Plugin.Log("OnConfigChanged");
             if (TwitchWebSocketClient.Initialized)
             {
                 if (Config.Instance.TwitchChannelName != lastChannel)
                 {
+                    if (lastChannel != String.Empty)
+                        TwitchWebSocketClient.PartChannel(lastChannel);
                     if (Config.Instance.TwitchChannelName != String.Empty)
                         TwitchWebSocketClient.JoinChannel(Config.Instance.TwitchChannelName);
                     TwitchWebSocketClient.ConnectionTime = DateTime.Now;
@@ -216,7 +216,7 @@ namespace EnhancedTwitchChat
                 _lockButtonSphere.eulerAngles = Config.Instance.ChatRotation;
                 lockButtonImage.rectTransform.eulerAngles = Config.Instance.ChatRotation;
                 lockButtonImage.rectTransform.position = background.rectTransform.TransformPoint((Config.Instance.ReverseChatOrder ? LocalCorners[2] : LocalCorners[3]) - new Vector3(lockButtonImage.rectTransform.sizeDelta.x / 2, lockButtonImage.rectTransform.sizeDelta.y / 2));
-                _lockButtonSphere.position = lockButtonImage.rectTransform.TransformPoint(new Vector3(_lockButtonSphere.transform.localScale.x / 2 * Drawing.pixelsPerUnit, _lockButtonSphere.transform.localScale.y / 2 * Drawing.pixelsPerUnit, -0.01f) / Config.Instance.ChatScale);
+                _lockButtonSphere.position = lockButtonImage.rectTransform.TransformPoint(new Vector3(lockButtonImage.preferredWidth/Drawing.pixelsPerUnit, lockButtonImage.preferredHeight/Drawing.pixelsPerUnit, 0));
             }
         }
 
@@ -254,7 +254,7 @@ namespace EnhancedTwitchChat
             scaler.dynamicPixelsPerUnit = Drawing.pixelsPerUnit;
             _canvasRectTransform = _twitchChatCanvas.GetComponent<RectTransform>();
             _canvasRectTransform.localScale = new Vector3(0.012f * Config.Instance.ChatScale, 0.012f * Config.Instance.ChatScale, 0.012f * Config.Instance.ChatScale);
-
+            
             background = new GameObject("EnhancedTwitchChatBackground").AddComponent<Image>();
             background.rectTransform.SetParent(gameObject.transform, false);
             background.color = Config.Instance.BackgroundColor;
@@ -334,7 +334,6 @@ namespace EnhancedTwitchChat
                 yield return _delay;
             }
             _testMessage.text = "";
-
             _messageRendering = false;
         }
 

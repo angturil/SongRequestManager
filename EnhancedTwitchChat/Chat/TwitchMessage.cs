@@ -34,9 +34,9 @@ namespace EnhancedTwitchChat.Chat
         }
     }
 
+
     public class TwitchUser
     {
-        bool isValid = false;
         public string displayName = "";
         public string id = "";
         public string color = "";
@@ -45,6 +45,7 @@ namespace EnhancedTwitchChat.Chat
         public bool isMod;
         public bool isSub;
         public bool isTurbo;
+        public bool isVip;
         public TwitchUser(string username = "")
         {
             displayName = username;

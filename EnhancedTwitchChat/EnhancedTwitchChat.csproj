@@ -35,25 +35,30 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Assembly-CSharp" />
-    <Reference Include="BeatSaberCustomUI">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\BeatSaberCustomUI.dll</HintPath>
+    <Reference Include="0Harmony">
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="BeatSaberCustomUI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\BeatSaberCustomUI.dll</HintPath>
     </Reference>
     <Reference Include="BeatSaverDownloader">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\BeatSaverDownloader.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\BeatSaverDownloader.dll</HintPath>
     </Reference>
     <Reference Include="IllusionInjector, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IllusionInjector.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\IllusionInjector.dll</HintPath>
     </Reference>
     <Reference Include="IllusionPlugin">
-      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IllusionPlugin.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\IllusionPlugin.dll</HintPath>
     </Reference>
     <Reference Include="SongBrowserPlugin">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\SongBrowserPlugin.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\SongBrowserPlugin.dll</HintPath>
     </Reference>
     <Reference Include="SongLoaderPlugin">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\SongLoaderPlugin.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\SongLoaderPlugin.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -65,62 +70,58 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="TextMeshPro-1.0.55.2017.1.0b12, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\TextMeshPro-1.0.55.2017.1.0b12.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\TextMeshPro-1.0.55.2017.1.0b12.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AudioModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UIElementsModule">
-      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UIModule">
-      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.UnityWebRequestAudioModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestTextureModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestWWWModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.VideoModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.VideoModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.VRModule">
-      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.VRModule.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\UnityEngine.VRModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.XRModule">
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.XRModule.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -2926,11 +2927,170 @@
     <None Include="Chat\websocket-sharp\doc\doc.sh" />
     <None Include="Chat\websocket-sharp\websocket-sharp.snk" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fb-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fb-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fb-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fb-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fc-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fc-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fc-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fc-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fd-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fd-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fd-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fd-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fe-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fe-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fe-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3fe-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3ff-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3ff-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3ff-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-1f3ff-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f468-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fb-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fb-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fb-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fb-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fc-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fc-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fc-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fc-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fd-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fd-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fd-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fd-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fe-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fe-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fe-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3fe-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3ff-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3ff-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3ff-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-1f3ff-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-200d-1f9b0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-200d-1f9b1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-200d-1f9b2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f469-200d-1f9b3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f6f9.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f94d.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f94e.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f94f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f96c.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f96d.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f96e.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f96f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f970.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f973.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f974.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f975.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f976.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f97a.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f97c.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f97d.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f97e.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f97f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f998.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f999.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f99a.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f99b.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f99c.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f99d.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f99e.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f99f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9a0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9a1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9a2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b4.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b5-1f3fb.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b5-1f3fc.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b5-1f3fd.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b5-1f3fe.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b5-1f3ff.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b5.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b6-1f3fb.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b6-1f3fc.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b6-1f3fd.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b6-1f3fe.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b6-1f3ff.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b6.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b7.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fb-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fb-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fb.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fc-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fc-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fc.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fd-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fd-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fd.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fe-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fe-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3fe.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3ff-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3ff-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-1f3ff.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b8.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fb-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fb-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fb.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fc-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fc-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fc.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fd-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fd-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fd.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fe-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fe-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3fe.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3ff-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3ff-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-1f3ff.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-200d-2640-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9-200d-2642-fe0f.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9b9.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9c1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9c2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9e7.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9e8.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9e9.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9ea.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9eb.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9ec.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9ed.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9ee.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9ef.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9f0.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9f1.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9f2.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9f3.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9f4.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9f5.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9f6.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9f7.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9f8.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9f9.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9fa.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9fb.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9fc.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9fd.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9fe.png" />
+    <EmbeddedResource Include="Resources\Emojis\1f9ff.png" />
+    <EmbeddedResource Include="Resources\Emojis\265f.png" />
+    <EmbeddedResource Include="Resources\Emojis\267e.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Beat Saber\Plugins"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent>"$(ProjectDir)..\..\PluginVersionSetter.exe" "$(ProjectDir)Properties\AssemblyInfo.cs" "$(ProjectDir)Plugin.cs"</PreBuildEvent>
+    <PreBuildEvent>
+    </PreBuildEvent>
   </PropertyGroup>
 </Project>
