@@ -78,10 +78,10 @@ namespace EnhancedTwitchChat.Bot
             public int numRequests = 0;
             public DateTime resetTime = DateTime.Now;
         }
-        
+
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
-        private static readonly Regex _alphanumeric=new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);      // To be used to filter filenames
+        private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled); 
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
@@ -127,8 +127,8 @@ namespace EnhancedTwitchChat.Bot
 
             if (_levelSelectionNavigationController)
             {
-                _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f), 
-                    new Vector2(15.0f, 5.5f), () => {_requestButton.interactable = false;_songRequestMenu.Present();_requestButton.interactable = true;}, "Song Requests");
+                _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f),
+                    new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
 
                 _requestButton.gameObject.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
                 _requestButton.SetButtonTextSize(2.0f);
@@ -149,14 +149,14 @@ namespace EnhancedTwitchChat.Bot
             SongListUtils.Initialize();
 
             Directory.CreateDirectory($"{Environment.CurrentDirectory}\\requestqueue");
-            writequeuesummarytofile();
+            WriteQueueSummaryToFile();
             Writequeuestatustofile(QueueOpen ? "Queue is open" : "Queue is closed");
 
 
             if (Instance) return;
             new GameObject("EnhancedTwitchChatRequestBot").AddComponent<RequestBot>();
         }
-        
+
         private void Awake()
         {
             DontDestroyOnLoad(gameObject);
@@ -171,10 +171,10 @@ namespace EnhancedTwitchChat.Bot
             }
             InitializeCommands();
         }
-        
+
         private void LoadPersistentRequestQueue()
         {
-            foreach(string request in _persistentRequestQueue)
+            foreach (string request in _persistentRequestQueue)
             {
                 string[] parts = request.Split('/');
                 if (parts.Length > 1)
@@ -196,7 +196,7 @@ namespace EnhancedTwitchChat.Bot
                     StartCoroutine(CheckRequest(requestInfo));
                 }
             }
-            
+
             if (_botMessageQueue.Count > 0)
                 SendChatMessage(_botMessageQueue.Dequeue());
         }
@@ -294,15 +294,13 @@ namespace EnhancedTwitchChat.Bot
 
                 if (result["songs"].IsArray)
                 {
-                    for (int i = 0; i < result["songs"].AsArray.Count; i++)
+                    foreach (JSONObject currentSong in result["songs"].AsArray)
                     {
-                        JSONObject currentsong = result["songs"].AsArray[i].AsObject;
-
-                        string songid = currentsong["id"].Value;
+                        string songid = currentSong["id"].Value;
 
                         if (!requestor.isBroadcaster && whiteliston && !whitelist.Contains(songid)) continue;
 
-                        if (!requestor.isBroadcaster && (mapperblackliston || mapperwhiteliston) && mapperfiltered(ref currentsong)) continue;
+                        if (!requestor.isBroadcaster && (mapperblackliston || mapperwhiteliston) && mapperfiltered(currentSong)) continue;
 
                         if (!requestor.isBroadcaster)
                         {
@@ -310,7 +308,7 @@ namespace EnhancedTwitchChat.Bot
                             if (songremap.ContainsKey(songid)) continue;
                         }
 
-                        songs.Add(currentsong);
+                        songs.Add(currentSong);
                     }
                 }
                 else
@@ -374,7 +372,7 @@ namespace EnhancedTwitchChat.Bot
                     }
 
 
-                    if (!requestor.isBroadcaster && mapperwhiteliston && mapperfiltered(ref song))
+                    if (!requestor.isBroadcaster && mapperwhiteliston && mapperfiltered(song))
                     {
                         QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!");
                         _checkingQueue = false;
@@ -397,12 +395,10 @@ namespace EnhancedTwitchChat.Bot
                         _checkingQueue = false;
                         yield break;
                     }
-
-
-
-
+                    
                     if (!isPersistent)
                         _requestTracker[requestor.id].numRequests++;
+
                     if (!isPersistent)
                     {
                         duplicatelist.Add(song["id"].Value);
@@ -434,10 +430,10 @@ namespace EnhancedTwitchChat.Bot
 
         private static IEnumerator ProcessSongRequest(int index, bool fromHistory = false)
         {
-            if (FinalRequestQueue.Count > 0)
+            if ((FinalRequestQueue.Count > 0 && !fromHistory) || (SongRequestHistory.Count > 0 && fromHistory))
             {
                 SongRequest request = null;
-                if(!fromHistory)
+                if (!fromHistory)
                 {
                     SetRequestStatus(index, RequestStatus.Played);
                     request = index == -1 ? DequeueRequest(0) : DequeueRequest(index);
@@ -459,7 +455,7 @@ namespace EnhancedTwitchChat.Bot
                 string songIndex = request.song["version"].Value, songName = request.song["songName"].Value;
                 string currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
                 string songHash = request.song["hashMd5"].Value.ToUpper();
-            retry:
+                retry:
                 CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
                 if (levels.Length == 0)
                 {
@@ -470,7 +466,7 @@ namespace EnhancedTwitchChat.Bot
                         Utilities.EmptyDirectory(currentSongDirectory, true);
                         Plugin.Log($"Deleting {currentSongDirectory}");
                     }
-                        
+
                     string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
                     yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
                     yield return Utilities.ExtractZip(localPath, currentSongDirectory);
@@ -505,8 +501,8 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        
- 
+
+
         private static void UpdateRequestButton()
         {
             if (FinalRequestQueue.Count == 0)
@@ -520,7 +516,7 @@ namespace EnhancedTwitchChat.Bot
                 _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
             }
 
-            RequestBot.writequeuesummarytofile(); // Write out queue status to file
+            RequestBot.WriteQueueSummaryToFile(); // Write out queue status to file
         }
 
 
@@ -528,7 +524,7 @@ namespace EnhancedTwitchChat.Bot
         {
             SongRequestHistory.Insert(0, request);
             FinalRequestQueue.Remove(request);
-            
+
             var matches = _persistentRequestQueue.Where(r => r != null && r.StartsWith($"{request.requestor.displayName}/{request.song["id"]}"));
             if (matches.Count() > 0)
             {
@@ -562,7 +558,7 @@ namespace EnhancedTwitchChat.Bot
             else
                 SongRequestHistory[index].status = status;
         }
-        
+
         public static void Blacklist(int index, bool fromHistory)
         {
             // Add the song to the blacklist
@@ -585,7 +581,7 @@ namespace EnhancedTwitchChat.Bot
         {
             // Set the final status of the request
             SetRequestStatus(index, status);
-          
+
             // Then dequeue it
             DequeueRequest(index);
         }
@@ -603,7 +599,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void InitializeCommands()
         {
-            foreach (string c in Config.Instance.RequestCommandAliases.Split(','))
+            foreach (string c in Config.Instance.RequestCommandAliases.Split(',').Distinct())
             {
                 Commands.Add(c, ProcessSongRequest);
                 Plugin.Log($"Added command alias \"{c}\" for song requests.");
@@ -614,22 +610,22 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("queue", ListQueue);
             Commands.Add("unblock", UnBan);
             Commands.Add("block", Block);
-            Commands.Add("remove", Unqueuesong);
+            Commands.Add("remove", DequeueSong);
             Commands.Add("clearqueue", Clearqueue);
-            Commands.Add("mtt", mtt);
+            Commands.Add("mtt", MoveRequestToTop);
             Commands.Add("remap", Remap);
             Commands.Add("unmap", Unmap);
             Commands.Add("lookup", lookup);
             Commands.Add("find", lookup);
-            Commands.Add("last", last);
-            Commands.Add("demote", last);
-            Commands.Add("later", last);
+            Commands.Add("last", MoveRequestToBottom);
+            Commands.Add("demote", MoveRequestToBottom);
+            Commands.Add("later", MoveRequestToBottom);
             Commands.Add("wrongsong", WrongSong);
             Commands.Add("wrong", WrongSong);
             Commands.Add("oops", WrongSong);
             Commands.Add("blist", showBanlist);
-            Commands.Add("open", openQueue);
-            Commands.Add("close", closeQueue);
+            Commands.Add("open", OpenQueue);
+            Commands.Add("close", CloseQueue);
             Commands.Add("restore", restoredeck);
             Commands.Add("commandlist", showCommandlist);
             Commands.Add("played", showSongsplayed);
@@ -724,7 +720,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private bool filtersong(ref JSONObject song)
+        private bool filtersong(JSONObject song)
         {
             string songid = song["id"].Value;
             if (_songBlacklist.Contains(songid)) return true;
@@ -793,7 +789,7 @@ namespace EnhancedTwitchChat.Bot
 
         // Not super efficient, but what can you do
 
-        private bool mapperfiltered(ref JSONObject song)
+        private bool mapperfiltered(JSONObject song)
         {
             string normalizedauthor = song["authorName"].Value.ToLower();
 
@@ -904,7 +900,7 @@ namespace EnhancedTwitchChat.Bot
                 {
                     Plugin.Log(ex.ToString());
                     return;
-                    
+
                 }
             }
 
@@ -1069,15 +1065,15 @@ namespace EnhancedTwitchChat.Bot
 
                             //QueueChatMessage($"{song["version"].Value} {song["name"].Value}");
 
-                            if (mapperfiltered(ref song)) continue;
-                            if (filtersong(ref song)) continue;
+                            if (mapperfiltered(song)) continue;
+                            if (filtersong(song)) continue;
                             ProcessSongRequest(requestor, song["version"].Value);
                             count++;
                             totalSongs++; ;
                         }
 
                     }
-                   
+
 
                 }
 
@@ -1182,7 +1178,7 @@ namespace EnhancedTwitchChat.Bot
                         totalSongs++; ;
                     }
 
-             
+
                 }
                 offset += 20;
             }
@@ -1237,7 +1233,7 @@ namespace EnhancedTwitchChat.Bot
                         song = entry;
                         if (count > 0) songlist += ", ";
 
-                        if (filtersong(ref song)) continue;
+                        if (filtersong(song)) continue;
                         ProcessSongRequest(requestor, song["version"].Value);
                         count++;
                         totalSongs++; ;
@@ -1345,7 +1341,7 @@ namespace EnhancedTwitchChat.Bot
 
                 fileWriter.Close();
             }
-        catch (Exception ex)
+            catch (Exception ex)
             {
                 Plugin.Log(ex.ToString());
             }
@@ -1432,7 +1428,7 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
-        private static void writequeuesummarytofile()
+        private static void WriteQueueSummaryToFile()
         {
 
 #if !PRIVATE
@@ -1469,24 +1465,22 @@ namespace EnhancedTwitchChat.Bot
 
                 fileWriter.Close();
             }
-        catch       
+            catch
             {
 
             }
 
         }
-
-        // Does songdescription contain request strings
-        bool doescontain(string songdescription, string request)
+        
+        private bool DoesContainTerms(string request, string[] terms)
         {
-            string normalized = songdescription.ToLower();
-            string[] words = request.ToLower().Split(new char[] { ' ', '\t' });
-            if (words[0] == "") return false;
-            foreach (string word in words)
-            {
-                if (!normalized.Contains(word)) return false;
-            }
-            return true;
+            if (request == "") return false;
+            request = request.ToLower();
+
+            foreach (string word in terms)
+                if (request.Contains(word.ToLower())) return true;
+
+            return false;
         }
 
         public static void Writequeuestatustofile(string status)
@@ -1495,17 +1489,17 @@ namespace EnhancedTwitchChat.Bot
             //return;
             //#endif 
 
-        try
+            try
             {
 
 
-            string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuestatus.txt";
-            StreamWriter fileWriter = new StreamWriter(statusfile);
-            fileWriter.Write(status);
-            fileWriter.Close();
+                string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuestatus.txt";
+                StreamWriter fileWriter = new StreamWriter(statusfile);
+                fileWriter.Write(status);
+                fileWriter.Close();
             }
 
-        catch (Exception ex)
+            catch (Exception ex)
             {
                 Plugin.Log(ex.ToString());
             }
@@ -1520,11 +1514,11 @@ namespace EnhancedTwitchChat.Bot
             try
             {
 
-                if (!_alphanumeric.IsMatch(request))
-                    {
+                if (!_alphaNumericRegex.IsMatch(request))
+                {
                     QueueChatMessage("usage: writedeck <alphanumeric deck name>");
                     return;
-                    }
+                }
 
                 int count = 0;
 
@@ -1580,9 +1574,9 @@ namespace EnhancedTwitchChat.Bot
                 }
 
             }
-        catch       
+            catch
             {
-            QueueChatMessage("Unable to read deck {request}.");
+                QueueChatMessage("Unable to read deck {request}.");
             }
         }
 
@@ -1648,7 +1642,7 @@ namespace EnhancedTwitchChat.Bot
             if (!requestor.isMod && !requestor.isBroadcaster) return;
 
 
-            var unbanvalue = getid(request);
+            var unbanvalue = GetBeatSaverId(request);
 
 
             if (unbanvalue == "")
@@ -1674,31 +1668,26 @@ namespace EnhancedTwitchChat.Bot
 
         private void Block(TwitchUser requestor, string request)
         {
-
             if (!requestor.isMod && !requestor.isBroadcaster) return;
-
-
-            var banvalue = getid(request);
-
-            if (banvalue == "")
+            
+            var songId = GetBeatSaverId(request);
+            if (songId == "")
             {
                 QueueChatMessage($"usage: !block <songid>, omit <>'s.");
                 return;
             }
-
-
-            if (_songBlacklist.Contains(banvalue))
+            
+            if (_songBlacklist.Contains(songId))
             {
                 QueueChatMessage($"{request} is already on the blacklist.");
             }
             else
             {
                 QueueChatMessage($"{request} added to the blacklist.");
-                _songBlacklist.Add(banvalue);
+                _songBlacklist.Add(songId);
                 Config.Instance.Blacklist = _songBlacklist;
 
             }
-
         }
 
         private void WrongSong(TwitchUser requestor, string request)
@@ -1712,51 +1701,43 @@ namespace EnhancedTwitchChat.Bot
                     QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
                     RequestBot.Skip(i);
                     return;
-
                 }
             }
-
             QueueChatMessage($"You have no requests in the queue.");
-
         }
-
-
-
-        private void Unqueuesong(TwitchUser requestor, string request)
+        
+        private void DequeueSong(TwitchUser requestor, string request)
         {
-
             if (!requestor.isMod && !requestor.isBroadcaster) return;
-
-
-            var uniqueid = getid(request);
+            
             if (request == "")
             {
                 QueueChatMessage($"Usage: !remove <song>, omit <>'s.");
                 return;
             }
-
-
+            
+            var songId = GetBeatSaverId(request);
             for (int i = FinalRequestQueue.Count - 1; i >= 0; i--)
             {
+                bool dequeueSong = false;
                 var song = FinalRequestQueue[i].song;
 
-                if (uniqueid == "")
+                if (songId == "")
                 {
-                    if (doescontain($"{song["songName"].Value} {song["songSubName"].Value} {song["authorName"].Value} {song["version"].Value} {FinalRequestQueue[i].requestor.displayName}", request))
-                    {
-                        QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
-                        RequestBot.Skip(i);
-                        return;
-                    }
+                    if (DoesContainTerms(request, new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, FinalRequestQueue[i].requestor.displayName }))
+                        dequeueSong = true;
                 }
                 else
                 {
-                    if (song["id"].Value == uniqueid)
-                    {
-                        QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
-                        RequestBot.Skip(i);
-                        return;
-                    }
+                    if (song["id"].Value == songId)
+                        dequeueSong = true;
+                }
+
+                if(dequeueSong)
+                {
+                    QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
+                    RequestBot.Skip(i);
+                    return;
                 }
             }
 
@@ -1765,7 +1746,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        string getid(string request)
+        private string GetBeatSaverId(string request)
         {
             if (_digitRegex.IsMatch(request)) return request;
             if (_beatSaverRegex.IsMatch(request))
@@ -1777,125 +1758,65 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void mtt(TwitchUser requestor, string request)
+        private void MoveRequestToTop(TwitchUser requestor, string request)
         {
-
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
-
-            string unqueueid = getid(request);
-
-
-            if (request == "")
-            {
-                QueueChatMessage($"usage: !mtt <song id> , omit <>'s.");
-                return;
-            }
-
-            for (int i = FinalRequestQueue.Count - 1; i >= 0; i--)
-            {
-                var song = FinalRequestQueue[i].song;
-
-                if (unqueueid == "")
-                {
-                    if (doescontain($"{song["songName"].Value} {song["songSubName"].Value} {song["authorName"].Value} {song["version"].Value} {FinalRequestQueue[i].requestor.displayName}", request))
-                    {
-
-                        SongRequest req = FinalRequestQueue.ElementAt(i);
-                        FinalRequestQueue.RemoveAt(i);
-                        FinalRequestQueue.Insert(0, req);
-                        SongRequestQueued?.Invoke(song);
-
-                        writequeuesummarytofile();
-
-                        QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) promoted.");
-                        return;
-                    }
-                }
-                else
-                {
-
-
-
-                    if (song["id"].Value == unqueueid)
-                    {
-
-                        SongRequest req = FinalRequestQueue.ElementAt(i);
-                        FinalRequestQueue.RemoveAt(i);
-                        FinalRequestQueue.Insert(0, req);
-                        SongRequestQueued?.Invoke(song);
-
-                        writequeuesummarytofile();
-
-                        QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) promoted.");
-                        return;
-
-
-                    }
-                }
-            }
-
-            QueueChatMessage($"{request} was not found in the queue.");
-
+            MoveRequestPositionInQueue(requestor, request, true);
         }
 
-
-        private void last(TwitchUser requestor, string request)
+        private void MoveRequestToBottom(TwitchUser requestor, string request)
         {
+            MoveRequestPositionInQueue(requestor, request, false);
+        }
 
+        private void MoveRequestPositionInQueue(TwitchUser requestor, string request, bool top)
+        {
             if (!requestor.isMod && !requestor.isBroadcaster) return;
-
-            string unqueueid = getid(request);
-
-
+            
             if (request == "")
             {
-                QueueChatMessage($"usage: !last <song id> , omit <>'s.");
+                QueueChatMessage($"usage: !{(top ? "mtt" : "last")} <song id> , omit <>'s.");
                 return;
             }
-
+            
+            string moveId = GetBeatSaverId(request);
             for (int i = FinalRequestQueue.Count - 1; i >= 0; i--)
             {
-                var song = FinalRequestQueue[i].song;
+                SongRequest req = FinalRequestQueue.ElementAt(i);
+                var song = req.song;
 
-                if (unqueueid == "")
+                bool moveRequest = false;
+                if (moveId == "")
                 {
-                    if (doescontain($"{song["songName"].Value} {song["songSubName"].Value} {song["authorName"].Value} {song["version"].Value} {FinalRequestQueue[i].requestor.displayName}", request))
-                    {
-
-                        SongRequest req = FinalRequestQueue.ElementAt(i);
-                        FinalRequestQueue.RemoveAt(i);
-                        FinalRequestQueue.Add(req);
-                        SongRequestQueued?.Invoke(song);
-
-                        writequeuesummarytofile();
-
-                        QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) demoted.");
-                        return;
-                    }
+                    if (DoesContainTerms(request, new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, FinalRequestQueue[i].requestor.displayName }))
+                        moveRequest = true;
                 }
                 else
                 {
+                    if (song["id"].Value == moveId)
+                        moveRequest = true;
+                }
 
-
-
-                    if (song["id"].Value == unqueueid)
-                    {
-
-                        SongRequest req = FinalRequestQueue.ElementAt(i);
-                        FinalRequestQueue.RemoveAt(i);
+                if(moveRequest)
+                {
+                    // Remove the request from the queue
+                    FinalRequestQueue.RemoveAt(i);
+                    
+                    // Then readd it at the appropriate position
+                    if (top)
+                        FinalRequestQueue.Insert(0, req);
+                    else
                         FinalRequestQueue.Add(req);
-                        SongRequestQueued?.Invoke(song);
 
-                        writequeuesummarytofile();
+                    // Finally, invoke the SongRequestQueued event to update the request viewcontroller
+                    SongRequestQueued?.Invoke(song);
 
-                        QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) demoted.");
-                        return;
+                    // And write a summary to file
+                    WriteQueueSummaryToFile();
 
-
-                    }
+                    QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) {(top ? "promoted" : "demoted")}.");
+                    return;
                 }
             }
-
             QueueChatMessage($"{request} was not found in the queue.");
         }
 
@@ -1903,33 +1824,27 @@ namespace EnhancedTwitchChat.Bot
         {
             if (!requestor.isBroadcaster) return;
 
+            // Write our current queue to file so we can restore it if needed
             Writedeck(requestor, "justcleared");
 
+            // Cycle through each song in the final request queue, adding them to the song history
             foreach (var song in FinalRequestQueue)
-                {
                 SongRequestHistory.Insert(0, song);
 
-                }
-
+            // Clear request queue and save it to file
+            FinalRequestQueue.Clear();
             _persistentRequestQueue.Clear();
             Config.Instance.RequestQueue = _persistentRequestQueue;
 
-            FinalRequestQueue.Clear();
+            // Update the request button ui accordingly
             UpdateRequestButton();
-            if (FinalRequestQueue.Count == 0 && _songRequestMenu.customFlowCoordinator.isActivated)
-                _songRequestMenu.Dismiss();
-
-
+            
+            // Notify the chat that the queue was cleared
             QueueChatMessage($"Queue is now empty.");
-
-
         }
-
-
-
+        
         private void ProcessSongRequest(TwitchUser requestor, string request)
         {
-
             try
             {
                 if (QueueOpen == false && !requestor.isBroadcaster && !requestor.isMod)
@@ -1946,8 +1861,7 @@ namespace EnhancedTwitchChat.Bot
 
                 if (!_requestTracker.ContainsKey(requestor.id))
                     _requestTracker.Add(requestor.id, new RequestUserTracker());
-
-
+                
                 int limit = Config.Instance.RequestLimit;
                 if (requestor.isSub) limit = Math.Max(limit, Config.Instance.SubRequestLimit);
                 if (requestor.isMod) limit = Math.Max(limit, Config.Instance.ModRequestLimit);
@@ -1973,11 +1887,9 @@ namespace EnhancedTwitchChat.Bot
                 }
                 */
 
-
                 // Only rate limit users who aren't mods or the broadcaster
                 if (!requestor.isBroadcaster)
                 {
-
                     //if (_requestTracker[requestor.id].resetTime <= DateTime.Now)
                     //{
                     //  _requestTracker[requestor.id].resetTime = DateTime.Now.AddMinutes(Config.Instance.RequestCooldownMinutes);
@@ -1991,9 +1903,7 @@ namespace EnhancedTwitchChat.Bot
                         return;
                     }
                 }
-
-
-
+                
                 RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request));
                 if (!newRequest.isBeatSaverId && request.Length < 3)
                     Instance.QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
@@ -2007,35 +1917,24 @@ namespace EnhancedTwitchChat.Bot
 
             }
         }
-
-
-        private void openQueue(TwitchUser requestor, string request)
+        
+        private void OpenQueue(TwitchUser requestor, string request)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
-
-            QueueOpen = true;
-            QueueChatMessage("Queue is now open.");
-            Writequeuestatustofile("Queue is open");
-
-            try
-            {
-            RequestBotListViewController.Instance.UpdateRequestUI();
-
-            }
-            catch (Exception ex)
-            {
-            Plugin.Log(ex.ToString());
-            }
-
+            ToggleQueue(requestor, request, true);
         }
 
-        private void closeQueue(TwitchUser requestor, string request)
+        private void CloseQueue(TwitchUser requestor, string request)
+        {
+            ToggleQueue(requestor, request, false);
+        }
+
+        private void ToggleQueue(TwitchUser requestor, string request, bool state)
         {
             if (!requestor.isMod && !requestor.isBroadcaster) return;
 
-            QueueOpen = false;
-            QueueChatMessage("Queue is now closed.");
-            Writequeuestatustofile("Queue is closed");
+            QueueOpen = state;
+            QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
+            Writequeuestatustofile(state ? "Queue is now open."  : "Queue is closed");
 
             try
             {
@@ -2046,20 +1945,13 @@ namespace EnhancedTwitchChat.Bot
             {
                 Plugin.Log(ex.ToString());
             }
-
-
-
         }
-
-
+        
         public static void Process(int index)
         {
             Instance?.StartCoroutine(ProcessSongRequest(index));
         }
-
-
-
-
+        
         public static void Parse(TwitchUser user, string request)
         {
             if (!Instance) return;
@@ -2069,32 +1961,18 @@ namespace EnhancedTwitchChat.Bot
 
             if (parts.Length <= 0) return;
 
-            string key = parts[0].Substring(1).ToLower();
-
-            // Execute custom deck commands as if they were normal commands
-
-            if (deck.ContainsKey(key))
-            {
-                string param = key;
-                if (parts.Length > 1) param += " " + parts[1];
-                Commands[key]?.Invoke(user, param);
-            }
-
-
-            // Allow command with no parameters
-            if (parts.Length == 1)
-            {
-                Commands[key]?.Invoke(user, "");
-                return;
-            }
-
-
             string command = parts[0].Substring(1)?.ToLower();
             if (Commands.ContainsKey(command))
-                Commands[command]?.Invoke(user, parts[1]);
+            {
+                string param = parts.Length > 1 ? parts[1] : "";
+                if (deck.ContainsKey(command))
+                {
+                    param = command;
+                    if (parts.Length > 1) param += " " + parts[1];
+                }
+                Commands[command]?.Invoke(user, param);
+            }
         }
-
-
     }
 }
 

@@ -100,7 +100,7 @@ namespace EnhancedTwitchChat.Chat
             if (!TwitchWebSocketClient.ChannelInfo.ContainsKey(twitchMsg.channelName))
                 TwitchWebSocketClient.ChannelInfo.Add(twitchMsg.channelName, new TwitchRoom(twitchMsg.channelName));
 
-            Plugin.Log($"Success joining channel #{twitchMsg.channelName}");
+            Plugin.Log($"Success joining channel #{twitchMsg.channelName} (RoomID: {twitchMsg.roomId})");
         }
 
         public static void ROOMSTATE(TwitchMessage twitchMsg, MatchCollection tags)
