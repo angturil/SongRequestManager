@@ -400,7 +400,6 @@ namespace EnhancedTwitchChat.Bot
                     }
 
 
-                    Writedeck(requestor, "savedqueue");
 
 
                     if (!isPersistent)
@@ -412,6 +411,9 @@ namespace EnhancedTwitchChat.Bot
                         Config.Instance.RequestQueue = _persistentRequestQueue;
                     }
                     FinalRequestQueue.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued));
+
+                    if (!isPersistent) Writedeck(requestor, "savedqueue");
+
                     UpdateRequestButton();
                     if (!isPersistent)
                         QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) added to queue.");
@@ -1531,7 +1533,7 @@ namespace EnhancedTwitchChat.Bot
 
                 if (FinalRequestQueue.Count == 0)
                 {
-                    QueueChatMessage("Queue is empty.");
+                    QueueChatMessage("Queue is empty  .");
                     return;
                 }
 
