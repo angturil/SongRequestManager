@@ -59,6 +59,33 @@ namespace EnhancedTwitchChat.Utils
             }
         }
 
+        public static void MoveFilesRecursively(DirectoryInfo source, DirectoryInfo target)
+        {
+            foreach (DirectoryInfo dir in source.GetDirectories())
+                MoveFilesRecursively(dir, target.CreateSubdirectory(dir.Name));
+            foreach (FileInfo file in source.GetFiles())
+            {
+                string newFilePath = Path.Combine(target.FullName, file.Name);
+                if (File.Exists(newFilePath))
+                {
+                    try
+                    {
+                        File.Delete(newFilePath);
+                    }
+                    catch (Exception)
+                    {
+                        //Plugin.Log($"Failed to delete file {Path.GetFileName(newFilePath)}! File is in use!");
+                        string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
+                        if (!Directory.Exists(filesToDelete))
+                            Directory.CreateDirectory(filesToDelete);
+                        File.Move(newFilePath, Path.Combine(filesToDelete, file.Name));
+                        //Plugin.Log("Moved file into FilesToDelete directory!");
+                    }
+                }
+                file.MoveTo(newFilePath);
+            }
+        }
+
         public static IEnumerator ExtractZip(string zipPath, string extractPath)
         {
             if (File.Exists(zipPath))
@@ -83,18 +110,10 @@ namespace EnhancedTwitchChat.Utils
                 {
                     if (extracted)
                     {
-                        string[] directories = Directory.GetDirectories($"{Environment.CurrentDirectory}\\.requestcache");
-                        foreach (var directory in directories)
-                        {
-                            if (!Directory.Exists(extractPath))
-                                Directory.CreateDirectory(extractPath);
+                        if (!Directory.Exists(extractPath))
+                            Directory.CreateDirectory(extractPath);
 
-                            string path = Path.Combine(extractPath, Path.GetFileName(directory));
-                            if (Directory.Exists(path))
-                                Directory.Delete(path, true);
-
-                            Directory.Move(directory, path);
-                        }
+                        MoveFilesRecursively(new DirectoryInfo($"{Environment.CurrentDirectory}\\.requestcache"), new DirectoryInfo(extractPath));
                     }
                 }
                 catch (Exception e)

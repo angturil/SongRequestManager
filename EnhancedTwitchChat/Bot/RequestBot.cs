@@ -161,6 +161,11 @@ namespace EnhancedTwitchChat.Bot
         {
             DontDestroyOnLoad(gameObject);
             Instance = this;
+
+            string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
+            if (Directory.Exists(filesToDelete))
+                Utilities.EmptyDirectory(filesToDelete);
+
             _songBlacklist = Config.Instance.Blacklist;
 
             if (Config.Instance.PersistentRequestQueue)
@@ -251,7 +256,7 @@ namespace EnhancedTwitchChat.Bot
                 {
                     var song = req.song;
 
-                    string[] parts = ((string)song["version"]).Split(new char[] { '-' }, 2);
+                    string[] parts = song["version"].Value.Split(new char[] { '-' }, 2);
 
                     if (parts[0] == request || (string)song["version"] == request)
                     {
