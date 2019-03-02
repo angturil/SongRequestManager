@@ -192,7 +192,7 @@ namespace EnhancedTwitchChat.Bot
                 _queueButton.onClick.AddListener(delegate ()
                 {
                     RequestBot.QueueOpen = !RequestBot.QueueOpen;
-                    RequestBot.Writequeuestatustofile(RequestBot.QueueOpen ? "Queue is open." : "Queue is closed.");
+                    RequestBot.WriteQueueStatusToFile(RequestBot.QueueOpen ? "Queue is open." : "Queue is closed.");
                     RequestBot.Instance.QueueChatMessage(RequestBot.QueueOpen ? "Queue is open." : "Queue is closed.");
                     UpdateRequestUI();
                 });

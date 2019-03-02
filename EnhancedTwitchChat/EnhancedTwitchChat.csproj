@@ -125,6 +125,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Bot\ChatCommands.cs" />
     <Compile Include="Bot\RequestBot.cs" />
     <Compile Include="Bot\RequestBotListViewController.cs" />
     <Compile Include="Chat\MessageHandlers.cs" />
@@ -3087,10 +3088,9 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Beat Saber\Plugins"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
+    <PreBuildEvent>"$(ProjectDir)..\..\PluginVersionSetter.exe" "$(ProjectDir)Properties\AssemblyInfo.cs" "$(ProjectDir)Plugin.cs"</PreBuildEvent>
   </PropertyGroup>
 </Project>

@@ -41,7 +41,7 @@ namespace EnhancedTwitchChat
         private bool _messageRendering = false;
         private int _waitForFrames = 0;
         private bool _configChanged = false;
-        private ConcurrentQueue<string> _timeoutQueue = new ConcurrentQueue<string>();
+        private ConcurrentQueue<KeyValuePair<string, bool>> _timeoutQueue = new ConcurrentQueue<KeyValuePair<string, bool>>();
         private ChatMover _movePointer = null;
         private LockToggle _lockPointer = null;
         private string _lastFontName;
@@ -444,14 +444,18 @@ namespace EnhancedTwitchChat
             return true;
         }
 
-        private void PurgeChatMessagesInternal(string userID)
+        private void PurgeChatMessagesInternal(KeyValuePair<string, bool> messageInfo)
         {
+            bool isUserId = messageInfo.Value;
+            string id = messageInfo.Key;
+
             bool purged = false;
             foreach (CustomText currentMessage in _chatMessages)
             {
                 if (currentMessage.messageInfo == null) continue;
 
-                if (currentMessage.messageInfo.twitchMessage.user.id == userID)
+                // Handle purging messages by user id or by message id, since both are possible
+                if ((isUserId && currentMessage.messageInfo.twitchMessage.user.id == id) || (!isUserId && currentMessage.messageInfo.twitchMessage.id == id))
                 {
                     string userName = $"<color={currentMessage.messageInfo.twitchMessage.user.color}><b>{currentMessage.messageInfo.twitchMessage.user.displayName}</b></color>:";
                     if (currentMessage.text.Contains(userName))
@@ -469,30 +473,12 @@ namespace EnhancedTwitchChat
 
         public void PurgeChatMessageById(string messageId)
         {
-            bool purged = false;
-            foreach (CustomText currentMessage in _chatMessages)
-            {
-                if (currentMessage.messageInfo == null) continue;
-
-                if (currentMessage.messageInfo.twitchMessage.id == messageId)
-                {
-                    string userName = $"<color={currentMessage.messageInfo.twitchMessage.user.color}><b>{currentMessage.messageInfo.twitchMessage.user.displayName}</b></color>:";
-                    if (currentMessage.text.Contains(userName))
-                        currentMessage.text = $"{userName}: <message deleted>";
-                    else
-                        currentMessage.text = "";
-
-                    FreeImages(currentMessage);
-                    purged = true;
-                }
-            }
-            if (purged)
-                UpdateChatUI();
+            _timeoutQueue.Enqueue(new KeyValuePair<string, bool>(messageId, false));
         }
 
         public void PurgeMessagesFromUser(string userID)
         {
-            _timeoutQueue.Enqueue(userID);
+            _timeoutQueue.Enqueue(new KeyValuePair<string, bool>(userID, true));
         }
 
         private void FreeImages(CustomText currentMessage)
