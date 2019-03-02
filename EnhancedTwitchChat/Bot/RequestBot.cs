@@ -2020,6 +2020,15 @@ namespace EnhancedTwitchChat.Bot
             QueueChatMessage("Queue is now open.");
             Writequeuestatustofile("Queue is open");
 
+            try
+            {
+            RequestBotListViewController.Instance.UpdateRequestUI();
+
+            }
+            catch (Exception)
+            {
+            }
+
         }
 
         private void closeQueue(TwitchUser requestor, string request)
@@ -2029,6 +2038,18 @@ namespace EnhancedTwitchChat.Bot
             QueueOpen = false;
             QueueChatMessage("Queue is now closed.");
             Writequeuestatustofile("Queue is closed");
+
+            try
+            {
+                RequestBotListViewController.Instance.UpdateRequestUI();
+
+            }
+            catch (Exception)
+            {
+            }
+
+
+
         }
 
 
@@ -2073,7 +2094,6 @@ namespace EnhancedTwitchChat.Bot
             if (Commands.ContainsKey(command))
                 Commands[command]?.Invoke(user, parts[1]);
         }
-
 
 
     }

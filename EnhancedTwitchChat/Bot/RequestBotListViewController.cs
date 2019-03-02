@@ -20,6 +20,9 @@ namespace EnhancedTwitchChat.Bot
 {
     class RequestBotListViewController : CustomListViewController
     {
+
+        public static RequestBotListViewController Instance;
+
         private CustomMenu _confirmationDialog;
         private CustomViewController _confirmationViewController;
         private LevelListTableCell _songListTableCellInstance;
@@ -52,7 +55,9 @@ namespace EnhancedTwitchChat.Bot
             {
                 if (!SongLoader.AreSongsLoaded)
                     SongLoader.SongsLoadedEvent += SongLoader_SongsLoadedEvent;
-                
+
+                Instance = this;
+
                 InitConfirmationDialog();
 
                 _songListTableCellInstance = Resources.FindObjectsOfTypeAll<LevelListTableCell>().First(x => (x.name == "LevelListTableCell"));
@@ -206,7 +211,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void UpdateRequestUI(bool selectRowCallback = false)
+        public void UpdateRequestUI(bool selectRowCallback = false)
         {
 
             _playButton.GetComponentInChildren<Image>().color = RequestBot.FinalRequestQueue.Count > 0 ? Color.white : Color.red; ;
