@@ -184,7 +184,7 @@ namespace EnhancedTwitchChat.Bot
                 // Queue button
                 _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
                 _queueButton.ToggleWordWrapping(false);
-                (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(-24f, 30f);
+                (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(-20f, 30f);
                 _queueButton.SetButtonText(RequestBot.QueueOpen ? "Q OPEN" : "Q CLOSED");
                 _queueButton.GetComponentInChildren<Image>().color = RequestBot.QueueOpen ? Color.green : Color.red; ;
                 _queueButton.interactable = true;

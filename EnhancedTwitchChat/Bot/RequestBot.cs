@@ -1,5 +1,4 @@
-﻿//#define PRIVATE 
-
+﻿
 using CustomUI.BeatSaber;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Textures;
@@ -1030,7 +1029,7 @@ namespace EnhancedTwitchChat.Bot
 
             bool found = true;
 
-            while (found && offset < 80)
+            while (found && offset < Config.Instance.maxaddnewscanrange)
             {
                 found = false;
 
@@ -1057,6 +1056,7 @@ namespace EnhancedTwitchChat.Bot
 
                     string songlist = "";
 
+                    // Non reproducible bug occured resulting in unusual list. Not sure if its local, or beastaver db inconsistency?
 
                     if (result["songs"].IsArray)
                     {
@@ -1067,6 +1067,8 @@ namespace EnhancedTwitchChat.Bot
                             song = entry;
                             if (count > 0) songlist += ", ";
 
+                            //QueueChatMessage($"{song["version"].Value} {song["name"].Value}");
+
                             if (mapperfiltered(ref song)) continue;
                             if (filtersong(ref song)) continue;
                             ProcessSongRequest(requestor, song["version"].Value);
@@ -1075,21 +1077,13 @@ namespace EnhancedTwitchChat.Bot
                         }
 
                     }
-                    else
-                    {
-                        song = result["song"].AsObject;
-                        songlist += $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
-
-                        ProcessSongRequest(requestor, song["version"].Value);
-                        totalSongs++;
-                    }
-
+                   
 
                 }
 
 
                 offset += 20;
-                if (totalSongs > 20) break;
+                if (totalSongs > Config.Instance.maxaddnewresults) break;
 
             }
 
