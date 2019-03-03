@@ -353,40 +353,6 @@ namespace EnhancedTwitchChat.Bot
             Readdeck(requestor, "savedqueue");
         }
 
-        private void filterbyDeckonly(TwitchUser requestor, string request)
-        {
-            if (!requestor.isBroadcaster) return;
-
-            whitelist.Clear();
-
-            foreach (var item in deck)
-            {
-                try
-                {
-                    string[] deckcontent = item.Value.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-                    foreach (var entry in deckcontent)
-                    {
-                        whitelist.Add(entry);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Plugin.Log(ex.ToString());
-                    return;
-
-                }
-            }
-            whiteliston = true;
-            QueueChatMessage($"Requests now limited to {whitelist.Count} songs in loaded decks.");
-
-        }
-
-        private void disableDeckfiltering(TwitchUser requestor, string request)
-        {
-            QueueChatMessage($"Requests no longer limited to loaded decks.");
-            whiteliston = false;
-        }
 
         private void Writedeck(TwitchUser requestor, string request)
         {
