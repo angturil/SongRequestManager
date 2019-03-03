@@ -264,10 +264,10 @@ namespace EnhancedTwitchChat.Bot
             foreach (SongRequest req in FinalRequestQueue.ToArray())
                 {
                 var song = req.song;
-                if (song[matchby].Value==request) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!!";
+                if (song[matchby].Value==request) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!!"; // The double !! is for testing to distinguish this duplicate check from the 2nd one
             }
 
-            return "";
+            return ""; // Empty string: The request is not in the FinalRequestQueue
             }
 
             bool IsInQueue(string request) // unhappy about naming here
@@ -307,7 +307,6 @@ namespace EnhancedTwitchChat.Bot
                     _checkingQueue = false;
                     yield break;
                     }
-
             }
 
             // Get song query results from beatsaver.com
@@ -324,6 +323,7 @@ namespace EnhancedTwitchChat.Bot
                 }
 
                 JSONNode result = JSON.Parse(web.downloadHandler.text);
+                
                 if (result["songs"].IsArray && result["total"].AsInt == 0)
                 {
                     QueueChatMessage($"No results found for request \"{request}\"");

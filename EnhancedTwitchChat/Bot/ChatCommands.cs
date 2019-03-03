@@ -353,7 +353,6 @@ namespace EnhancedTwitchChat.Bot
             Readdeck(requestor, "savedqueue");
         }
 
-
         private void Writedeck(TwitchUser requestor, string request)
         {
             if (!requestor.isBroadcaster && request != "savedqueue") return;
@@ -930,12 +929,15 @@ namespace EnhancedTwitchChat.Bot
         #region Wrong Song
         private void WrongSong(TwitchUser requestor, string request)
         {
+            // Note: Scanning backwards to remove LastIn, for loop is best known way.
             for (int i = FinalRequestQueue.Count - 1; i >= 0; i--)
             {
                 var song = FinalRequestQueue[i].song;
                 if (FinalRequestQueue[i].requestor.id == requestor.id)
                 {
                     QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
+
+                    duplicatelist.Remove(song["id"].Value); // Special case, user removing own request does not result in a persistent duplicate. This can also be caused by a false !wrongsong which was unintended.
                     RequestBot.Skip(i);
                     return;
                 }
