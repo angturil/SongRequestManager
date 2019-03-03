@@ -80,6 +80,8 @@ namespace EnhancedTwitchChat.Bot
             public DateTime resetTime = DateTime.Now;
         }
 
+        public string EnhancedTwitchchatFiles = "\\requestqueue\\";
+
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled); 
@@ -233,7 +235,14 @@ namespace EnhancedTwitchChat.Bot
             _botMessageQueue.Enqueue(message);
         }
 
-
+        private string GetStarRating(ref JSONObject song)
+        {
+            string stars = "******";
+            float rating = song["rating"].AsFloat;
+            if (rating < 0 || rating > 100) rating = 0;
+            string starrating=stars.Substring(0, (int)(rating / 17)); // 17 is used to produce a 5 star rating from 80ish to 100.
+            return starrating;
+        }
 
         private IEnumerator CheckRequest(RequestInfo requestInfo)
         {
@@ -242,18 +251,15 @@ namespace EnhancedTwitchChat.Bot
             TwitchUser requestor = requestInfo.requestor;
 
             bool isPersistent = requestInfo.isPersistent;
-
-            bool mod = requestor.isBroadcaster || requestor.isMod;
-
+           
             string request = requestInfo.request;
 
             // Special code for numeric searches
             if (requestInfo.isBeatSaverId)
             {
-
-                // Remap song id if entry present. This is one time, and not correct as a result. No recursion
-
+                // Remap song id if entry present. This is one time, and not correct as a result. No recursion right now, could be confusing to the end user.
                 string[] requestparts = request.Split(new char[] { '-' }, 2);
+
                 if (!isPersistent && requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]))
                 {
                     request = songremap[requestparts[0]];
@@ -311,7 +317,6 @@ namespace EnhancedTwitchChat.Bot
                 }
 
 
-
                 // Filter out too many or too few results
                 if (songs.Count == 0)
                     {
@@ -327,11 +332,10 @@ namespace EnhancedTwitchChat.Bot
                 }
                 else
                 {
-                    if (isNotModerator(requestor)) errormessage = SongSearchFilter(songs[0], false);
+                    if (isNotModerator(requestor) || !requestInfo.isBeatSaverId) errormessage = SongSearchFilter(songs[0], false);
                 }
+
                 // Display reason why chosen song was rejected, if filter is triggered. Do not add filtered songs
-
-
                 if (errormessage != "")
                     {
                     if (!isPersistent) QueueChatMessage(errormessage);
@@ -353,8 +357,8 @@ namespace EnhancedTwitchChat.Bot
 
                 if (!isPersistent)
                     {
-                    Writedeck(requestor, "savedqueue"); // Might not be needed
-                    QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) added to queue.");
+                    Writedeck(requestor, "savedqueue"); // Might not be needed.. logic around saving and loading deck state needs to be reworked
+                    QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song)} ({song["version"].Value}) added to queue.");
                     }
 
                 UpdateRequestButton();
@@ -363,7 +367,6 @@ namespace EnhancedTwitchChat.Bot
                 }
             _checkingQueue = false;
         }
-
 
         private static IEnumerator ProcessSongRequest(int index, bool fromHistory = false)
         {
@@ -611,9 +614,6 @@ namespace EnhancedTwitchChat.Bot
             StartCoroutine(LookupSongs(requestor, request));
 
         }
-
-
-
 
 
         private string GetBeatSaverId(string request)

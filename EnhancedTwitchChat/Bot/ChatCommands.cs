@@ -45,6 +45,7 @@ namespace EnhancedTwitchChat.Bot
             return true;
         }
 
+
         private bool filtersong(JSONObject song)
         {
             string songid = song["id"].Value;
@@ -54,7 +55,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
         // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
-
         
         [Flags] enum SongFilter { none=0, Queue=1, Blacklist=2, Mapper=4, Duplicate=8, Remap=16, Rating=32,all=-1 };
 
@@ -69,9 +69,9 @@ namespace EnhancedTwitchChat.Bot
 
             if (filter.HasFlag(SongFilter.Duplicate) && duplicatelist.Contains(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} has already been requested this session!";
 
-            if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} was supposed to be remapped!";
+            if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"no permitted results found!";
 
-            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < Config.Instance.lowestallowedrating) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
+            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < Config.Instance.lowestallowedrating && song["rating"]!=0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
 
             return "";
         }
@@ -594,6 +594,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
+        // Early code, work in progress.
         private void mapperBlacklist(TwitchUser requestor, string request)
         {
             if (!requestor.isBroadcaster) return;
