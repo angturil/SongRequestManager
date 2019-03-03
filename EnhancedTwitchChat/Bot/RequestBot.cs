@@ -490,7 +490,7 @@ namespace EnhancedTwitchChat.Bot
             }
             catch
              {
-
+             
             }
 
         }
@@ -600,11 +600,11 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("restore", restoredeck);
             Commands.Add("commandlist", showCommandlist);
             Commands.Add("played", ShowSongsplayed);
+            Commands.Add("readdeck", Readdeck);
+            Commands.Add("writedeck", Writedeck);
 
 #if PRIVATE
 
-            Commands.Add("readdeck", Readdeck);
-            Commands.Add("writedeck", Writedeck);
             Commands.Add("goodmappers",mapperWhitelist);
             Commands.Add("mapperwhitelist",mapperWhitelist);                  
             Commands.Add("addnew",addNewSongs);
@@ -628,13 +628,13 @@ namespace EnhancedTwitchChat.Bot
 
         private void lookup(TwitchUser requestor, string request)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster && !requestor.isSub)
+            if (isNotModerator(requestor) && !requestor.isSub)
             {
                 QueueChatMessage($"lookup command is limited to Subscribers and moderators.");
                 return;
             }
 
-            StartCoroutine(ListSongs(requestor, request));
+            StartCoroutine(LookupSongs(requestor, request));
 
         }
         
@@ -646,61 +646,35 @@ namespace EnhancedTwitchChat.Bot
             return false;
         }
         
-        /*
-        |--------------------------------------------------------------------------
-        | API Routes
-        |--------------------------------------------------------------------------
-        |
-        | Here is where you can register API routes for your application. These
-        | routes are loaded by the RouteServiceProvider within a group which
-        | is assigned the "api" middleware group. Enjoy building your API!
-        |
-        Route::get('/songs/top/{start?}','ApiController@topDownloads');
-        Route::get('/songs/plays/{start?}','ApiController@topPlayed');
-        Route::get('/songs/new/{start?}','ApiController@newest');
-        Route::get('/songs/rated/{start?}','ApiController@topRated');
-        Route::get('/songs/byuser/{id}/{start?}','ApiController@byUser');
-        Route::get('/songs/detail/{key}','ApiController@detail');
-        Route::get('/songs/vote/{key}/{type}/{accessToken}', 'ApiController@vote');
-        //Route::post('/songs/vote/{key}','ApiController@vote'); // @todo use post instead of get
-        Route::get('/songs/search/{type}/{key}','ApiController@search');
-        */
 
         
         
         private static void WriteQueueSummaryToFile()
         {
-
             try
             {
-
-                int count = 0;
                 string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuelist.txt";
                 StreamWriter fileWriter = new StreamWriter(statusfile);
 
-                string queuelist = "";
+                string queuesummary = "";
 
+                int count = 0;
                 foreach (SongRequest req in FinalRequestQueue.ToArray())
                 {
                     var song = req.song;
-                    queuelist += $"{song["songName"].Value}\n";
-                    count++;
-                    if (count > 8)
+                    queuesummary += $"{song["songName"].Value}\n";
+
+                    if (++count > 8)
                     {
-                        queuelist += "...\n";
+                        queuesummary += "...\n";
                         break;
                     }
                 }
 
-                if (count == 0)
-                    fileWriter.WriteLine("Queue is empty.");
-                else
-                    fileWriter.Write(queuelist);
-
+                fileWriter.Write(count>0 ? queuesummary : "Queue is empty.");
                 fileWriter.Close();
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex) {
                 Plugin.Log(ex.ToString());
             }
 
@@ -749,7 +723,7 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-                if (QueueOpen == false && !requestor.isBroadcaster && !requestor.isMod)
+                if (QueueOpen == false && isNotModerator(requestor))
                 {
                     QueueChatMessage($"Queue is currently closed.");
                     return;
@@ -757,6 +731,7 @@ namespace EnhancedTwitchChat.Bot
 
                 if (request == "")
                 {
+                    // Would be nice if it was configurable
                     QueueChatMessage($"usage: bsr <song id> or <part of song name and mapper if known>");
                     return;
                 }
@@ -767,12 +742,11 @@ namespace EnhancedTwitchChat.Bot
                 int limit = Config.Instance.RequestLimit;
                 if (requestor.isSub) limit = Math.Max(limit, Config.Instance.SubRequestLimit);
                 if (requestor.isMod) limit = Math.Max(limit, Config.Instance.ModRequestLimit);
-                if (requestor.isVip) limit++; // Treated as a bonus. Still being finalized
-
-                // Currently using simultaneous request limits, will be introduced later / or activated if time mode is on.
+                if (requestor.isVip) limit+=Config.Instance.VipBonus; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
 
                 /*
-                // Only rate limit users who aren't mods or the broadcaster
+                // Currently using simultaneous request limits, will be introduced later / or activated if time mode is on.
+                // Only rate limit users who aren't mods or the broadcaster - 
                 if (!requestor.isMod && !requestor.isBroadcaster)
                 {
                     if (_requestTracker[requestor.id].resetTime <= DateTime.Now)
@@ -792,23 +766,16 @@ namespace EnhancedTwitchChat.Bot
                 // Only rate limit users who aren't mods or the broadcaster
                 if (!requestor.isBroadcaster)
                 {
-                    //if (_requestTracker[requestor.id].resetTime <= DateTime.Now)
-                    //{
-                    //  _requestTracker[requestor.id].resetTime = DateTime.Now.AddMinutes(Config.Instance.RequestCooldownMinutes);
-                    //  _requestTracker[requestor.id].numRequests = 0;
-                    //}
                     if (_requestTracker[requestor.id].numRequests >= limit)
                     {
                         QueueChatMessage($"You already have {_requestTracker[requestor.id].numRequests} on the queue. You can add another once one is played. Subscribers are limited to {Config.Instance.SubRequestLimit}.");
-                        //  var time = (_requestTracker[requestor.id].resetTime - DateTime.Now);
-                        //QueueChatMessage($"{requestor.displayName}, you can make another request in{(time.Minutes > 0 ? $" {time.Minutes} minute{(time.Minutes > 1 ? "s" : "")}" : "")} {time.Seconds} second{(time.Seconds > 1 ? "s" : "")}.");
                         return;
                     }
                 }
                 
                 RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request));
                 if (!newRequest.isBeatSaverId && request.Length < 3)
-                    Instance.QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
+                    QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
                 else if (!UnverifiedRequestQueue.Contains(newRequest))
                     UnverifiedRequestQueue.Enqueue(newRequest);
 

@@ -15,14 +15,40 @@ namespace EnhancedTwitchChat.Bot
     public partial class RequestBot : MonoBehaviour
     {
         // This one needs to be cleaned up a lot imo
+        bool isNotBroadcaster(TwitchUser requestor, string message = "")
+        {
+            if (requestor.isBroadcaster) return false;
+            if (message != "") QueueChatMessage("{message} is broadcaster only.");
+            return true;
+
+        }
+
+        bool isNotModerator(TwitchUser requestor, string message = "")
+        {
+            if (requestor.isBroadcaster || requestor.isMod) return false;
+            if (message != "") QueueChatMessage("{message} is moderator only.");
+            return true;
+
+        }
+
         #region AddSongs/AddSongsByMapper Commands
+
+        /*
+        Route::get('/songs/top/{start?}','ApiController@topDownloads');
+        Route::get('/songs/plays/{start?}','ApiController@topPlayed');
+        Route::get('/songs/new/{start?}','ApiController@newest');
+        Route::get('/songs/rated/{start?}','ApiController@topRated');
+        Route::get('/songs/byuser/{id}/{start?}','ApiController@byUser');
+        Route::get('/songs/detail/{key}','ApiController@detail');
+        Route::get('/songs/vote/{key}/{type}/{accessToken}', 'ApiController@vote');
+        Route::get('/songs/search/{type}/{key}','ApiController@search');
+        */
+
+
         private void addNewSongs(TwitchUser requestor, string request)
         {
-            if (!requestor.isBroadcaster && !requestor.isMod)
-            {
-                QueueChatMessage($"addnewsongs command is limited to moderator.");
-                return;
-            }
+            if (isNotModerator(requestor, "addnew")) return;
+
             StartCoroutine(addsongsFromnewest(requestor, request));
         }
 
@@ -36,7 +62,7 @@ namespace EnhancedTwitchChat.Bot
 
             bool found = true;
 
-            while (found && offset < Config.Instance.maxaddnewscanrange)
+            while (found && offset < Config.Instance.MaxiumAddScanRange)
             {
                 found = false;
 
@@ -58,36 +84,27 @@ namespace EnhancedTwitchChat.Bot
 
                         yield break;
                     }
-                    JSONObject song;
 
-                    string songlist = "";
-
-                    // Non reproducible bug occured resulting in unusual list. Not sure if its local, or beastaver db inconsistency?
+                     // BUG: (Pre-merge) Non reproducible bug occured one time, resulting in unusual list - duplicate and incorrect entries. Not sure if its local, or beastaver db inconsistency?
 
                     if (result["songs"].IsArray)
                     {
-                        int count = 0;
                         foreach (JSONObject entry in result["songs"])
                         {
                             found = true;
-                            song = entry;
-                            if (count > 0) songlist += ", ";
+                            JSONObject song = entry;
 
-                            //QueueChatMessage($"{song["version"].Value} {song["name"].Value}");
-
-                            if (mapperfiltered(song)) continue;
+                            if (IsInQueue(song["id"].Value)) continue;
+                            if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
                             if (filtersong(song)) continue;
                             ProcessSongRequest(requestor, song["version"].Value);
-                            count++;
-                            totalSongs++; ;
+                            totalSongs++;
+                            if (totalSongs > Config.Instance.maxaddnewresults) yield break;  // We're done once the maximum resuts are produced
+
                         }
-
                     }
-
-
                 }
-                offset += 20;
-                if (totalSongs > Config.Instance.maxaddnewresults) break;
+                offset += 20; // Magic beatsaver.com skip constant.
             }
 
             if (totalSongs == 0)
@@ -96,6 +113,7 @@ namespace EnhancedTwitchChat.Bot
             }
             yield return null;
         }
+
 
         private IEnumerator addsongsBymapper(TwitchUser requestor, string request)
         {
@@ -165,25 +183,22 @@ namespace EnhancedTwitchChat.Bot
                     }
                     JSONObject song;
 
-                    string songlist = "";
-
-
-                    int count = 0;
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-                        if (count > 0) songlist += ", ";
+
+                        if (IsInQueue(song["id"].Value)) continue;
+                        if (filtersong(song)) continue;
+
                         ProcessSongRequest(requestor, song["version"].Value);
-                        count++;
                         found = true;
                         totalSongs++; ;
                     }
 
-
                 }
                 offset += 20;
             }
-            //QueueChatMessage($"Added {totalSongs} songs.");
+
             yield return null;
         }
 
@@ -250,23 +265,16 @@ namespace EnhancedTwitchChat.Bot
 
         private void addsongsbymapper(TwitchUser requestor, string request)
         {
-            if (!requestor.isBroadcaster)
-            {
-                QueueChatMessage($"add mapper command is limited to the broadcaster.");
-                return;
-
-            }
+            if (isNotBroadcaster(requestor, "mapper")) return;
+            
             StartCoroutine(addsongsBymapper(requestor, request));
         }
 
         private void addSongs(TwitchUser requestor, string request)
         {
-            if (!requestor.isBroadcaster)
-            {
-                QueueChatMessage($"add songs command is limited to the broadcaster.");
-                return;
 
-            }
+            if (isNotBroadcaster(requestor, "addsongs")) return;
+
             StartCoroutine(addsongs(requestor, request));
         }
         #endregion
@@ -274,7 +282,7 @@ namespace EnhancedTwitchChat.Bot
         #region Ban/Unban Song
         private void Ban(TwitchUser requestor, string request)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
+            if (isNotModerator(requestor)) return;
 
             var songId = GetBeatSaverId(request);
             if (songId == "")
@@ -321,8 +329,8 @@ namespace EnhancedTwitchChat.Bot
 
         #region Clear Queue
         private void Clearqueue(TwitchUser requestor, string request)
-        {
-            if (!requestor.isBroadcaster) return;
+        { 
+            if (isNotBroadcaster(requestor)) return;
 
             // Write our current queue to file so we can restore it if needed
             Writedeck(requestor, "justcleared");
@@ -348,14 +356,14 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
         #region Deck Commands
-        private void restoredeck(TwitchUser requestor, string request)
+        private void restoredeck(TwitchUser requestor, string request) 
         {
             Readdeck(requestor, "savedqueue");
         }
 
         private void Writedeck(TwitchUser requestor, string request)
         {
-            if (!requestor.isBroadcaster && request != "savedqueue") return;
+            if (isNotBroadcaster(requestor) && request != "savedqueue") return;
 
             try
             {
@@ -397,7 +405,14 @@ namespace EnhancedTwitchChat.Bot
 
         private void Readdeck(TwitchUser requestor, string request)
         {
-            if (!requestor.isBroadcaster) return;
+
+            if (isNotBroadcaster(requestor)) return;
+
+            if (!_alphaNumericRegex.IsMatch(request))
+            {
+                QueueChatMessage("usage: readdeck <alphanumeric deck name>");
+                return;
+            }
 
             try
             {
@@ -653,20 +668,19 @@ namespace EnhancedTwitchChat.Bot
         #region List Commands
         private void showCommandlist(TwitchUser requestor, string request)
         {
-            if (!requestor.isBroadcaster && !requestor.isMod) return;
+            if (isNotModerator(requestor)) return;
 
             string commands = "";
             foreach (var item in Commands)
             {
                 if (deck.ContainsKey(item.Key)) continue;  // Do not show deck names
-
                 commands += "!" + item.Key + " ";
             }
 
             QueueChatMessage(commands);
         }
 
-        private IEnumerator ListSongs(TwitchUser requestor, string request)
+        private IEnumerator LookupSongs(TwitchUser requestor, string request)
         {
             bool isBeatSaverId = _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request);
 
@@ -693,7 +707,6 @@ namespace EnhancedTwitchChat.Bot
 
                 string songlist = "";
 
-
                 if (result["songs"].IsArray)
                 {
                     int count = 0;
@@ -703,7 +716,7 @@ namespace EnhancedTwitchChat.Bot
                         string songdetail = $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
                         //QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} (#{song["id"]})");
 
-                        if (songlist.Length + songdetail.Length > 498) break;
+                        if (songlist.Length + songdetail.Length > MaximumTwitchMessageLength) break;
                         if (count > 0) songlist += ", ";
                         songlist += songdetail;
                         count++;
@@ -715,8 +728,6 @@ namespace EnhancedTwitchChat.Bot
                 {
                     song = result["song"].AsObject;
                     songlist += $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
-
-                    //QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} (#{song["id"]})");
                 }
 
                 QueueChatMessage(songlist);
@@ -725,6 +736,8 @@ namespace EnhancedTwitchChat.Bot
 
             }
         }
+
+        const int MaximumTwitchMessageLength = 498; // BUG: Replace this with a cannonical source
 
         private void ListQueue(TwitchUser requestor, string request)
         {
@@ -736,13 +749,13 @@ namespace EnhancedTwitchChat.Bot
 
                 string songdetail = song["songName"].Value + " (" + song["version"] + ")";
 
-                if (queuetext.Length + songdetail.Length > 498)
+                if (queuetext.Length + songdetail.Length > MaximumTwitchMessageLength)
                 {
                     QueueChatMessage(queuetext);
                     queuetext = "";
                 }
 
-                if (count > 0) queuetext += " , ";
+                if (count > 0) queuetext += ", ";
                 queuetext += songdetail;
                 count++;
             }
@@ -751,7 +764,7 @@ namespace EnhancedTwitchChat.Bot
             QueueChatMessage(queuetext);
         }
 
-        private void ShowSongsplayed(TwitchUser requestor, string request)
+        private void ShowSongsplayed(TwitchUser requestor, string request) // Note: This can be spammy.
         {
             if (played.Count == 0)
             {
@@ -765,7 +778,7 @@ namespace EnhancedTwitchChat.Bot
             {
                 string songdetail = song["songName"].Value + " (" + song["version"] + ")";
 
-                if (queuetext.Length + songdetail.Length > 498)
+                if (queuetext.Length + songdetail.Length > MaximumTwitchMessageLength)
                 {
                     QueueChatMessage(queuetext);
                     queuetext = "";
@@ -780,14 +793,14 @@ namespace EnhancedTwitchChat.Bot
 
         private void ShowBanList(TwitchUser requestor, string request)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
+            if (isNotModerator(requestor)) return;
 
             int count = 0;
             var queuetext = "Banlist: ";
             foreach (string req in _songBlacklist.ToArray())
             {
 
-                if (queuetext.Length + req.Length > 480)
+                if (queuetext.Length + req.Length > MaximumTwitchMessageLength)
                 {
                     QueueChatMessage(queuetext);
                     queuetext = "";
@@ -804,13 +817,14 @@ namespace EnhancedTwitchChat.Bot
 
         private void ListPlayedList(TwitchUser requestor, string request)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
+            if (isNotModerator(requestor)) return;
+
 
             int count = 0;
             var queuetext = "Requested this session: ";
             foreach (string req in duplicatelist.ToArray())
             {
-                if (queuetext.Length + req.Length > 480)
+                if (queuetext.Length + req.Length > MaximumTwitchMessageLength)
                 {
                     QueueChatMessage(queuetext);
                     queuetext = "";
