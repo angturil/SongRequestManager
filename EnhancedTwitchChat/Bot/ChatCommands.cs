@@ -341,6 +341,9 @@ namespace EnhancedTwitchChat.Bot
 
             // Notify the chat that the queue was cleared
             QueueChatMessage($"Queue is now empty.");
+
+            // Reload the queue
+            _refreshQueue = true;
         }
         #endregion
 
@@ -473,7 +476,8 @@ namespace EnhancedTwitchChat.Bot
 
                 if (songId == "")
                 {
-                    if (DoesContainTerms(request, new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, FinalRequestQueue[i].requestor.displayName }))
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, FinalRequestQueue[i].requestor.displayName };
+                    if (DoesContainTerms(request, ref terms))
                         dequeueSong = true;
                 }
                 else
@@ -646,7 +650,8 @@ namespace EnhancedTwitchChat.Bot
                 bool moveRequest = false;
                 if (moveId == "")
                 {
-                    if (DoesContainTerms(request, new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, FinalRequestQueue[i].requestor.displayName }))
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, FinalRequestQueue[i].requestor.displayName };
+                    if (DoesContainTerms(request, ref terms))
                         moveRequest = true;
                 }
                 else
@@ -666,8 +671,8 @@ namespace EnhancedTwitchChat.Bot
                     else
                         FinalRequestQueue.Add(req);
 
-                    // Finally, invoke the SongRequestQueued event to update the request viewcontroller
-                    SongRequestQueued?.Invoke(song);
+                    // Refresh the queue ui
+                    _refreshQueue = true;
 
                     // And write a summary to file
                     WriteQueueSummaryToFile();
@@ -874,16 +879,7 @@ namespace EnhancedTwitchChat.Bot
             QueueOpen = state;
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
             WriteQueueStatusToFile(state ? "Queue is now open." : "Queue is closed");
-
-            try
-            {
-                RequestBotListViewController.Instance.UpdateRequestUI();
-
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log(ex.ToString());
-            }
+            _refreshQueue = true;
         }
         #endregion
 

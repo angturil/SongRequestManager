@@ -27,7 +27,7 @@ namespace EnhancedTwitchChat.Bot
         private CustomViewController _confirmationViewController;
         private LevelListTableCell _songListTableCellInstance;
         private SongPreviewPlayer _songPreviewPlayer;
-        private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton,_BLLastButton,_queueButton;
+        private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton,_queueButton;
         private TextMeshProUGUI _warningTitle, _warningMessage;
         private HoverHint _historyHintText;
         private int _requestRow = 0;
@@ -48,6 +48,11 @@ namespace EnhancedTwitchChat.Bot
         private bool isShowingHistory = false;
         private bool confirmDialogActive = false;
 
+        public void Awake()
+        {
+            Instance = this;
+        }
+
         static RequestBot.SongRequest currentsong = null;
         protected override void DidActivate(bool firstActivation, ActivationType type)
         {
@@ -55,16 +60,12 @@ namespace EnhancedTwitchChat.Bot
             {
                 if (!SongLoader.AreSongsLoaded)
                     SongLoader.SongsLoadedEvent += SongLoader_SongsLoadedEvent;
-
-                Instance = this;
-
+                
                 InitConfirmationDialog();
 
                 _songListTableCellInstance = Resources.FindObjectsOfTypeAll<LevelListTableCell>().First(x => (x.name == "LevelListTableCell"));
                 _songPreviewPlayer = Resources.FindObjectsOfTypeAll<SongPreviewPlayer>().FirstOrDefault();
                 DidSelectRowEvent += DidSelectRow;
-                RequestBot.SongRequestQueued = (song) => _customListTableView?.ReloadData();
-                RequestBot.SongRequestDequeued = (song) => _customListTableView?.ReloadData();
 
                 RectTransform container = new GameObject("CustomListContainer", typeof(RectTransform)).transform as RectTransform;
                 container.SetParent(rectTransform, false);
@@ -79,12 +80,11 @@ namespace EnhancedTwitchChat.Bot
                 _historyButton.onClick.AddListener(delegate ()
                 {
                     isShowingHistory = !isShowingHistory;
-                    _skipButton.interactable = !isShowingHistory;
                     UpdateRequestUI(true);
                     _lastSelection = -1;
                 });
                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
-
+                
                 // Blacklist button
                 _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
                 _blacklistButton.ToggleWordWrapping(false);
@@ -95,7 +95,7 @@ namespace EnhancedTwitchChat.Bot
                 _blacklistButton.onClick.AddListener(delegate ()
                 {
                     _onConfirm = () => {
-                        RequestBot.Blacklist(_selectedRow, isShowingHistory);
+                        RequestBot.Blacklist(_selectedRow, isShowingHistory, true);
                         if(_selectedRow > 0)
                             _selectedRow--;
                     };
@@ -106,29 +106,7 @@ namespace EnhancedTwitchChat.Bot
                     _confirmationDialog.Present();
                 });
                 BeatSaberUI.AddHintText(_blacklistButton.transform as RectTransform, "Block the selected request from being queued in the future.");
-
-                // Blacklist previous button
-                _BLLastButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
-                _BLLastButton.ToggleWordWrapping(false);
-                (_BLLastButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 20f);
-                _BLLastButton.SetButtonText("BL Last");
-                //_blacklistButton.GetComponentInChildren<Image>().color = Color.red;
-                _BLLastButton.onClick.RemoveAllListeners();
-                _BLLastButton.onClick.AddListener(delegate ()
-                {
-                    _onConfirm = () => {
-                        RequestBot.Blacklist(currentsong);
-                    };
-
-                    if (!(currentsong is null))
-                    {
-                        _warningTitle.text = "Blacklist Song Warning";
-                        _warningMessage.text = $"Blacklisting {currentsong.song["songName"].Value} by {currentsong.song["authorName"].Value}\r\nDo you want to continue?";
-                        _confirmationDialog.Present();
-                    }
-                });
-                BeatSaberUI.AddHintText(_BLLastButton.transform as RectTransform, "Block the selected request from being queued in the future.");
-
+                
                 // Skip button
                 _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
                 _skipButton.ToggleWordWrapping(false);
@@ -140,7 +118,7 @@ namespace EnhancedTwitchChat.Bot
                 {
                     _onConfirm = () =>
                     {
-                        currentsong = RequestBot.FinalRequestQueue[_selectedRow];
+                        currentsong = SongInfoForRow(_selectedRow);
                         RequestBot.Skip(_selectedRow);
                         if (_selectedRow > 0)
                             _selectedRow--;
@@ -164,18 +142,10 @@ namespace EnhancedTwitchChat.Bot
                 {
                     if (NumberOfRows() > 0)
                     {
-                        currentsong = RequestBot.FinalRequestQueue[_selectedRow];
-                        RequestBot.played.Add(RequestBot.FinalRequestQueue[_selectedRow].song);
+                        currentsong = SongInfoForRow(_selectedRow);
+                        RequestBot.played.Add(currentsong.song);
                         SetUIInteractivity(false);
-
-                        var requestor = RequestBot.FinalRequestQueue[_selectedRow].requestor;
-                        if (RequestBot._requestTracker.ContainsKey(requestor.id))
-                        {
-
-                            RequestBot._requestTracker[requestor.id].numRequests--;
-                           
-                        }
-
+                        
                         RequestBot.Process(_selectedRow, isShowingHistory);
                     }
                 });
@@ -184,8 +154,9 @@ namespace EnhancedTwitchChat.Bot
                 // Queue button
                 _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
                 _queueButton.ToggleWordWrapping(false);
-                (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(-20f, 30f);
-                _queueButton.SetButtonText(RequestBot.QueueOpen ? "Q OPEN" : "Q CLOSED");
+                _queueButton.SetButtonTextSize(3.5f);
+                (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -30f);
+                _queueButton.SetButtonText(RequestBot.QueueOpen ? "Queue Open" : "Queue Closed");
                 _queueButton.GetComponentInChildren<Image>().color = RequestBot.QueueOpen ? Color.green : Color.red; ;
                 _queueButton.interactable = true;
                 _queueButton.onClick.RemoveAllListeners();
@@ -213,15 +184,14 @@ namespace EnhancedTwitchChat.Bot
 
         public void UpdateRequestUI(bool selectRowCallback = false)
         {
-
-            _playButton.GetComponentInChildren<Image>().color = RequestBot.FinalRequestQueue.Count > 0 ? Color.white : Color.red; ;
-
-            _queueButton.SetButtonText(RequestBot.QueueOpen ? "Q OPEN" : "Q CLOSED");
+            _skipButton.interactable = !isShowingHistory;
+            _playButton.GetComponentInChildren<Image>().color = ((isShowingHistory && RequestBot.SongRequestHistory.Count > 0) || (!isShowingHistory && RequestBot.FinalRequestQueue.Count > 0)) ? Color.green : Color.red;
+            _queueButton.SetButtonText(RequestBot.QueueOpen ? "Queue Open" : "Queue Closed");
             _queueButton.GetComponentInChildren<Image>().color = RequestBot.QueueOpen ? Color.green : Color.red; ;
-
             _historyHintText.text = isShowingHistory ? "Go back to your current song request queue." : "View the history of song requests from the current session.";
             _historyButton.SetButtonText(isShowingHistory ? "Requests" : "History");
             _playButton.SetButtonText(isShowingHistory ? "Replay" : "Play");
+
             _customListTableView.ReloadData();
             
             if (NumberOfRows() > _selectedRow)

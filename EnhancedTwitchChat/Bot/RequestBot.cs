@@ -87,10 +87,9 @@ namespace EnhancedTwitchChat.Bot
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
         public static List<SongRequest> FinalRequestQueue = new List<SongRequest>();
         public static List<SongRequest> SongRequestHistory = new List<SongRequest>();
-        public static Action<JSONObject> SongRequestQueued;
-        public static Action<JSONObject> SongRequestDequeued;
         private static Button _requestButton;
         private static bool _checkingQueue = false;
+        private static bool _refreshQueue = false;
 
         private static FlowCoordinator _levelSelectionFlowCoordinator;
         private static DismissableNavigationController _levelSelectionNavigationController;
@@ -204,6 +203,12 @@ namespace EnhancedTwitchChat.Bot
 
             if (_botMessageQueue.Count > 0)
                 SendChatMessage(_botMessageQueue.Dequeue());
+
+            if(_refreshQueue)
+            {
+                RequestBotListViewController.Instance.UpdateRequestUI(true);
+                _refreshQueue = false;
+            }
         }
 
         private void SendChatMessage(string message)
@@ -418,15 +423,7 @@ namespace EnhancedTwitchChat.Bot
                     if (!isPersistent)
                         QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) added to queue.");
 
-
-                    try
-                    {
-                        SongRequestQueued?.Invoke(song);
-                    }
-                    catch (Exception ex)
-                    {
-                        Plugin.Log(ex.ToString());
-                    }
+                    _refreshQueue = true;
                 }
             }
             _checkingQueue = false;
@@ -527,6 +524,9 @@ namespace EnhancedTwitchChat.Bot
             SongRequestHistory.Insert(0, request);
             FinalRequestQueue.Remove(request);
 
+            // Decrement the requestors request count, since their request is now out of the queue
+            if (_requestTracker.ContainsKey(request.requestor.id)) _requestTracker[request.requestor.id].numRequests--;
+
             var matches = _persistentRequestQueue.Where(r => r != null && r.StartsWith($"{request.requestor.displayName}/{request.song["id"]}"));
             if (matches.Count() > 0)
             {
@@ -534,14 +534,7 @@ namespace EnhancedTwitchChat.Bot
                 Config.Instance.RequestQueue = _persistentRequestQueue;
             }
             UpdateRequestButton();
-            try
-            {
-                SongRequestDequeued?.Invoke(request.song);
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log(ex.ToString());
-            }
+            _refreshQueue = true;
         }
 
         public static SongRequest DequeueRequest(int index)
@@ -561,7 +554,7 @@ namespace EnhancedTwitchChat.Bot
                 SongRequestHistory[index].status = status;
         }
 
-        public static void Blacklist(int index, bool fromHistory)
+        public static void Blacklist(int index, bool fromHistory, bool skip)
         {
             // Add the song to the blacklist
             SongRequest request = fromHistory ? SongRequestHistory.ElementAt(index) : FinalRequestQueue.ElementAt(index);
@@ -571,9 +564,8 @@ namespace EnhancedTwitchChat.Bot
 
             if (!fromHistory)
             {
-                // Then skip the request
-
-                Skip(index, RequestStatus.Blacklisted);
+                if(skip)
+                    Skip(index, RequestStatus.Blacklisted);
             }
             else
                 SetRequestStatus(index, RequestStatus.Blacklisted, fromHistory);
@@ -670,44 +662,6 @@ namespace EnhancedTwitchChat.Bot
             StartCoroutine(ListSongs(requestor, request));
 
         }
-
-
-        public static void Blacklist(int index)
-        {
-            // Add the song to the blacklist
-            SongRequest request = FinalRequestQueue.ElementAt(index);
-            JSONObject song = request.song;
-            _songBlacklist.Add(request.song["id"]);
-            Config.Instance.Blacklist = _songBlacklist;
-
-            Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is now blacklisted!");
-
-            // Then skip the request
-            Skip(index);
-        }
-
-        
-        public static void Blacklist(SongRequest request)
-        {
-
-            // Add the song to the blacklist
-            JSONObject song = request.song;
-            _songBlacklist.Add(request.song["id"]);
-            Config.Instance.Blacklist = _songBlacklist;
-
-            Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is now blacklisted!");
-        }
-
-        public static void Skip(int index)
-        {
-            // Remove the song from the queue, then update the request button
-            SongRequest request = FinalRequestQueue.ElementAt(index);
-            TwitchUser requestor = request.requestor;
-            if (_requestTracker.ContainsKey(requestor.id)) _requestTracker[requestor.id].numRequests--;
-            FinalRequestQueue.RemoveAt(index);
-            UpdateRequestButton();
-            SongRequestDequeued?.Invoke(request.song);
-        }
         
         private bool filtersong(JSONObject song)
         {
@@ -797,13 +751,14 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-        private bool DoesContainTerms(string request, string[] terms)
+        private bool DoesContainTerms(string request, ref string[] terms)
         {
             if (request == "") return false;
             request = request.ToLower();
 
-            foreach (string word in terms)
-                if (request.Contains(word.ToLower())) return true;
+            foreach (string term in terms)
+                foreach (string word in term.Split(' ')) 
+                    if (word.Length > 2 && request.Contains(word.ToLower())) return true;
 
             return false;
         }
