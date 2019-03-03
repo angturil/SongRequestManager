@@ -295,11 +295,14 @@ namespace EnhancedTwitchChat.Bot
 
                 List<JSONObject> songs = new List<JSONObject>();                 // Load resulting songs into a list 
 
+                string errormessage = "";
+
                 if (result["songs"].IsArray)
                 {
                     foreach (JSONObject currentSong in result["songs"].AsArray)
-                    { 
-                        if (SongSearchFilter(currentSong,true) == "") songs.Add(currentSong);
+                    {
+                        errormessage = SongSearchFilter(currentSong, false);
+                        if (errormessage== "") songs.Add(currentSong);
                     }
                 }
                 else
@@ -308,23 +311,24 @@ namespace EnhancedTwitchChat.Bot
                 }
 
 
-                string errormessage = "";
 
                 // Filter out too many or too few results
                 if (songs.Count == 0)
-                    errormessage = $"No results found for request \"{request}\"";
+                    {
+                    if (errormessage=="") errormessage = $"No results found for request \"{request}\"";
+                    }
                 else if (songs.Count >= 4)
                     errormessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
                 else if (songs.Count > 1 && songs.Count < 4)
-                    {
+                {
                     string songlist = $"@{requestor.displayName}, please choose: ";
                     foreach (var eachsong in songs) songlist += $"{eachsong["songName"].Value}-{eachsong["songSubName"].Value}-{eachsong["authorName"].Value} ({eachsong["version"].Value}), ";
                     errormessage = songlist.Substring(0, songlist.Length - 2); // Remove trailing ,'s
-                    }
+                }
                 else
-                    {
-                    if (isNotModerator(requestor)) errormessage = SongSearchFilter(songs[0],false);
-                    }
+                {
+                    if (isNotModerator(requestor)) errormessage = SongSearchFilter(songs[0], false);
+                }
                 // Display reason why chosen song was rejected, if filter is triggered. Do not add filtered songs
 
 
