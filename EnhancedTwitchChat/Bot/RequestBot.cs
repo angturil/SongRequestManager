@@ -344,7 +344,8 @@ namespace EnhancedTwitchChat.Bot
 
                 if (songs.Count > 1 && songs.Count < 4)
                 {
-                    string songlist = "found: ";
+
+                    string songlist = $"@{requestor.displayName}, please choose: ";
                     for (int i = 0; i < songs.Count; i++)
                     {
                         song = songs[i];
