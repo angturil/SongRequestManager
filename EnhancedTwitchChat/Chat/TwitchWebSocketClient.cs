@@ -195,16 +195,6 @@ namespace EnhancedTwitchChat.Chat
             }
         }
 
-        private static void Reconnect()
-        {
-            if (Plugin.Instance.IsApplicationExiting)
-                return;
-
-            Thread.Sleep(_reconnectCooldown *= 2);
-            Plugin.Log("Attempting to reconnect...");
-            _ws.Connect();
-        }
-
         private static void ProcessSendQueue(int fullReconnects)
         {
             while(!Plugin.Instance.IsApplicationExiting && _fullReconnects == fullReconnects)
