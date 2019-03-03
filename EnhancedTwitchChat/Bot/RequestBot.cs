@@ -234,28 +234,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-         // checks if request is in the FinalRequestQueue - needs to improve interface
-         private string IsRequestInQueue(string request, bool fast = false)
-            {
-            string matchby = "";
-            if (_beatSaverRegex.IsMatch(request)) matchby = "version";
-            else if (_digitRegex.IsMatch(request)) matchby = "id";
-
-            if (matchby == "") return fast ? "X" : $"Invalid song id {request} used in RequestInQueue check";
-
-            foreach (SongRequest req in FinalRequestQueue.ToArray())
-                {
-                var song = req.song;
-                if (song[matchby].Value==request) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!!"; // The double !! is for testing to distinguish this duplicate check from the 2nd one
-            }
-
-            return ""; // Empty string: The request is not in the FinalRequestQueue
-            }
-
-            bool IsInQueue(string request) // unhappy about naming here
-                {
-                return !(IsRequestInQueue(request)=="") ;
-                }
 
         private IEnumerator CheckRequest(RequestInfo requestInfo)
         {
@@ -292,6 +270,7 @@ namespace EnhancedTwitchChat.Bot
             }
 
             // Get song query results from beatsaver.com
+
             string requestUrl = requestInfo.isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
             using (var web = UnityWebRequest.Get($"{requestUrl}/{request}"))
             {
@@ -328,26 +307,26 @@ namespace EnhancedTwitchChat.Bot
                     songs.Add(result["song"].AsObject);
                 }
 
-                var song = songs[0];
 
                 string errormessage = "";
 
                 // Filter out too many or too few results
-
                 if (songs.Count == 0)
                     errormessage = $"No results found for request \"{request}\"";
                 else if (songs.Count >= 4)
                     errormessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
-                else if ( songs.Count > 1 && songs.Count < 4)
+                else if (songs.Count > 1 && songs.Count < 4)
                     {
                     string songlist = $"@{requestor.displayName}, please choose: ";
                     foreach (var eachsong in songs) songlist += $"{eachsong["songName"].Value}-{eachsong["songSubName"].Value}-{eachsong["authorName"].Value} ({eachsong["version"].Value}), ";
-                    errormessage=songlist.Substring(0, songlist.Length - 2); // Remove trailing ,'s
+                    errormessage = songlist.Substring(0, songlist.Length - 2); // Remove trailing ,'s
                     }
                 else
-                    errormessage = SongSearchFilter(song);
-
+                    {
+                    if (isNotModerator(requestor)) errormessage = SongSearchFilter(songs[0],false);
+                    }
                 // Display reason why chosen song was rejected, if filter is triggered. Do not add filtered songs
+
 
                 if (errormessage != "")
                     {
@@ -355,7 +334,8 @@ namespace EnhancedTwitchChat.Bot
                     _checkingQueue = false;
                     yield break;
                     }
-  
+
+                var song = songs[0];
 
                 if (!isPersistent)
                     {
@@ -621,8 +601,6 @@ namespace EnhancedTwitchChat.Bot
         }
         
 
-        
-        
         private static void WriteQueueSummaryToFile()
         {
             try

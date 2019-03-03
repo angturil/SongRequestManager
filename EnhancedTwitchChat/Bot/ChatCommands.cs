@@ -43,25 +43,49 @@ namespace EnhancedTwitchChat.Bot
         // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
 
         
-        [Flags] enum SongFilter { noQueue, noBlacklist, noMapper, noDuplicate, noRemap, noRating };
+        [Flags] enum SongFilter { none=0, Queue=1, Blacklist=2, Mapper=4, Duplicate=8, Remap=16, Rating=32,all=-1 };
 
-        private string SongSearchFilter(JSONObject song, bool fast = false,FlagsAttribute disable=null)
+        private string SongSearchFilter(JSONObject song, bool fast = false,SongFilter filter=SongFilter.all)
         {
             string songid = song["id"].Value;
-            if (FinalRequestQueue.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
+            if (filter.HasFlag(SongFilter.Queue) &&  FinalRequestQueue.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
 
-            if (_songBlacklist.Contains(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is blacklisted!";
+            if (filter.HasFlag(SongFilter.Blacklist) && _songBlacklist.Contains(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is blacklisted!";
 
-            if (mapperwhiteliston && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
+            if (filter.HasFlag(SongFilter.Mapper) && mapperwhiteliston && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
-            if (duplicatelist.Contains(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} has already been requested this session!";
+            if (filter.HasFlag(SongFilter.Duplicate) && duplicatelist.Contains(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} has already been requested this session!";
 
-            if (songremap.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} was supposed to be remapped!";
+            if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} was supposed to be remapped!";
 
-            if (song["rating"].AsFloat < Config.Instance.lowestallowedrating) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
+            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < Config.Instance.lowestallowedrating) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
 
             return "";
         }
+
+        // checks if request is in the FinalRequestQueue - needs to improve interface
+        private string IsRequestInQueue(string request, bool fast = false)
+        {
+            string matchby = "";
+            if (_beatSaverRegex.IsMatch(request)) matchby = "version";
+            else if (_digitRegex.IsMatch(request)) matchby = "id";
+
+            if (matchby == "") return fast ? "X" : $"Invalid song id {request} used in RequestInQueue check";
+
+            foreach (SongRequest req in FinalRequestQueue.ToArray())
+            {
+                var song = req.song;
+                if (song[matchby].Value == request) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!!"; // The double !! is for testing to distinguish this duplicate check from the 2nd one
+            }
+
+            return ""; // Empty string: The request is not in the FinalRequestQueue
+        }
+
+        bool IsInQueue(string request) // unhappy about naming here
+        {
+            return !(IsRequestInQueue(request) == "");
+        }
+
 
         #endregion
 
@@ -888,7 +912,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
         {
-            if (!isNotModerator(requestor)) return;
+            if (isNotModerator(requestor)) return;
 
             QueueOpen = state;
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
