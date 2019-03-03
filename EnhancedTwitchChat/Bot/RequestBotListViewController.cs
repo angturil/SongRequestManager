@@ -1,4 +1,6 @@
-﻿using CustomUI.BeatSaber;
+﻿//#define PRIVATE
+
+using CustomUI.BeatSaber;
 using CustomUI.Utilities;
 using EnhancedTwitchChat.UI;
 using EnhancedTwitchChat.Utils;
@@ -142,6 +144,7 @@ namespace EnhancedTwitchChat.Bot
                 {
                     if (NumberOfRows() > 0)
                     {
+
                         currentsong = SongInfoForRow(_selectedRow);
                         RequestBot.played.Add(currentsong.song);
                         SetUIInteractivity(false);

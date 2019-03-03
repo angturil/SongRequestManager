@@ -68,6 +68,8 @@ namespace EnhancedTwitchChat
         public string SongBlacklist = "";
         public string DeckList = "fun hard challenge dance";
 
+        public float lowestallowedrating = 0.1f; // Lowest allowed song rating to be played 
+
         public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list.
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
