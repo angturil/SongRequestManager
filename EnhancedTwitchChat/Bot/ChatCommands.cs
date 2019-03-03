@@ -15,6 +15,8 @@ namespace EnhancedTwitchChat.Bot
     public partial class RequestBot : MonoBehaviour
     {
         // This one needs to be cleaned up a lot imo
+
+        #region Filter support functions
         bool isNotBroadcaster(TwitchUser requestor, string message = "")
         {
             if (requestor.isBroadcaster) return false;
@@ -28,8 +30,40 @@ namespace EnhancedTwitchChat.Bot
             if (requestor.isBroadcaster || requestor.isMod) return false;
             if (message != "") QueueChatMessage("{message} is moderator only.");
             return true;
-
         }
+
+        private bool filtersong(JSONObject song)
+        {
+            string songid = song["id"].Value;
+            if (_songBlacklist.Contains(songid)) return true;
+            if (duplicatelist.Contains(songid)) return true;
+            return false;
+        }
+
+        // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
+
+        
+        [Flags] enum SongFilter { noQueue, noBlacklist, noMapper, noDuplicate, noRemap, noRating };
+
+        private string SongSearchFilter(JSONObject song, bool fast = false,FlagsAttribute disable=null)
+        {
+            string songid = song["id"].Value;
+            if (FinalRequestQueue.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
+
+            if (_songBlacklist.Contains(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is blacklisted!";
+
+            if (mapperwhiteliston && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
+
+            if (duplicatelist.Contains(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} has already been requested this session!";
+
+            if (songremap.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} was supposed to be remapped!";
+
+            if (song["rating"].AsFloat < Config.Instance.lowestallowedrating) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
+
+            return "";
+        }
+
+        #endregion
 
         #region AddSongs/AddSongsByMapper Commands
 
@@ -352,7 +386,8 @@ namespace EnhancedTwitchChat.Bot
 
             // Reload the queue
             _refreshQueue = true;
-        }
+        }        
+
         #endregion
 
         #region Deck Commands
@@ -361,6 +396,7 @@ namespace EnhancedTwitchChat.Bot
             Readdeck(requestor, "savedqueue");
         }
 
+    
         private void Writedeck(TwitchUser requestor, string request)
         {
             if (isNotBroadcaster(requestor) && request != "savedqueue") return;
@@ -515,7 +551,6 @@ namespace EnhancedTwitchChat.Bot
             string fileContent = File.ReadAllText(queuefile);
 
             string[] Strings = fileContent.Split(new char[] { ' ', ',', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
 
             string whitelist = "Permitted mappers: ";
             foreach (string mapper in Strings)
@@ -853,7 +888,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
+            if (!isNotModerator(requestor)) return;
 
             QueueOpen = state;
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");

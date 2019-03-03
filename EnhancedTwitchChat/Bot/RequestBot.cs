@@ -233,25 +233,7 @@ namespace EnhancedTwitchChat.Bot
             _botMessageQueue.Enqueue(message);
         }
 
-           // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
-        private string SongSearchFilter (JSONObject song, bool fast=false)
-        {
-        string songid = song["id"].Value;
-        if (FinalRequestQueue.Any(req => req.song["version"] == song["version"])) return fast ? "X": $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
 
-        if (_songBlacklist.Contains(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is blacklisted!";
-
-        if (mapperwhiteliston && mapperfiltered(song)) return fast ? "X" :$"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
-
-        if (duplicatelist.Contains(songid)) return fast ? "X" :$"{song["songName"].Value} by {song["authorName"].Value} has already been requested this session!";
-
-        if (songremap.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} was supposed to be remapped!";
-
-        if (song["rating"].AsFloat < Config.Instance.lowestallowedrating) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
-             
-        return "";
-        }
-      
          // checks if request is in the FinalRequestQueue - needs to improve interface
          private string IsRequestInQueue(string request, bool fast = false)
             {
@@ -636,14 +618,6 @@ namespace EnhancedTwitchChat.Bot
 
             StartCoroutine(LookupSongs(requestor, request));
 
-        }
-        
-        private bool filtersong(JSONObject song)
-        {
-            string songid = song["id"].Value;
-            if (_songBlacklist.Contains(songid)) return true;
-            if (duplicatelist.Contains(songid)) return true;
-            return false;
         }
         
 
