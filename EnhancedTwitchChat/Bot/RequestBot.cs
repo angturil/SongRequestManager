@@ -409,6 +409,7 @@ namespace EnhancedTwitchChat.Bot
                     yield return Utilities.ExtractZip(localPath, currentSongDirectory);
                     yield return SongListUtils.RefreshSongs(false, false, true);
 
+
                     Utilities.EmptyDirectory(".requestcache", true);
                     levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
                 }
@@ -431,12 +432,19 @@ namespace EnhancedTwitchChat.Bot
                     Plugin.Log("Failed to find new level!");
                 }
 
+
                 var song = request.song;
-                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is next."); // UI Setting needed to toggle this on/off
+
+                // BUG: Songs status chat messages need to be configurable.
+                //Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is next."); // UI Setting needed to toggle this on/off
+                //Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} https://beatsaver.com/browse/detail/{song["version"].Value} is next."); // UI Setting needed to toggle this on/off
+                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} https://bsaber.com/songs/{song["id"].Value} is next."); // UI Setting needed to toggle this on/off
+
                 _songRequestMenu.Dismiss();
             }
         }
         
+
         private static void UpdateRequestButton()
         {
 
@@ -603,66 +611,10 @@ namespace EnhancedTwitchChat.Bot
             StartCoroutine(LookupSongs(requestor, request));
 
         }
-        
 
-        private static void WriteQueueSummaryToFile()
-        {
-            try
-            {
-                string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuelist.txt";
-                StreamWriter fileWriter = new StreamWriter(statusfile);
 
-                string queuesummary = "";
 
-                int count = 0;
-                foreach (SongRequest req in FinalRequestQueue.ToArray())
-                {
-                    var song = req.song;
-                    queuesummary += $"{song["songName"].Value}\n";
 
-                    if (++count > 8)
-                    {
-                        queuesummary += "...\n";
-                        break;
-                    }
-                }
-
-                fileWriter.Write(count>0 ? queuesummary : "Queue is empty.");
-                fileWriter.Close();
-            }
-            catch (Exception ex) {
-                Plugin.Log(ex.ToString());
-            }
-
-        }
-        
-        public static void WriteQueueStatusToFile(string status)
-        {
-            try
-            {
-                string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuestatus.txt";
-                StreamWriter fileWriter = new StreamWriter(statusfile);
-                fileWriter.Write(status);
-                fileWriter.Close();
-            }
-
-            catch (Exception ex)
-            {
-                Plugin.Log(ex.ToString());
-            }
-        }
-
-        private bool DoesContainTerms(string request, ref string[] terms)
-        {
-            if (request == "") return false;
-            request = request.ToLower();
-
-            foreach (string term in terms)
-                foreach (string word in term.Split(' ')) 
-                    if (word.Length > 2 && request.Contains(word.ToLower())) return true;
-
-            return false;
-        }
 
         private string GetBeatSaverId(string request)
         {

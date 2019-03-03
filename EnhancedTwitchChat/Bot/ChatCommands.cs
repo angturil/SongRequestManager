@@ -17,6 +17,19 @@ namespace EnhancedTwitchChat.Bot
         // This one needs to be cleaned up a lot imo
 
         #region Filter support functions
+
+        private bool DoesContainTerms(string request, ref string[] terms)
+        {
+            if (request == "") return false;
+            request = request.ToLower();
+
+            foreach (string term in terms)
+                foreach (string word in term.Split(' '))
+                    if (word.Length > 2 && request.Contains(word.ToLower())) return true;
+
+            return false;
+        }
+
         bool isNotBroadcaster(TwitchUser requestor, string message = "")
         {
             if (requestor.isBroadcaster) return false;
@@ -383,35 +396,6 @@ namespace EnhancedTwitchChat.Bot
                 QueueChatMessage($"{request} is not on the blacklist.");
             }
         }
-        #endregion
-
-        #region Clear Queue
-        private void Clearqueue(TwitchUser requestor, string request)
-        { 
-            if (isNotBroadcaster(requestor)) return;
-
-            // Write our current queue to file so we can restore it if needed
-            Writedeck(requestor, "justcleared");
-
-            // Cycle through each song in the final request queue, adding them to the song history
-            foreach (var song in FinalRequestQueue)
-                SongRequestHistory.Insert(0, song);
-
-            // Clear request queue and save it to file
-            FinalRequestQueue.Clear();
-            _persistentRequestQueue.Clear();
-            Config.Instance.RequestQueue = _persistentRequestQueue;
-
-            // Update the request button ui accordingly
-            UpdateRequestButton();
-
-            // Notify the chat that the queue was cleared
-            QueueChatMessage($"Queue is now empty.");
-
-            // Reload the queue
-            _refreshQueue = true;
-        }        
-
         #endregion
 
         #region Deck Commands
@@ -899,7 +883,7 @@ namespace EnhancedTwitchChat.Bot
         }
         #endregion
 
-        #region Toggle Queue
+        #region Queue Related
         private void OpenQueue(TwitchUser requestor, string request)
         {
             ToggleQueue(requestor, request, true);
@@ -919,6 +903,80 @@ namespace EnhancedTwitchChat.Bot
             WriteQueueStatusToFile(state ? "Queue is now open." : "Queue is closed");
             _refreshQueue = true;
         }
+        private static void WriteQueueSummaryToFile()
+        {
+            try
+            {
+                string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuelist.txt";
+                StreamWriter fileWriter = new StreamWriter(statusfile);
+
+                string queuesummary = "";
+
+                int count = 0;
+                foreach (SongRequest req in FinalRequestQueue.ToArray())
+                {
+                    var song = req.song;
+                    queuesummary += $"{song["songName"].Value}\n";
+
+                    if (++count > 8)
+                    {
+                        queuesummary += "...\n";
+                        break;
+                    }
+                }
+
+                fileWriter.Write(count > 0 ? queuesummary : "Queue is empty.");
+                fileWriter.Close();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log(ex.ToString());
+            }
+
+        }
+
+        public static void WriteQueueStatusToFile(string status)
+        {
+            try
+            {
+                string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuestatus.txt";
+                StreamWriter fileWriter = new StreamWriter(statusfile);
+                fileWriter.Write(status);
+                fileWriter.Close();
+            }
+
+            catch (Exception ex)
+            {
+                Plugin.Log(ex.ToString());
+            }
+        }
+
+        private void Clearqueue(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+
+            // Write our current queue to file so we can restore it if needed
+            Writedeck(requestor, "justcleared");
+
+            // Cycle through each song in the final request queue, adding them to the song history
+            foreach (var song in FinalRequestQueue)
+                SongRequestHistory.Insert(0, song);
+
+            // Clear request queue and save it to file
+            FinalRequestQueue.Clear();
+            _persistentRequestQueue.Clear();
+            Config.Instance.RequestQueue = _persistentRequestQueue;
+
+            // Update the request button ui accordingly
+            UpdateRequestButton();
+
+            // Notify the chat that the queue was cleared
+            QueueChatMessage($"Queue is now empty.");
+
+            // Reload the queue
+            _refreshQueue = true;
+        }
+
         #endregion
 
         #region Unmap/Remap Commands
