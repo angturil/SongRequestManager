@@ -650,42 +650,40 @@ namespace WebSocketSharp.Net
 
     private string toResponseStringVersion1 ()
     {
-      var buff = new StringBuilder (64);
-
-      buff.AppendFormat ("{0}={1}; Version={2}", _name, _value, _version);
+      var output = new StringBuilder (64);
+      output.AppendFormat ("{0}={1}; Version={2}", _name, _value, _version);
 
       if (_expires != DateTime.MinValue)
-        buff.AppendFormat ("; Max-Age={0}", MaxAge);
+        output.AppendFormat ("; Max-Age={0}", MaxAge);
 
       if (!_path.IsNullOrEmpty ())
-        buff.AppendFormat ("; Path={0}", _path);
+        output.AppendFormat ("; Path={0}", _path);
 
       if (!_domain.IsNullOrEmpty ())
-        buff.AppendFormat ("; Domain={0}", _domain);
+        output.AppendFormat ("; Domain={0}", _domain);
 
       if (!_port.IsNullOrEmpty ()) {
-        buff.Append (
-          _port != "\"\"" ? String.Format ("; Port={0}", _port) : "; Port"
-        );
+        if (_port == "\"\"")
+          output.Append ("; Port");
+        else
+          output.AppendFormat ("; Port={0}", _port);
       }
 
       if (!_comment.IsNullOrEmpty ())
-        buff.AppendFormat ("; Comment={0}", HttpUtility.UrlEncode (_comment));
+        output.AppendFormat ("; Comment={0}", _comment.UrlEncode ());
 
       if (_commentUri != null) {
         var url = _commentUri.OriginalString;
-        buff.AppendFormat (
-          "; CommentURL={0}", !url.IsToken () ? url.Quote () : url
-        );
+        output.AppendFormat ("; CommentURL={0}", url.IsToken () ? url : url.Quote ());
       }
 
       if (_discard)
-        buff.Append ("; Discard");
+        output.Append ("; Discard");
 
       if (_secure)
-        buff.Append ("; Secure");
+        output.Append ("; Secure");
 
-      return buff.ToString ();
+      return output.ToString ();
     }
 
     private static bool tryCreatePorts (string value, out int[] result, out string parseError)

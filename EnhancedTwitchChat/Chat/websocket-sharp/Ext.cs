@@ -756,7 +756,7 @@ namespace WebSocketSharp
               return;
             }
 
-            if (nread == 0 || nread == length) {
+            if (nread == length) {
               if (completed != null)
                 completed (buff.SubArray (0, offset + nread));
 
@@ -820,7 +820,7 @@ namespace WebSocketSharp
                   return;
                 }
 
-                if (nread == len) {
+                if (nread == 0 || nread == len) {
                   if (completed != null) {
                     dest.Close ();
                     completed (dest.ToArray ());
@@ -1165,16 +1165,6 @@ namespace WebSocketSharp
       var comparison = StringComparison.OrdinalIgnoreCase;
       return headers.Contains ("Upgrade", protocol, comparison)
              && headers.Contains ("Connection", "Upgrade", comparison);
-    }
-
-    internal static string UrlDecode (this string value, Encoding encoding)
-    {
-      return HttpUtility.UrlDecode (value, encoding);
-    }
-
-    internal static string UrlEncode (this string value, Encoding encoding)
-    {
-      return HttpUtility.UrlEncode (value, encoding);
     }
 
     internal static string UTF8Decode (this byte[] bytes)
@@ -1974,6 +1964,40 @@ namespace WebSocketSharp
       );
 
       return ret;
+    }
+
+    /// <summary>
+    /// URL-decodes the specified <see cref="string"/>.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="string"/> that receives the decoded string or
+    /// <paramref name="value"/> if it is <see langword="null"/> or empty.
+    /// </returns>
+    /// <param name="value">
+    /// A <see cref="string"/> to decode.
+    /// </param>
+    public static string UrlDecode (this string value)
+    {
+      return value != null && value.Length > 0
+             ? HttpUtility.UrlDecode (value)
+             : value;
+    }
+
+    /// <summary>
+    /// URL-encodes the specified <see cref="string"/>.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="string"/> that receives the encoded string or
+    /// <paramref name="value"/> if it is <see langword="null"/> or empty.
+    /// </returns>
+    /// <param name="value">
+    /// A <see cref="string"/> to encode.
+    /// </param>
+    public static string UrlEncode (this string value)
+    {
+      return value != null && value.Length > 0
+             ? HttpUtility.UrlEncode (value)
+             : value;
     }
 
     /// <summary>
