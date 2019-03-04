@@ -28,7 +28,6 @@ using VRUI;
 using Image = UnityEngine.UI.Image;
 using Toggle = UnityEngine.UI.Toggle;
 
-
 namespace EnhancedTwitchChat.Bot
 {
     public partial class RequestBot : MonoBehaviour
@@ -75,6 +74,8 @@ namespace EnhancedTwitchChat.Bot
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         private static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
 
+        public static string datapath;
+
         private static CustomMenu _songRequestMenu = null;
         private static RequestBotListViewController _songRequestListViewController = null;
 
@@ -107,7 +108,10 @@ namespace EnhancedTwitchChat.Bot
 
             SongListUtils.Initialize();
 
-            Directory.CreateDirectory($"{Environment.CurrentDirectory}\\requestqueue");
+            datapath=Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
+            if (!Directory.Exists(datapath))
+                Directory.CreateDirectory(datapath);
+
             WriteQueueSummaryToFile();
             WriteQueueStatusToFile(QueueOpen ? "Queue is open" : "Queue is closed");
 
@@ -115,7 +119,6 @@ namespace EnhancedTwitchChat.Bot
             if (Instance) return;
             new GameObject("EnhancedTwitchChatRequestBot").AddComponent<RequestBot>();
         }
-
         private void Awake()
         {
             DontDestroyOnLoad(gameObject);

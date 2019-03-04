@@ -425,7 +425,7 @@ namespace EnhancedTwitchChat.Bot
                     return;
                 }
 
-                string queuefile = $"{Environment.CurrentDirectory}\\requestqueue\\" + request + ".deck";
+                string queuefile = Path.Combine(datapath, request+".deck"); 
 
                 StreamWriter fileWriter = new StreamWriter(queuefile);
 
@@ -460,7 +460,7 @@ namespace EnhancedTwitchChat.Bot
 
             try
             {
-                string queuefile = $"{Environment.CurrentDirectory}\\requestqueue\\" + request + ".deck";
+                string queuefile = Path.Combine(datapath, request+".deck"); 
 
                 string fileContent = File.ReadAllText(queuefile);
 
@@ -554,7 +554,7 @@ namespace EnhancedTwitchChat.Bot
                 return;
             }
 
-            string queuefile = $"{Environment.CurrentDirectory}\\requestqueue\\" + request + ".list";
+            string queuefile = Path.Combine(datapath, request+".list"); 
 
             string fileContent = File.ReadAllText(queuefile);
 
@@ -626,7 +626,7 @@ namespace EnhancedTwitchChat.Bot
                 return;
             }
 
-            string queuefile = $"{Environment.CurrentDirectory}\\requestqueue\\" + request + ".list";
+            string queuefile = Path.Combine(datapath, request + ".list");
 
             string fileContent = File.ReadAllText(queuefile);
 
@@ -911,7 +911,7 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-                string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuelist.txt";
+                string statusfile = Path.Combine(datapath,"queuelist.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
 
                 string queuesummary = "";
@@ -943,7 +943,7 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-                string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuestatus.txt";
+                string statusfile = Path.Combine(datapath, "queuestatus.txt"); 
                 StreamWriter fileWriter = new StreamWriter(statusfile);
                 fileWriter.Write(status);
                 fileWriter.Close();
@@ -1021,7 +1021,7 @@ namespace EnhancedTwitchChat.Bot
 
             try
             {
-                string remapfile = $"{Environment.CurrentDirectory}\\requestqueue\\remap.list";
+                string remapfile = Path.Combine(datapath, "remap.list");
 
                 StreamWriter fileWriter = new StreamWriter(remapfile);
 
@@ -1040,7 +1040,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void ReadRemapList()
         {
-            string remapfile = $"{Environment.CurrentDirectory}\\requestqueue\\remap.list";
+            string remapfile = Path.Combine(datapath, "remap.list"); 
 
             try
             {
