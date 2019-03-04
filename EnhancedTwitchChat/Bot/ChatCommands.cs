@@ -917,6 +917,9 @@ namespace EnhancedTwitchChat.Bot
         }
         private static void WriteQueueSummaryToFile()
         {
+
+            if (!Config.Instance.UpdateQueueStatusFiles) return;
+
             try
             {
                 string statusfile = Path.Combine(datapath,"queuelist.txt");

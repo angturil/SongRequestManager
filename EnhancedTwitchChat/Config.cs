@@ -70,23 +70,23 @@ namespace EnhancedTwitchChat
         public int RequestLimit = 5;
         public int SubRequestLimit = 5;
         public int ModRequestLimit = 10;
-        public int VipBonus = 1; // VIP's get bonus requests in addition to their base limit
-        public int RequestCooldownMinutes = 0;
+        public int VipBonus = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
+        public int RequestCooldownMinutes = 0; // BUG: Currently inactive
         
-        public string DeckList = "fun hard challenge dance";
+        public string DeckList = "fun hard challenge dance"; 
  
-        public float lowestallowedrating = 0; // Lowest allowed song rating to be played 0-100
+        public float lowestallowedrating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
 
         public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list.
-        public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed
+        public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
+
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
-        public bool ApplyAllFiltersToBroadcaster = false;
-        public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS
-        public bool ShowStarRating = true; // Show star rating (quality, not difficulty) on songs being requested
 
-        public int MaxiumAddScanRange = 80; // How far down the list to scan
+        public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
+        public bool ShowStarRating = true; // Show star rating (quality, not difficulty) on songs being requested *IMPLEMENTED*, needs UI
+
+        public int MaxiumAddScanRange = 80; // How far down the list to scan , currently in use by unpublished commands
         public int maxaddnewresults = 10;  // Max results per command
-
 
         public event Action<Config> ConfigChangedEvent;
 

@@ -549,7 +549,7 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("played", ShowSongsplayed);
             Commands.Add("readdeck", Readdeck);
             Commands.Add("writedeck", Writedeck);
-            Commands.Add("clearduplicatelist", ClearDuplicateList);
+            Commands.Add("clearalreadyplayed", ClearDuplicateList); // Needs a better name
 
 
 #if PRIVATE
