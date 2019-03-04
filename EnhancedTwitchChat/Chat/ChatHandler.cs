@@ -55,10 +55,10 @@ namespace EnhancedTwitchChat
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            
+
             // Startup the texture downloader and anim controller
-            new GameObject("EnhancedTwitchChatTextureDownloader").AddComponent<ImageDownloader>();
-            new GameObject("EnhancedTwitchChatAnimationController").AddComponent<AnimationController>();
+            ImageDownloader.OnLoad();
+            AnimationController.OnLoad();
 
             // Stop config updated callback when we haven't switched channels
             lastChannel = Config.Instance.TwitchChannelName;

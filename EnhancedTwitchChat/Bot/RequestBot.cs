@@ -52,7 +52,6 @@ namespace EnhancedTwitchChat.Bot
         public static Dictionary<string, RequestUserTracker> RequestTracker = new Dictionary<string, RequestUserTracker>();
         
         private static Button _requestButton;
-        private static bool _checkingQueue = false;
         private static bool _refreshQueue = false;
 
         private static FlowCoordinator _levelSelectionFlowCoordinator;
@@ -130,21 +129,14 @@ namespace EnhancedTwitchChat.Bot
 
             RequestQueue.Read();
             RequestHistory.Read();
-            UpdateRequestButton();
 
+            UpdateRequestButton();
             InitializeCommands();
+            StartCoroutine(ProcessRequestQueue());
         }
         
         private void FixedUpdate()
         {
-            if (UnverifiedRequestQueue.Count > 0)
-            {
-                if (!_checkingQueue && UnverifiedRequestQueue.TryDequeue(out var requestInfo))
-                {
-                    StartCoroutine(CheckRequest(requestInfo));
-                }
-            }
-
             if (_botMessageQueue.Count > 0)
                 SendChatMessage(_botMessageQueue.Dequeue());
 
@@ -186,10 +178,20 @@ namespace EnhancedTwitchChat.Bot
             return starrating;
         }
 
+        private IEnumerator ProcessRequestQueue()
+        {
+            var waitForRequests = new WaitUntil(() => UnverifiedRequestQueue.Count > 0);
+            while (!Plugin.Instance.IsApplicationExiting)
+            {
+                yield return waitForRequests;
+
+                if (UnverifiedRequestQueue.TryDequeue(out var requestInfo))
+                    yield return CheckRequest(requestInfo);
+            }
+        }
+
         private IEnumerator CheckRequest(RequestInfo requestInfo)
         {
-            _checkingQueue = true;
-
             TwitchUser requestor = requestInfo.requestor;
 
             string request = requestInfo.request;
@@ -210,7 +212,6 @@ namespace EnhancedTwitchChat.Bot
                 if (requestcheckmessage != "")
                 {
                     QueueChatMessage(requestcheckmessage);
-                    _checkingQueue = false;
                     yield break;
                 }
             }
@@ -225,7 +226,6 @@ namespace EnhancedTwitchChat.Bot
                 {
                     Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
                     QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
-                    _checkingQueue = false;
                     yield break;
                 }
 
@@ -234,7 +234,6 @@ namespace EnhancedTwitchChat.Bot
                 if (result["songs"].IsArray && result["total"].AsInt == 0)
                 {
                     QueueChatMessage($"No results found for request \"{request}\"");
-                    _checkingQueue = false;
                     yield break;
                 }
                 yield return null;
@@ -279,7 +278,6 @@ namespace EnhancedTwitchChat.Bot
                 if (errormessage != "")
                 {
                     QueueChatMessage(errormessage);
-                    _checkingQueue = false;
                     yield break;
                 }
 
@@ -298,7 +296,6 @@ namespace EnhancedTwitchChat.Bot
 
                 _refreshQueue = true;
             }
-            _checkingQueue = false;
         }
 
         private static IEnumerator ProcessSongRequest(int index, bool fromHistory = false)
