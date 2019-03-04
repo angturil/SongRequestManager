@@ -189,7 +189,7 @@ namespace EnhancedTwitchChat.Bot
         public void UpdateRequestUI(bool selectRowCallback = false)
         {
             _skipButton.interactable = !isShowingHistory;
-            _playButton.GetComponentInChildren<Image>().color = ((isShowingHistory && RequestBot.SongRequestHistory.Count > 0) || (!isShowingHistory && RequestBot.FinalRequestQueue.Count > 0)) ? Color.green : Color.red;
+            _playButton.GetComponentInChildren<Image>().color = ((isShowingHistory && RequestHistory.Songs.Count > 0) || (!isShowingHistory && RequestQueue.Songs.Count > 0)) ? Color.green : Color.red;
             _queueButton.SetButtonText(RequestBot.QueueOpen ? "Queue Open" : "Queue Closed");
             _queueButton.GetComponentInChildren<Image>().color = RequestBot.QueueOpen ? Color.green : Color.red; ;
             _historyHintText.text = isShowingHistory ? "Go back to your current song request queue." : "View the history of song requests from the current session.";
@@ -297,7 +297,7 @@ namespace EnhancedTwitchChat.Bot
 
         private SongRequest SongInfoForRow(int row)
         {
-            return isShowingHistory ? RequestBot.SongRequestHistory.ElementAt(row) : RequestBot.FinalRequestQueue.ElementAt(row);
+            return isShowingHistory ? RequestHistory.Songs.ElementAt(row) : RequestQueue.Songs.ElementAt(row);
         }
 
         private void PlayPreview(CustomLevel level)
@@ -318,7 +318,7 @@ namespace EnhancedTwitchChat.Bot
 
         public override int NumberOfRows()
         {
-            return isShowingHistory ? RequestBot.SongRequestHistory.Count() : RequestBot.FinalRequestQueue.Count();
+            return isShowingHistory ? RequestHistory.Songs.Count() : RequestQueue.Songs.Count();
         }
 
         public override TableCell CellForRow(int row)

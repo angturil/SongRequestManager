@@ -58,13 +58,13 @@ namespace EnhancedTwitchChat
 
         public string RequestCommandAliases = "request,bsr,add";
 
+        public int RequestHistoryLimit = 20;
         public int RequestLimit = 5;
         public int SubRequestLimit = 5;
         public int ModRequestLimit = 10;
         public int VipBonus = 1; // VIP's get bonus requests in addition to their base limit
         public int RequestCooldownMinutes = 0;
-
-        public string SongRequestQueue = "";
+        
         public string SongBlacklist = "";
         public string DeckList = "fun hard challenge dance";
 
@@ -106,26 +106,6 @@ namespace EnhancedTwitchChat
             }
         }
         
-
-        public List<string> RequestQueue
-        {
-            get
-            {
-                List<string> queue = new List<string>();
-                if (SongRequestQueue != String.Empty)
-                {
-                    foreach (string s in SongRequestQueue.Split(','))
-                        queue.Add(s);
-                }
-                return queue;
-            }
-            set
-            {
-                SongRequestQueue = string.Join(",", value.Distinct());
-                Save();
-            }
-        }
-
         public Color TextColor
         {
             get

@@ -15,6 +15,8 @@ namespace EnhancedTwitchChat.Bot
         public TwitchUser requestor = new TwitchUser();
         public DateTime requestTime;
         public RequestStatus status;
+
+        public SongRequest() { }
         public SongRequest(JSONObject song, TwitchUser requestor, DateTime requestTime, RequestStatus status = RequestStatus.Invalid)
         {
             this.song = song;
@@ -33,12 +35,13 @@ namespace EnhancedTwitchChat.Bot
             return obj;
         }
 
-        public void FromJson(JSONObject obj)
+        public SongRequest FromJson(JSONObject obj)
         {
             requestor.FromJson(obj["requestor"].AsObject);
             requestTime = DateTime.FromFileTime(long.Parse(obj["time"].Value));
             status = (RequestStatus)Enum.Parse(typeof(RequestStatus), obj["status"].Value);
             song = obj["song"].AsObject;
+            return this;
         }
     }
 }
