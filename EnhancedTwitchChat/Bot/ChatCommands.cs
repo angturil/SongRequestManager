@@ -49,7 +49,7 @@ namespace EnhancedTwitchChat.Bot
         private bool filtersong(JSONObject song)
         {
             string songid = song["id"].Value;
-            if (_songBlacklist.Contains(songid)) return true;
+            if (SongBlacklist.Songs.ContainsKey(songid)) return true;
             if (duplicatelist.Contains(songid)) return true;
             return false;
         }
@@ -63,7 +63,7 @@ namespace EnhancedTwitchChat.Bot
             string songid = song["id"].Value;
             if (filter.HasFlag(SongFilter.Queue) &&  RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
 
-            if (filter.HasFlag(SongFilter.Blacklist) && _songBlacklist.Contains(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is blacklisted!";
+            if (filter.HasFlag(SongFilter.Blacklist) && SongBlacklist.Songs.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is blacklisted!";
 
             if (filter.HasFlag(SongFilter.Mapper) && mapperwhiteliston && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
@@ -351,7 +351,7 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
         #region Ban/Unban Song
-        private void Ban(TwitchUser requestor, string request)
+        public void Ban(TwitchUser requestor, string request)
         {
             if (isNotModerator(requestor)) return;
 
@@ -362,15 +362,15 @@ namespace EnhancedTwitchChat.Bot
                 return;
             }
 
-            if (_songBlacklist.Contains(songId))
+            if (SongBlacklist.Songs.ContainsKey(songId))
             {
                 QueueChatMessage($"{request} is already on the blacklist.");
             }
             else
             {
-                QueueChatMessage($"{request} added to the blacklist.");
-                _songBlacklist.Add(songId);
-                Config.Instance.Blacklist = _songBlacklist;
+                var song = new JSONObject();
+                song.Add("id", songId);
+                BlacklistQueue.Enqueue(new SongRequest(song, requestor, DateTime.UtcNow, RequestStatus.Blacklisted));
             }
         }
 
@@ -385,11 +385,11 @@ namespace EnhancedTwitchChat.Bot
                 return;
             }
 
-            if (_songBlacklist.Contains(unbanvalue))
+            if (SongBlacklist.Songs.ContainsKey(unbanvalue))
             {
                 QueueChatMessage($"Removed {request} from the blacklist.");
-                _songBlacklist.Remove(unbanvalue);
-                Config.Instance.Blacklist = _songBlacklist;
+                SongBlacklist.Songs.Remove(unbanvalue);
+                SongBlacklist.Write();
             }
             else
             {
@@ -844,17 +844,17 @@ namespace EnhancedTwitchChat.Bot
 
             int count = 0;
             var queuetext = "Banlist: ";
-            foreach (string req in _songBlacklist.ToArray())
+            foreach (string songId in SongBlacklist.Songs.Keys)
             {
 
-                if (queuetext.Length + req.Length > MaximumTwitchMessageLength)
+                if (queuetext.Length + songId.Length > MaximumTwitchMessageLength)
                 {
                     QueueChatMessage(queuetext);
                     queuetext = "";
                 }
                 else if (count > 0) queuetext += " , ";
 
-                queuetext += req;
+                queuetext += songId;
                 count++;
             }
 

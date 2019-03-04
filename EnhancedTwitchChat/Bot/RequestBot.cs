@@ -49,6 +49,7 @@ namespace EnhancedTwitchChat.Bot
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
+        public static ConcurrentQueue<SongRequest> BlacklistQueue = new ConcurrentQueue<SongRequest>();
         public static Dictionary<string, RequestUserTracker> RequestTracker = new Dictionary<string, RequestUserTracker>();
         
         private static Button _requestButton;
@@ -69,8 +70,7 @@ namespace EnhancedTwitchChat.Bot
 
         private static List<string> mapperwhitelist = new List<string>(); // Lists because we need to interate them per song
         private static List<string> mapperblacklist = new List<string>();
-
-        private static HashSet<string> _songBlacklist = new HashSet<string>();
+        
         private static HashSet<string> duplicatelist = new HashSet<string>();
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         private static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
@@ -124,15 +124,16 @@ namespace EnhancedTwitchChat.Bot
             string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
             if (Directory.Exists(filesToDelete))
                 Utilities.EmptyDirectory(filesToDelete);
-
-            _songBlacklist = Config.Instance.Blacklist;
-
+            
             RequestQueue.Read();
             RequestHistory.Read();
+            SongBlacklist.Read();
 
             UpdateRequestButton();
             InitializeCommands();
+
             StartCoroutine(ProcessRequestQueue());
+            StartCoroutine(ProcessBlacklistRequests());
         }
         
         private void FixedUpdate()
@@ -145,6 +146,44 @@ namespace EnhancedTwitchChat.Bot
                 if (RequestBotListViewController.Instance.isActivated)
                     RequestBotListViewController.Instance.UpdateRequestUI(true);
                 _refreshQueue = false;
+            }
+        }
+
+        private IEnumerator ProcessBlacklistRequests()
+        {
+            WaitUntil waitForBlacklistRequest = new WaitUntil(() => BlacklistQueue.Count > 0);
+            while(!Plugin.Instance.IsApplicationExiting)
+            {
+                yield return waitForBlacklistRequest;
+
+                if (BlacklistQueue.Count > 0 && BlacklistQueue.TryDequeue(out var request))
+                {
+                    string songId = request.song["id"].Value;
+                    using (var web = UnityWebRequest.Get($"https://beatsaver.com/api/songs/detail/{songId}"))
+                    {
+                        yield return web.SendWebRequest();
+                        if (web.isNetworkError || web.isHttpError)
+                        {
+                            QueueChatMessage($"Invalid BeatSaver ID \"{songId}\" specified.");
+                            continue;
+                        }
+
+                        JSONNode result = JSON.Parse(web.downloadHandler.text);
+
+                        if (result["songs"].IsArray && result["total"].AsInt == 0)
+                        {
+                            QueueChatMessage($"BeatSaver ID \"{songId}\" does not exist.");
+                            continue;
+                        }
+                        yield return null;
+
+                        request.song = result["song"].AsObject;
+                        SongBlacklist.Songs.Add(songId, request);
+                        SongBlacklist.Write();
+
+                        QueueChatMessage($"{request.song["songName"].Value} by {request.song["authorName"].Value} ({songId}) added to the blacklist.");
+                    }
+                }
             }
         }
 
@@ -438,9 +477,11 @@ namespace EnhancedTwitchChat.Bot
         {
             // Add the song to the blacklist
             SongRequest request = fromHistory ? RequestHistory.Songs.ElementAt(index) : RequestQueue.Songs.ElementAt(index);
-            _songBlacklist.Add(request.song["id"].Value);
-            Config.Instance.Blacklist = _songBlacklist;
-            Instance.QueueChatMessage($"{request.song["songName"].Value} by {request.song["authorName"].Value} is now blacklisted!");
+
+            SongBlacklist.Songs.Add(request.song["id"].Value, new SongRequest(request.song, request.requestor, DateTime.UtcNow, RequestStatus.Blacklisted));
+            SongBlacklist.Write();
+
+            Instance.QueueChatMessage($"{request.song["songName"].Value} by {request.song["authorName"].Value} ({request.song["id"].Value}) added to the blacklist.");
 
             if (!fromHistory)
             {

@@ -1,10 +1,13 @@
-﻿using SimpleJSON;
+﻿using EnhancedTwitchChat.Chat;
+using SimpleJSON;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace EnhancedTwitchChat.Bot
 {
@@ -65,6 +68,37 @@ namespace EnhancedTwitchChat.Bot
         public static void Write()
         {
             RequestManager.Write(historyPath, ref Songs);
+        }
+    }
+    
+    public class SongBlacklist
+    {
+        public static Dictionary<string, SongRequest> Songs = new Dictionary<string, SongRequest>();
+        private static string blacklistPath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "SongBlacklist.json");
+        public static void Read()
+        {
+            Songs = RequestManager.Read(blacklistPath).ToDictionary(e => e.song["id"].Value);
+        }
+
+        public static void Write()
+        {
+            List<SongRequest> songs = Songs.Values.ToList();
+            RequestManager.Write(blacklistPath, ref songs);
+        }
+
+        public static void ConvertFromList(string[] list)
+        {
+            SharedCoroutineStarter.instance.StartCoroutine(ConvertOnceInitialized(list));
+        }
+
+        private static IEnumerator ConvertOnceInitialized(string[] list)
+        {
+            yield return new WaitUntil(() => RequestBot.Instance);
+
+            var user = new TwitchUser("Unknown");
+            user.isMod = true;
+            foreach (string s in list)
+                RequestBot.Instance.Ban(user, s);
         }
     }
 }
