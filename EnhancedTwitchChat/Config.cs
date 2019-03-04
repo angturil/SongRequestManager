@@ -1,4 +1,5 @@
-﻿using IllusionPlugin;
+﻿using EnhancedTwitchChat.Bot;
+using IllusionPlugin;
 using SimpleJSON;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,11 @@ namespace EnhancedTwitchChat
     public class OldConfigOptions
     {
         public string TwitchChannel = "";
+    }
+
+    public class OldBlacklistOption
+    {
+        public string SongBlacklist;
     }
 
     public class Config
@@ -55,17 +61,18 @@ namespace EnhancedTwitchChat
         public bool DrawShadows = false;
         public bool SongRequestBot = false;
         public bool PersistentRequestQueue = true;
+        public bool FilterCommandMessages = false;
+        public bool FilterBroadcasterMessages = false;
 
         public string RequestCommandAliases = "request,bsr,add";
 
+        public int RequestHistoryLimit = 20;
         public int RequestLimit = 5;
         public int SubRequestLimit = 5;
         public int ModRequestLimit = 10;
         public int VipBonus = 1; // VIP's get bonus requests in addition to their base limit
         public int RequestCooldownMinutes = 0;
-
-        public string SongRequestQueue = "";
-        public string SongBlacklist = "";
+        
         public string DeckList = "fun hard challenge dance";
 
         public float lowestallowedrating = 0.1f; // Lowest allowed song rating to be played 
@@ -86,46 +93,7 @@ namespace EnhancedTwitchChat
         private bool _saving;
 
         public static Config Instance = null;
-
-        public HashSet<string> Blacklist
-        {
-            get
-            {
-                HashSet<string> blacklist = new HashSet<string>();
-                if (SongBlacklist != String.Empty)
-                {
-                    foreach (string s in SongBlacklist.Split(','))
-                        blacklist.Add(s);
-                }
-                return blacklist;
-            }
-            set
-            {
-                SongBlacklist = string.Join(",", value.Distinct());
-                Save();
-            }
-        }
         
-
-        public List<string> RequestQueue
-        {
-            get
-            {
-                List<string> queue = new List<string>();
-                if (SongRequestQueue != String.Empty)
-                {
-                    foreach (string s in SongRequestQueue.Split(','))
-                        queue.Add(s);
-                }
-                return queue;
-            }
-            set
-            {
-                SongRequestQueue = string.Join(",", value.Distinct());
-                Save();
-            }
-        }
-
         public Color TextColor
         {
             get
@@ -192,14 +160,23 @@ namespace EnhancedTwitchChat
             if (File.Exists(FilePath))
             {
                 Load();
-                
-                if (File.ReadAllText(FilePath).Contains("TwitchChannel="))
+
+                var text = File.ReadAllText(FilePath);
+                if (text.Contains("TwitchChannel="))
                 {
                     var oldConfig = new OldConfigOptions();
                     ConfigSerializer.LoadConfig(oldConfig, FilePath);
 
                     TwitchChannelName = oldConfig.TwitchChannel;
                 }
+
+                if (text.Contains("SongBlacklist=")) {
+                    var oldConfig = new OldBlacklistOption();
+                    ConfigSerializer.LoadConfig(oldConfig, FilePath);
+
+                    SongBlacklist.ConvertFromList(oldConfig.SongBlacklist.Split(','));
+                    
+                 }
             }
             CorrectConfigSettings();
             Save();

@@ -12,7 +12,6 @@ namespace EnhancedTwitchChat.Bot
         public TwitchUser requestor;
         public string request;
         public bool isBeatSaverId;
-        public bool isPersistent = false;
         public DateTime requestTime;
         public RequestInfo(TwitchUser requestor, string request, DateTime requestTime, bool isBeatSaverId)
         {

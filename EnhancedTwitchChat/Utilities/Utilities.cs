@@ -295,7 +295,7 @@ namespace EnhancedTwitchChat.Utils
                     Plugin.Log($"Http request error! {www.error}");
                     yield break;
                 }
-                Plugin.Log($"Success downloading \"{url}\"");
+                //Plugin.Log($"Success downloading \"{url}\"");
                 downloadCompleted?.Invoke(UIUtilities.LoadSpriteFromTexture(DownloadHandlerTexture.GetContent(www)));
             }
         }
