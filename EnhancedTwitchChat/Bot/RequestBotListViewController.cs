@@ -56,7 +56,7 @@ namespace EnhancedTwitchChat.Bot
             Instance = this;
         }
 
-        static RequestBot.SongRequest currentsong = null;
+        static SongRequest currentsong = null;
         protected override void DidActivate(bool firstActivation, ActivationType type)
         {
             if (firstActivation)
@@ -295,7 +295,7 @@ namespace EnhancedTwitchChat.Bot
             return null;
         }
 
-        private RequestBot.SongRequest SongInfoForRow(int row)
+        private SongRequest SongInfoForRow(int row)
         {
             return isShowingHistory ? RequestBot.SongRequestHistory.ElementAt(row) : RequestBot.FinalRequestQueue.ElementAt(row);
         }
@@ -331,7 +331,7 @@ namespace EnhancedTwitchChat.Bot
             } 
             _tableCell.coverImage = null;
 
-            RequestBot.SongRequest request = SongInfoForRow(row);
+            SongRequest request = SongInfoForRow(row);
             JSONObject song = request.song;
 
             BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");

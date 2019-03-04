@@ -128,6 +128,9 @@
     <Compile Include="Bot\ChatCommands.cs" />
     <Compile Include="Bot\RequestBot.cs" />
     <Compile Include="Bot\RequestBotListViewController.cs" />
+    <Compile Include="Bot\RequestInfo.cs" />
+    <Compile Include="Bot\RequestUserTracker.cs" />
+    <Compile Include="Bot\SongRequest.cs" />
     <Compile Include="Chat\MessageHandlers.cs" />
     <Compile Include="Chat\TwitchMessage.cs" />
     <Compile Include="Chat\TwitchWebSocketClient.cs" />
