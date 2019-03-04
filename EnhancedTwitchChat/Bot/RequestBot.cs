@@ -245,7 +245,7 @@ namespace EnhancedTwitchChat.Bot
                 // Remap song id if entry present. This is one time, and not correct as a result. No recursion right now, could be confusing to the end user.
                 string[] requestparts = request.Split(new char[] { '-' }, 2);
 
-                if (requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]) && !requestor.isBroadcaster)
+                if (requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]) && isNotModerator(requestor))
                 {
                     request = songremap[requestparts[0]];
                     QueueChatMessage($"Remapping request {requestInfo.request} to {request}");
@@ -258,7 +258,6 @@ namespace EnhancedTwitchChat.Bot
                     yield break;
                 }
             }
-
 
             // Get song query results from beatsaver.com
 
@@ -304,9 +303,9 @@ namespace EnhancedTwitchChat.Bot
                 {
                     if (errormessage == "") errormessage = $"No results found for request \"{request}\"";
                 }
-                else if (songs.Count >= 4)
+                else if (!Config.Instance.AutopickFirstSong &&  songs.Count >= 4)
                     errormessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
-                else if (songs.Count > 1 && songs.Count < 4)
+                else if (!Config.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
                 {
                     string songlist = $"@{requestor.displayName}, please choose: ";
                     foreach (var eachsong in songs) songlist += $"{eachsong["songName"].Value}-{eachsong["songSubName"].Value}-{eachsong["authorName"].Value} ({eachsong["version"].Value}), ";

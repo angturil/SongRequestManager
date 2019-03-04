@@ -77,7 +77,8 @@ namespace EnhancedTwitchChat
  
         public float lowestallowedrating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
 
-        public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list.
+        public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI
+
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
 
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play

@@ -1102,7 +1102,7 @@ namespace EnhancedTwitchChat.Bot
             {
             var song = RequestBotListViewController.currentsong.song;
            
-            QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} {GetSongLink(ref song,1)}");
+            QueueChatMessage($"{song["songName"].Value} {song["songSubName"].Value} by {song["authorName"].Value} {GetSongLink(ref song,1)}");
             }
             catch (Exception ex)
             {
