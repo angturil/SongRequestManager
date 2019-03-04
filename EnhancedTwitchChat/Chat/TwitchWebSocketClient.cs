@@ -46,16 +46,15 @@ namespace EnhancedTwitchChat.Chat
         
         private static DateTime _sendLimitResetTime = DateTime.Now;
         private static Queue<string> _sendQueue = new Queue<string>();
-        private static int _messagesSent = 0;
-        private static int _sendResetInterval = 30;
+        
         private static int _reconnectCooldown = 500;
         private static int _fullReconnects = -1;
+
+        private static int _messagesSent = 0;
+        private static int _sendResetInterval = 30;
         private static int _messageLimit
         {
-            get
-            {
-                return (OurTwitchUser.isBroadcaster || OurTwitchUser.isMod) ? 100 : 20;
-            }
+            get { return (OurTwitchUser.isBroadcaster || OurTwitchUser.isMod) ? 100 : 20; } // Defines how many messages can be sent within _sendResetInterval without causing a global ban on twitch
         }
 
         public static bool IsChannelValid

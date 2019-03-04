@@ -469,8 +469,7 @@ namespace EnhancedTwitchChat.Bot
 
             // Decrement the requestors request count, since their request is now out of the queue
             if (RequestTracker.ContainsKey(request.requestor.id)) RequestTracker[request.requestor.id].numRequests--;
-
-
+            
             UpdateRequestButton();
             _refreshQueue = true;
         }
