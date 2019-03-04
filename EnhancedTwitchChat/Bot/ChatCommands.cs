@@ -361,6 +361,11 @@ namespace EnhancedTwitchChat.Bot
         #region Ban/Unban Song
         public void Ban(TwitchUser requestor, string request)
         {
+            Ban(requestor, request, false);
+        }
+
+        public void Ban(TwitchUser requestor, string request, bool silence)
+        {
             if (isNotModerator(requestor)) return;
 
             var songId = GetBeatSaverId(request);
@@ -378,7 +383,7 @@ namespace EnhancedTwitchChat.Bot
             {
                 var song = new JSONObject();
                 song.Add("id", songId);
-                BlacklistQueue.Enqueue(new SongRequest(song, requestor, DateTime.UtcNow, RequestStatus.Blacklisted));
+                BlacklistQueue.Enqueue(new KeyValuePair<SongRequest, bool>(new SongRequest(song, requestor, DateTime.UtcNow, RequestStatus.Blacklisted), silence));
             }
         }
 
