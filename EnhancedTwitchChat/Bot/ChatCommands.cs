@@ -797,31 +797,93 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
+        public class QueueLongMessage 
+            {
+            private string msgtext = "";
+            int msg = 1;
+            int MAXMESSAGES = 2;
+            const int maxoverflowtextlength=120;
+
+            bool overflow=false;
+            bool first = true;
+
+            public int Count=0;
+
+            // BUG: This version doesn't reallly strings > twitchmessagelength well
+
+             public void SetMaxMessages(int value)
+                {
+                MAXMESSAGES = value;
+                }   
+
+             public void Header (string text)
+                {
+                msgtext = text;
+                }
+
+            public bool Add (string text,string separator="")
+                {
+               
+                if (msg>=MAXMESSAGES && msgtext.Length + text.Length > MaximumTwitchMessageLength-maxoverflowtextlength)
+                    {
+                    overflow = true;
+                    return true;
+                    }
+
+
+                if (msgtext.Length+text.Length>MaximumTwitchMessageLength)
+                    {
+                    RequestBot.Instance.QueueChatMessage(msgtext);
+                    first = false;
+                    msgtext = text;
+                    Count++;
+                    msg++;
+                    return false;
+                    }
+
+                if (!first) msgtext += separator;
+                Count++;
+                msgtext += text;
+                first = false;
+
+                return false;
+                }
+
+            public void end(string overflowtext="",string emptymsg="")
+                {
+            
+                if (msgtext.Length+overflowtext.Length<=MaximumTwitchMessageLength && overflow) 
+                    RequestBot.Instance.QueueChatMessage(msgtext+overflowtext);
+                else
+                     RequestBot.Instance.QueueChatMessage(msgtext);
+                
+                if (Count == 0) RequestBot.Instance.QueueChatMessage(emptymsg);
+
+                // Reset the class for reuse
+
+                overflow = false;
+                msgtext = "";
+                msg = 1;
+                }
+            }
+
+
         const int MaximumTwitchMessageLength = 498; // BUG: Replace this with a cannonical source
 
         private void ListQueue(TwitchUser requestor, string request)
         {
-            int count = 0;
-            var queuetext = "Queue: ";
+
+            QueueLongMessage msg = new QueueLongMessage();
+
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
-            {
+                {
                 var song = req.song;
 
-                string songdetail = song["songName"].Value + " (" + song["version"] + ")";
-
-                if (queuetext.Length + songdetail.Length > MaximumTwitchMessageLength)
-                {
-                    QueueChatMessage(queuetext);
-                    queuetext = "";
+                if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
                 }
+            msg.end($" ... and {RequestQueue.Songs.Count-msg.Count} more songs.","Queue is empty.");
+            return;
 
-                if (count > 0) queuetext += ", ";
-                queuetext += songdetail;
-                count++;
-            }
-
-            if (count == 0) queuetext = "Queue is empty.";
-            QueueChatMessage(queuetext);
         }
 
         private void ShowSongsplayed(TwitchUser requestor, string request) // Note: This can be spammy.
@@ -855,24 +917,16 @@ namespace EnhancedTwitchChat.Bot
         {
             if (isNotBroadcaster(requestor,"blist")) return;
 
-            int count = 0;
-            var queuetext = "Banlist: ";
+            QueueLongMessage msg = new QueueLongMessage();
+
+            msg.Header("Banlist ");
+
             foreach (string songId in SongBlacklist.Songs.Keys)
-            {
-
-                if (queuetext.Length + songId.Length > MaximumTwitchMessageLength)
-                {
-                    QueueChatMessage(queuetext);
-                    queuetext = "";
+                {               
+                if (msg.Add(songId, ", ")) break;
                 }
-                else if (count > 0) queuetext += " , ";
+            msg.end($" ... and {SongBlacklist.Songs.Count - msg.Count} more entries.", "is empty.");
 
-                queuetext += songId;
-                count++;
-            }
-
-            if (count == 0) queuetext = "Banlist is empty.";
-            QueueChatMessage(queuetext);
         }
 
         private void ListPlayedList(TwitchUser requestor, string request)
@@ -1033,7 +1087,8 @@ namespace EnhancedTwitchChat.Bot
 
         private void WriteRemapList()
         {
-            //string remapfile = $"c:\\beatsaber\\remap.list";
+
+            // BUG: Its more efficient to write it in one call
 
             try
             {

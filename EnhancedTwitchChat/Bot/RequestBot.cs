@@ -567,8 +567,7 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("clearalreadyplayed", ClearDuplicateList); // Needs a better name
 
             Commands.Add("link", ShowSongLink);
-            //Commands.Add("currentsong", ShowSongLink);
-
+           
 
 #if PRIVATE
             Commands.Add("goodmappers",mapperWhitelist);
