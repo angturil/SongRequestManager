@@ -55,6 +55,8 @@ namespace EnhancedTwitchChat
         public bool DrawShadows = false;
         public bool SongRequestBot = false;
         public bool PersistentRequestQueue = true;
+        public bool FilterCommandMessages = false;
+        public bool FilterBroadcasterMessages = false;
 
         public string RequestCommandAliases = "request,bsr,add";
 

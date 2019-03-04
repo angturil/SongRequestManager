@@ -187,12 +187,14 @@ namespace EnhancedTwitchChat
                 if (TwitchWebSocketClient.RenderQueue.Count > 0 && !_messageRendering)
                 {
                     if (TwitchWebSocketClient.RenderQueue.TryDequeue(out var messageToSend))
-                        {
-                        #if PRIVATE
-                        if (!messageToSend.twitchMessage.user.isBroadcaster && !messageToSend.twitchMessage.message.StartsWith("!") ) // This is a hack to filter BOT and command messages from the message stream. This is not a production feature, so if the line is active, please remove it.
-                        #endif
+                    {
+                        if (Config.Instance.FilterBroadcasterMessages && messageToSend.twitchMessage.user.isBroadcaster)
+                            return;
+                        if (Config.Instance.FilterCommandMessages && messageToSend.twitchMessage.message.StartsWith("!"))
+                            return;
+
                         StartCoroutine(AddNewChatMessage(messageToSend.msg, messageToSend));
-                        }
+                    }
 
                 }
 
