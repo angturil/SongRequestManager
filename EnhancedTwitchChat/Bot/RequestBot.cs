@@ -414,7 +414,7 @@ namespace EnhancedTwitchChat.Bot
 
                 // BUG: Songs status chat messages need to be configurable.
 
-                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} " + GetSongLink(ref song,2) + " is next."); 
+                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} {GetSongLink(ref song, 2)} is next."); 
                 
                 _songRequestMenu.Dismiss();
             }
