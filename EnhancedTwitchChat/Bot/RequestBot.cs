@@ -28,7 +28,6 @@ using VRUI;
 using Image = UnityEngine.UI.Image;
 using Toggle = UnityEngine.UI.Toggle;
 
-
 namespace EnhancedTwitchChat.Bot
 {
     public partial class RequestBot : MonoBehaviour
@@ -75,6 +74,8 @@ namespace EnhancedTwitchChat.Bot
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         private static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
 
+        public static string datapath;
+
         private static CustomMenu _songRequestMenu = null;
         private static RequestBotListViewController _songRequestListViewController = null;
 
@@ -107,7 +108,10 @@ namespace EnhancedTwitchChat.Bot
 
             SongListUtils.Initialize();
 
-            Directory.CreateDirectory($"{Environment.CurrentDirectory}\\requestqueue");
+            datapath=Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
+            if (!Directory.Exists(datapath))
+                Directory.CreateDirectory(datapath);
+
             WriteQueueSummaryToFile();
             WriteQueueStatusToFile(QueueOpen ? "Queue is open" : "Queue is closed");
 
@@ -115,7 +119,6 @@ namespace EnhancedTwitchChat.Bot
             if (Instance) return;
             new GameObject("EnhancedTwitchChatRequestBot").AddComponent<RequestBot>();
         }
-
         private void Awake()
         {
             DontDestroyOnLoad(gameObject);
@@ -208,8 +211,9 @@ namespace EnhancedTwitchChat.Bot
             _botMessageQueue.Enqueue(message);
         }
 
-        private string GetStarRating(ref JSONObject song)
+        private string GetStarRating(ref JSONObject song,bool mode=true)
         {
+            if (!mode) return "";
             string stars = "******";
             float rating = song["rating"].AsFloat;
             if (rating < 0 || rating > 100) rating = 0;
@@ -241,7 +245,7 @@ namespace EnhancedTwitchChat.Bot
                 // Remap song id if entry present. This is one time, and not correct as a result. No recursion right now, could be confusing to the end user.
                 string[] requestparts = request.Split(new char[] { '-' }, 2);
 
-                if (requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]))
+                if (requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]) && isNotModerator(requestor))
                 {
                     request = songremap[requestparts[0]];
                     QueueChatMessage($"Remapping request {requestInfo.request} to {request}");
@@ -294,15 +298,14 @@ namespace EnhancedTwitchChat.Bot
                     songs.Add(result["song"].AsObject);
                 }
 
-
                 // Filter out too many or too few results
                 if (songs.Count == 0)
                 {
                     if (errormessage == "") errormessage = $"No results found for request \"{request}\"";
                 }
-                else if (songs.Count >= 4)
+                else if (!Config.Instance.AutopickFirstSong &&  songs.Count >= 4)
                     errormessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
-                else if (songs.Count > 1 && songs.Count < 4)
+                else if (!Config.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
                 {
                     string songlist = $"@{requestor.displayName}, please choose: ";
                     foreach (var eachsong in songs) songlist += $"{eachsong["songName"].Value}-{eachsong["songSubName"].Value}-{eachsong["authorName"].Value} ({eachsong["version"].Value}), ";
@@ -329,7 +332,7 @@ namespace EnhancedTwitchChat.Bot
                 RequestQueue.Write();
 
                 Writedeck(requestor, "savedqueue"); // Might not be needed.. logic around saving and loading deck state needs to be reworked
-                QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song)} ({song["version"].Value}) added to queue.");
+                QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song,Config.Instance.ShowStarRating)} ({song["version"].Value}) added to queue.");
 
                 UpdateRequestButton();
 
@@ -409,14 +412,27 @@ namespace EnhancedTwitchChat.Bot
                 var song = request.song;
 
                 // BUG: Songs status chat messages need to be configurable.
-                //Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is next."); // UI Setting needed to toggle this on/off
-                //Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} https://beatsaver.com/browse/detail/{song["version"].Value} is next."); // UI Setting needed to toggle this on/off
-                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} https://bsaber.com/songs/{song["id"].Value} is next."); // UI Setting needed to toggle this on/off
 
+                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} {GetSongLink(ref song, 2)} is next."); 
+                
                 _songRequestMenu.Dismiss();
             }
         }
         
+
+        public static  string GetSongLink(ref JSONObject song,int formatindex)
+                {
+            string[] link ={
+                    $"({song["version"].Value})",
+                    $"https://beatsaver.com/browse/detail/{song["version"].Value}",
+                    $"https://bsaber.com/songs/{song["id"].Value}"
+                    };
+
+            if (formatindex >= link.Length) return "";
+
+            return link[formatindex];
+        }
+
         private static void UpdateRequestButton()
         {
             try
@@ -545,6 +561,11 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("played", ShowSongsplayed);
             Commands.Add("readdeck", Readdeck);
             Commands.Add("writedeck", Writedeck);
+            Commands.Add("clearalreadyplayed", ClearDuplicateList); // Needs a better name
+
+            Commands.Add("link", ShowSongLink);
+            //Commands.Add("currentsong", ShowSongLink);
+
 
 #if PRIVATE
             Commands.Add("goodmappers",mapperWhitelist);
@@ -565,7 +586,7 @@ namespace EnhancedTwitchChat.Bot
             loaddecks (TwitchWebSocketClient.OurTwitchUser,"");
 #endif
         }
-        
+
         private void lookup(TwitchUser requestor, string request)
         {
             if (isNotModerator(requestor) && !requestor.isSub)

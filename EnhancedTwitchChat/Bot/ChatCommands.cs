@@ -33,7 +33,7 @@ namespace EnhancedTwitchChat.Bot
         bool isNotBroadcaster(TwitchUser requestor, string message = "")
         {
             if (requestor.isBroadcaster) return false;
-            if (message != "") QueueChatMessage("{message} is broadcaster only.");
+            if (message != "") QueueChatMessage($"{message} is broadcaster only.");
             return true;
 
         }
@@ -41,10 +41,9 @@ namespace EnhancedTwitchChat.Bot
         bool isNotModerator(TwitchUser requestor, string message = "")
         {
             if (requestor.isBroadcaster || requestor.isMod) return false;
-            if (message != "") QueueChatMessage("{message} is moderator only.");
+            if (message != "") QueueChatMessage($"{message} is moderator only.");
             return true;
         }
-
 
         private bool filtersong(JSONObject song)
         {
@@ -53,7 +52,7 @@ namespace EnhancedTwitchChat.Bot
             if (duplicatelist.Contains(songid)) return true;
             return false;
         }
-
+        
         // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
         
         [Flags] enum SongFilter { none=0, Queue=1, Blacklist=2, Mapper=4, Duplicate=8, Remap=16, Rating=32,all=-1 };
@@ -99,24 +98,31 @@ namespace EnhancedTwitchChat.Bot
             return !(IsRequestInQueue(request) == "");
         }
 
+        private void ClearDuplicateList(TwitchUser requestor, string request)
+            {
+            if (isNotBroadcaster(requestor)) return;
 
-        #endregion
+            QueueChatMessage("Session duplicate list is now clear.");
+            duplicatelist.Clear();
+            }
 
-        #region AddSongs/AddSongsByMapper Commands
+            #endregion
 
-        /*
-        Route::get('/songs/top/{start?}','ApiController@topDownloads');
-        Route::get('/songs/plays/{start?}','ApiController@topPlayed');
-        Route::get('/songs/new/{start?}','ApiController@newest');
-        Route::get('/songs/rated/{start?}','ApiController@topRated');
-        Route::get('/songs/byuser/{id}/{start?}','ApiController@byUser');
-        Route::get('/songs/detail/{key}','ApiController@detail');
-        Route::get('/songs/vote/{key}/{type}/{accessToken}', 'ApiController@vote');
-        Route::get('/songs/search/{type}/{key}','ApiController@search');
-        */
+            #region AddSongs/AddSongsByMapper Commands
+
+            /*
+            Route::get('/songs/top/{start?}','ApiController@topDownloads');
+            Route::get('/songs/plays/{start?}','ApiController@topPlayed');
+            Route::get('/songs/new/{start?}','ApiController@newest');
+            Route::get('/songs/rated/{start?}','ApiController@topRated');
+            Route::get('/songs/byuser/{id}/{start?}','ApiController@byUser');
+            Route::get('/songs/detail/{key}','ApiController@detail');
+            Route::get('/songs/vote/{key}/{type}/{accessToken}', 'ApiController@vote');
+            Route::get('/songs/search/{type}/{key}','ApiController@search');
+            */
 
 
-        private void addNewSongs(TwitchUser requestor, string request)
+            private void addNewSongs(TwitchUser requestor, string request)
         {
             if (isNotModerator(requestor, "addnew")) return;
 
@@ -258,8 +264,10 @@ namespace EnhancedTwitchChat.Bot
                     {
                         song = entry;
 
+                        // We ignore the duplicate filter for this
+
                         if (IsInQueue(song["id"].Value)) continue;
-                        if (filtersong(song)) continue;
+                        if (SongBlacklist.Songs.ContainsKey(song["id"].Value)) continue;
 
                         ProcessSongRequest(requestor, song["version"].Value);
                         found = true;
@@ -425,7 +433,7 @@ namespace EnhancedTwitchChat.Bot
                     return;
                 }
 
-                string queuefile = $"{Environment.CurrentDirectory}\\requestqueue\\" + request + ".deck";
+                string queuefile = Path.Combine(datapath, request+".deck"); 
 
                 StreamWriter fileWriter = new StreamWriter(queuefile);
 
@@ -460,7 +468,7 @@ namespace EnhancedTwitchChat.Bot
 
             try
             {
-                string queuefile = $"{Environment.CurrentDirectory}\\requestqueue\\" + request + ".deck";
+                string queuefile = Path.Combine(datapath, request+".deck"); 
 
                 string fileContent = File.ReadAllText(queuefile);
 
@@ -554,7 +562,7 @@ namespace EnhancedTwitchChat.Bot
                 return;
             }
 
-            string queuefile = $"{Environment.CurrentDirectory}\\requestqueue\\" + request + ".list";
+            string queuefile = Path.Combine(datapath, request+".list"); 
 
             string fileContent = File.ReadAllText(queuefile);
 
@@ -626,7 +634,7 @@ namespace EnhancedTwitchChat.Bot
                 return;
             }
 
-            string queuefile = $"{Environment.CurrentDirectory}\\requestqueue\\" + request + ".list";
+            string queuefile = Path.Combine(datapath, request + ".list");
 
             string fileContent = File.ReadAllText(queuefile);
 
@@ -840,7 +848,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void ShowBanList(TwitchUser requestor, string request)
         {
-            if (isNotModerator(requestor)) return;
+            if (isNotBroadcaster(requestor,"blist")) return;
 
             int count = 0;
             var queuetext = "Banlist: ";
@@ -909,9 +917,12 @@ namespace EnhancedTwitchChat.Bot
         }
         private static void WriteQueueSummaryToFile()
         {
+
+            if (!Config.Instance.UpdateQueueStatusFiles) return;
+
             try
             {
-                string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuelist.txt";
+                string statusfile = Path.Combine(datapath,"queuelist.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
 
                 string queuesummary = "";
@@ -943,7 +954,7 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-                string statusfile = $"{Environment.CurrentDirectory}\\requestqueue\\queuestatus.txt";
+                string statusfile = Path.Combine(datapath, "queuestatus.txt"); 
                 StreamWriter fileWriter = new StreamWriter(statusfile);
                 fileWriter.Write(status);
                 fileWriter.Close();
@@ -954,6 +965,7 @@ namespace EnhancedTwitchChat.Bot
                 Plugin.Log(ex.ToString());
             }
         }
+
 
         private void Clearqueue(TwitchUser requestor, string request)
         {
@@ -986,8 +998,7 @@ namespace EnhancedTwitchChat.Bot
         #region Unmap/Remap Commands
         private void Remap(TwitchUser requestor, string request)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
-
+            if (isNotModerator(requestor)) return;
 
             string[] parts = request.Split(',', ' ');
 
@@ -1005,7 +1016,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void Unmap(TwitchUser requestor, string request)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
+            if (isNotModerator(requestor)) return;
 
             if (songremap.ContainsKey(request))
             {
@@ -1021,7 +1032,7 @@ namespace EnhancedTwitchChat.Bot
 
             try
             {
-                string remapfile = $"{Environment.CurrentDirectory}\\requestqueue\\remap.list";
+                string remapfile = Path.Combine(datapath, "remap.list");
 
                 StreamWriter fileWriter = new StreamWriter(remapfile);
 
@@ -1040,7 +1051,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void ReadRemapList()
         {
-            string remapfile = $"{Environment.CurrentDirectory}\\requestqueue\\remap.list";
+            string remapfile = Path.Combine(datapath, "remap.list"); 
 
             try
             {
@@ -1080,5 +1091,25 @@ namespace EnhancedTwitchChat.Bot
             QueueChatMessage($"You have no requests in the queue.");
         }
         #endregion
+
+
+        // BUG: This requires a switch, or should be disabled for those who don't allow links
+        private void ShowSongLink(TwitchUser requestor, string request)
+            {
+            if (RequestBotListViewController.currentsong.song.IsNull) return;
+
+            try  // We're accessing an element across threads, this is only 99.99% safe
+            {
+            var song = RequestBotListViewController.currentsong.song;
+           
+            QueueChatMessage($"{song["songName"].Value} {song["songSubName"].Value} by {song["authorName"].Value} {GetSongLink(ref song,1)}");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log(ex.ToString());
+            }
+
+        }
+
     }
 }
