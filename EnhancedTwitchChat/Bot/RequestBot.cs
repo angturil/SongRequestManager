@@ -459,7 +459,10 @@ namespace EnhancedTwitchChat.Bot
         {
             RequestHistory.Songs.Insert(0, request);
             if (RequestHistory.Songs.Count > Config.Instance.RequestHistoryLimit)
-                RequestHistory.Songs.Remove(RequestHistory.Songs.Last());
+            {
+                int diff = RequestHistory.Songs.Count - Config.Instance.RequestHistoryLimit;
+                RequestHistory.Songs.RemoveRange(RequestHistory.Songs.Count - diff - 1, diff);
+            }
             RequestQueue.Songs.Remove(request);
             RequestHistory.Write();
             RequestQueue.Write();
