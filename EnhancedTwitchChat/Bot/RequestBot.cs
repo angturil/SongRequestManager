@@ -43,43 +43,6 @@ namespace EnhancedTwitchChat.Bot
             Played
         }
 
-        public class SongRequest
-        {
-            public JSONObject song;
-            public TwitchUser requestor;
-            public DateTime requestTime;
-            public RequestStatus status;
-            public SongRequest(JSONObject song, TwitchUser requestor, DateTime requestTime, RequestStatus status = RequestStatus.Invalid)
-            {
-                this.song = song;
-                this.requestor = requestor;
-                this.status = status;
-                this.requestTime = requestTime;
-            }
-        }
-
-        public class RequestInfo
-        {
-            public TwitchUser requestor;
-            public string request;
-            public bool isBeatSaverId;
-            public bool isPersistent = false;
-            public DateTime requestTime;
-            public RequestInfo(TwitchUser requestor, string request, DateTime requestTime, bool isBeatSaverId)
-            {
-                this.requestor = requestor;
-                this.request = request;
-                this.isBeatSaverId = isBeatSaverId;
-                this.requestTime = requestTime;
-            }
-        }
-
-        public class RequestUserTracker
-        {
-            public int numRequests = 0;
-            public DateTime resetTime = DateTime.Now;
-        }
-
         public string EnhancedTwitchchatFiles = "\\requestqueue\\";
 
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
@@ -207,7 +170,8 @@ namespace EnhancedTwitchChat.Bot
 
             if(_refreshQueue)
             {
-                RequestBotListViewController.Instance.UpdateRequestUI(true);
+                if(RequestBotListViewController.Instance.isActivated)
+                    RequestBotListViewController.Instance.UpdateRequestUI(true);
                 _refreshQueue = false;
             }
         }
