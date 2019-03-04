@@ -61,7 +61,7 @@ namespace EnhancedTwitchChat
         public int RequestLimit = 5;
         public int SubRequestLimit = 5;
         public int ModRequestLimit = 10;
-        public int VipRequestLimit = 3; // currently ignored, vip's get +1 over base will discuss
+        public int VipBonus = 1; // VIP's get bonus requests in addition to their base limit
         public int RequestCooldownMinutes = 0;
 
         public string SongRequestQueue = "";
@@ -76,7 +76,7 @@ namespace EnhancedTwitchChat
         public bool ApplyAllFiltersToBroadcaster = false;
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS
 
-        public int maxaddnewscanrange = 80; // How far down the list to scan
+        public int MaxiumAddScanRange = 80; // How far down the list to scan
         public int maxaddnewresults = 10;  // Max results per command
 
 

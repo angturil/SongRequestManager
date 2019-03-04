@@ -18,6 +18,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 
+
 namespace EnhancedTwitchChat.Bot
 {
     class RequestBotListViewController : CustomListViewController
