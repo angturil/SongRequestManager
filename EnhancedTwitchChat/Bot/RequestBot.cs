@@ -245,7 +245,7 @@ namespace EnhancedTwitchChat.Bot
                 // Remap song id if entry present. This is one time, and not correct as a result. No recursion right now, could be confusing to the end user.
                 string[] requestparts = request.Split(new char[] { '-' }, 2);
 
-                if (requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]))
+                if (requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]) && !requestor.isBroadcaster)
                 {
                     request = songremap[requestparts[0]];
                     QueueChatMessage($"Remapping request {requestInfo.request} to {request}");
@@ -258,6 +258,7 @@ namespace EnhancedTwitchChat.Bot
                     yield break;
                 }
             }
+
 
             // Get song query results from beatsaver.com
 
@@ -548,6 +549,8 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("played", ShowSongsplayed);
             Commands.Add("readdeck", Readdeck);
             Commands.Add("writedeck", Writedeck);
+            Commands.Add("clearduplicatelist", ClearDuplicateList);
+
 
 #if PRIVATE
             Commands.Add("goodmappers",mapperWhitelist);
