@@ -1,20 +1,17 @@
-﻿using System;
+﻿using CustomUI.Utilities;
+using EnhancedTwitchChat.Chat;
+using EnhancedTwitchChat.Textures;
+using EnhancedTwitchChat.UI;
+using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.UI;
-using System.Collections;
-using EnhancedTwitchChat.Textures;
-using VRUIControls;
 using UnityEngine.SceneManagement;
-using System.Text;
-using System.Collections.Concurrent;
-using System.IO;
-using EnhancedTwitchChat.Utils;
-using EnhancedTwitchChat.Chat;
-using EnhancedTwitchChat.UI;
-using UnityEngine.XR;
-using CustomUI.Utilities;
+using UnityEngine.UI;
+using VRUIControls;
 
 namespace EnhancedTwitchChat
 {
@@ -172,8 +169,8 @@ namespace EnhancedTwitchChat
                     OnConfigChanged();
 
                 // Make sure to delete any purged messages right away
-                if (_timeoutQueue.Count > 0 && _timeoutQueue.TryDequeue(out var userID))
-                    PurgeChatMessagesInternal(userID);
+                if (_timeoutQueue.Count > 0 && _timeoutQueue.TryDequeue(out var id))
+                    PurgeChatMessagesInternal(id);
 
                 if (_waitForFrames > 0)
                 {
@@ -461,7 +458,7 @@ namespace EnhancedTwitchChat
                 if (currentMessage.messageInfo == null) continue;
 
                 // Handle purging messages by user id or by message id, since both are possible
-                if ((isUserId && currentMessage.messageInfo.twitchMessage.user.id == id) || (!isUserId && currentMessage.messageInfo.twitchMessage.id == id))
+                if (id == "!FULLCLEAR!" || (isUserId && currentMessage.messageInfo.twitchMessage.user.id == id) || (!isUserId && currentMessage.messageInfo.twitchMessage.id == id))
                 {
                     string userName = $"<color={currentMessage.messageInfo.twitchMessage.user.color}><b>{currentMessage.messageInfo.twitchMessage.user.displayName}</b></color>:";
                     if (currentMessage.text.Contains(userName))

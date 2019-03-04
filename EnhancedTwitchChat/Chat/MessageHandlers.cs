@@ -156,7 +156,7 @@ namespace EnhancedTwitchChat.Chat
 
         public static void CLEARCHAT(TwitchMessage twitchMsg, MatchCollection tags)
         {
-            string userId = String.Empty;
+            string userId = "!FULLCLEAR!";
             foreach (Match t in tags)
             {
                 if (t.Groups["Tag"].Value == "target-user-id")
