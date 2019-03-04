@@ -42,14 +42,14 @@ namespace EnhancedTwitchChat.Bot
             Skipped,
             Played
         }
-
-
+        
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
+        public static Dictionary<string, RequestUserTracker> RequestTracker = new Dictionary<string, RequestUserTracker>();
         
         private static Button _requestButton;
         private static bool _checkingQueue = false;
@@ -172,8 +172,6 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-        public static Dictionary<string, RequestUserTracker> _requestTracker = new Dictionary<string, RequestUserTracker>();
-
         public void QueueChatMessage(string message)
         {
             _botMessageQueue.Enqueue(message);
@@ -287,7 +285,7 @@ namespace EnhancedTwitchChat.Bot
 
                 var song = songs[0];
 
-                _requestTracker[requestor.id].numRequests++;
+                RequestTracker[requestor.id].numRequests++;
                 duplicatelist.Add(song["id"].Value);
 
                 RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued));
@@ -311,7 +309,7 @@ namespace EnhancedTwitchChat.Bot
                 if (!fromHistory)
                 {
                     SetRequestStatus(index, RequestStatus.Played);
-                    request = index == -1 ? DequeueRequest(0) : DequeueRequest(index);
+                    request = DequeueRequest(index);
                 }
                 else
                 {
@@ -330,7 +328,8 @@ namespace EnhancedTwitchChat.Bot
                 string songIndex = request.song["version"].Value, songName = request.song["songName"].Value;
                 string currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
                 string songHash = request.song["hashMd5"].Value.ToUpper();
-                retry:
+
+            retry:
                 CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
                 if (levels.Length == 0)
                 {
@@ -381,8 +380,7 @@ namespace EnhancedTwitchChat.Bot
                 _songRequestMenu.Dismiss();
             }
         }
-
-
+        
         private static void UpdateRequestButton()
         {
             try
@@ -415,7 +413,7 @@ namespace EnhancedTwitchChat.Bot
             RequestQueue.Write();
 
             // Decrement the requestors request count, since their request is now out of the queue
-            if (_requestTracker.ContainsKey(request.requestor.id)) _requestTracker[request.requestor.id].numRequests--;
+            if (RequestTracker.ContainsKey(request.requestor.id)) RequestTracker[request.requestor.id].numRequests--;
 
 
             UpdateRequestButton();
@@ -472,10 +470,9 @@ namespace EnhancedTwitchChat.Bot
 
         public static void Next()
         {
-            Instance?.StartCoroutine(ProcessSongRequest(-1));
+            Instance?.StartCoroutine(ProcessSongRequest(0));
         }
-
-
+        
         private void InitializeCommands()
         {
             foreach (string c in Config.Instance.RequestCommandAliases.Split(',').Distinct())
@@ -512,7 +509,6 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("writedeck", Writedeck);
 
 #if PRIVATE
-
             Commands.Add("goodmappers",mapperWhitelist);
             Commands.Add("mapperwhitelist",mapperWhitelist);                  
             Commands.Add("addnew",addNewSongs);
@@ -529,11 +525,9 @@ namespace EnhancedTwitchChat.Bot
 
             mapperWhitelist(TwitchWebSocketClient.OurTwitchUser,"mapper");
             loaddecks (TwitchWebSocketClient.OurTwitchUser,"");
-
 #endif
         }
-
-
+        
         private void lookup(TwitchUser requestor, string request)
         {
             if (isNotModerator(requestor) && !requestor.isSub)
@@ -541,12 +535,9 @@ namespace EnhancedTwitchChat.Bot
                 QueueChatMessage($"lookup command is limited to Subscribers and moderators.");
                 return;
             }
-
             StartCoroutine(LookupSongs(requestor, request));
-
         }
-
-
+        
         private string GetBeatSaverId(string request)
         {
             if (_digitRegex.IsMatch(request)) return request;
@@ -575,8 +566,8 @@ namespace EnhancedTwitchChat.Bot
                     return;
                 }
 
-                if (!_requestTracker.ContainsKey(requestor.id))
-                    _requestTracker.Add(requestor.id, new RequestUserTracker());
+                if (!RequestTracker.ContainsKey(requestor.id))
+                    RequestTracker.Add(requestor.id, new RequestUserTracker());
 
                 int limit = Config.Instance.RequestLimit;
                 if (requestor.isSub) limit = Math.Max(limit, Config.Instance.SubRequestLimit);
@@ -605,9 +596,9 @@ namespace EnhancedTwitchChat.Bot
                 // Only rate limit users who aren't mods or the broadcaster
                 if (!requestor.isBroadcaster)
                 {
-                    if (_requestTracker[requestor.id].numRequests >= limit)
+                    if (RequestTracker[requestor.id].numRequests >= limit)
                     {
-                        QueueChatMessage($"You already have {_requestTracker[requestor.id].numRequests} on the queue. You can add another once one is played. Subscribers are limited to {Config.Instance.SubRequestLimit}.");
+                        QueueChatMessage($"You already have {RequestTracker[requestor.id].numRequests} on the queue. You can add another once one is played. Subscribers are limited to {Config.Instance.SubRequestLimit}.");
                         return;
                     }
                 }
