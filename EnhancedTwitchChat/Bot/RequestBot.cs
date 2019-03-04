@@ -205,7 +205,8 @@ namespace EnhancedTwitchChat.Bot
 
             if(_refreshQueue)
             {
-                RequestBotListViewController.Instance.UpdateRequestUI(true);
+                if(RequestBotListViewController.Instance.isActivated)
+                    RequestBotListViewController.Instance.UpdateRequestUI(true);
                 _refreshQueue = false;
             }
         }
