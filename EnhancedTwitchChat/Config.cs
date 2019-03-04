@@ -74,14 +74,15 @@ namespace EnhancedTwitchChat
         public int RequestCooldownMinutes = 0;
         
         public string DeckList = "fun hard challenge dance";
-
-        public float lowestallowedrating = 0.1f; // Lowest allowed song rating to be played 
+ 
+        public float lowestallowedrating = 0; // Lowest allowed song rating to be played 0-100
 
         public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list.
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
         public bool ApplyAllFiltersToBroadcaster = false;
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS
+        public bool ShowStarRating = true; // Show star rating (quality, not difficulty) on songs being requested
 
         public int MaxiumAddScanRange = 80; // How far down the list to scan
         public int maxaddnewresults = 10;  // Max results per command

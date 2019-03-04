@@ -211,8 +211,9 @@ namespace EnhancedTwitchChat.Bot
             _botMessageQueue.Enqueue(message);
         }
 
-        private string GetStarRating(ref JSONObject song)
+        private string GetStarRating(ref JSONObject song,bool mode=true)
         {
+            if (!mode) return "";
             string stars = "******";
             float rating = song["rating"].AsFloat;
             if (rating < 0 || rating > 100) rating = 0;
@@ -297,7 +298,6 @@ namespace EnhancedTwitchChat.Bot
                     songs.Add(result["song"].AsObject);
                 }
 
-
                 // Filter out too many or too few results
                 if (songs.Count == 0)
                 {
@@ -332,7 +332,7 @@ namespace EnhancedTwitchChat.Bot
                 RequestQueue.Write();
 
                 Writedeck(requestor, "savedqueue"); // Might not be needed.. logic around saving and loading deck state needs to be reworked
-                QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song)} ({song["version"].Value}) added to queue.");
+                QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song,Config.Instance.ShowStarRating)} ({song["version"].Value}) added to queue.");
 
                 UpdateRequestButton();
 
