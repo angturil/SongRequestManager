@@ -413,14 +413,27 @@ namespace EnhancedTwitchChat.Bot
                 var song = request.song;
 
                 // BUG: Songs status chat messages need to be configurable.
-                //Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is next."); // UI Setting needed to toggle this on/off
-                //Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} https://beatsaver.com/browse/detail/{song["version"].Value} is next."); // UI Setting needed to toggle this on/off
-                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} https://bsaber.com/songs/{song["id"].Value} is next."); // UI Setting needed to toggle this on/off
 
+                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} " + GetSongLink(ref song,2) + " is next."); 
+                
                 _songRequestMenu.Dismiss();
             }
         }
         
+
+        public static  string GetSongLink(ref JSONObject song,int formatindex)
+                {
+            string[] link ={
+                    $"({song["version"].Value})",
+                    $"https://beatsaver.com/browse/detail/{song["version"].Value}",
+                    $"https://bsaber.com/songs/{song["id"].Value}"
+                    };
+
+            if (formatindex >= link.Length) return "";
+
+            return link[formatindex];
+        }
+
         private static void UpdateRequestButton()
         {
             try
@@ -551,6 +564,9 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("writedeck", Writedeck);
             Commands.Add("clearalreadyplayed", ClearDuplicateList); // Needs a better name
 
+            Commands.Add("link", ShowSongLink);
+            Commands.Add("current", ShowSongLink);
+            Commands.Add("currentsong", ShowSongLink);
 
 #if PRIVATE
             Commands.Add("goodmappers",mapperWhitelist);
@@ -571,7 +587,7 @@ namespace EnhancedTwitchChat.Bot
             loaddecks (TwitchWebSocketClient.OurTwitchUser,"");
 #endif
         }
-        
+
         private void lookup(TwitchUser requestor, string request)
         {
             if (isNotModerator(requestor) && !requestor.isSub)

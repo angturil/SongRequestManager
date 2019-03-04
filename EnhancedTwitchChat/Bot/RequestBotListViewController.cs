@@ -56,7 +56,7 @@ namespace EnhancedTwitchChat.Bot
             Instance = this;
         }
 
-        static SongRequest currentsong = null;
+        static public SongRequest currentsong = null;
         protected override void DidActivate(bool firstActivation, ActivationType type)
         {
             if (firstActivation)

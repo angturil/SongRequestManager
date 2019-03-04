@@ -966,6 +966,7 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
+
         private void Clearqueue(TwitchUser requestor, string request)
         {
             if (isNotBroadcaster(requestor)) return;
@@ -1090,5 +1091,25 @@ namespace EnhancedTwitchChat.Bot
             QueueChatMessage($"You have no requests in the queue.");
         }
         #endregion
+
+
+        // BUG: This requires a switch, or should be disabled for those who don't allow links
+        private void ShowSongLink(TwitchUser requestor, string request)
+            {
+            if (RequestBotListViewController.currentsong.song.IsNull) return;
+
+            try  // We're accessing an element across threads, this is only 99.99% safe
+            {
+            var song = RequestBotListViewController.currentsong.song;
+           
+            QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} {GetSongLink(ref song,1)}");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log(ex.ToString());
+            }
+
+        }
+
     }
 }
