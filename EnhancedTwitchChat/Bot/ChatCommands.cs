@@ -716,60 +716,51 @@ namespace EnhancedTwitchChat.Bot
             }
 
 
-        // BUG: This is test code only. It will get removed or cleaned up before release. Please disregard any bad coding practices or hacks.
+        // BUG: Ok, this is much better, but there's still a bit of code duplication to slay... to be continued.
         private void mapperWhitelist(TwitchUser requestor, string request)
         {
             if (!requestor.isBroadcaster) return;
 
             if (request == "")
             {
-                QueueChatMessage("usage: mapperwhitelist <on>,<off>,<clear> or name of mapper file.");
+                QueueChatMessage("usage: mapperwhitelist <name of mapper list>");
                 return;
             }
 
-            if (request == "on")
-            {
-                QueueChatMessage("Only approved mapper songs are now allowed.");
-                mapperwhiteliston = true;
-                return;
-            }
 
-            if (request == "off")
-            {
-                QueueChatMessage("Mapper whitelist is disabled.");
-                mapperwhiteliston = false;
-                return;
-            }
-
-            if (request == "clear")
-            {
-                QueueChatMessage("Mapper whitelist is now cleared.");
-
-                mapperwhitelist.Clear();
-                return;
-            }
-
-            if (request=="list")
+            string key = request.ToLower();
+            if (listcollection.ListCollection.ContainsKey(key))
                 {
-                QueueLongMessage msg2 = new QueueLongMessage();
-
-                msg2.Header("Mapper list: ");
-                mapperwhitelist.Outputlist(ref msg2);               
-                msg2.end("...", "none");
-
-                return;
+                mapperwhitelist = listcollection.ListCollection[key];
+                QueueChatMessage($"Mapper white list set to {request}.");
                 }
+            else
+                {
+                QueueChatMessage($"Unable to set mapper whitelist to {request}.");
+                } 
+        }
 
-                // This now uses unified StringListManagerClass
+        private void mapperBlacklist(TwitchUser requestor, string request)
+        {
+            if (!requestor.isBroadcaster) return;
 
-                mapperwhitelist.Readfile(Path.Combine(datapath, request + ".list"));
+            if (request == "")
+            {
+                QueueChatMessage("usage: mapperblacklist <name of mapper list>");
+                return;
+            }
 
-                QueueLongMessage msg = new QueueLongMessage(2);
 
-                msg.Header("Permitted mappers: ");
-                mapperwhitelist.Outputlist(ref msg, ", ");
-                msg.end("...", "");
- 
+            string key = request.ToLower();
+            if (listcollection.ListCollection.ContainsKey(key))
+            {
+                mapperblacklist = listcollection.ListCollection[key];
+                QueueChatMessage($"Mapper black list set to {request}.");
+            }
+            else
+            {
+                QueueChatMessage($"Unable to set mapper blacklist to {request}.");
+            }
         }
 
         // Not super efficient, but what can you do
@@ -786,7 +777,7 @@ namespace EnhancedTwitchChat.Bot
                 return true;
             }
 
-            foreach (var mapper in mapperblacklist)
+            foreach (var mapper in mapperblacklist.list)
             {
                 if (normalizedauthor.Contains(mapper)) return true;
             }
@@ -795,53 +786,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        // Early code, work in progress.
-        private void mapperBlacklist(TwitchUser requestor, string request)
-        {
-            if (!requestor.isBroadcaster) return;
-
-            if (request == "")
-            {
-                QueueChatMessage("usage: mapperblacklist <on>,<off>,<clear> or name of mapper file.");
-                return;
-            }
-
-            if (request == "on")
-            {
-                QueueChatMessage("Songs with known bad mappers are disabled.");
-                mapperblackliston = true;
-                return;
-            }
-
-            if (request == "off")
-            {
-                QueueChatMessage("Bad mapper filtering is disabled.");
-                mapperblackliston = false;
-                return;
-            }
-
-            if (request == "clear")
-            {
-                QueueChatMessage("Bad mapper list is now cleared.");
-                mapperblacklist.Clear();
-                return;
-            }
-
-            string queuefile = Path.Combine(datapath, request + ".list");
-
-            string fileContent = File.ReadAllText(queuefile);
-
-            string[] Strings = fileContent.Split(new char[] { ',', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-            string blacklist = "Mapper blacklist: ";
-            foreach (string mapper in Strings)
-            {
-                mapperblacklist.Add(mapper.ToLower());
-                blacklist += mapper + " ";
-            }
-
-            if (mapperblacklist.Count > 0) QueueChatMessage(blacklist);
-        }
         #endregion
 
         #region Move Request To Top/Bottom

@@ -68,7 +68,7 @@ namespace EnhancedTwitchChat.Bot
         public static List<JSONObject> played = new List<JSONObject>(); // Played list
 
         private static StringListManager  mapperwhitelist = new StringListManager(); // Lists because we need to interate them per song
-        private static List<string> mapperblacklist = new List<string>();
+        private static StringListManager mapperblacklist = new StringListManager(); // Lists because we need to interate them per song
         
         private static HashSet<string> duplicatelist = new HashSet<string>();
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
@@ -570,10 +570,11 @@ namespace EnhancedTwitchChat.Bot
 
             // Whitelists mappers and add new songs, this code is being refactored and transitioned to testing
 
-
             Commands.Add("mapperwhitelist", mapperWhitelist);  // this interface will change shortly.
             Commands.Add("addnew", addNewSongs);
-            mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper");
+
+            LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
+            mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
 
             // Temporary commands for testing
             Commands.Add("loadlist", LoadList);
