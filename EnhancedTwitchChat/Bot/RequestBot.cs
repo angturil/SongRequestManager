@@ -570,9 +570,16 @@ namespace EnhancedTwitchChat.Bot
 
             // Whitelists mappers and add new songs, this code is being refactored and transitioned to testing
 
+
             Commands.Add("mapperwhitelist", mapperWhitelist);  // this interface will change shortly.
             Commands.Add("addnew", addNewSongs);
             mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper");
+
+            // Temporary commands for testing
+            Commands.Add("readlist", readlist);
+            Commands.Add("writelist", writelist);
+            Commands.Add("list", listlist);
+            Commands.Add("showlists", showlists);
 
 
 #if PRIVATE

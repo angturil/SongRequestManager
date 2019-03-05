@@ -535,6 +535,44 @@ namespace EnhancedTwitchChat.Bot
 
         #region Mapper Blacklist/Whitelist
 
+        private void readlist(TwitchUser requestor, string request)
+            {
+            if (isNotBroadcaster(requestor)) return;
+
+            
+            }
+
+        private void writelist(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+        }
+
+
+        private void listlist(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+        }
+
+        private void showlists(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+
+            QueueLongMessage msg = new QueueLongMessage();
+
+            msg.Header("Loaded lists: ");
+            foreach (var entry in listcollection.ListCollection) msg.Add(entry.Key);
+            msg.end("...", "No lists loaded."); 
+        }
+
+        public class ListCollectionManager
+            {
+
+            public Dictionary<string, StringListManager> ListCollection = new Dictionary<string, StringListManager>();
+
+            }
+
+        public ListCollectionManager listcollection = new ListCollectionManager();
+        
 
         public class StringListManager
         {
@@ -676,7 +714,6 @@ namespace EnhancedTwitchChat.Bot
                 return;
                 }
 
- 
                 // This now uses unified StringListManagerClass
 
                 mapperwhitelist.Readfile(Path.Combine(datapath, request + ".list"));
@@ -831,7 +868,9 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
         #region List Commands
-        private void showCommandlist(TwitchUser requestor, string request)
+    
+        // BUG: once we have aliases and command permissions, we can filter the results, so users do not see commands they have no access to    
+    private void showCommandlist(TwitchUser requestor, string request)
         {
             if (isNotModerator(requestor)) return;
 
