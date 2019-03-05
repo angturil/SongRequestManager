@@ -538,36 +538,73 @@ namespace EnhancedTwitchChat.Bot
 
         public class StringListManager
             {
-            public string [] list = null;
+            public List <string> list = new List<string> ();
 
-            public void readfile(string filename, char[] separators)
+            public bool readfile(string filename, char[] separators) 
                 {
                     try
                     {
                         string listfilename = Path.Combine(datapath, filename);
                         string fileContent = File.ReadAllText(listfilename);
-                        list = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                        list = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                        return true;
                     }
                     catch       
                     {
                     // Ignoring this for now, I expect it to fail
-                    }        
+                    }
+
+                return false;    
                 }
 
-            public void writefile(string filename, string separator)
+            public bool writefile(string filename, string separator)
             {
                 try
                 {
                     string listfilename = Path.Combine(datapath, filename);
-                    //string fileContent = File.ReadAllText(listfilename);
-                    //list = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    var output =String.Join(",", list.ToArray());
+                    File.WriteAllText(listfilename,output);
+                    return true;
                 }
                 catch
                 {
-                    // Ignoring this for now, I expect it to fail
+                    // Ignoring this for now, failed write can be silent
                 }
+
+                return false;
             }
 
+            public bool addentry(string entry)
+                {
+                if (list.Contains(entry)) return false;
+                list.Add(entry);
+                return true;
+                }
+
+            public bool removeentry(string entry)
+                {
+                return list.Remove(entry);
+                }
+
+            // Picks a random entry and returns it, removing it from the list
+            public string drawentry()
+                {
+                if (list.Count == 0) return "";
+                int entry = generator.Next(0, list.Count);
+                string result = list.ElementAt(entry);
+                list.RemoveAt(entry);
+                return result;
+                }
+
+            // Picks a random entry but does not remove it
+            public string randomentry()
+                {
+                if (list.Count == 0) return "";
+                int entry = generator.Next(0, list.Count);
+                string result = list.ElementAt(entry);
+                return result;
+                }
+        
             public void outputlist(ref QueueLongMessage msg)
                 {
 
