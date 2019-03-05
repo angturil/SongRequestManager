@@ -537,33 +537,34 @@ namespace EnhancedTwitchChat.Bot
 
 
         public class StringListManager
-            {
-            public List <string> list = new List<string> ();
+        {
+            public List<string> list = new List<string>();
 
-            public bool Readfile(string filename) 
-                {
-                    try
-                    {
-                        string listfilename = Path.Combine(datapath, filename);
-                        string fileContent = File.ReadAllText(listfilename);
-                        list = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-                        return true;
-                    }
-                    catch       
-                    {
-                    // Ignoring this for now, I expect it to fail
-                    }
-
-                return false;    
-                }
-
-            public bool Writefile(string filename, string separator=",")
+            public bool Readfile(string filename,bool ConvertToLower=true)
             {
                 try
                 {
                     string listfilename = Path.Combine(datapath, filename);
-                    var output =String.Join(",", list.ToArray());
-                    File.WriteAllText(listfilename,output);
+                    string fileContent = File.ReadAllText(listfilename);
+                    list = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                    if (ConvertToLower) LowercaseList();
+                    return true;
+                }
+                catch
+                {
+                    // Ignoring this for now, I expect it to fail
+                }
+
+                return false;
+            }
+
+            public bool Writefile(string filename, string separator = ",")
+            {
+                try
+                {
+                    string listfilename = Path.Combine(datapath, filename);
+                    var output = String.Join(",", list.ToArray());
+                    File.WriteAllText(listfilename, output);
                     return true;
                 }
                 catch
@@ -575,44 +576,52 @@ namespace EnhancedTwitchChat.Bot
             }
 
             public bool Add(string entry)
-                {
+            {
                 if (list.Contains(entry)) return false;
                 list.Add(entry);
                 return true;
-                }
+            }
 
             public bool Removeentry(string entry)
-                {
+            {
                 return list.Remove(entry);
-                }
+            }
 
             // Picks a random entry and returns it, removing it from the list
             public string Drawentry()
-                {
+            {
                 if (list.Count == 0) return "";
                 int entry = generator.Next(0, list.Count);
                 string result = list.ElementAt(entry);
                 list.RemoveAt(entry);
                 return result;
-                }
+            }
 
             // Picks a random entry but does not remove it
             public string Randomentry()
-                {
+            {
                 if (list.Count == 0) return "";
                 int entry = generator.Next(0, list.Count);
                 string result = list.ElementAt(entry);
                 return result;
-                }
+            }
 
             public int Count()
-                {
+            {
                 return list.Count;
-                }
-       
+            }
+
             public void Clear()
-                {
+            {
                 list.Clear();
+            }
+
+            public void LowercaseList ()                
+                {
+                for (int i=0;i<list.Count;i++)
+                   {
+                    list[i] = list[i].ToLower();
+                    }
                 }
             public void Outputlist(ref QueueLongMessage msg,string separator=", ")
                 {
