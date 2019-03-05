@@ -535,22 +535,68 @@ namespace EnhancedTwitchChat.Bot
 
         #region Mapper Blacklist/Whitelist
 
-        private void readlist(TwitchUser requestor, string request)
+        private void LoadList(TwitchUser requestor, string request)
             {
             if (isNotBroadcaster(requestor)) return;
-
-            
+             StringListManager newlist = new StringListManager();
+            newlist.Readfile(request);
+            listcollection.ListCollection.Add(request.ToLower(), newlist);
             }
 
-        private void writelist(TwitchUser requestor, string request)
+
+    private void writelist(TwitchUser requestor, string request)
         {
             if (isNotBroadcaster(requestor)) return;
+        }
+
+        private void ClearList(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+
+        try
+            {
+                listcollection.ListCollection[request.ToLower()].Clear();
+                QueueChatMessage($"{request} is cleared.");
+            }
+            catch
+            {
+                QueueChatMessage($"Unable to clear {request}");
+            }
+        }
+
+        private void UnloadList(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+
+            try
+            {
+                listcollection.ListCollection.Remove(request.ToLower());
+                QueueChatMessage($"{request} unloaded.");
+            }
+        catch    
+            {
+                QueueChatMessage($"Unable to unload {request}");
+            }
         }
 
 
         private void listlist(TwitchUser requestor, string request)
         {
             if (isNotBroadcaster(requestor)) return;
+
+            try
+            {
+                var list = listcollection.ListCollection[request.ToLower()];
+                QueueLongMessage msg = new QueueLongMessage();
+
+                msg.Header($"{request}: ");
+                foreach (var entry in list.list) msg.Add(entry, ", ");
+                msg.end("...", $"{request} is empty");
+            }
+        catch
+            {
+                QueueChatMessage($"{request} not found.");
+            }
         }
 
         private void showlists(TwitchUser requestor, string request)

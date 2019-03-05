@@ -576,7 +576,9 @@ namespace EnhancedTwitchChat.Bot
             mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper");
 
             // Temporary commands for testing
-            Commands.Add("readlist", readlist);
+            Commands.Add("loadlist", LoadList);
+            Commands.Add("unloadlist", UnloadList);
+            Commands.Add("clearlist", ClearList);
             Commands.Add("writelist", writelist);
             Commands.Add("list", listlist);
             Commands.Add("showlists", showlists);
