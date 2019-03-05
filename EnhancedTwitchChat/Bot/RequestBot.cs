@@ -567,12 +567,16 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("clearalreadyplayed", ClearDuplicateList); // Needs a better name
 
             Commands.Add("link", ShowSongLink);
-           
+
+            // Whitelists and add new songs
+            Commands.Add("mapperwhitelist", mapperWhitelist);
+            Commands.Add("addnew", addNewSongs);
+
+            mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper");
+
 
 #if PRIVATE
             Commands.Add("goodmappers",mapperWhitelist);
-            Commands.Add("mapperwhitelist",mapperWhitelist);                  
-            Commands.Add("addnew",addNewSongs);
             Commands.Add("addlatest",addNewSongs);          
             Commands.Add("deck",createdeck);
             Commands.Add("unloaddeck",unloaddeck);
@@ -584,7 +588,6 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("badmappers",mapperBlacklist);
             Commands.Add("mapperblacklist",mapperBlacklist);
 
-            mapperWhitelist(TwitchWebSocketClient.OurTwitchUser,"mapper");
             loaddecks (TwitchWebSocketClient.OurTwitchUser,"");
 #endif
         }

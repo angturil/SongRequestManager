@@ -535,6 +535,8 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
         #region Mapper Blacklist/Whitelist
+
+        // BUG: This is test code only. It will get removed or cleaned up before release. Please disregard any bad coding practices or hacks.
         private void mapperWhitelist(TwitchUser requestor, string request)
         {
             if (!requestor.isBroadcaster) return;
@@ -567,20 +569,38 @@ namespace EnhancedTwitchChat.Bot
                 return;
             }
 
-            string queuefile = Path.Combine(datapath, request + ".list");
+            if (request=="list")
+                {
+                QueueLongMessage msg = new QueueLongMessage();
 
-            string fileContent = File.ReadAllText(queuefile);
+                msg.Add("Mapper list: ");
+                foreach (string mappername in mapperwhitelist)
+                    msg.Add(mappername, ", ");
 
-            string[] Strings = fileContent.Split(new char[] { ' ', ',', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                msg.end("...", "none");
 
-            string whitelist = "Permitted mappers: ";
-            foreach (string mapper in Strings)
+                return;
+                }
+
+            try
             {
-                mapperwhitelist.Add(mapper.ToLower());
-                whitelist += mapper + " ";
-            }
+                string queuefile = Path.Combine(datapath, request + ".list");
 
-            if (mapperwhitelist.Count > 0) QueueChatMessage(whitelist);
+                string fileContent = File.ReadAllText(queuefile);
+
+                string[] Strings = fileContent.Split(new char[] { ' ', ',', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                QueueLongMessage msg = new QueueLongMessage();
+
+                msg.Add("Permitted mappers: ");
+
+                foreach (string mapper in Strings) msg.Add(mapper.ToLower(), ", ");
+                msg.end("...", "none");
+            }
+            catch
+            {
+
+            }
 
         }
 
