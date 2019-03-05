@@ -614,7 +614,7 @@ namespace EnhancedTwitchChat.Bot
                 {
                 QueueLongMessage msg = new QueueLongMessage();
 
-                msg.Add("Mapper list: ");
+                msg.Header("Mapper list: ");
                 foreach (string mappername in mapperwhitelist)
                     msg.Add(mappername, ", ");
 
@@ -631,9 +631,9 @@ namespace EnhancedTwitchChat.Bot
 
                 string[] Strings = fileContent.Split(new char[] { ' ', ',', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-                QueueLongMessage msg = new QueueLongMessage(0);
+                QueueLongMessage msg = new QueueLongMessage(2);
 
-                msg.Add("Permitted mappers: ");
+                msg.Header("Permitted mappers: ");
 
                 foreach (string mapper in Strings) msg.Add(mapper.ToLower(), ", ");
                 msg.end("...", "none");
@@ -878,8 +878,13 @@ namespace EnhancedTwitchChat.Bot
                 maxoverflowtextlength = maxoverflowtext;   
             }
 
+            public void Header (string text)
+                {
+                msgBuilder.Append(text);
+                }    
+
             // BUG: Only works form string < MaximumTwitchMessageLength
-            public bool Add(string text, string separator = "")
+            public bool Add(string text, string separator = "") // Make sure you use Header(text) for your initial nonlist message, or your displayed message count will be wrong.
             {
      
                 // Save the point where we would put the overflow message
@@ -914,15 +919,15 @@ namespace EnhancedTwitchChat.Bot
 
             public void end(string overflowtext = "", string emptymsg = "")
             {
-
-                if (messageCount > maxMessages && overflowcount > 0)
+                if (Count == 0) 
+                    RequestBot.Instance.QueueChatMessage(emptymsg); // Note, this means header doesn't get printed either for empty lists                
+                else if (messageCount > maxMessages && overflowcount > 0)
                     RequestBot.Instance.QueueChatMessage(msgBuilder.ToString() + overflowtext);
                 else
                 {
                     msgBuilder.Length -= separatorlength;
                     RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());
                 }          
-               if (Count == 0) RequestBot.Instance.QueueChatMessage(emptymsg);
 
                 // Reset the class for reuse
 
@@ -973,7 +978,7 @@ namespace EnhancedTwitchChat.Bot
 
             QueueLongMessage msg = new QueueLongMessage();
 
-            msg.Add("Banlist ");
+            msg.Header("Banlist ");
 
             foreach (string songId in SongBlacklist.Songs.Keys)
             {
