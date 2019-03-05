@@ -154,7 +154,7 @@ namespace EnhancedTwitchChat.Textures
         public void Awake()
         {
             Instance = this;
-            DontDestroyOnLoad(this);
+            DontDestroyOnLoad(gameObject);
             
             StartCoroutine(ProcessQueue());
             StartCoroutine(ProcessAnimQueue());

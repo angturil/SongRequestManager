@@ -40,7 +40,8 @@ namespace EnhancedTwitchChat.Textures
         public List<AnimControllerData> registeredAnimations = new List<AnimControllerData>();
         void Awake()
         {
-            DontDestroyOnLoad(this);
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
         }
 
         public int Register(string textureIndex, Rect[] uvs, float delay)

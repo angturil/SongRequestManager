@@ -52,15 +52,15 @@ namespace EnhancedTwitchChat.Bot
             if (duplicatelist.Contains(songid)) return true;
             return false;
         }
-        
-        // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
-        
-        [Flags] enum SongFilter { none=0, Queue=1, Blacklist=2, Mapper=4, Duplicate=8, Remap=16, Rating=32,all=-1 };
 
-        private string SongSearchFilter(JSONObject song, bool fast = false,SongFilter filter=SongFilter.all)
+        // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
+
+        [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, all = -1 };
+
+        private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.all)
         {
             string songid = song["id"].Value;
-            if (filter.HasFlag(SongFilter.Queue) &&  RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
+            if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
 
             if (filter.HasFlag(SongFilter.Blacklist) && SongBlacklist.Songs.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is blacklisted!";
 
@@ -70,7 +70,7 @@ namespace EnhancedTwitchChat.Bot
 
             if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"no permitted results found!";
 
-            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < Config.Instance.lowestallowedrating && song["rating"]!=0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
+            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < Config.Instance.lowestallowedrating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
 
             return "";
         }
@@ -99,30 +99,30 @@ namespace EnhancedTwitchChat.Bot
         }
 
         private void ClearDuplicateList(TwitchUser requestor, string request)
-            {
+        {
             if (isNotBroadcaster(requestor)) return;
 
             QueueChatMessage("Session duplicate list is now clear.");
             duplicatelist.Clear();
-            }
+        }
 
-            #endregion
+        #endregion
 
         #region AddSongs/AddSongsByMapper Commands
 
-            /*
-            Route::get('/songs/top/{start?}','ApiController@topDownloads');
-            Route::get('/songs/plays/{start?}','ApiController@topPlayed');
-            Route::get('/songs/new/{start?}','ApiController@newest');
-            Route::get('/songs/rated/{start?}','ApiController@topRated');
-            Route::get('/songs/byuser/{id}/{start?}','ApiController@byUser');
-            Route::get('/songs/detail/{key}','ApiController@detail');
-            Route::get('/songs/vote/{key}/{type}/{accessToken}', 'ApiController@vote');
-            Route::get('/songs/search/{type}/{key}','ApiController@search');
-            */
+        /*
+        Route::get('/songs/top/{start?}','ApiController@topDownloads');
+        Route::get('/songs/plays/{start?}','ApiController@topPlayed');
+        Route::get('/songs/new/{start?}','ApiController@newest');
+        Route::get('/songs/rated/{start?}','ApiController@topRated');
+        Route::get('/songs/byuser/{id}/{start?}','ApiController@byUser');
+        Route::get('/songs/detail/{key}','ApiController@detail');
+        Route::get('/songs/vote/{key}/{type}/{accessToken}', 'ApiController@vote');
+        Route::get('/songs/search/{type}/{key}','ApiController@search');
+        */
 
 
-            private void addNewSongs(TwitchUser requestor, string request)
+        private void addNewSongs(TwitchUser requestor, string request)
         {
             if (isNotModerator(requestor, "addnew")) return;
 
@@ -162,7 +162,7 @@ namespace EnhancedTwitchChat.Bot
                         yield break;
                     }
 
-                     // BUG: (Pre-merge) Non reproducible bug occured one time, resulting in unusual list - duplicate and incorrect entries. Not sure if its local, or beastaver db inconsistency?
+                    // BUG: (Pre-merge) Non reproducible bug occured one time, resulting in unusual list - duplicate and incorrect entries. Not sure if its local, or beastaver db inconsistency?
 
                     if (result["songs"].IsArray)
                     {
@@ -345,7 +345,7 @@ namespace EnhancedTwitchChat.Bot
         private void addsongsbymapper(TwitchUser requestor, string request)
         {
             if (isNotBroadcaster(requestor, "mapper")) return;
-            
+
             StartCoroutine(addsongsBymapper(requestor, request));
         }
 
@@ -412,12 +412,12 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
         #region Deck Commands
-        private void restoredeck(TwitchUser requestor, string request) 
+        private void restoredeck(TwitchUser requestor, string request)
         {
             Readdeck(requestor, "savedqueue");
         }
 
-    
+
         private void Writedeck(TwitchUser requestor, string request)
         {
             if (isNotBroadcaster(requestor) && request != "savedqueue") return;
@@ -438,7 +438,7 @@ namespace EnhancedTwitchChat.Bot
                     return;
                 }
 
-                string queuefile = Path.Combine(datapath, request+".deck"); 
+                string queuefile = Path.Combine(datapath, request + ".deck");
 
                 StreamWriter fileWriter = new StreamWriter(queuefile);
 
@@ -473,7 +473,7 @@ namespace EnhancedTwitchChat.Bot
 
             try
             {
-                string queuefile = Path.Combine(datapath, request+".deck"); 
+                string queuefile = Path.Combine(datapath, request + ".deck");
 
                 string fileContent = File.ReadAllText(queuefile);
 
@@ -538,13 +538,13 @@ namespace EnhancedTwitchChat.Bot
         private void mapperWhitelist(TwitchUser requestor, string request)
         {
             if (!requestor.isBroadcaster) return;
-            
+
             if (request == "")
             {
                 QueueChatMessage("usage: mapperwhitelist <on>,<off>,<clear> or name of mapper file.");
                 return;
             }
-            
+
             if (request == "on")
             {
                 QueueChatMessage("Only approved mapper songs are now allowed.");
@@ -567,7 +567,7 @@ namespace EnhancedTwitchChat.Bot
                 return;
             }
 
-            string queuefile = Path.Combine(datapath, request+".list"); 
+            string queuefile = Path.Combine(datapath, request + ".list");
 
             string fileContent = File.ReadAllText(queuefile);
 
@@ -797,75 +797,75 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-        public class QueueLongMessage 
-            {
-            private string msgtext = "";
-            int msg = 1;
-            int MAXMESSAGES = 2;
-            const int maxoverflowtextlength=120;
+        public class QueueLongMessage
+        {
+            private StringBuilder msgBuilder = new StringBuilder();
+            private int messageCount = 1;
+            private int maxMessages = 2;
+            const int maxoverflowtextlength = 120;
 
-            bool overflow=false;
-            bool first = true;
+            private bool overflow = false;
+            private bool first = true;
 
-            public int Count=0;
+            public int Count = 0;
 
             // BUG: This version doesn't reallly strings > twitchmessagelength well
 
-             public void SetMaxMessages(int value)
-                {
-                MAXMESSAGES = value;
-                }   
+            public void SetMaxMessages(int value)
+            {
+                maxMessages = value;
+            }
 
-             public void Header (string text)
-                {
-                msgtext = text;
-                }
+            public void Header(string text)
+            {
+                msgBuilder.Append(text);
+            }
 
-            public bool Add (string text,string separator="")
+            public bool Add(string text, string separator = "")
+            {
+
+                if (messageCount >= maxMessages && msgBuilder.Length + text.Length > MaximumTwitchMessageLength - maxoverflowtextlength)
                 {
-               
-                if (msg>=MAXMESSAGES && msgtext.Length + text.Length > MaximumTwitchMessageLength-maxoverflowtextlength)
-                    {
                     overflow = true;
                     return true;
-                    }
+                }
 
-
-                if (msgtext.Length+text.Length>MaximumTwitchMessageLength)
-                    {
-                    RequestBot.Instance.QueueChatMessage(msgtext);
+                if (msgBuilder.Length + text.Length > MaximumTwitchMessageLength)
+                {
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());
                     first = false;
-                    msgtext = text;
+                    msgBuilder.Clear();
+                    msgBuilder.Append(text);
                     Count++;
-                    msg++;
+                    messageCount++;
                     return false;
-                    }
+                }
 
-                if (!first) msgtext += separator;
+                if (!first) msgBuilder.Append(separator);
                 Count++;
-                msgtext += text;
+                msgBuilder.Append(text);
                 first = false;
 
                 return false;
-                }
+            }
 
-            public void end(string overflowtext="",string emptymsg="")
-                {
-            
-                if (msgtext.Length+overflowtext.Length<=MaximumTwitchMessageLength && overflow) 
-                    RequestBot.Instance.QueueChatMessage(msgtext+overflowtext);
+            public void end(string overflowtext = "", string emptymsg = "")
+            {
+
+                if (msgBuilder.Length + overflowtext.Length <= MaximumTwitchMessageLength && overflow)
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString() + overflowtext);
                 else
-                     RequestBot.Instance.QueueChatMessage(msgtext);
-                
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());
+
                 if (Count == 0) RequestBot.Instance.QueueChatMessage(emptymsg);
 
                 // Reset the class for reuse
 
                 overflow = false;
-                msgtext = "";
-                msg = 1;
-                }
+                msgBuilder.Clear();
+                messageCount = 1;
             }
+        }
 
 
         const int MaximumTwitchMessageLength = 498; // BUG: Replace this with a cannonical source
@@ -876,12 +876,12 @@ namespace EnhancedTwitchChat.Bot
             QueueLongMessage msg = new QueueLongMessage();
 
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
-                {
+            {
                 var song = req.song;
 
                 if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
-                }
-            msg.end($" ... and {RequestQueue.Songs.Count-msg.Count} more songs.","Queue is empty.");
+            }
+            msg.end($" ... and {RequestQueue.Songs.Count - msg.Count} more songs.", "Queue is empty.");
             return;
 
         }
@@ -915,16 +915,16 @@ namespace EnhancedTwitchChat.Bot
 
         private void ShowBanList(TwitchUser requestor, string request)
         {
-            if (isNotBroadcaster(requestor,"blist")) return;
+            if (isNotBroadcaster(requestor, "blist")) return;
 
             QueueLongMessage msg = new QueueLongMessage();
 
             msg.Header("Banlist ");
 
             foreach (string songId in SongBlacklist.Songs.Keys)
-                {               
+            {
                 if (msg.Add(songId, ", ")) break;
-                }
+            }
             msg.end($" ... and {SongBlacklist.Songs.Count - msg.Count} more entries.", "is empty.");
 
         }
@@ -981,7 +981,7 @@ namespace EnhancedTwitchChat.Bot
 
             try
             {
-                string statusfile = Path.Combine(datapath,"queuelist.txt");
+                string statusfile = Path.Combine(datapath, "queuelist.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
 
                 string queuesummary = "";
@@ -1013,7 +1013,7 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-                string statusfile = Path.Combine(datapath, "queuestatus.txt"); 
+                string statusfile = Path.Combine(datapath, "queuestatus.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
                 fileWriter.Write(status);
                 fileWriter.Close();
@@ -1111,7 +1111,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void ReadRemapList()
         {
-            string remapfile = Path.Combine(datapath, "remap.list"); 
+            string remapfile = Path.Combine(datapath, "remap.list");
 
             try
             {
@@ -1155,14 +1155,14 @@ namespace EnhancedTwitchChat.Bot
 
         // BUG: This requires a switch, or should be disabled for those who don't allow links
         private void ShowSongLink(TwitchUser requestor, string request)
-            {
+        {
             if (RequestBotListViewController.currentsong.song.IsNull) return;
 
             try  // We're accessing an element across threads, this is only 99.99% safe
             {
-            var song = RequestBotListViewController.currentsong.song;
-           
-            QueueChatMessage($"{song["songName"].Value} {song["songSubName"].Value} by {song["authorName"].Value} {GetSongLink(ref song,1)}");
+                var song = RequestBotListViewController.currentsong.song;
+
+                QueueChatMessage($"{song["songName"].Value} {song["songSubName"].Value} by {song["authorName"].Value} {GetSongLink(ref song, 1)}");
             }
             catch (Exception ex)
             {
