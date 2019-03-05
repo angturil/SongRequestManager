@@ -569,7 +569,7 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("link", ShowSongLink);
 
             // Whitelists and add new songs
-            Commands.Add("mapperwhitelist", mapperWhitelist);
+            Commands.Add("mapperwhitelist", mapperWhitelist);  // this interface will change shortly.
             Commands.Add("addnew", addNewSongs);
 
             mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper");

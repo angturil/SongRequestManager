@@ -479,11 +479,10 @@ namespace EnhancedTwitchChat.Bot
 
                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-                int[] integers = new int[integerStrings.Length];
-
+           
                 for (int n = 0; n < integerStrings.Length; n++)
                 {
-                    integers[n] = int.Parse(integerStrings[n]);
+                    if (IsInQueue( integerStrings[n])) continue;
                     ProcessSongRequest(requestor, integerStrings[n]);
                 }
             }
@@ -535,6 +534,48 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
         #region Mapper Blacklist/Whitelist
+
+
+        public class StringListManager
+            {
+            public string [] list = null;
+
+            public void readfile(string filename, char[] separators)
+                {
+                    try
+                    {
+                        string listfilename = Path.Combine(datapath, filename);
+                        string fileContent = File.ReadAllText(listfilename);
+                        list = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    }
+                    catch       
+                    {
+                    // Ignoring this for now, I expect it to fail
+                    }        
+                }
+
+            public void writefile(string filename, string separator)
+            {
+                try
+                {
+                    string listfilename = Path.Combine(datapath, filename);
+                    //string fileContent = File.ReadAllText(listfilename);
+                    //list = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                }
+                catch
+                {
+                    // Ignoring this for now, I expect it to fail
+                }
+            }
+
+            public void outputlist(ref QueueLongMessage msg)
+                {
+
+                }
+            
+
+            }
+
 
         // BUG: This is test code only. It will get removed or cleaned up before release. Please disregard any bad coding practices or hacks.
         private void mapperWhitelist(TwitchUser requestor, string request)
@@ -590,7 +631,7 @@ namespace EnhancedTwitchChat.Bot
 
                 string[] Strings = fileContent.Split(new char[] { ' ', ',', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-                QueueLongMessage msg = new QueueLongMessage();
+                QueueLongMessage msg = new QueueLongMessage(0);
 
                 msg.Add("Permitted mappers: ");
 
@@ -837,11 +878,6 @@ namespace EnhancedTwitchChat.Bot
                 maxoverflowtextlength = maxoverflowtext;   
             }
 
-            public void Header(string text)
-            {
-                msgBuilder.Append(text);
-            }
-
             // BUG: Only works form string < MaximumTwitchMessageLength
             public bool Add(string text, string separator = "")
             {
@@ -937,7 +973,7 @@ namespace EnhancedTwitchChat.Bot
 
             QueueLongMessage msg = new QueueLongMessage();
 
-            msg.Header("Banlist ");
+            msg.Add("Banlist ");
 
             foreach (string songId in SongBlacklist.Songs.Keys)
             {
