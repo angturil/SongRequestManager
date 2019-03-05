@@ -45,6 +45,8 @@ namespace EnhancedTwitchChat.Bot
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);
+        private static readonly Regex _RemapRegex = new Regex("^[0-9]+,[0-9]+$", RegexOptions.Compiled);
+
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
@@ -581,7 +583,7 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("unload", UnloadList);
             Commands.Add("clearlist", ClearList);
             Commands.Add("write", writelist);
-            Commands.Add("list", listlist);
+            Commands.Add("list", ListList);
             Commands.Add("lists", showlists);
 
 

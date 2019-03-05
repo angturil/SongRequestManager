@@ -18,7 +18,87 @@ namespace EnhancedTwitchChat.Bot
 
         #region Utility functions
 
+        const int MaximumTwitchMessageLength = 498; // BUG: Replace this with a cannonical source
 
+        public class QueueLongMessage
+        {
+            private StringBuilder msgBuilder = new StringBuilder();
+            private int messageCount = 1;
+            private int maxMessages = 2;
+            int maxoverflowtextlength = 60; // We don't know ahead of time, so we're going to do a safe estimate. 
+
+            private int maxoverflowpoint = 0; // The offset in the string where the overflow message needs to go
+            private int overflowcount = 0; // We need to save Count
+            private int separatorlength = 0;
+            public int Count = 0;
+
+            // BUG: This version doesn't reallly strings > twitchmessagelength well, will support
+
+            public QueueLongMessage(int maximummessageallowed = 2, int maxoverflowtext = 60) // Constructor supports setting max messages
+            {
+                maxMessages = maximummessageallowed;
+                maxoverflowtextlength = maxoverflowtext;
+            }
+
+            public void Header(string text)
+            {
+                msgBuilder.Append(text);
+            }
+
+            // BUG: Only works form string < MaximumTwitchMessageLength
+            public bool Add(string text, string separator = "") // Make sure you use Header(text) for your initial nonlist message, or your displayed message count will be wrong.
+            {
+
+                // Save the point where we would put the overflow message
+                if (messageCount >= maxMessages && maxoverflowpoint == 0 && msgBuilder.Length + text.Length > MaximumTwitchMessageLength - maxoverflowtextlength)
+                {
+                    maxoverflowpoint = msgBuilder.Length - separatorlength;
+                    overflowcount = Count;
+                }
+
+                if (msgBuilder.Length + text.Length > MaximumTwitchMessageLength)
+                {
+                    messageCount++;
+
+                    if (maxoverflowpoint > 0)
+                    {
+                        msgBuilder.Length = maxoverflowpoint;
+                        Count = overflowcount;
+                        return true;
+                    }
+
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString(0, msgBuilder.Length - separatorlength));
+                    msgBuilder.Clear();
+                }
+
+                Count++;
+                msgBuilder.Append(text);
+                msgBuilder.Append(separator);
+                separatorlength = separator.Length;
+
+                return false;
+            }
+
+            public void end(string overflowtext = "", string emptymsg = "")
+            {
+                if (Count == 0)
+                    RequestBot.Instance.QueueChatMessage(emptymsg); // Note, this means header doesn't get printed either for empty lists                
+                else if (messageCount > maxMessages && overflowcount > 0)
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString() + overflowtext);
+                else
+                {
+                    msgBuilder.Length -= separatorlength;
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());
+                }
+
+                // Reset the class for reuse
+
+                maxoverflowpoint = 0;
+                messageCount = 1;
+                msgBuilder.Clear();
+
+            }
+        }
 
         #endregion
 
@@ -592,14 +672,14 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void listlist(TwitchUser requestor, string request)
+        private void ListList(TwitchUser requestor, string request)
         {
             if (isNotBroadcaster(requestor)) return;
 
             try
             {
                 var list = listcollection.ListCollection[request.ToLower()];
-                QueueLongMessage msg = new QueueLongMessage();
+                var msg = new QueueLongMessage();
 
                 foreach (var entry in list.list) msg.Add(entry, ", ");
                 msg.end("...", $"{request} is empty");
@@ -614,7 +694,7 @@ namespace EnhancedTwitchChat.Bot
         {
             if (isNotBroadcaster(requestor)) return;
 
-            QueueLongMessage msg = new QueueLongMessage();
+            var msg = new QueueLongMessage();
 
             msg.Header("Loaded lists: ");
             foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})",", ");
@@ -750,7 +830,7 @@ namespace EnhancedTwitchChat.Bot
             if (listcollection.ListCollection.ContainsKey(key))
                 {
                 mapperwhitelist = listcollection.ListCollection[key];
-                QueueChatMessage($"Mapper white list set to {request}.");
+                QueueChatMessage($"Mapper whitelist set to {request}.");
                 }
             else
                 {
@@ -882,7 +962,7 @@ namespace EnhancedTwitchChat.Bot
         {
             if (isNotModerator(requestor)) return;
 
-            QueueLongMessage msg = new QueueLongMessage();
+            var msg = new QueueLongMessage();
 
             foreach (var entry in Commands) msg.Add($"!{entry.Key}", " ");
             msg.end("...", $"No commands available.");
@@ -946,93 +1026,10 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-        public class QueueLongMessage
-        {
-            private StringBuilder msgBuilder = new StringBuilder();
-            private int messageCount = 1;
-            private int maxMessages = 2;
-            int maxoverflowtextlength = 60; // We don't know ahead of time, so we're going to do a safe estimate. 
-
-            private int maxoverflowpoint = 0; // The offset in the string where the overflow message needs to go
-            private int overflowcount = 0; // We need to save Count
-            private int separatorlength = 0;
-            public int Count = 0;
-
-            // BUG: This version doesn't reallly strings > twitchmessagelength well, will support
-            
-            public QueueLongMessage(int maximummessageallowed = 2,int maxoverflowtext=60) // Constructor supports setting max messages
-            {                     
-                maxMessages = maximummessageallowed;
-                maxoverflowtextlength = maxoverflowtext;   
-            }
-
-            public void Header (string text)
-                {
-                msgBuilder.Append(text);
-                }    
-
-            // BUG: Only works form string < MaximumTwitchMessageLength
-            public bool Add(string text, string separator = "") // Make sure you use Header(text) for your initial nonlist message, or your displayed message count will be wrong.
-            {
-     
-                // Save the point where we would put the overflow message
-                if (messageCount >= maxMessages && maxoverflowpoint == 0 && msgBuilder.Length + text.Length > MaximumTwitchMessageLength - maxoverflowtextlength)
-                {
-                    maxoverflowpoint = msgBuilder.Length - separatorlength;
-                    overflowcount = Count;
-                } 
-
-                if (msgBuilder.Length + text.Length > MaximumTwitchMessageLength)
-                {
-                    messageCount++;
-
-                    if (maxoverflowpoint > 0)
-                    {
-                        msgBuilder.Length = maxoverflowpoint;
-                        Count = overflowcount;
-                        return true;
-                    }
-
-                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString(0,msgBuilder.Length-separatorlength));       
-                    msgBuilder.Clear();
-                }
-
-                Count++;
-                msgBuilder.Append(text);
-                msgBuilder.Append(separator);
-                separatorlength = separator.Length;
-
-                return false;
-            }
-
-            public void end(string overflowtext = "", string emptymsg = "")
-            {
-                if (Count == 0) 
-                    RequestBot.Instance.QueueChatMessage(emptymsg); // Note, this means header doesn't get printed either for empty lists                
-                else if (messageCount > maxMessages && overflowcount > 0)
-                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString() + overflowtext);
-                else
-                {
-                    msgBuilder.Length -= separatorlength;
-                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());
-                }          
-
-                // Reset the class for reuse
-
-                maxoverflowpoint = 0;
-                messageCount = 1;
-                msgBuilder.Clear();
-               
-            }
-        }
-
-
-        const int MaximumTwitchMessageLength = 498; // BUG: Replace this with a cannonical source
-
         private void ListQueue(TwitchUser requestor, string request)
         {
 
-            QueueLongMessage msg = new QueueLongMessage();
+            var msg = new QueueLongMessage();
 
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
@@ -1049,7 +1046,7 @@ namespace EnhancedTwitchChat.Bot
         {
 
 
-            QueueLongMessage msg = new QueueLongMessage();
+            var msg = new QueueLongMessage(4);
 
             foreach (JSONObject song in played)
             {
@@ -1064,7 +1061,7 @@ namespace EnhancedTwitchChat.Bot
         {
             if (isNotBroadcaster(requestor, "blist")) return;
 
-            QueueLongMessage msg = new QueueLongMessage();
+            var msg = new QueueLongMessage();
 
             msg.Header("Banlist ");
 
@@ -1095,7 +1092,7 @@ namespace EnhancedTwitchChat.Bot
 
             QueueOpen = state;
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
-            WriteQueueStatusToFile(state ? "Queue is now open." : "Queue is closed");
+            WriteQueueStatusToFile(state ? "Queue is open" : "Queue is closed");
             _refreshQueue = true;
         }
         private static void WriteQueueSummaryToFile()
