@@ -825,8 +825,7 @@ namespace EnhancedTwitchChat.Bot
             // BUG: Only works form string < MaximumTwitchMessageLength
             public bool Add(string text, string separator = "")
             {
-                separatorlength = separator.Length;
-
+     
                 // Save the point where we would put the overflow message
                 if (messageCount >= maxMessages && maxoverflowpoint == 0 && msgBuilder.Length + text.Length > MaximumTwitchMessageLength - maxoverflowtextlength)
                 {
@@ -836,23 +835,24 @@ namespace EnhancedTwitchChat.Bot
 
                 if (msgBuilder.Length + text.Length > MaximumTwitchMessageLength)
                 {
-                    msgBuilder.Length =  (maxoverflowpoint > 0) ? maxoverflowpoint : msgBuilder.Length-separatorlength;
-
                     messageCount++;
 
                     if (maxoverflowpoint > 0)
                     {
+                        msgBuilder.Length = maxoverflowpoint;
                         Count = overflowcount;
                         return true;
                     }
 
-                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());       
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString(0,msgBuilder.Length-separatorlength));       
                     msgBuilder.Clear();
                 }
 
                 Count++;
                 msgBuilder.Append(text);
                 msgBuilder.Append(separator);
+                separatorlength = separator.Length;
+
                 return false;
             }
 
