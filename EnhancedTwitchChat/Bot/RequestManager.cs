@@ -98,7 +98,7 @@ namespace EnhancedTwitchChat.Bot
             var user = new TwitchUser("Unknown");
             user.isMod = true;
             foreach (string s in list)
-                RequestBot.Instance.Ban(user, s);
+                RequestBot.Instance.Ban(user, s, true);
         }
     }
 }

@@ -48,7 +48,7 @@ namespace EnhancedTwitchChat.Bot
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
-        public static ConcurrentQueue<SongRequest> BlacklistQueue = new ConcurrentQueue<SongRequest>();
+        public static ConcurrentQueue<KeyValuePair<SongRequest, bool>> BlacklistQueue = new ConcurrentQueue<KeyValuePair<SongRequest, bool>>();
         public static Dictionary<string, RequestUserTracker> RequestTracker = new Dictionary<string, RequestUserTracker>();
         
         private static Button _requestButton;
@@ -161,13 +161,14 @@ namespace EnhancedTwitchChat.Bot
 
                 if (BlacklistQueue.Count > 0 && BlacklistQueue.TryDequeue(out var request))
                 {
-                    string songId = request.song["id"].Value;
+                    bool silence = request.Value;
+                    string songId = request.Key.song["id"].Value;
                     using (var web = UnityWebRequest.Get($"https://beatsaver.com/api/songs/detail/{songId}"))
                     {
                         yield return web.SendWebRequest();
                         if (web.isNetworkError || web.isHttpError)
                         {
-                            QueueChatMessage($"Invalid BeatSaver ID \"{songId}\" specified.");
+                            if(!silence) QueueChatMessage($"Invalid BeatSaver ID \"{songId}\" specified.");
                             continue;
                         }
 
@@ -175,16 +176,16 @@ namespace EnhancedTwitchChat.Bot
 
                         if (result["songs"].IsArray && result["total"].AsInt == 0)
                         {
-                            QueueChatMessage($"BeatSaver ID \"{songId}\" does not exist.");
+                            if (!silence) QueueChatMessage($"BeatSaver ID \"{songId}\" does not exist.");
                             continue;
                         }
                         yield return null;
 
-                        request.song = result["song"].AsObject;
-                        SongBlacklist.Songs.Add(songId, request);
+                        request.Key.song = result["song"].AsObject;
+                        SongBlacklist.Songs.Add(songId, request.Key);
                         SongBlacklist.Write();
 
-                        QueueChatMessage($"{request.song["songName"].Value} by {request.song["authorName"].Value} ({songId}) added to the blacklist.");
+                        if (!silence) QueueChatMessage($"{request.Key.song["songName"].Value} by {request.Key.song["authorName"].Value} ({songId}) added to the blacklist.");
                     }
                 }
             }

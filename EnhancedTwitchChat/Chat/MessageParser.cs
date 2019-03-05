@@ -192,9 +192,10 @@ namespace EnhancedTwitchChat.Textures
                 }
             }
             Thread.Sleep(5);
-
+            
+            string[] parts = newChatMessage.msg.Split(' ');
             // Replace each emote with a unicode character from a private range; we'll draw the emote at the position of this character later on
-            foreach (EmoteInfo e in parsedEmotes)
+            foreach (EmoteInfo e in parsedEmotes.Where(e => !e.isEmoji))
             {
                 string extraInfo = String.Empty;
                 if (e.imageType == ImageType.Cheermote)
@@ -204,22 +205,19 @@ namespace EnhancedTwitchChat.Textures
                     extraInfo = $"\u200A<color={ImageDownloader.TwitchCheermoteIDs[cheermote.Groups["Prefix"].Value].GetColor(Convert.ToInt32(numBits))}><size=3><b>{numBits}</b></size></color>\u200A";
                 }
                 string replaceString = $"\u00A0{Drawing.imageSpacing}{Char.ConvertFromUtf32(e.swapChar)}{extraInfo}";
-                if (!e.isEmoji)
+                for (int i = 0; i < parts.Length; i++)
                 {
-                    string[] parts = newChatMessage.msg.Split(' ');
-                    for (int i = 0; i < parts.Length; i++)
-                    {
-                        if (parts[i] == e.swapString)
-                            parts[i] = replaceString;
-                    }
-                    newChatMessage.msg = string.Join(" ", parts);
-                }
-                else
-                {
-                    // Replace emojis using the Replace function, since we don't care about spacing
-                    newChatMessage.msg = newChatMessage.msg.Replace(e.swapString, replaceString);
+                    if (parts[i] == e.swapString)
+                        parts[i] = replaceString;
                 }
             }
+
+            // Then replace our emojis after all the emotes are handled, since these aren't sensitive to spacing
+            StringBuilder sb = new StringBuilder(string.Join(" ", parts));
+            foreach (EmoteInfo e in parsedEmotes.Where(e => e.isEmoji))
+                sb.Replace(e.swapString, $"\u00A0{Drawing.imageSpacing}{Char.ConvertFromUtf32(e.swapChar)}");
+            newChatMessage.msg = sb.ToString();
+
             Thread.Sleep(5);
 
             //// TODO: Re-add tagging, why doesn't unity have highlighting in its default rich text markup?
