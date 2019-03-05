@@ -589,8 +589,7 @@ namespace EnhancedTwitchChat.Bot
             Commands.Add("goodmappers",mapperWhitelist);
             Commands.Add("addlatest",addNewSongs);          
             Commands.Add("deck",createdeck);
-            Commands.Add("unloaddeck",unloaddeck);
-            Commands.Add("requested", ListPlayedList);       
+            Commands.Add("unloaddeck",unloaddeck);      
             Commands.Add("mapper", addsongsbymapper);
             Commands.Add("addsongs",addSongs);
             Commands.Add("loaddecks",loaddecks);

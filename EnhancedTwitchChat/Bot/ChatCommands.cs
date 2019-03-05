@@ -16,6 +16,12 @@ namespace EnhancedTwitchChat.Bot
     {
         // This one needs to be cleaned up a lot imo
 
+        #region Utility functions
+
+
+
+        #endregion
+
         #region Filter support functions
 
         private bool DoesContainTerms(string request, ref string[] terms)
@@ -876,14 +882,11 @@ namespace EnhancedTwitchChat.Bot
         {
             if (isNotModerator(requestor)) return;
 
-            string commands = "";
-            foreach (var item in Commands)
-            {
-                if (deck.ContainsKey(item.Key)) continue;  // Do not show deck names
-                commands += "!" + item.Key + " ";
-            }
+            QueueLongMessage msg = new QueueLongMessage();
 
-            QueueChatMessage(commands);
+            foreach (var entry in Commands) msg.Add($"!{entry.Key}", " ");
+            msg.end("...", $"No commands available.");
+
         }
 
         private IEnumerator LookupSongs(TwitchUser requestor, string request)
@@ -1073,29 +1076,6 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
-        private void ListPlayedList(TwitchUser requestor, string request)
-        {
-            if (isNotModerator(requestor)) return;
-
-
-            int count = 0;
-            var queuetext = "Requested this session: ";
-            foreach (string req in duplicatelist.ToArray())
-            {
-                if (queuetext.Length + req.Length > MaximumTwitchMessageLength)
-                {
-                    QueueChatMessage(queuetext);
-                    queuetext = "";
-                }
-                else if (count > 0) queuetext += " , ";
-
-                queuetext += req;
-                count++;
-            }
-
-            if (count == 0) queuetext = "Played list is empty.";
-            QueueChatMessage(queuetext);
-        }
         #endregion
 
         #region Queue Related
