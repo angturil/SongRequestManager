@@ -802,18 +802,19 @@ namespace EnhancedTwitchChat.Bot
             private StringBuilder msgBuilder = new StringBuilder();
             private int messageCount = 1;
             private int maxMessages = 2;
-            const int maxoverflowtextlength = 120;
+            int maxoverflowtextlength = 60; // We don't know ahead of time, so we're going to do a safe estimate. 
 
-            private bool overflow = false;
-            private bool first = true;
-
+            private int maxoverflowpoint = 0; // The offset in the string where the overflow message needs to go
+            private int overflowcount = 0; // We need to save Count
+            private int separatorlength = 0;
             public int Count = 0;
 
-            // BUG: This version doesn't reallly strings > twitchmessagelength well
-
-            public void SetMaxMessages(int value)
-            {
-                maxMessages = value;
+            // BUG: This version doesn't reallly strings > twitchmessagelength well, will support
+            
+            public QueueLongMessage(int maximummessageallowed = 2,int maxoverflowtext=60) // Constructor supports setting max messages
+            {                     
+                maxMessages = maximummessageallowed;
+                maxoverflowtextlength = maxoverflowtext;   
             }
 
             public void Header(string text)
@@ -821,49 +822,58 @@ namespace EnhancedTwitchChat.Bot
                 msgBuilder.Append(text);
             }
 
+            // BUG: Only works form string < MaximumTwitchMessageLength
             public bool Add(string text, string separator = "")
             {
+                separatorlength = separator.Length;
 
-                if (messageCount >= maxMessages && msgBuilder.Length + text.Length > MaximumTwitchMessageLength - maxoverflowtextlength)
+                // Save the point where we would put the overflow message
+                if (messageCount >= maxMessages && maxoverflowpoint == 0 && msgBuilder.Length + text.Length > MaximumTwitchMessageLength - maxoverflowtextlength)
                 {
-                    overflow = true;
-                    return true;
-                }
+                    maxoverflowpoint = msgBuilder.Length - separatorlength;
+                    overflowcount = Count;
+                } 
 
                 if (msgBuilder.Length + text.Length > MaximumTwitchMessageLength)
                 {
-                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());
-                    first = false;
-                    msgBuilder.Clear();
-                    msgBuilder.Append(text);
-                    Count++;
+                    msgBuilder.Length =  (maxoverflowpoint > 0) ? maxoverflowpoint : msgBuilder.Length-separatorlength;
+
                     messageCount++;
-                    return false;
+
+                    if (maxoverflowpoint > 0)
+                    {
+                        Count = overflowcount;
+                        return true;
+                    }
+
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());       
+                    msgBuilder.Clear();
                 }
 
-                if (!first) msgBuilder.Append(separator);
                 Count++;
                 msgBuilder.Append(text);
-                first = false;
-
+                msgBuilder.Append(separator);
                 return false;
             }
 
             public void end(string overflowtext = "", string emptymsg = "")
             {
 
-                if (msgBuilder.Length + overflowtext.Length <= MaximumTwitchMessageLength && overflow)
+                if (messageCount > maxMessages && overflowcount > 0)
                     RequestBot.Instance.QueueChatMessage(msgBuilder.ToString() + overflowtext);
                 else
+                {
+                    msgBuilder.Length -= separatorlength;
                     RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());
-
-                if (Count == 0) RequestBot.Instance.QueueChatMessage(emptymsg);
+                }          
+               if (Count == 0) RequestBot.Instance.QueueChatMessage(emptymsg);
 
                 // Reset the class for reuse
 
-                overflow = false;
-                msgBuilder.Clear();
+                maxoverflowpoint = 0;
                 messageCount = 1;
+                msgBuilder.Clear();
+               
             }
         }
 
@@ -888,29 +898,17 @@ namespace EnhancedTwitchChat.Bot
 
         private void ShowSongsplayed(TwitchUser requestor, string request) // Note: This can be spammy.
         {
-            if (played.Count == 0)
-            {
-                QueueChatMessage("No songs have been played.");
-                return;
-            }
 
-            int count = 0;
-            var queuetext = $"{played.Count} songs played this session: ";
+
+            QueueLongMessage msg = new QueueLongMessage();
+
             foreach (JSONObject song in played)
             {
-                string songdetail = song["songName"].Value + " (" + song["version"] + ")";
-
-                if (queuetext.Length + songdetail.Length > MaximumTwitchMessageLength)
-                {
-                    QueueChatMessage(queuetext);
-                    queuetext = "";
-                }
-
-                if (count > 0) queuetext += " , ";
-                queuetext += songdetail;
-                count++;
+                if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
             }
-            QueueChatMessage(queuetext);
+            msg.end($" ... and {played.Count - msg.Count} other songs.", "No songs have been played.");
+            return;
+
         }
 
         private void ShowBanList(TwitchUser requestor, string request)
