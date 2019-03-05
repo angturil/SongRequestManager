@@ -67,7 +67,7 @@ namespace EnhancedTwitchChat.Bot
 
         public static List<JSONObject> played = new List<JSONObject>(); // Played list
 
-        private static List<string> mapperwhitelist = new List<string>(); // Lists because we need to interate them per song
+        private static StringListManager  mapperwhitelist = new StringListManager(); // Lists because we need to interate them per song
         private static List<string> mapperblacklist = new List<string>();
         
         private static HashSet<string> duplicatelist = new HashSet<string>();

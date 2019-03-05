@@ -540,7 +540,7 @@ namespace EnhancedTwitchChat.Bot
             {
             public List <string> list = new List<string> ();
 
-            public bool readfile(string filename, char[] separators) 
+            public bool Readfile(string filename) 
                 {
                     try
                     {
@@ -557,7 +557,7 @@ namespace EnhancedTwitchChat.Bot
                 return false;    
                 }
 
-            public bool writefile(string filename, string separator)
+            public bool Writefile(string filename, string separator=",")
             {
                 try
                 {
@@ -574,20 +574,20 @@ namespace EnhancedTwitchChat.Bot
                 return false;
             }
 
-            public bool addentry(string entry)
+            public bool Add(string entry)
                 {
                 if (list.Contains(entry)) return false;
                 list.Add(entry);
                 return true;
                 }
 
-            public bool removeentry(string entry)
+            public bool Removeentry(string entry)
                 {
                 return list.Remove(entry);
                 }
 
             // Picks a random entry and returns it, removing it from the list
-            public string drawentry()
+            public string Drawentry()
                 {
                 if (list.Count == 0) return "";
                 int entry = generator.Next(0, list.Count);
@@ -597,17 +597,26 @@ namespace EnhancedTwitchChat.Bot
                 }
 
             // Picks a random entry but does not remove it
-            public string randomentry()
+            public string Randomentry()
                 {
                 if (list.Count == 0) return "";
                 int entry = generator.Next(0, list.Count);
                 string result = list.ElementAt(entry);
                 return result;
                 }
-        
-            public void outputlist(ref QueueLongMessage msg)
-                {
 
+            public int Count()
+                {
+                return list.Count;
+                }
+       
+            public void Clear()
+                {
+                list.Clear();
+                }
+            public void Outputlist(ref QueueLongMessage msg,string separator=", ")
+                {
+                foreach (string entry in list) msg.Add(entry, separator);                 
                 }
             
 
@@ -649,37 +658,26 @@ namespace EnhancedTwitchChat.Bot
 
             if (request=="list")
                 {
-                QueueLongMessage msg = new QueueLongMessage();
+                QueueLongMessage msg2 = new QueueLongMessage();
 
-                msg.Header("Mapper list: ");
-                foreach (string mappername in mapperwhitelist)
-                    msg.Add(mappername, ", ");
-
-                msg.end("...", "none");
+                msg2.Header("Mapper list: ");
+                mapperwhitelist.Outputlist(ref msg2);               
+                msg2.end("...", "none");
 
                 return;
                 }
 
-            try
-            {
-                string queuefile = Path.Combine(datapath, request + ".list");
+ 
+                // This now uses unified StringListManagerClass
 
-                string fileContent = File.ReadAllText(queuefile);
-
-                string[] Strings = fileContent.Split(new char[] { ' ', ',', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                mapperwhitelist.Readfile(Path.Combine(datapath, request + ".list"));
 
                 QueueLongMessage msg = new QueueLongMessage(2);
 
                 msg.Header("Permitted mappers: ");
-
-                foreach (string mapper in Strings) msg.Add(mapper.ToLower(), ", ");
-                msg.end("...", "none");
-            }
-            catch
-            {
-
-            }
-
+                mapperwhitelist.Outputlist(ref msg, ", ");
+                msg.end("...", "");
+ 
         }
 
         // Not super efficient, but what can you do
@@ -687,9 +685,9 @@ namespace EnhancedTwitchChat.Bot
         {
             string normalizedauthor = song["authorName"].Value.ToLower();
 
-            if (mapperwhitelist.Count > 0)
+            if (mapperwhitelist.list.Count > 0)
             {
-                foreach (var mapper in mapperwhitelist)
+                foreach (var mapper in mapperwhitelist.list)
                 {
                     if (normalizedauthor.Contains(mapper)) return false;
                 }
