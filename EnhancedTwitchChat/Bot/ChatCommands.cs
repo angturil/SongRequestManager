@@ -533,16 +533,22 @@ namespace EnhancedTwitchChat.Bot
         }
         #endregion
 
-        #region Mapper Blacklist/Whitelist
+        #region List Manager Related functions ... probably needs its own file
 
         private void LoadList(TwitchUser requestor, string request)
             {
             if (isNotBroadcaster(requestor)) return;
              StringListManager newlist = new StringListManager();
-            newlist.Readfile(request);
-            listcollection.ListCollection.Add(request.ToLower(), newlist);
+            if (newlist.Readfile(request))
+            {
+                QueueChatMessage($"{request} ({newlist.Count()}) is loaded.");
+                listcollection.ListCollection.Add(request.ToLower(), newlist);
             }
-
+            else
+            {
+            QueueChatMessage($"Unable to load {request}.");
+            }
+        }
 
     private void writelist(TwitchUser requestor, string request)
         {
@@ -589,7 +595,6 @@ namespace EnhancedTwitchChat.Bot
                 var list = listcollection.ListCollection[request.ToLower()];
                 QueueLongMessage msg = new QueueLongMessage();
 
-                msg.Header($"{request}: ");
                 foreach (var entry in list.list) msg.Add(entry, ", ");
                 msg.end("...", $"{request} is empty");
             }
@@ -606,7 +611,7 @@ namespace EnhancedTwitchChat.Bot
             QueueLongMessage msg = new QueueLongMessage();
 
             msg.Header("Loaded lists: ");
-            foreach (var entry in listcollection.ListCollection) msg.Add(entry.Key);
+            foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})",", ");
             msg.end("...", "No lists loaded."); 
         }
 
@@ -614,6 +619,13 @@ namespace EnhancedTwitchChat.Bot
             {
 
             public Dictionary<string, StringListManager> ListCollection = new Dictionary<string, StringListManager>();
+
+            public ListCollectionManager()
+                {
+                // Add an empty list so we can set various lists to empty
+                StringListManager empty = new StringListManager();
+                ListCollection.Add("empty", empty);
+                }   
 
             }
 
