@@ -1,20 +1,17 @@
-﻿using System;
+﻿using CustomUI.Utilities;
+using EnhancedTwitchChat.Chat;
+using EnhancedTwitchChat.Textures;
+using EnhancedTwitchChat.UI;
+using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.UI;
-using System.Collections;
-using EnhancedTwitchChat.Textures;
-using VRUIControls;
 using UnityEngine.SceneManagement;
-using System.Text;
-using System.Collections.Concurrent;
-using System.IO;
-using EnhancedTwitchChat.Utils;
-using EnhancedTwitchChat.Chat;
-using EnhancedTwitchChat.UI;
-using UnityEngine.XR;
-using CustomUI.Utilities;
+using UnityEngine.UI;
+using VRUIControls;
 
 namespace EnhancedTwitchChat
 {
@@ -41,7 +38,7 @@ namespace EnhancedTwitchChat
         private bool _messageRendering = false;
         private int _waitForFrames = 0;
         private bool _configChanged = false;
-        private ConcurrentQueue<string> _timeoutQueue = new ConcurrentQueue<string>();
+        private ConcurrentQueue<KeyValuePair<string, bool>> _timeoutQueue = new ConcurrentQueue<KeyValuePair<string, bool>>();
         private ChatMover _movePointer = null;
         private LockToggle _lockPointer = null;
         private string _lastFontName;
@@ -58,10 +55,10 @@ namespace EnhancedTwitchChat
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            
+
             // Startup the texture downloader and anim controller
-            new GameObject("EnhancedTwitchChatTextureDownloader").AddComponent<ImageDownloader>();
-            new GameObject("EnhancedTwitchChatAnimationController").AddComponent<AnimationController>();
+            ImageDownloader.OnLoad();
+            AnimationController.OnLoad();
 
             // Stop config updated callback when we haven't switched channels
             lastChannel = Config.Instance.TwitchChannelName;
@@ -172,8 +169,8 @@ namespace EnhancedTwitchChat
                     OnConfigChanged();
 
                 // Make sure to delete any purged messages right away
-                if (_timeoutQueue.Count > 0 && _timeoutQueue.TryDequeue(out var userID))
-                    PurgeChatMessagesInternal(userID);
+                if (_timeoutQueue.Count > 0 && _timeoutQueue.TryDequeue(out var id))
+                    PurgeChatMessagesInternal(id);
 
                 if (_waitForFrames > 0)
                 {
@@ -190,7 +187,15 @@ namespace EnhancedTwitchChat
                 if (TwitchWebSocketClient.RenderQueue.Count > 0 && !_messageRendering)
                 {
                     if (TwitchWebSocketClient.RenderQueue.TryDequeue(out var messageToSend))
+                    {
+                        if (Config.Instance.FilterBroadcasterMessages && messageToSend.twitchMessage.user.isBroadcaster)
+                            return;
+                        if (Config.Instance.FilterCommandMessages && messageToSend.twitchMessage.message.StartsWith("!"))
+                            return;
+
                         StartCoroutine(AddNewChatMessage(messageToSend.msg, messageToSend));
+                    }
+
                 }
 
                 // Save images to file when we're at the main menu
@@ -444,14 +449,18 @@ namespace EnhancedTwitchChat
             return true;
         }
 
-        private void PurgeChatMessagesInternal(string userID)
+        private void PurgeChatMessagesInternal(KeyValuePair<string, bool> messageInfo)
         {
+            bool isUserId = messageInfo.Value;
+            string id = messageInfo.Key;
+
             bool purged = false;
             foreach (CustomText currentMessage in _chatMessages)
             {
                 if (currentMessage.messageInfo == null) continue;
 
-                if (currentMessage.messageInfo.twitchMessage.user.id == userID)
+                // Handle purging messages by user id or by message id, since both are possible
+                if (id == "!FULLCLEAR!" || (isUserId && currentMessage.messageInfo.twitchMessage.user.id == id) || (!isUserId && currentMessage.messageInfo.twitchMessage.id == id))
                 {
                     string userName = $"<color={currentMessage.messageInfo.twitchMessage.user.color}><b>{currentMessage.messageInfo.twitchMessage.user.displayName}</b></color>:";
                     if (currentMessage.text.Contains(userName))
@@ -469,30 +478,12 @@ namespace EnhancedTwitchChat
 
         public void PurgeChatMessageById(string messageId)
         {
-            bool purged = false;
-            foreach (CustomText currentMessage in _chatMessages)
-            {
-                if (currentMessage.messageInfo == null) continue;
-
-                if (currentMessage.messageInfo.twitchMessage.id == messageId)
-                {
-                    string userName = $"<color={currentMessage.messageInfo.twitchMessage.user.color}><b>{currentMessage.messageInfo.twitchMessage.user.displayName}</b></color>:";
-                    if (currentMessage.text.Contains(userName))
-                        currentMessage.text = $"{userName}: <message deleted>";
-                    else
-                        currentMessage.text = "";
-
-                    FreeImages(currentMessage);
-                    purged = true;
-                }
-            }
-            if (purged)
-                UpdateChatUI();
+            _timeoutQueue.Enqueue(new KeyValuePair<string, bool>(messageId, false));
         }
 
         public void PurgeMessagesFromUser(string userID)
         {
-            _timeoutQueue.Enqueue(userID);
+            _timeoutQueue.Enqueue(new KeyValuePair<string, bool>(userID, true));
         }
 
         private void FreeImages(CustomText currentMessage)

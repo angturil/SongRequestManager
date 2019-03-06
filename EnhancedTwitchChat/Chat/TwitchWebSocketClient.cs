@@ -9,6 +9,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using WebSocketSharp;
+
 namespace EnhancedTwitchChat.Chat
 {
     public class ChatMessage
@@ -34,7 +36,7 @@ namespace EnhancedTwitchChat.Chat
 
         private static Dictionary<string, Action<TwitchMessage, MatchCollection>> _messageHandlers = new Dictionary<string, Action<TwitchMessage, MatchCollection>>();
         private static Random _rand = new Random();
-        private static WebSocketSharp.WebSocket _ws;
+        private static WebSocket _ws;
 
         public static bool Initialized = false;
         public static ConcurrentQueue<ChatMessage> RenderQueue = new ConcurrentQueue<ChatMessage>();
@@ -44,16 +46,15 @@ namespace EnhancedTwitchChat.Chat
         
         private static DateTime _sendLimitResetTime = DateTime.Now;
         private static Queue<string> _sendQueue = new Queue<string>();
-        private static int _messagesSent = 0;
-        private static int _sendResetInterval = 30;
+        
         private static int _reconnectCooldown = 500;
         private static int _fullReconnects = -1;
+
+        private static int _messagesSent = 0;
+        private static int _sendResetInterval = 30;
         private static int _messageLimit
         {
-            get
-            {
-                return (OurTwitchUser.isBroadcaster || OurTwitchUser.isMod) ? 100 : 20;
-            }
+            get { return (OurTwitchUser.isBroadcaster || OurTwitchUser.isMod) ? 100 : 20; } // Defines how many messages can be sent within _sendResetInterval without causing a global ban on twitch
         }
 
         public static bool IsChannelValid
@@ -111,7 +112,7 @@ namespace EnhancedTwitchChat.Chat
             try
             {
                 // Create our websocket object and setup the callbacks
-                using (_ws = new WebSocketSharp.WebSocket("wss://irc-ws.chat.twitch.tv:443"))
+                using (_ws = new WebSocket("wss://irc-ws.chat.twitch.tv:443"))
                 {
                     _ws.OnOpen += (sender, e) =>
                     {
@@ -157,10 +158,9 @@ namespace EnhancedTwitchChat.Chat
                     // Create a new task to reconnect automatically if the connection dies for some unknown reason
                     Task.Run(() =>
                     {
-                        Thread.Sleep(5000);
                         try
                         {
-                            while (Initialized && _ws.IsConnected && _ws.IsAlive)
+                            while (Initialized && _ws.IsConnected && _ws.IsAlive && _ws.ReadyState == WebSocketState.Open)
                             {
                                 //Plugin.Log("Connected and alive!");
                                 Thread.Sleep(500);
@@ -175,7 +175,6 @@ namespace EnhancedTwitchChat.Chat
                             Plugin.Log(ex.ToString());
                         }
                         
-                        Plugin.Log("Twitch connection died...");
                         Thread.Sleep(_reconnectCooldown *= 2);
                         Plugin.Log("Reconnecting!");
                         Connect();
@@ -195,21 +194,11 @@ namespace EnhancedTwitchChat.Chat
             }
         }
 
-        private static void Reconnect()
-        {
-            if (Plugin.Instance.IsApplicationExiting)
-                return;
-
-            Thread.Sleep(_reconnectCooldown *= 2);
-            Plugin.Log("Attempting to reconnect...");
-            _ws.Connect();
-        }
-
         private static void ProcessSendQueue(int fullReconnects)
         {
             while(!Plugin.Instance.IsApplicationExiting && _fullReconnects == fullReconnects)
             {
-                if (_ws.IsConnected)
+                if (_ws.IsConnected && _ws.ReadyState == WebSocketState.Open)
                 {
                     if (_sendLimitResetTime < DateTime.Now)
                     {
@@ -227,11 +216,6 @@ namespace EnhancedTwitchChat.Chat
                             _messagesSent++;
                         }
                     }
-                }
-                else
-                {
-                    Plugin.Log("Websocket was not connected! Reconnecting!");
-                    Reconnect();
                 }
                 Thread.Sleep(250);
             }
@@ -254,7 +238,7 @@ namespace EnhancedTwitchChat.Chat
             SendMessage($"PART #{channel}");
         }
         
-        private static void Ws_OnMessage(object sender, WebSocketSharp.MessageEventArgs ev)
+        private static void Ws_OnMessage(object sender, MessageEventArgs ev)
         {
             try
             {

@@ -30,13 +30,18 @@ namespace EnhancedTwitchChat.Textures
     {
         public static AnimationController Instance = null;
 
+        public static void OnLoad()
+        {
+            if (Instance) return;
+
+            new GameObject("EnhancedTwitchChatAnimController").AddComponent<AnimationController>();
+        }
+
         public List<AnimControllerData> registeredAnimations = new List<AnimControllerData>();
         void Awake()
         {
-            UnityEngine.Object.DontDestroyOnLoad(this);
-
-            if (Instance == null) Instance = this;
-            else Destroy(this);
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
         }
 
         public int Register(string textureIndex, Rect[] uvs, float delay)

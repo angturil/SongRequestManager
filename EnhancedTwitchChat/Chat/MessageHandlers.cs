@@ -100,7 +100,7 @@ namespace EnhancedTwitchChat.Chat
             if (!TwitchWebSocketClient.ChannelInfo.ContainsKey(twitchMsg.channelName))
                 TwitchWebSocketClient.ChannelInfo.Add(twitchMsg.channelName, new TwitchRoom(twitchMsg.channelName));
 
-            Plugin.Log($"Success joining channel #{twitchMsg.channelName}");
+            Plugin.Log($"Success joining channel #{twitchMsg.channelName} (RoomID: {twitchMsg.roomId})");
         }
 
         public static void ROOMSTATE(TwitchMessage twitchMsg, MatchCollection tags)
@@ -152,11 +152,19 @@ namespace EnhancedTwitchChat.Chat
                 ParseMessageTag(t, ref twitchMsg);
 
             TwitchWebSocketClient.OurTwitchUser = twitchMsg.user;
+
+            if (!(twitchMsg.user.isBroadcaster || twitchMsg.user.isMod))
+            {
+                TwitchMessage tmpMessage = new TwitchMessage();
+                tmpMessage.user.displayName = "NOTICE";
+                tmpMessage.user.color = "FF0000FF";
+                MessageParser.Parse(new ChatMessage($"Twitch account {twitchMsg.user.displayName} is not a moderator of channel #{twitchMsg.channelName}. The default user rate limit is 20 messages per 30 seconds; to increase this limit to 100, grant this user moderator privileges.", tmpMessage));
+            }
         }
 
         public static void CLEARCHAT(TwitchMessage twitchMsg, MatchCollection tags)
         {
-            string userId = String.Empty;
+            string userId = "!FULLCLEAR!";
             foreach (Match t in tags)
             {
                 if (t.Groups["Tag"].Value == "target-user-id")
