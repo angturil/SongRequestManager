@@ -552,17 +552,17 @@ namespace EnhancedTwitchChat.Bot
             }
   
             // Testing prototype code now
-            AddCommand("queue", ListQueue,Everyone,"%user, this command is restricted to %rights use: [ %alias ] ... Displays a list of the currently requested songs.",_nothing);
+            AddCommand("queue", ListQueue,Everyone,"usage: %alias %endusage  ... Displays a list of the currently requested songs.",_nothing);
             AddCommand("unblock", Unban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
             AddCommand("block", Ban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
             AddCommand("remove", DequeueSong,Mod);
             AddCommand("clearqueue", Clearqueue,Broadcasteronly);
-            AddCommand("mtt", MoveRequestToTop,Mod);
+            AddCommand("mtt", MoveRequestToTop,Mod,"usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the top of the request queue.",_anything );
             AddCommand("remap", Remap);
             AddCommand("unmap", Unmap);
-            AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"Hey %user, usage: %rights [%alias] <song name> or <beatsaber id>, omit <>'s.%endusage Get a list of songs from https://beatsaver.com matching your search criteria.");
-            AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom);
-            AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong,Everyone);
+            AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"usage: %rights [%alias] <song name> or <beatsaber id>, omit <>'s.%endusage Get a list of songs from %beatsaver matching your search criteria.");
+            AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom,Mod,"usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the bottom of the request queue.", _anything);
+            AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong,Everyone,"usage: %alias %endusage ... Removes your last requested song form the queue. It can be requested again later.",_nothing);
             AddCommand("blist", ShowBanList);
             AddCommand("open", OpenQueue);
             AddCommand("close", CloseQueue);
@@ -825,23 +825,22 @@ namespace EnhancedTwitchChat.Bot
                     msgtext.Append(parts[i]);
                     continue; // Skip the first entry if it wasn't a % in the original string
                 }
-
                 // The text in part[i] is now our command (AND the following text)
 
                 // Ideally, this should be a call table, but for now, we'll hack it, its not actually that bad
-                if (parts[i].ToLower().Contains("user"))
+                if (parts[i].ToLower().StartsWith("user"))
                 {
                     msgtext.Append(user.displayName);
                     msgtext.Append(parts[i].Substring(4));
                 }
-                else if (parts[i].ToLower().Contains("alias"))
+                else if (parts[i].ToLower().StartsWith("alias"))
                 {
                     StringBuilder aliastext = new StringBuilder();
                     foreach (var alias in botcmd.aliases) aliastext.Append( $"!{alias} ");
                     msgtext.Append(aliastext);
                     msgtext.Append(parts[i].Substring(5));
                 }
-                else if (parts[i].ToLower().Contains("rights"))
+                else if (parts[i].ToLower().StartsWith("rights"))
                 {
                     var aliastext = "[";
                     aliastext+=(botcmd.cmdflags & CmdFlags.TwitchLevel).ToString();
@@ -849,19 +848,18 @@ namespace EnhancedTwitchChat.Bot
                     msgtext.Append(aliastext);
                     msgtext.Append(parts[i].Substring(6));
                 }
-                else if (parts[i].ToLower().Contains("endusage")) // This lets us show only the usage part, if parselong is set to true, we process the rest of the message too
+                else if (parts[i].ToLower().StartsWith("endusage")) // This lets us show only the usage part, if parselong is set to true, we process the rest of the message too
                 {
                     if (!parselong) break;    
                     msgtext.Append(parts[i].Substring(8));
                 }
-                else if (parts[i].ToLower().Contains("beatsaver")) // This lets us show only the usage part, if parselong is set to true, we process the rest of the message too
+                else if (parts[i].ToLower().StartsWith("beatsaver")) // This lets us show only the usage part, if parselong is set to true, we process the rest of the message too
                 {
                     msgtext.Append("https://beatsaver.com"); // We can turn this off here    
                     msgtext.Append(parts[i].Substring(9));
                 }
 
             }
-
 
 
             return msgtext.ToString();
