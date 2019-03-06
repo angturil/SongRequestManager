@@ -535,89 +535,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        // Some of these are just ideas, putting them all down, can filter them out later
-        [Flags] public enum CmdFlags
-        {
-            None = 0,
-            Everyone = 1,
-            Sub = 2,
-            Mod = 4,
-            Broadcaster = 8,
-            VIP=16,
-            UserList=32,  // If this is enabled, users on a list are allowed to use a command (this is an OR, so leave restrictions to Broadcaster if you want ONLY users on a list)
-            TwitchLevel=63, // This is used to show ONLY the twitch user flags when showing permissions
-  
-            ShowRestrictions = 64, // Using the command without the right access level will show permissions error. Mostly used for commands that can be unlocked at different tiers.
-            UsageHelp=128, // Enable usage help for blank / invalid command
-            LongHelp=256, // Enable ? operation, showing a longer explanation in stream (try to limit it to one message)
-            HelpLink=512, // Enable link to web documentation
-
-            WhisperReply=1024, // Reply in a whisper to the user (future feature?). Allow commands to send the results to the user, avoiding channel spam
-    
-            Timeout=2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
-            TimeoutSub=4096, // Applies a timeout to Subs
-            TimeoutVIP=8192, // Applies a timeout to VIP's
-            TimeoutMod=16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
-
-            NoLinks=32768, // Turn off any links that the command may normally generate
-            Silence=65536, // Command produces no output at all - but still executes
-            Verbose=131072, // Turn off command output limits, This can result in excessive channel spam
-            Log=262144, // Log every use of the command to a file
-            RegEx=524288, // Enable regex check
-            UserFlag1 = 1048576, // Use it for whatever bit makes you happy 
-            UserFlag2 = 2097152, // Use it for whatever bit makes you happy 
-            UserFlag3 = 4194304, // Use it for whatever bit makes you happy 
-            UserFlag4 = 8388608, // Use it for whatever bit makes you happy 
-
-            Disabled = 1<<30, // If off, the command will not be added to the alias list at all.
-        }
-
-        const CmdFlags Everyone = CmdFlags.Everyone;
-        const CmdFlags Broadcasteronly = CmdFlags.Broadcaster;
-        const CmdFlags Mod =  CmdFlags.Broadcaster | CmdFlags.Mod;
-        const CmdFlags Sub = CmdFlags.Sub; 
-        const CmdFlags VIP = CmdFlags.VIP;
-            
-        // Prototype code only
-        public struct BOTCOMMAND
-        {
-            public Action<TwitchUser, string> Method;  // Method to call
-            public CmdFlags cmdflags;                  // flags
-            public string ShortHelp;                   // short help text (on failing preliminary check
-            public List<string> aliases;               // list of command aliases
-            public List<string> regexfilters;          // reg ex filters to apply If Any match, you're good.
-
-            public string LongHelp; // Long help text
-            public string HelpLink; // Help website link
-            StringListManager permittedusers; // List of users permitted to use the command, uses list manager.
-
-            public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags,string shorthelptext,string [] alias)
-                {
-                Method = method;
-                cmdflags = flags;
-                ShortHelp = shorthelptext;
-                aliases = alias.ToList();
-                LongHelp = "";
-                HelpLink = "";
-                permittedusers = null;
-                regexfilters = null;
-                foreach (var entry in aliases) NewCommands.Add(entry, this);                
-                }
-        }
-
-        public static List<BOTCOMMAND> cmdlist = new List<BOTCOMMAND>() ; 
-
-        public void AddCommand ( string[] alias,Action<TwitchUser, string> method, CmdFlags flags=Broadcasteronly, string shorthelptext="usage: %x")
-            {
-            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext,alias));
-            }
-
-        public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: %x")
-        {
-            string [] list = new string[] { alias };
-            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, list));
-        }
-
         private void InitializeCommands()
         {
 
@@ -787,6 +704,96 @@ namespace EnhancedTwitchChat.Bot
             Instance?.StartCoroutine(ProcessSongRequest(index));
         }
 
+
+        #region NEW Command Processor
+
+        // Some of these are just ideas, putting them all down, can filter them out later
+        [Flags]
+        public enum CmdFlags
+        {
+            None = 0,
+            Everyone = 1,
+            Sub = 2,
+            Mod = 4,
+            Broadcaster = 8,
+            VIP = 16,
+            UserList = 32,  // If this is enabled, users on a list are allowed to use a command (this is an OR, so leave restrictions to Broadcaster if you want ONLY users on a list)
+            TwitchLevel = 63, // This is used to show ONLY the twitch user flags when showing permissions
+
+            ShowRestrictions = 64, // Using the command without the right access level will show permissions error. Mostly used for commands that can be unlocked at different tiers.
+            UsageHelp = 128, // Enable usage help for blank / invalid command and ?
+            LongHelp = 256, // Enable ? operation, showing a longer explanation in stream (try to limit it to one message)
+            HelpLink = 512, // Enable link to web documentation
+
+            WhisperReply = 1024, // Reply in a whisper to the user (future feature?). Allow commands to send the results to the user, avoiding channel spam
+
+            Timeout = 2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
+            TimeoutSub = 4096, // Applies a timeout to Subs
+            TimeoutVIP = 8192, // Applies a timeout to VIP's
+            TimeoutMod = 16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
+
+            NoLinks = 32768, // Turn off any links that the command may normally generate
+            Silent = 65536, // Command produces no output at all - but still executes
+            Verbose = 131072, // Turn off command output limits, This can result in excessive channel spam
+            Log = 262144, // Log every use of the command to a file
+            RegEx = 524288, // Enable regex check
+            UserFlag1 = 1048576, // Use it for whatever bit makes you happy 
+            UserFlag2 = 2097152, // Use it for whatever bit makes you happy 
+            UserFlag3 = 4194304, // Use it for whatever bit makes you happy 
+            UserFlag4 = 8388608, // Use it for whatever bit makes you happy 
+
+            SilentPreflight = 16277216, //  
+
+            Disabled = 1 << 30, // If off, the command will not be added to the alias list at all.
+        }
+
+        const CmdFlags Default = CmdFlags.UsageHelp;
+        const CmdFlags Everyone = Default | CmdFlags.Everyone;
+        const CmdFlags Broadcasteronly = Default | CmdFlags.Broadcaster;
+        const CmdFlags Mod = Default | CmdFlags.Broadcaster | CmdFlags.Mod;
+        const CmdFlags Sub = Default | CmdFlags.Sub;
+        const CmdFlags VIP = Default | CmdFlags.VIP;
+
+        // Prototype code only
+        public struct BOTCOMMAND
+        {
+            public Action<TwitchUser, string> Method;  // Method to call
+            public CmdFlags cmdflags;                  // flags
+            public string ShortHelp;                   // short help text (on failing preliminary check
+            public List<string> aliases;               // list of command aliases
+            public List<string> regexfilters;          // reg ex filters to apply If Any match, you're good.
+
+            public string LongHelp; // Long help text
+            public string HelpLink; // Help website link
+            StringListManager permittedusers; // List of users permitted to use the command, uses list manager.
+
+            public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, string[] alias)
+            {
+                Method = method;
+                cmdflags = flags;
+                ShortHelp = shorthelptext;
+                aliases = alias.ToList();
+                LongHelp = "";
+                HelpLink = "";
+                permittedusers = null;
+                regexfilters = null;
+                foreach (var entry in aliases) NewCommands.Add(entry, this);
+            }
+        }
+
+        public static List<BOTCOMMAND> cmdlist = new List<BOTCOMMAND>();
+
+        public void AddCommand(string[] alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: %x")
+        {
+            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, alias));
+        }
+
+        public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: %x")
+        {
+            string[] list = new string[] { alias };
+            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, list));
+        }
+
         public static void ExecuteCommand(string command, ref TwitchUser user, string param)
         {
         var botcmd= NewCommands[command];
@@ -805,11 +812,13 @@ namespace EnhancedTwitchChat.Bot
             if (!allow)
                 {
                 CmdFlags twitchpermission = botcmd.cmdflags & CmdFlags.TwitchLevel;
-                Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
+                if (!botcmd.cmdflags.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
+                return;
                 }
 
-            if (param == "?")
+            if (param == "?") // Handle per command help requests - If permitted.
                 {
+                if (!botcmd.cmdflags.HasFlag(CmdFlags.UsageHelp)) return; // Make sure we're allowed to show help
                 Instance?.QueueChatMessage(botcmd.ShortHelp);
                 return;
                 }
@@ -825,6 +834,7 @@ namespace EnhancedTwitchChat.Bot
             }
 
         }
+        #endregion
 
         public static void Parse(TwitchUser user, string request)
         {
