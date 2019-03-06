@@ -544,7 +544,9 @@ namespace EnhancedTwitchChat.Bot
         {
 
             // Note: Default permissions are broadcaster only, so don't need to set them
+            // These settings need to be able to reconstruct  
 
+            // Note, this really should pass the alias list instead of adding 3 commmands.
             foreach (string c in Config.Instance.RequestCommandAliases.Split(',').Distinct())
             {
                 AddCommand(c, ProcessSongRequest,Everyone,"usage: %alias <songname> or <song id>, omit <,>'s. %endusage This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver",_anything);
@@ -553,35 +555,53 @@ namespace EnhancedTwitchChat.Bot
   
             // Testing prototype code now
             AddCommand("queue", ListQueue,Everyone,"usage: %alias %endusage  ... Displays a list of the currently requested songs.",_nothing);
+
             AddCommand("unblock", Unban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
+
             AddCommand("block", Ban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
+
             AddCommand("remove", DequeueSong,Mod, "usage: %alias <songname>,<username>,<song id> %endusage ... Removes a song from the queue.",_anything);
-            AddCommand("clearqueue", Clearqueue,Broadcasteronly);
+
+            AddCommand("clearqueue", Clearqueue,Broadcasteronly,"usage: %alias %endusage ... Clears the song request queue. You can still get it back from the JustCleared deck, or the history window",_nothing);
+
             AddCommand("mtt", MoveRequestToTop,Mod,"usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the top of the request queue.",_anything );
-            AddCommand("remap", Remap,Mod);
+
+            AddCommand("remap", Remap,Mod,"usage: %alias <songid1> , <songid2>%endusage ... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.",_RemapRegex);
             AddCommand("unmap", Unmap,Mod);
+
             AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"usage: %rights [%alias] <song name> or <beatsaber id>, omit <>'s.%endusage Get a list of songs from %beatsaver matching your search criteria.");
+
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom,Mod,"usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the bottom of the request queue.", _anything);
+
             AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong,Everyone,"usage: %alias %endusage ... Removes your last requested song form the queue. It can be requested again later.",_nothing);
+
             AddCommand("blist", ShowBanList,Broadcasteronly,"usage: Don't use, it will spam chat.",_nothing);
+
             AddCommand("open", OpenQueue,Broadcasteronly,"usage: %alias %endusage ... Opens the queue allowing song requests.",_nothing);
+
             AddCommand("close", CloseQueue,Broadcasteronly, "usage: %alias %endusage ... Closes the request queue.", _nothing);
+
             AddCommand("restore", restoredeck,Broadcasteronly,"usage: %alias %endusage ... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.",_nothing );
+
             AddCommand("commandlist", showCommandlist,Everyone,"usage: %alias %endusage ... Displays all the bot commands available to you.",_nothing);
+
             AddCommand("played", ShowSongsplayed,Mod,"usage: %alias %endusage ... Displays all the songs already played this session.", _nothing);
+
             AddCommand("readdeck", Readdeck);
             AddCommand("writedeck", Writedeck);
 
             AddCommand("clearalreadyplayed", ClearDuplicateList,Broadcasteronly,"usage: %alias %endusage ... clears the list of already requested songs, allowing them to be requested again.",_nothing); // Needs a better name
+
             AddCommand("help", help, Everyone, "usage: %alias <command name>, or just %alias to show a list of all commands available to you.",_anything);
+
             AddCommand("link", ShowSongLink,Everyone,"usage: %alias%endusage ... Shows details, and a link to the current song",_nothing);
 
             // Whitelists mappers and add new songs, this code is being refactored and transitioned to testing
 
-            AddCommand("mapperwhitelist", mapperWhitelist,Broadcasteronly);  // this interface will change shortly.
-            AddCommand("mapperblacklist", mapperBlacklist,Broadcasteronly);  // Subject to change
+            AddCommand("allowmappers", mapperWhitelist,Broadcasteronly,"usage: %alias <mapper list> %endusage ... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver, filtered by the mapper list.",_alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
+            AddCommand("blockmappers", mapperBlacklist,Broadcasteronly,"usage: %alias <mapper list> %endusage ... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex);
 
-            AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs,Mod);
+            AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs,Mod,"usage: %alias %endusage ... Adds the latest maps from %beatsaver, filtered by the previous selected allowmappers command",_nothing); // BUG: Note, need something to get the one of the true commands referenced, incases its renamed
             AddCommand("addsongs", addSongs,Broadcasteronly); // Basically search all, need to decide if its useful
 
             // Temporary commands for testing
@@ -856,6 +876,14 @@ namespace EnhancedTwitchChat.Bot
                 {
                     msgtext.Append("https://beatsaver.com"); // We can turn this off here    
                     msgtext.Append(parts[i].Substring(9));
+                }
+
+                else if (parts[i].ToLower().StartsWith("currentsong")) // This lets us show only the usage part, if parselong is set to true, we process the rest of the message too
+                {
+                    var song = RequestBotListViewController.currentsong.song;
+
+                    if (song!=null) msgtext.Append($"{song["songName"].Value} {song["songSubName"].Value} by {song["authorName"].Value} {GetSongLink(ref song, 1)}");
+                    msgtext.Append(parts[i].Substring(11));
                 }
 
             }
