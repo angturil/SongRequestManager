@@ -552,7 +552,7 @@ namespace EnhancedTwitchChat.Bot
 
             WhisperReply=1024, // Reply in a whisper to the user (future feature?). Allow commands to send the results to the user, avoiding channel spam
     
-            Timeout=2048, // Applies a timeout to regular users after a command is succesfully invoked (the timeout is shared by requestor), this is just a concept atm
+            Timeout=2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
             TimeoutSub=4096, // Applies a timeout to Subs
             TimeoutVIP=8192, // Applies a timeout to VIP's
             TimeoutMod=16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
@@ -614,14 +614,14 @@ namespace EnhancedTwitchChat.Bot
         {
             foreach (string c in Config.Instance.RequestCommandAliases.Split(',').Distinct())
             {
-                AddCommand(c, ProcessSongRequest);
+                AddCommand(c, ProcessSongRequest,Everyone);
                 Plugin.Log($"Added command alias \"{c}\" for song requests.");
             }
 
             ReadRemapList();
    
             // Testing prototype code now
-            AddCommand("queue", ListQueue);
+            AddCommand("queue", ListQueue,Everyone);
             AddCommand("unblock", Unban);
             AddCommand("block", Ban);
             AddCommand("remove", DequeueSong);
@@ -629,15 +629,12 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("mtt", MoveRequestToTop);
             AddCommand("remap", Remap);
             AddCommand("unmap", Unmap);
-            AddCommand("lookup", lookup);
-            AddCommand("find", lookup);
-            AddCommand("last", MoveRequestToBottom);
-            AddCommand("demote", MoveRequestToBottom);
-            AddCommand("later", MoveRequestToBottom);
-            AddCommand("wrongsong", WrongSong);
+            AddCommand(new string [] { "lookup","find"}, lookup);
+            AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom);
+            AddCommand("wrongsong", WrongSong,Everyone);
             AddCommand("wrong", WrongSong);
             AddCommand("oops", WrongSong);
-            AddCommand("blist", ShowBanList);
+            AddCommand("blist", ShowBanList,Broadcasteronly);
             AddCommand("open", OpenQueue);
             AddCommand("close", CloseQueue);
             AddCommand("restore", restoredeck);
