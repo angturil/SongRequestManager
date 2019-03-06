@@ -110,7 +110,7 @@ namespace EnhancedTwitchChat.Bot
             request = request.ToLower();
 
             foreach (string term in terms)
-                foreach (string word in term.Split(' '))
+                foreach (string word in request.Split(' '))
                     if (word.Length > 2 && request.Contains(word.ToLower())) return true;
 
             return false;
@@ -599,6 +599,7 @@ namespace EnhancedTwitchChat.Bot
                 if (songId == "")
                 {
                     string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
+                  
                     if (DoesContainTerms(request, ref terms))
                         dequeueSong = true;
                 }
