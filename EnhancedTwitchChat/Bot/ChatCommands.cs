@@ -16,6 +16,92 @@ namespace EnhancedTwitchChat.Bot
     {
         // This one needs to be cleaned up a lot imo
 
+        #region Utility functions
+
+        const int MaximumTwitchMessageLength = 498; // BUG: Replace this with a cannonical source
+
+        public class QueueLongMessage
+        {
+            private StringBuilder msgBuilder = new StringBuilder();
+            private int messageCount = 1;
+            private int maxMessages = 2;
+            int maxoverflowtextlength = 60; // We don't know ahead of time, so we're going to do a safe estimate. 
+
+            private int maxoverflowpoint = 0; // The offset in the string where the overflow message needs to go
+            private int overflowcount = 0; // We need to save Count
+            private int separatorlength = 0;
+            public int Count = 0;
+
+            // BUG: This version doesn't reallly strings > twitchmessagelength well, will support
+
+            public QueueLongMessage(int maximummessageallowed = 2, int maxoverflowtext = 60) // Constructor supports setting max messages
+            {
+                maxMessages = maximummessageallowed;
+                maxoverflowtextlength = maxoverflowtext;
+            }
+
+            public void Header(string text)
+            {
+                msgBuilder.Append(text);
+            }
+
+            // BUG: Only works form string < MaximumTwitchMessageLength
+            public bool Add(string text, string separator = "") // Make sure you use Header(text) for your initial nonlist message, or your displayed message count will be wrong.
+            {
+
+                // Save the point where we would put the overflow message
+                if (messageCount >= maxMessages && maxoverflowpoint == 0 && msgBuilder.Length + text.Length > MaximumTwitchMessageLength - maxoverflowtextlength)
+                {
+                    maxoverflowpoint = msgBuilder.Length - separatorlength;
+                    overflowcount = Count;
+                }
+
+                if (msgBuilder.Length + text.Length > MaximumTwitchMessageLength)
+                {
+                    messageCount++;
+
+                    if (maxoverflowpoint > 0)
+                    {
+                        msgBuilder.Length = maxoverflowpoint;
+                        Count = overflowcount;
+                        return true;
+                    }
+
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString(0, msgBuilder.Length - separatorlength));
+                    msgBuilder.Clear();
+                }
+
+                Count++;
+                msgBuilder.Append(text);
+                msgBuilder.Append(separator);
+                separatorlength = separator.Length;
+
+                return false;
+            }
+
+            public void end(string overflowtext = "", string emptymsg = "")
+            {
+                if (Count == 0)
+                    RequestBot.Instance.QueueChatMessage(emptymsg); // Note, this means header doesn't get printed either for empty lists                
+                else if (messageCount > maxMessages && overflowcount > 0)
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString() + overflowtext);
+                else
+                {
+                    msgBuilder.Length -= separatorlength;
+                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());
+                }
+
+                // Reset the class for reuse
+
+                maxoverflowpoint = 0;
+                messageCount = 1;
+                msgBuilder.Clear();
+
+            }
+        }
+
+        #endregion
+
         #region Filter support functions
 
         private bool DoesContainTerms(string request, ref string[] terms)
@@ -24,7 +110,7 @@ namespace EnhancedTwitchChat.Bot
             request = request.ToLower();
 
             foreach (string term in terms)
-                foreach (string word in term.Split(' '))
+                foreach (string word in request.Split(' '))
                     if (word.Length > 2 && request.Contains(word.ToLower())) return true;
 
             return false;
@@ -48,6 +134,7 @@ namespace EnhancedTwitchChat.Bot
         private bool filtersong(JSONObject song)
         {
             string songid = song["id"].Value;
+            if (IsInQueue(songid)) return true;
             if (SongBlacklist.Songs.ContainsKey(songid)) return true;
             if (duplicatelist.Contains(songid)) return true;
             return false;
@@ -171,7 +258,6 @@ namespace EnhancedTwitchChat.Bot
                             found = true;
                             JSONObject song = entry;
 
-                            if (IsInQueue(song["id"].Value)) continue;
                             if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
                             if (filtersong(song)) continue;
                             ProcessSongRequest(requestor, song["version"].Value);
@@ -311,17 +397,13 @@ namespace EnhancedTwitchChat.Bot
                 }
                 JSONObject song;
 
-                string songlist = "";
-
-
                 if (result["songs"].IsArray)
                 {
                     int count = 0;
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-                        if (count > 0) songlist += ", ";
-
+  
                         if (filtersong(song)) continue;
                         ProcessSongRequest(requestor, song["version"].Value);
                         count++;
@@ -331,7 +413,7 @@ namespace EnhancedTwitchChat.Bot
                 else
                 {
                     song = result["song"].AsObject;
-                    songlist += $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
+                     // $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
 
                     ProcessSongRequest(requestor, song["version"].Value);
                     totalSongs++;
@@ -479,11 +561,10 @@ namespace EnhancedTwitchChat.Bot
 
                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-                int[] integers = new int[integerStrings.Length];
-
+           
                 for (int n = 0; n < integerStrings.Length; n++)
                 {
-                    integers[n] = int.Parse(integerStrings[n]);
+                    if (IsInQueue( integerStrings[n])) continue;
                     ProcessSongRequest(requestor, integerStrings[n]);
                 }
             }
@@ -514,6 +595,7 @@ namespace EnhancedTwitchChat.Bot
                 if (songId == "")
                 {
                     string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
+                  
                     if (DoesContainTerms(request, ref terms))
                         dequeueSong = true;
                 }
@@ -534,54 +616,246 @@ namespace EnhancedTwitchChat.Bot
         }
         #endregion
 
-        #region Mapper Blacklist/Whitelist
+        #region List Manager Related functions ... probably needs its own file
+
+        private void LoadList(TwitchUser requestor, string request)
+            {
+            if (isNotBroadcaster(requestor)) return;
+             StringListManager newlist = new StringListManager();
+            if (newlist.Readfile(request))
+            {
+                QueueChatMessage($"{request} ({newlist.Count()}) is loaded.");
+                listcollection.ListCollection.Add(request.ToLower(), newlist);
+            }
+            else
+            {
+            QueueChatMessage($"Unable to load {request}.");
+            }
+        }
+
+    private void writelist(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+        }
+
+        private void ClearList(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+
+        try
+            {
+                listcollection.ListCollection[request.ToLower()].Clear();
+                QueueChatMessage($"{request} is cleared.");
+            }
+            catch
+            {
+                QueueChatMessage($"Unable to clear {request}");
+            }
+        }
+
+        private void UnloadList(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+
+            try
+            {
+                listcollection.ListCollection.Remove(request.ToLower());
+                QueueChatMessage($"{request} unloaded.");
+            }
+        catch    
+            {
+                QueueChatMessage($"Unable to unload {request}");
+            }
+        }
+
+
+        private void ListList(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+
+            try
+            {
+                var list = listcollection.ListCollection[request.ToLower()];
+                var msg = new QueueLongMessage();
+
+                foreach (var entry in list.list) msg.Add(entry, ", ");
+                msg.end("...", $"{request} is empty");
+            }
+        catch
+            {
+                QueueChatMessage($"{request} not found.");
+            }
+        }
+
+        private void showlists(TwitchUser requestor, string request)
+        {
+            if (isNotBroadcaster(requestor)) return;
+
+            var msg = new QueueLongMessage();
+
+            msg.Header("Loaded lists: ");
+            foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})",", ");
+            msg.end("...", "No lists loaded."); 
+        }
+
+        public class ListCollectionManager
+            {
+
+            public Dictionary<string, StringListManager> ListCollection = new Dictionary<string, StringListManager>();
+
+            public ListCollectionManager()
+                {
+                // Add an empty list so we can set various lists to empty
+                StringListManager empty = new StringListManager();
+                ListCollection.Add("empty", empty);
+                }   
+
+            }
+
+        public ListCollectionManager listcollection = new ListCollectionManager();
+        
+
+        public class StringListManager
+        {
+            public List<string> list = new List<string>();
+
+            public bool Readfile(string filename,bool ConvertToLower=true)
+            {
+                try
+                {
+                    string listfilename = Path.Combine(datapath, filename);
+                    string fileContent = File.ReadAllText(listfilename);
+                    list = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                    if (ConvertToLower) LowercaseList();
+                    return true;
+                }
+                catch
+                {
+                    // Ignoring this for now, I expect it to fail
+                }
+
+                return false;
+            }
+
+            public bool Writefile(string filename, string separator = ",")
+            {
+                try
+                {
+                    string listfilename = Path.Combine(datapath, filename);
+                    var output = String.Join(",", list.ToArray());
+                    File.WriteAllText(listfilename, output);
+                    return true;
+                }
+                catch
+                {
+                    // Ignoring this for now, failed write can be silent
+                }
+
+                return false;
+            }
+
+            public bool Add(string entry)
+            {
+                if (list.Contains(entry)) return false;
+                list.Add(entry);
+                return true;
+            }
+
+            public bool Removeentry(string entry)
+            {
+                return list.Remove(entry);
+            }
+
+            // Picks a random entry and returns it, removing it from the list
+            public string Drawentry()
+            {
+                if (list.Count == 0) return "";
+                int entry = generator.Next(0, list.Count);
+                string result = list.ElementAt(entry);
+                list.RemoveAt(entry);
+                return result;
+            }
+
+            // Picks a random entry but does not remove it
+            public string Randomentry()
+            {
+                if (list.Count == 0) return "";
+                int entry = generator.Next(0, list.Count);
+                string result = list.ElementAt(entry);
+                return result;
+            }
+
+            public int Count()
+            {
+                return list.Count;
+            }
+
+            public void Clear()
+            {
+                list.Clear();
+            }
+
+            public void LowercaseList ()                
+                {
+                for (int i=0;i<list.Count;i++)
+                   {
+                    list[i] = list[i].ToLower();
+                    }
+                }
+            public void Outputlist(ref QueueLongMessage msg,string separator=", ")
+                {
+                foreach (string entry in list) msg.Add(entry, separator);                 
+                }
+            
+
+            }
+
+
+        // BUG: Ok, this is much better, but there's still a bit of code duplication to slay... to be continued.
         private void mapperWhitelist(TwitchUser requestor, string request)
         {
             if (!requestor.isBroadcaster) return;
 
             if (request == "")
             {
-                QueueChatMessage("usage: mapperwhitelist <on>,<off>,<clear> or name of mapper file.");
+                QueueChatMessage("usage: mapperwhitelist <name of mapper list>");
                 return;
             }
 
-            if (request == "on")
+
+            string key = request.ToLower();
+            if (listcollection.ListCollection.ContainsKey(key))
+                {
+                mapperwhitelist = listcollection.ListCollection[key];
+                QueueChatMessage($"Mapper whitelist set to {request}.");
+                }
+            else
+                {
+                QueueChatMessage($"Unable to set mapper whitelist to {request}.");
+                } 
+        }
+
+        private void mapperBlacklist(TwitchUser requestor, string request)
+        {
+            if (!requestor.isBroadcaster) return;
+
+            if (request == "")
             {
-                QueueChatMessage("Only approved mapper songs are now allowed.");
-                mapperwhiteliston = true;
+                QueueChatMessage("usage: mapperblacklist <name of mapper list>");
                 return;
             }
 
-            if (request == "off")
+
+            string key = request.ToLower();
+            if (listcollection.ListCollection.ContainsKey(key))
             {
-                QueueChatMessage("Mapper whitelist is disabled.");
-                mapperwhiteliston = false;
-                return;
+                mapperblacklist = listcollection.ListCollection[key];
+                QueueChatMessage($"Mapper black list set to {request}.");
             }
-
-            if (request == "clear")
+            else
             {
-                QueueChatMessage("Mapper whitelist is now cleared.");
-
-                mapperwhitelist.Clear();
-                return;
+                QueueChatMessage($"Unable to set mapper blacklist to {request}.");
             }
-
-            string queuefile = Path.Combine(datapath, request + ".list");
-
-            string fileContent = File.ReadAllText(queuefile);
-
-            string[] Strings = fileContent.Split(new char[] { ' ', ',', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-            string whitelist = "Permitted mappers: ";
-            foreach (string mapper in Strings)
-            {
-                mapperwhitelist.Add(mapper.ToLower());
-                whitelist += mapper + " ";
-            }
-
-            if (mapperwhitelist.Count > 0) QueueChatMessage(whitelist);
-
         }
 
         // Not super efficient, but what can you do
@@ -589,16 +863,16 @@ namespace EnhancedTwitchChat.Bot
         {
             string normalizedauthor = song["authorName"].Value.ToLower();
 
-            if (mapperwhitelist.Count > 0)
+            if (mapperwhitelist.list.Count > 0)
             {
-                foreach (var mapper in mapperwhitelist)
+                foreach (var mapper in mapperwhitelist.list)
                 {
                     if (normalizedauthor.Contains(mapper)) return false;
                 }
                 return true;
             }
 
-            foreach (var mapper in mapperblacklist)
+            foreach (var mapper in mapperblacklist.list)
             {
                 if (normalizedauthor.Contains(mapper)) return true;
             }
@@ -607,53 +881,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        // Early code, work in progress.
-        private void mapperBlacklist(TwitchUser requestor, string request)
-        {
-            if (!requestor.isBroadcaster) return;
-
-            if (request == "")
-            {
-                QueueChatMessage("usage: mapperblacklist <on>,<off>,<clear> or name of mapper file.");
-                return;
-            }
-
-            if (request == "on")
-            {
-                QueueChatMessage("Songs with known bad mappers are disabled.");
-                mapperblackliston = true;
-                return;
-            }
-
-            if (request == "off")
-            {
-                QueueChatMessage("Bad mapper filtering is disabled.");
-                mapperblackliston = false;
-                return;
-            }
-
-            if (request == "clear")
-            {
-                QueueChatMessage("Bad mapper list is now cleared.");
-                mapperblacklist.Clear();
-                return;
-            }
-
-            string queuefile = Path.Combine(datapath, request + ".list");
-
-            string fileContent = File.ReadAllText(queuefile);
-
-            string[] Strings = fileContent.Split(new char[] { ',', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-            string blacklist = "Mapper blacklist: ";
-            foreach (string mapper in Strings)
-            {
-                mapperblacklist.Add(mapper.ToLower());
-                blacklist += mapper + " ";
-            }
-
-            if (mapperblacklist.Count > 0) QueueChatMessage(blacklist);
-        }
         #endregion
 
         #region Move Request To Top/Bottom
@@ -726,18 +953,17 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
         #region List Commands
-        private void showCommandlist(TwitchUser requestor, string request)
+    
+        // BUG: once we have aliases and command permissions, we can filter the results, so users do not see commands they have no access to    
+    private void showCommandlist(TwitchUser requestor, string request)
         {
             if (isNotModerator(requestor)) return;
 
-            string commands = "";
-            foreach (var item in Commands)
-            {
-                if (deck.ContainsKey(item.Key)) continue;  // Do not show deck names
-                commands += "!" + item.Key + " ";
-            }
+            var msg = new QueueLongMessage();
 
-            QueueChatMessage(commands);
+            foreach (var entry in Commands) msg.Add($"!{entry.Key}", " ");
+            msg.end("...", $"No commands available.");
+
         }
 
         private IEnumerator LookupSongs(TwitchUser requestor, string request)
@@ -797,83 +1023,10 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-        public class QueueLongMessage
-        {
-            private StringBuilder msgBuilder = new StringBuilder();
-            private int messageCount = 1;
-            private int maxMessages = 2;
-            const int maxoverflowtextlength = 120;
-
-            private bool overflow = false;
-            private bool first = true;
-
-            public int Count = 0;
-
-            // BUG: This version doesn't reallly strings > twitchmessagelength well
-
-            public void SetMaxMessages(int value)
-            {
-                maxMessages = value;
-            }
-
-            public void Header(string text)
-            {
-                msgBuilder.Append(text);
-            }
-
-            public bool Add(string text, string separator = "")
-            {
-
-                if (messageCount >= maxMessages && msgBuilder.Length + text.Length > MaximumTwitchMessageLength - maxoverflowtextlength)
-                {
-                    overflow = true;
-                    return true;
-                }
-
-                if (msgBuilder.Length + text.Length > MaximumTwitchMessageLength)
-                {
-                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());
-                    first = false;
-                    msgBuilder.Clear();
-                    msgBuilder.Append(text);
-                    Count++;
-                    messageCount++;
-                    return false;
-                }
-
-                if (!first) msgBuilder.Append(separator);
-                Count++;
-                msgBuilder.Append(text);
-                first = false;
-
-                return false;
-            }
-
-            public void end(string overflowtext = "", string emptymsg = "")
-            {
-
-                if (msgBuilder.Length + overflowtext.Length <= MaximumTwitchMessageLength && overflow)
-                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString() + overflowtext);
-                else
-                    RequestBot.Instance.QueueChatMessage(msgBuilder.ToString());
-
-                if (Count == 0) RequestBot.Instance.QueueChatMessage(emptymsg);
-
-                // Reset the class for reuse
-
-                overflow = false;
-                msgBuilder.Clear();
-                messageCount = 1;
-            }
-        }
-
-
-        const int MaximumTwitchMessageLength = 498; // BUG: Replace this with a cannonical source
-
         private void ListQueue(TwitchUser requestor, string request)
         {
 
-            QueueLongMessage msg = new QueueLongMessage();
+            var msg = new QueueLongMessage();
 
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
@@ -888,36 +1041,26 @@ namespace EnhancedTwitchChat.Bot
 
         private void ShowSongsplayed(TwitchUser requestor, string request) // Note: This can be spammy.
         {
-            if (played.Count == 0)
-            {
-                QueueChatMessage("No songs have been played.");
-                return;
-            }
 
-            int count = 0;
-            var queuetext = $"{played.Count} songs played this session: ";
+
+            var msg = new QueueLongMessage(2);
+
+            msg.Header($"{played.Count} songs played tonight: ");
+
             foreach (JSONObject song in played)
             {
-                string songdetail = song["songName"].Value + " (" + song["version"] + ")";
-
-                if (queuetext.Length + songdetail.Length > MaximumTwitchMessageLength)
-                {
-                    QueueChatMessage(queuetext);
-                    queuetext = "";
-                }
-
-                if (count > 0) queuetext += " , ";
-                queuetext += songdetail;
-                count++;
+                if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
             }
-            QueueChatMessage(queuetext);
+            msg.end($" ... and {played.Count - msg.Count} other songs.", "No songs have been played.");
+            return;
+
         }
 
         private void ShowBanList(TwitchUser requestor, string request)
         {
             if (isNotBroadcaster(requestor, "blist")) return;
 
-            QueueLongMessage msg = new QueueLongMessage();
+            var msg = new QueueLongMessage();
 
             msg.Header("Banlist ");
 
@@ -929,29 +1072,6 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
-        private void ListPlayedList(TwitchUser requestor, string request)
-        {
-            if (isNotModerator(requestor)) return;
-
-
-            int count = 0;
-            var queuetext = "Requested this session: ";
-            foreach (string req in duplicatelist.ToArray())
-            {
-                if (queuetext.Length + req.Length > MaximumTwitchMessageLength)
-                {
-                    QueueChatMessage(queuetext);
-                    queuetext = "";
-                }
-                else if (count > 0) queuetext += " , ";
-
-                queuetext += req;
-                count++;
-            }
-
-            if (count == 0) queuetext = "Played list is empty.";
-            QueueChatMessage(queuetext);
-        }
         #endregion
 
         #region Queue Related
@@ -971,7 +1091,7 @@ namespace EnhancedTwitchChat.Bot
 
             QueueOpen = state;
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
-            WriteQueueStatusToFile(state ? "Queue is now open." : "Queue is closed");
+            WriteQueueStatusToFile(state ? "Queue is open" : "Queue is closed");
             _refreshQueue = true;
         }
         private static void WriteQueueSummaryToFile()

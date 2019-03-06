@@ -87,7 +87,7 @@ namespace EnhancedTwitchChat
         public bool ShowStarRating = true; // Show star rating (quality, not difficulty) on songs being requested *IMPLEMENTED*, needs UI
 
         public int MaxiumAddScanRange = 80; // How far down the list to scan , currently in use by unpublished commands
-        public int maxaddnewresults = 10;  // Max results per command
+        public int maxaddnewresults = 5;  // Max results per command,mainly to avoid overwhelming the queue *needs UI*
 
         public event Action<Config> ConfigChangedEvent;
 
