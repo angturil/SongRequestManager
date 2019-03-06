@@ -574,7 +574,9 @@ namespace EnhancedTwitchChat.Bot
 
         const CmdFlags Everyone = CmdFlags.Everyone;
         const CmdFlags Broadcasteronly = CmdFlags.Broadcaster;
-        const CmdFlags Modonly =  CmdFlags.Broadcaster | CmdFlags.Mod;
+        const CmdFlags Mod =  CmdFlags.Broadcaster | CmdFlags.Mod;
+        const CmdFlags Sub = CmdFlags.Sub; 
+        const CmdFlags VIP = CmdFlags.VIP;
             
         // Prototype code only
         public struct BOTCOMMAND
@@ -613,7 +615,7 @@ namespace EnhancedTwitchChat.Bot
         public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: %x")
         {
             string [] list = new string[] { alias };
-            cmdlist.Add(new BOTCOMMAND(method, flags, "", list));
+            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, list));
         }
 
         private void InitializeCommands()
@@ -626,18 +628,17 @@ namespace EnhancedTwitchChat.Bot
                 AddCommand(c, ProcessSongRequest,Everyone);
                 Plugin.Log($"Added command alias \"{c}\" for song requests.");
             }
-
   
             // Testing prototype code now
-            AddCommand("queue", ListQueue,Everyone);
-            AddCommand("unblock", Unban,Modonly);
-            AddCommand("block", Ban,Modonly);
-            AddCommand("remove", DequeueSong,Modonly);
+            AddCommand("queue", ListQueue,Everyone,"usage: !queue ... Displays a list of the currently requested songs.");
+            AddCommand("unblock", Unban,Mod);
+            AddCommand("block", Ban,Mod);
+            AddCommand("remove", DequeueSong,Mod);
             AddCommand("clearqueue", Clearqueue,Broadcasteronly);
-            AddCommand("mtt", MoveRequestToTop,Modonly);
+            AddCommand("mtt", MoveRequestToTop,Mod);
             AddCommand("remap", Remap);
             AddCommand("unmap", Unmap);
-            AddCommand(new string [] { "lookup","find"}, lookup,Modonly | CmdFlags.Sub );
+            AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"usage: !lookup <song name> or <beatsaber id>, do not include <>'s.");
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom);
             AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong,Everyone);
             AddCommand("blist", ShowBanList);
@@ -645,7 +646,7 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("close", CloseQueue);
             AddCommand("restore", restoredeck);
             AddCommand("commandlist", showCommandlist,Everyone);
-            AddCommand("played", ShowSongsplayed,Modonly);
+            AddCommand("played", ShowSongsplayed,Mod);
             AddCommand("readdeck", Readdeck);
             AddCommand("writedeck", Writedeck);
             AddCommand("clearalreadyplayed", ClearDuplicateList); // Needs a better name
@@ -658,11 +659,8 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("mapperwhitelist", mapperWhitelist,Broadcasteronly);  // this interface will change shortly.
             AddCommand("mapperblacklist", mapperBlacklist,Broadcasteronly);  // Subject to change
 
-            AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs,Modonly);
+            AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs,Mod);
             AddCommand("addsongs", addSongs,Broadcasteronly); // Basically search all, need to decide if its useful
-
-
-
 
             // Temporary commands for testing
             AddCommand("load", LoadList);
@@ -809,7 +807,12 @@ namespace EnhancedTwitchChat.Bot
                 CmdFlags twitchpermission = botcmd.cmdflags & CmdFlags.TwitchLevel;
                 Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
                 }
-       
+
+            if (param == "?")
+                {
+                Instance?.QueueChatMessage(botcmd.ShortHelp);
+                return;
+                }
 
             try
             {
