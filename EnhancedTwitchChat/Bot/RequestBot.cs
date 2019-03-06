@@ -546,16 +546,17 @@ namespace EnhancedTwitchChat.Bot
                 Plugin.Log($"Added command alias \"{c}\" for song requests.");
             }
   
+
             // Testing prototype code now
-            AddCommand("queue", ListQueue,Everyone,"%user, this command is restricted to %rights use: !%alias... Displays a list of the currently requested songs.");
-            AddCommand("unblock", Unban,Mod);
-            AddCommand("block", Ban,Mod);
+            AddCommand("queue", ListQueue,Everyone,"%user, this command is restricted to %rights use: [ %alias ] ... Displays a list of the currently requested songs.");
+            AddCommand("unblock", Unban,Mod,"usage: %alias <song id>, do not include <,>'s.");
+            AddCommand("block", Ban,Mod,"usage: %alias <song id>, do not include <,>'s.");
             AddCommand("remove", DequeueSong,Mod);
             AddCommand("clearqueue", Clearqueue,Broadcasteronly);
             AddCommand("mtt", MoveRequestToTop,Mod);
             AddCommand("remap", Remap);
             AddCommand("unmap", Unmap);
-            AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"Hey %user, usage: %rights !%alias <song name> or <beatsaber id>, do not include <>'s.");
+            AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"Hey %user, usage: %rights [%alias] <song name> or <beatsaber id>, omit <>'s.%endusage Get a list of songs from https://beatsaver.com matching your search criteria.");
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom);
             AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong,Everyone);
             AddCommand("blist", ShowBanList);
@@ -796,7 +797,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        public static string ParseHelpMessage(ref string message,ref BOTCOMMAND botcmd, ref TwitchUser user, ref string param)
+        public static string ParseHelpMessage(ref string message, ref BOTCOMMAND botcmd, ref TwitchUser user, ref string param, bool parselong = false)
             {
             StringBuilder msgtext = new StringBuilder();
 
@@ -823,8 +824,8 @@ namespace EnhancedTwitchChat.Bot
                 }
                 else if (parts[i].ToLower().Contains("alias"))
                 {
-                    var aliastext = "";
-                    foreach (var alias in botcmd.aliases) aliastext += $"<{alias}> ";
+                    StringBuilder aliastext = new StringBuilder();
+                    foreach (var alias in botcmd.aliases) aliastext.Append( $"!{alias} ");
                     msgtext.Append(aliastext);
                     msgtext.Append(parts[i].Substring(5));
                 }
@@ -835,6 +836,11 @@ namespace EnhancedTwitchChat.Bot
                     aliastext += "]";
                     msgtext.Append(aliastext);
                     msgtext.Append(parts[i].Substring(6));
+                }
+                else if (parts[i].ToLower().Contains("endusage")) // This lets us show only the usage part, if parselong is set to true, we process the rest of the message too
+                {
+                    if (!parselong) break;    
+                    msgtext.Append(parts[i].Substring(8));
                 }
 
             }
@@ -893,7 +899,9 @@ namespace EnhancedTwitchChat.Bot
             }
         catch (Exception ex)
             {
-                Plugin.Log(ex.ToString());
+            // Display failure message, and lock out command for a time period.
+
+            Plugin.Log(ex.ToString());
 
             }
 
