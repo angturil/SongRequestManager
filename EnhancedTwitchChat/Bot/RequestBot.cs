@@ -867,18 +867,40 @@ namespace EnhancedTwitchChat.Bot
             return;
             }
 
-
         // Get help on a command
         private void help(TwitchUser requestor, string request)
             {
+            if (request == "")
+            {
+                var msg = new QueueLongMessage();
+                msg.Header("Usage: help < ");
+                foreach (var entry in NewCommands)
+                    {
+                    var botcmd = entry.Value;
+                    if (HasRights(ref botcmd,ref requestor))
+                    msg.Add($"{entry.Key}", " ");
+                    }
+                msg.Add(">");
+                msg.end("...", $"No commands available >");
+                return;
+            }
             if (NewCommands.ContainsKey(request.ToLower()))
                 {
                 var BotCmd = NewCommands[request.ToLower()];
                 ShowHelpMessage(ref BotCmd, ref requestor, request, true);
-                }
-            
+                }            
             }
 
+        public static bool HasRights(ref BOTCOMMAND botcmd,ref TwitchUser user)
+        {
+            if (botcmd.cmdflags.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
+            if (user.isBroadcaster & botcmd.cmdflags.HasFlag(CmdFlags.Broadcaster)) return true;
+            if (user.isMod & botcmd.cmdflags.HasFlag(CmdFlags.Mod)) return true;
+            if (user.isSub & botcmd.cmdflags.HasFlag(CmdFlags.Sub)) return true;
+            if (user.isVip & botcmd.cmdflags.HasFlag(CmdFlags.VIP)) return true;
+            return false;
+
+        }
 
         public static void ExecuteCommand(string command, ref TwitchUser user, string param)
         {
@@ -886,14 +908,8 @@ namespace EnhancedTwitchChat.Bot
 
             // Check permissions first
 
-            bool allow = false;
+            bool allow = HasRights(ref botcmd,ref user);
 
-            if (botcmd.cmdflags.HasFlag(CmdFlags.Everyone)) allow = true; // Not sure if this is the best approach actually, not worth thinking about right now
-
-            else if (user.isBroadcaster & botcmd.cmdflags.HasFlag(CmdFlags.Broadcaster)) allow = true;
-            else if (user.isMod & botcmd.cmdflags.HasFlag(CmdFlags.Mod)) allow = true;
-            else if (user.isSub & botcmd.cmdflags.HasFlag(CmdFlags.Sub)) allow = true;
-            else if (user.isVip & botcmd.cmdflags.HasFlag(CmdFlags.VIP)) allow = true;
 
             if (!allow)
                 {
