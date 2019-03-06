@@ -569,6 +569,8 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("writedeck", Writedeck);
             AddCommand("clearalreadyplayed", ClearDuplicateList); // Needs a better name
 
+            AddCommand("help", help, Everyone, "usage: !alias <command name>");
+
             AddCommand("link", ShowSongLink,Everyone);
 
 
@@ -863,6 +865,18 @@ namespace EnhancedTwitchChat.Bot
                             Instance?.QueueChatMessage(text);
 
             return;
+            }
+
+
+        // Get help on a command
+        private void help(TwitchUser requestor, string request)
+            {
+            if (NewCommands.ContainsKey(request.ToLower()))
+                {
+                var BotCmd = NewCommands[request.ToLower()];
+                ShowHelpMessage(ref BotCmd, ref requestor, request, true);
+                }
+            
             }
 
 
