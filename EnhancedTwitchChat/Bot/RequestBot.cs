@@ -612,6 +612,9 @@ namespace EnhancedTwitchChat.Bot
 
         private void InitializeCommands()
         {
+
+            // Note: Default permissions are broadcaster only, so don't need to set them
+
             foreach (string c in Config.Instance.RequestCommandAliases.Split(',').Distinct())
             {
                 AddCommand(c, ProcessSongRequest,Everyone);
@@ -622,39 +625,36 @@ namespace EnhancedTwitchChat.Bot
    
             // Testing prototype code now
             AddCommand("queue", ListQueue,Everyone);
-            AddCommand("unblock", Unban);
-            AddCommand("block", Ban);
-            AddCommand("remove", DequeueSong);
-            AddCommand("clearqueue", Clearqueue);
-            AddCommand("mtt", MoveRequestToTop);
+            AddCommand("unblock", Unban,Modonly);
+            AddCommand("block", Ban,Modonly);
+            AddCommand("remove", DequeueSong,Modonly);
+            AddCommand("clearqueue", Clearqueue,Broadcasteronly);
+            AddCommand("mtt", MoveRequestToTop,Modonly);
             AddCommand("remap", Remap);
             AddCommand("unmap", Unmap);
-            AddCommand(new string [] { "lookup","find"}, lookup);
+            AddCommand(new string [] { "lookup","find"}, lookup,Modonly | CmdFlags.Sub );
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom);
-            AddCommand("wrongsong", WrongSong,Everyone);
-            AddCommand("wrong", WrongSong);
-            AddCommand("oops", WrongSong);
-            AddCommand("blist", ShowBanList,Broadcasteronly);
+            AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong,Everyone);
+            AddCommand("blist", ShowBanList);
             AddCommand("open", OpenQueue);
             AddCommand("close", CloseQueue);
             AddCommand("restore", restoredeck);
-            AddCommand("commandlist", showCommandlist);
-            AddCommand("played", ShowSongsplayed);
+            AddCommand("commandlist", showCommandlist,Everyone);
+            AddCommand("played", ShowSongsplayed,Modonly);
             AddCommand("readdeck", Readdeck);
             AddCommand("writedeck", Writedeck);
             AddCommand("clearalreadyplayed", ClearDuplicateList); // Needs a better name
 
-            AddCommand("link", ShowSongLink);
+            AddCommand("link", ShowSongLink,Everyone);
 
 
             // Whitelists mappers and add new songs, this code is being refactored and transitioned to testing
 
-            AddCommand("mapperwhitelist", mapperWhitelist);  // this interface will change shortly.
-            AddCommand("mapperblacklist", mapperBlacklist);  // Subject to change
+            AddCommand("mapperwhitelist", mapperWhitelist,Broadcasteronly);  // this interface will change shortly.
+            AddCommand("mapperblacklist", mapperBlacklist,Broadcasteronly);  // Subject to change
 
-            AddCommand("addnew", addNewSongs);
-            AddCommand("addlatest", addNewSongs);
-            AddCommand("addsongs", addSongs); // Basically search all, need to decide if its useful
+            AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs,Modonly);
+            AddCommand("addsongs", addSongs,Broadcasteronly); // Basically search all, need to decide if its useful
 
 
             LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
