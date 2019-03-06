@@ -341,7 +341,8 @@ namespace EnhancedTwitchChat.Bot
                 RequestQueue.Write();
 
                 Writedeck(requestor, "savedqueue"); // Might not be needed.. logic around saving and loading deck state needs to be reworked
-                QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song, Config.Instance.ShowStarRating)} ({song["version"].Value}) added to queue.");
+
+                QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song, Config.Instance.ShowStarRating)} ({song["version"].Value}) added to queue.");  
 
                 UpdateRequestButton();
 
@@ -546,14 +547,13 @@ namespace EnhancedTwitchChat.Bot
 
             foreach (string c in Config.Instance.RequestCommandAliases.Split(',').Distinct())
             {
-                AddCommand(c, ProcessSongRequest,Everyone);
+                AddCommand(c, ProcessSongRequest,Everyone,"usage: %alias <songname> or <song id>, omit <,>'s. %endusage This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver",_anything);
                 Plugin.Log($"Added command alias \"{c}\" for song requests.");
             }
   
-
             // Testing prototype code now
-            AddCommand("queue", ListQueue,Everyone,"%user, this command is restricted to %rights use: [ %alias ] ... Displays a list of the currently requested songs.");
-            AddCommand("unblock", Unban,Mod,"usage: %alias <song id>, do not include <,>'s.");
+            AddCommand("queue", ListQueue,Everyone,"%user, this command is restricted to %rights use: [ %alias ] ... Displays a list of the currently requested songs.",_nothing);
+            AddCommand("unblock", Unban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
             AddCommand("block", Ban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
             AddCommand("remove", DequeueSong,Mod);
             AddCommand("clearqueue", Clearqueue,Broadcasteronly);
@@ -567,16 +567,14 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("open", OpenQueue);
             AddCommand("close", CloseQueue);
             AddCommand("restore", restoredeck);
-            AddCommand("commandlist", showCommandlist,Everyone);
+            AddCommand("commandlist", showCommandlist,Everyone,"usage: %alias %endusage Displays all the bot commands available to you.",_nothing);
             AddCommand("played", ShowSongsplayed,Mod);
             AddCommand("readdeck", Readdeck);
             AddCommand("writedeck", Writedeck);
-            AddCommand("clearalreadyplayed", ClearDuplicateList); // Needs a better name
 
-            AddCommand("help", help, Everyone, "usage: !alias <command name>");
-
-            AddCommand("link", ShowSongLink,Everyone);
-
+            AddCommand("clearalreadyplayed", ClearDuplicateList,Broadcasteronly,"usage: %alias %endusage ... clears the list of already requested songs, allowing them to be requested again.",_nothing); // Needs a better name
+            AddCommand("help", help, Everyone, "usage: %alias <command name>, or just %alias to show a list of all commands available to you.",_anything);
+            AddCommand("link", ShowSongLink,Everyone,"usage: %alias%endusage ... Shows details, and a link to the current song",_nothing);
 
             // Whitelists mappers and add new songs, this code is being refactored and transitioned to testing
 
@@ -752,7 +750,7 @@ namespace EnhancedTwitchChat.Bot
 
             SilentPreflight = 16277216, //  
 
-            Disabled = 1 << 30, // If off, the command will not be added to the alias list at all.
+            Disabled = 1 << 30, // If ON, the command will not be added to the alias list at all.
         }
 
         const CmdFlags Default = CmdFlags.UsageHelp;
@@ -774,6 +772,7 @@ namespace EnhancedTwitchChat.Bot
             public string LongHelp; // Long help text
             public string HelpLink; // Help website link
             StringListManager permittedusers; // List of users permitted to use the command, uses list manager.
+            public string userparameter; // This is here incase I need it for some specific purpose
 
             public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext,Regex regex, string[] alias)
             {
@@ -788,7 +787,8 @@ namespace EnhancedTwitchChat.Bot
                     regexfilter = _anything;
                 else
                     regexfilter = regex;
-                ;
+
+                userparameter = "";
 
 
                 foreach (var entry in aliases) NewCommands.Add(entry, this);
@@ -853,6 +853,11 @@ namespace EnhancedTwitchChat.Bot
                 {
                     if (!parselong) break;    
                     msgtext.Append(parts[i].Substring(8));
+                }
+                else if (parts[i].ToLower().Contains("beatsaver")) // This lets us show only the usage part, if parselong is set to true, we process the rest of the message too
+                {
+                    msgtext.Append("https://beatsaver.com"); // We can turn this off here    
+                    msgtext.Append(parts[i].Substring(9));
                 }
 
             }
@@ -925,7 +930,6 @@ namespace EnhancedTwitchChat.Bot
 
             bool allow = HasRights(ref botcmd,ref user);
 
-
             if (!allow)
                 {
                 CmdFlags twitchpermission = botcmd.cmdflags & CmdFlags.TwitchLevel;
@@ -940,7 +944,6 @@ namespace EnhancedTwitchChat.Bot
                 }
 
             // Check regex
-
             
             if (!botcmd.regexfilter.IsMatch(param))
                 {
@@ -955,7 +958,7 @@ namespace EnhancedTwitchChat.Bot
             }
         catch (Exception ex)
             {
-            // Display failure message, and lock out command for a time period.
+            // Display failure message, and lock out command for a time period. Not yet.
 
             Plugin.Log(ex.ToString());
 
