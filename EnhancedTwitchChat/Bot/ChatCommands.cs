@@ -961,7 +961,7 @@ namespace EnhancedTwitchChat.Bot
 
             var msg = new QueueLongMessage();
 
-            foreach (var entry in Commands) msg.Add($"!{entry.Key}", " ");
+            foreach (var entry in NewCommands) msg.Add($"!{entry.Key}", " ");
             msg.end("...", $"No commands available.");
 
         }

@@ -59,7 +59,9 @@ namespace EnhancedTwitchChat.Bot
         private static FlowCoordinator _levelSelectionFlowCoordinator;
         private static DismissableNavigationController _levelSelectionNavigationController;
         private static Queue<string> _botMessageQueue = new Queue<string>();
-        private static Dictionary<string, Action<TwitchUser, string>> Commands = new Dictionary<string, Action<TwitchUser, string>>();
+        //private static Dictionary<string, Action<TwitchUser, string>> Commands = new Dictionary<string, Action<TwitchUser, string>>();
+
+        private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // This will replace command dictionary
 
         static public bool QueueOpen = false;
         bool mapperwhiteliston = false;
@@ -532,77 +534,130 @@ namespace EnhancedTwitchChat.Bot
             Instance?.StartCoroutine(ProcessSongRequest(0));
         }
 
+
+        // Some of these are just ideas, putting them all down, can filter them out later
+        [Flags] public enum CmdFlags
+        {
+            None = 0,
+            Everyone = 1,
+            Sub = 2,
+            Mod = 4,
+            Broadcaster = 8,
+            VIP=16,
+            PermitUser=32,  // If this is enabled, users on a list are allowed to use a command (this is an OR, so leave restrictions to Broadcaster if you want ONLY users on a list)  
+            ShowRestrictions = 64, // Using the command without the right access level will show permissions error. Mostly used for commands that can be unlocked at different tiers.
+            UsageHelp=128, // Enable usage help for blank / invalid command
+            LongHelp=256, // Enable ? operation, showing a longer explanation in stream (try to limit it to one message)
+            HelpLink=512, // Enable link to web documentation
+
+            WhisperReply=1024, // Reply in a whisper to the user (future feature?). Allow commands to send the results to the user, avoiding channel spam
+    
+            Timeout=2048, // Applies a timeout to regular users after a command is succesfully invoked (the timeout is shared by requestor), this is just a concept atm
+            TimeoutSub=4096, // Applies a timeout to Subs
+            TimeoutVIP=8192, // Applies a timeout to VIP's
+            TimeoutMod=16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
+
+            NoLinks=32768, // Turn off any links that the command may normally generate
+            Silence=65536, // Command produces no output at all - but still executes
+            Verbose=131072, // Turn off command output limits, This can result in excessive channel spam
+            Log=262144, // Log every use of the command to a file
+            RegEx, // Enable regex check
+
+            Enabled = 1<<30, // If off, the command will not be added to the alias list at all.
+        }
+
+        const CmdFlags Everyone = CmdFlags.Enabled |  CmdFlags.Everyone;
+        const CmdFlags Broadcasteronly = CmdFlags.Enabled | CmdFlags.Broadcaster;
+        const CmdFlags Modonly = CmdFlags.Enabled | CmdFlags.Broadcaster | CmdFlags.Mod;
+            
         // Prototype code only
         public struct BOTCOMMAND
         {
-            public Action<TwitchUser, string> function;
-            public int permissions;
-            public string shorthelp;
+            public Action<TwitchUser, string> Method;  // Method to call
+            public CmdFlags cmdflags;                  // flags
+            public string ShortHelp;                   // short help text (on failing preliminary check
+            public List<string> aliases;               // list of command aliases
+            public List<string> regexfilters;          // reg ex filters to apply If Any match, you're good.
 
-            public BOTCOMMAND(Action<TwitchUser, string> f, int permission,string shorthelptext)
+            public string LongHelp; // Long help text
+            public string HelpLink; // Help website link
+            StringListManager permittedusers; // List of users permitted to use the command, uses list manager.
+
+            public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags,string shorthelptext,string [] alias)
                 {
-                function = f;
-                permissions = permission;
-                shorthelp = shorthelptext;
+                Method = method;
+                cmdflags = flags;
+                ShortHelp = shorthelptext;
+                aliases = alias.ToList();
+                LongHelp = "";
+                HelpLink = "";
+                permittedusers = null;
+                regexfilters = null;
+                foreach (var entry in aliases) NewCommands.Add(entry, this);                
                 }
         }
 
         public static List<BOTCOMMAND> cmdlist = new List<BOTCOMMAND>() ; 
 
-        public void test ()
+        public void AddCommand ( string[] alias,Action<TwitchUser, string> method, CmdFlags flags=Broadcasteronly, string shorthelptext="usage: %x")
             {
-            cmdlist.Add( new BOTCOMMAND (Ban,100, "queue"));
-
-            cmdlist[0].function?.Invoke(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
+            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext,alias));
             }
 
-        
+        public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: %x")
+        {
+            string [] list = new string[] { alias };
+            cmdlist.Add(new BOTCOMMAND(method, Broadcasteronly, "", list));
+        }
+
         private void InitializeCommands()
         {
             foreach (string c in Config.Instance.RequestCommandAliases.Split(',').Distinct())
             {
-                Commands.Add(c, ProcessSongRequest);
+                AddCommand(c, ProcessSongRequest);
                 Plugin.Log($"Added command alias \"{c}\" for song requests.");
             }
 
             ReadRemapList();
+   
+            // Testing prototype code now
+            AddCommand("queue", ListQueue);
+            AddCommand("unblock", Unban);
+            AddCommand("block", Ban);
+            AddCommand("remove", DequeueSong);
+            AddCommand("clearqueue", Clearqueue);
+            AddCommand("mtt", MoveRequestToTop);
+            AddCommand("remap", Remap);
+            AddCommand("unmap", Unmap);
+            AddCommand("lookup", lookup);
+            AddCommand("find", lookup);
+            AddCommand("last", MoveRequestToBottom);
+            AddCommand("demote", MoveRequestToBottom);
+            AddCommand("later", MoveRequestToBottom);
+            AddCommand("wrongsong", WrongSong);
+            AddCommand("wrong", WrongSong);
+            AddCommand("oops", WrongSong);
+            AddCommand("blist", ShowBanList);
+            AddCommand("open", OpenQueue);
+            AddCommand("close", CloseQueue);
+            AddCommand("restore", restoredeck);
+            AddCommand("commandlist", showCommandlist);
+            AddCommand("played", ShowSongsplayed);
+            AddCommand("readdeck", Readdeck);
+            AddCommand("writedeck", Writedeck);
+            AddCommand("clearalreadyplayed", ClearDuplicateList); // Needs a better name
 
-            Commands.Add("queue", ListQueue);
-            Commands.Add("unblock", Unban);
-            Commands.Add("block", Ban);
-            Commands.Add("remove", DequeueSong);
-            Commands.Add("clearqueue", Clearqueue);
-            Commands.Add("mtt", MoveRequestToTop);
-            Commands.Add("remap", Remap);
-            Commands.Add("unmap", Unmap);
-            Commands.Add("lookup", lookup);
-            Commands.Add("find", lookup);
-            Commands.Add("last", MoveRequestToBottom);
-            Commands.Add("demote", MoveRequestToBottom);
-            Commands.Add("later", MoveRequestToBottom);
-            Commands.Add("wrongsong", WrongSong);
-            Commands.Add("wrong", WrongSong);
-            Commands.Add("oops", WrongSong);
-            Commands.Add("blist", ShowBanList);
-            Commands.Add("open", OpenQueue);
-            Commands.Add("close", CloseQueue);
-            Commands.Add("restore", restoredeck);
-            Commands.Add("commandlist", showCommandlist);
-            Commands.Add("played", ShowSongsplayed);
-            Commands.Add("readdeck", Readdeck);
-            Commands.Add("writedeck", Writedeck);
-            Commands.Add("clearalreadyplayed", ClearDuplicateList); // Needs a better name
+            AddCommand("link", ShowSongLink);
 
-            Commands.Add("link", ShowSongLink);
 
             // Whitelists mappers and add new songs, this code is being refactored and transitioned to testing
 
-            Commands.Add("mapperwhitelist", mapperWhitelist);  // this interface will change shortly.
-            Commands.Add("mapperblacklist", mapperBlacklist);  // Subject to change
+            AddCommand("mapperwhitelist", mapperWhitelist);  // this interface will change shortly.
+            AddCommand("mapperblacklist", mapperBlacklist);  // Subject to change
 
-            Commands.Add("addnew", addNewSongs);
-            Commands.Add("addlatest", addNewSongs);
-            Commands.Add("addsongs", addSongs); // Basically search all, need to decide if its useful
+            AddCommand("addnew", addNewSongs);
+            AddCommand("addlatest", addNewSongs);
+            AddCommand("addsongs", addSongs); // Basically search all, need to decide if its useful
 
 
             LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
@@ -610,23 +665,31 @@ namespace EnhancedTwitchChat.Bot
 
 
             // Temporary commands for testing
-            Commands.Add("load", LoadList);
-            Commands.Add("unload", UnloadList);
-            Commands.Add("clearlist", ClearList);
-            Commands.Add("write", writelist);
-            Commands.Add("list", ListList);
-            Commands.Add("lists", showlists);
+            AddCommand("load", LoadList);
+            AddCommand("unload", UnloadList);
+            AddCommand("clearlist", ClearList);
+            AddCommand("write", writelist);
+            AddCommand("list", ListList);
+            AddCommand("lists", showlists);
 
 
 #if PRIVATE
-            Commands.Add("deck",createdeck);
-            Commands.Add("unloaddeck",unloaddeck);      
-            Commands.Add("loaddecks",loaddecks);
-            Commands.Add("decklist",decklist);
-            Commands.Add("mapper", addsongsbymapper); // This is actually most useful if we send it straight to list
+            AddCommand("deck",createdeck);
+            AddCommand("unloaddeck",unloaddeck);      
+            AddCommand("loaddecks",loaddecks);
+            AddCommand("decklist",decklist);
+            AddCommand("mapper", addsongsbymapper); // This is actually most useful if we send it straight to list
 
             loaddecks (TwitchWebSocketClient.OurTwitchUser,"");
 #endif
+
+            var msg = new QueueLongMessage();
+            msg.Header("New command table: ");
+            foreach (var entry in cmdlist)
+                foreach (var alias in entry.aliases)
+                    msg.Add(alias, ", ");
+            msg.end("...", "No new commands defined");
+
         }
 
         private void lookup(TwitchUser requestor, string request)
@@ -732,7 +795,7 @@ namespace EnhancedTwitchChat.Bot
             if (parts.Length <= 0) return;
 
             string command = parts[0].Substring(1)?.ToLower();
-            if (Commands.ContainsKey(command))
+            if (NewCommands.ContainsKey(command))
             {
                 string param = parts.Length > 1 ? parts[1] : "";
                 if (deck.ContainsKey(command))
@@ -740,8 +803,8 @@ namespace EnhancedTwitchChat.Bot
                     param = command;
                     if (parts.Length > 1) param += " " + parts[1];
                 }
-                Commands[command]?.Invoke(user, param);
-
+                //Commands[command]?.Invoke(user, param);
+                NewCommands[command].Method(user, param);
             }
         }
 
