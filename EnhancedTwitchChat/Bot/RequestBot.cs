@@ -544,7 +544,9 @@ namespace EnhancedTwitchChat.Bot
             Mod = 4,
             Broadcaster = 8,
             VIP=16,
-            PermitUser=32,  // If this is enabled, users on a list are allowed to use a command (this is an OR, so leave restrictions to Broadcaster if you want ONLY users on a list)  
+            UserList=32,  // If this is enabled, users on a list are allowed to use a command (this is an OR, so leave restrictions to Broadcaster if you want ONLY users on a list)
+            TwitchLevel=63, // This is used to show ONLY the twitch user flags when showing permissions
+  
             ShowRestrictions = 64, // Using the command without the right access level will show permissions error. Mostly used for commands that can be unlocked at different tiers.
             UsageHelp=128, // Enable usage help for blank / invalid command
             LongHelp=256, // Enable ? operation, showing a longer explanation in stream (try to limit it to one message)
@@ -567,12 +569,12 @@ namespace EnhancedTwitchChat.Bot
             UserFlag3 = 4194304, // Use it for whatever bit makes you happy 
             UserFlag4 = 8388608, // Use it for whatever bit makes you happy 
 
-            Enabled = 1<<30, // If off, the command will not be added to the alias list at all.
+            Disabled = 1<<30, // If off, the command will not be added to the alias list at all.
         }
 
-        const CmdFlags Everyone = CmdFlags.Enabled |  CmdFlags.Everyone;
-        const CmdFlags Broadcasteronly = CmdFlags.Enabled | CmdFlags.Broadcaster;
-        const CmdFlags Modonly = CmdFlags.Enabled | CmdFlags.Broadcaster | CmdFlags.Mod;
+        const CmdFlags Everyone = CmdFlags.Everyone;
+        const CmdFlags Broadcasteronly = CmdFlags.Broadcaster;
+        const CmdFlags Modonly =  CmdFlags.Broadcaster | CmdFlags.Mod;
             
         // Prototype code only
         public struct BOTCOMMAND
@@ -791,7 +793,6 @@ namespace EnhancedTwitchChat.Bot
         {
         var botcmd= NewCommands[command];
 
-
             // Check permissions first
 
             bool allow = false;
@@ -805,7 +806,8 @@ namespace EnhancedTwitchChat.Bot
 
             if (!allow)
                 {
-                Instance?.QueueChatMessage($"{command} is restricted to {botcmd.cmdflags.ToString()}");
+                CmdFlags twitchpermission = botcmd.cmdflags & CmdFlags.TwitchLevel;
+                Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
                 }
        
 
