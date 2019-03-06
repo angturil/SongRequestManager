@@ -555,20 +555,20 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("queue", ListQueue,Everyone,"usage: %alias %endusage  ... Displays a list of the currently requested songs.",_nothing);
             AddCommand("unblock", Unban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
             AddCommand("block", Ban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
-            AddCommand("remove", DequeueSong,Mod);
+            AddCommand("remove", DequeueSong,Mod, "usage: %alias <songname>,<username>,<song id> %endusage ... Removes a song from the queue.",_anything);
             AddCommand("clearqueue", Clearqueue,Broadcasteronly);
             AddCommand("mtt", MoveRequestToTop,Mod,"usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the top of the request queue.",_anything );
-            AddCommand("remap", Remap);
-            AddCommand("unmap", Unmap);
+            AddCommand("remap", Remap,Mod);
+            AddCommand("unmap", Unmap,Mod);
             AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"usage: %rights [%alias] <song name> or <beatsaber id>, omit <>'s.%endusage Get a list of songs from %beatsaver matching your search criteria.");
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom,Mod,"usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the bottom of the request queue.", _anything);
             AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong,Everyone,"usage: %alias %endusage ... Removes your last requested song form the queue. It can be requested again later.",_nothing);
-            AddCommand("blist", ShowBanList);
-            AddCommand("open", OpenQueue);
-            AddCommand("close", CloseQueue);
-            AddCommand("restore", restoredeck);
-            AddCommand("commandlist", showCommandlist,Everyone,"usage: %alias %endusage Displays all the bot commands available to you.",_nothing);
-            AddCommand("played", ShowSongsplayed,Mod);
+            AddCommand("blist", ShowBanList,Broadcasteronly,"usage: Don't use, it will spam chat.",_nothing);
+            AddCommand("open", OpenQueue,Broadcasteronly,"usage: %alias %endusage ... Opens the queue allowing song requests.",_nothing);
+            AddCommand("close", CloseQueue,Broadcasteronly, "usage: %alias %endusage ... Closes the request queue.", _nothing);
+            AddCommand("restore", restoredeck,Broadcasteronly,"usage: %alias %endusage ... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.",_nothing );
+            AddCommand("commandlist", showCommandlist,Everyone,"usage: %alias %endusage ... Displays all the bot commands available to you.",_nothing);
+            AddCommand("played", ShowSongsplayed,Mod,"usage: %alias %endusage ... Displays all the songs already played this session.", _nothing);
             AddCommand("readdeck", Readdeck);
             AddCommand("writedeck", Writedeck);
 
@@ -591,7 +591,6 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("write", writelist);
             AddCommand("list", ListList);
             AddCommand("lists", showlists);
-
 
 #if PRIVATE
             AddCommand("deck",createdeck);
