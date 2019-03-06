@@ -547,7 +547,7 @@ namespace EnhancedTwitchChat.Bot
             }
   
             // Testing prototype code now
-            AddCommand("queue", ListQueue,Everyone,"usage: !queue ... Displays a list of the currently requested songs.");
+            AddCommand("queue", ListQueue,Everyone,"%user, this command is restricted to %rights use: !%alias... Displays a list of the currently requested songs.");
             AddCommand("unblock", Unban,Mod);
             AddCommand("block", Ban,Mod);
             AddCommand("remove", DequeueSong,Mod);
@@ -555,7 +555,7 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("mtt", MoveRequestToTop,Mod);
             AddCommand("remap", Remap);
             AddCommand("unmap", Unmap);
-            AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"usage: !lookup <song name> or <beatsaber id>, do not include <>'s.");
+            AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"Hey %user, usage: %rights !%alias <song name> or <beatsaber id>, do not include <>'s.");
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom);
             AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong,Everyone);
             AddCommand("blist", ShowBanList);
@@ -707,6 +707,7 @@ namespace EnhancedTwitchChat.Bot
 
         #region NEW Command Processor
 
+        // This code probably needs its own file
         // Some of these are just ideas, putting them all down, can filter them out later
         [Flags]
         public enum CmdFlags
@@ -794,6 +795,70 @@ namespace EnhancedTwitchChat.Bot
             cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, list));
         }
 
+
+        public static string ParseHelpMessage(ref string message,ref BOTCOMMAND botcmd, ref TwitchUser user, ref string param)
+            {
+            StringBuilder msgtext = new StringBuilder();
+
+            bool skipfirst = message[0] != '%'; // This tells us if the very start of the text needs to be substituted
+            string[] parts = message.Split(new char[] { '%' }); // Split entire help message by % boundaries
+
+            if (parts.Length == 0) return "";
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (skipfirst)
+                {
+                    skipfirst = false;
+                    msgtext.Append(parts[i]);
+                    continue; // Skip the first entry if it wasn't a % in the original string
+                }
+
+                // The text in part[i] is now our command (AND the following text)
+
+                // Ideally, this should be a call table, but for now, we'll hack it, its not actually that bad
+                if (parts[i].ToLower().Contains("user"))
+                {
+                    msgtext.Append(user.displayName);
+                    msgtext.Append(parts[i].Substring(4));
+                }
+                else if (parts[i].ToLower().Contains("alias"))
+                {
+                    var aliastext = "";
+                    foreach (var alias in botcmd.aliases) aliastext += $"<{alias}> ";
+                    msgtext.Append(aliastext);
+                    msgtext.Append(parts[i].Substring(5));
+                }
+                else if (parts[i].ToLower().Contains("rights"))
+                {
+                    var aliastext = "[";
+                    aliastext+=(botcmd.cmdflags & CmdFlags.TwitchLevel).ToString();
+                    aliastext += "]";
+                    msgtext.Append(aliastext);
+                    msgtext.Append(parts[i].Substring(6));
+                }
+
+            }
+
+
+
+            return msgtext.ToString();
+            }   
+
+        public static void ShowHelpMessage(ref BOTCOMMAND botcmd,ref TwitchUser user, string param) 
+            {
+            if (!botcmd.cmdflags.HasFlag(CmdFlags.UsageHelp)) return; // Make sure we're allowed to show help
+
+            string helpmsg = botcmd.ShortHelp;
+
+
+            var text = ParseHelpMessage(ref helpmsg,ref  botcmd, ref user, ref param);
+                            // Quick and dirty help text variable expander, this is a bit of a hack!
+                            Instance?.QueueChatMessage(text);
+
+            return;
+            }
+
+
         public static void ExecuteCommand(string command, ref TwitchUser user, string param)
         {
         var botcmd= NewCommands[command];
@@ -818,8 +883,7 @@ namespace EnhancedTwitchChat.Bot
 
             if (param == "?") // Handle per command help requests - If permitted.
                 {
-                if (!botcmd.cmdflags.HasFlag(CmdFlags.UsageHelp)) return; // Make sure we're allowed to show help
-                Instance?.QueueChatMessage(botcmd.ShortHelp);
+                ShowHelpMessage(ref botcmd, ref user, param);
                 return;
                 }
 
