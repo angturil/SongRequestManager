@@ -561,7 +561,11 @@ namespace EnhancedTwitchChat.Bot
             Silence=65536, // Command produces no output at all - but still executes
             Verbose=131072, // Turn off command output limits, This can result in excessive channel spam
             Log=262144, // Log every use of the command to a file
-            RegEx, // Enable regex check
+            RegEx=524288, // Enable regex check
+            UserFlag1 = 1048576, // Use it for whatever bit makes you happy 
+            UserFlag2 = 2097152, // Use it for whatever bit makes you happy 
+            UserFlag3 = 4194304, // Use it for whatever bit makes you happy 
+            UserFlag4 = 8388608, // Use it for whatever bit makes you happy 
 
             Enabled = 1<<30, // If off, the command will not be added to the alias list at all.
         }
@@ -607,7 +611,7 @@ namespace EnhancedTwitchChat.Bot
         public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: %x")
         {
             string [] list = new string[] { alias };
-            cmdlist.Add(new BOTCOMMAND(method, Broadcasteronly, "", list));
+            cmdlist.Add(new BOTCOMMAND(method, flags, "", list));
         }
 
         private void InitializeCommands()
@@ -621,8 +625,7 @@ namespace EnhancedTwitchChat.Bot
                 Plugin.Log($"Added command alias \"{c}\" for song requests.");
             }
 
-            ReadRemapList();
-   
+  
             // Testing prototype code now
             AddCommand("queue", ListQueue,Everyone);
             AddCommand("unblock", Unban,Modonly);
@@ -657,8 +660,6 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("addsongs", addSongs,Broadcasteronly); // Basically search all, need to decide if its useful
 
 
-            LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
-            mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
 
 
             // Temporary commands for testing
@@ -679,6 +680,10 @@ namespace EnhancedTwitchChat.Bot
 
             loaddecks (TwitchWebSocketClient.OurTwitchUser,"");
 #endif
+
+            ReadRemapList();
+            LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
+            mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
 
             var msg = new QueueLongMessage();
             msg.Header("New command table: ");
@@ -782,6 +787,40 @@ namespace EnhancedTwitchChat.Bot
             Instance?.StartCoroutine(ProcessSongRequest(index));
         }
 
+        public static void ExecuteCommand(string command, ref TwitchUser user, string param)
+        {
+        var botcmd= NewCommands[command];
+
+
+            // Check permissions first
+
+            bool allow = false;
+
+            if (botcmd.cmdflags.HasFlag(CmdFlags.Everyone)) allow = true; // Not sure if this is the best approach actually, not worth thinking about right now
+
+            else if (user.isBroadcaster & botcmd.cmdflags.HasFlag(CmdFlags.Broadcaster)) allow = true;
+            else if (user.isMod & botcmd.cmdflags.HasFlag(CmdFlags.Mod)) allow = true;
+            else if (user.isSub & botcmd.cmdflags.HasFlag(CmdFlags.Sub)) allow = true;
+            else if (user.isVip & botcmd.cmdflags.HasFlag(CmdFlags.VIP)) allow = true;
+
+            if (!allow)
+                {
+                Instance?.QueueChatMessage($"{command} is restricted to {botcmd.cmdflags.ToString()}");
+                }
+       
+
+            try
+            {
+            botcmd.Method(user, param); // Call the command
+            }
+        catch (Exception ex)
+            {
+                Plugin.Log(ex.ToString());
+
+            }
+
+        }
+
         public static void Parse(TwitchUser user, string request)
         {
             if (!Instance) return;
@@ -801,7 +840,7 @@ namespace EnhancedTwitchChat.Bot
                     if (parts.Length > 1) param += " " + parts[1];
                 }
                 //Commands[command]?.Invoke(user, param);
-                NewCommands[command].Method(user, param);
+                ExecuteCommand(command,ref user,param);
             }
         }
 
