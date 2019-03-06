@@ -783,14 +783,15 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
+
         public static List<BOTCOMMAND> cmdlist = new List<BOTCOMMAND>();
 
-        public void AddCommand(string[] alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: %x")
+        public void AddCommand(string[] alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights")
         {
             cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, alias));
         }
 
-        public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: %x")
+        public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights")
         {
             string[] list = new string[] { alias };
             cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, list));
@@ -850,14 +851,14 @@ namespace EnhancedTwitchChat.Bot
             return msgtext.ToString();
             }   
 
-        public static void ShowHelpMessage(ref BOTCOMMAND botcmd,ref TwitchUser user, string param) 
+        public static void ShowHelpMessage(ref BOTCOMMAND botcmd,ref TwitchUser user, string param,bool showlong) 
             {
             if (!botcmd.cmdflags.HasFlag(CmdFlags.UsageHelp)) return; // Make sure we're allowed to show help
 
             string helpmsg = botcmd.ShortHelp;
 
 
-            var text = ParseHelpMessage(ref helpmsg,ref  botcmd, ref user, ref param);
+            var text = ParseHelpMessage(ref helpmsg,ref  botcmd, ref user, ref param,showlong);
                             // Quick and dirty help text variable expander, this is a bit of a hack!
                             Instance?.QueueChatMessage(text);
 
@@ -889,7 +890,7 @@ namespace EnhancedTwitchChat.Bot
 
             if (param == "?") // Handle per command help requests - If permitted.
                 {
-                ShowHelpMessage(ref botcmd, ref user, param);
+                ShowHelpMessage(ref botcmd, ref user, param,true);
                 return;
                 }
 
