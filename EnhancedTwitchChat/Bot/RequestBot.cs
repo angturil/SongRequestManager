@@ -41,7 +41,7 @@ namespace EnhancedTwitchChat.Bot
             Skipped,
             Played
         }
-        
+
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);
@@ -52,7 +52,7 @@ namespace EnhancedTwitchChat.Bot
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
         public static ConcurrentQueue<KeyValuePair<SongRequest, bool>> BlacklistQueue = new ConcurrentQueue<KeyValuePair<SongRequest, bool>>();
         public static Dictionary<string, RequestUserTracker> RequestTracker = new Dictionary<string, RequestUserTracker>();
-        
+
         private static Button _requestButton;
         private static bool _refreshQueue = false;
 
@@ -69,9 +69,9 @@ namespace EnhancedTwitchChat.Bot
 
         public static List<JSONObject> played = new List<JSONObject>(); // Played list
 
-        private static StringListManager  mapperwhitelist = new StringListManager(); // Lists because we need to interate them per song
+        private static StringListManager mapperwhitelist = new StringListManager(); // Lists because we need to interate them per song
         private static StringListManager mapperblacklist = new StringListManager(); // Lists because we need to interate them per song
-        
+
         private static HashSet<string> duplicatelist = new HashSet<string>();
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         private static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
@@ -110,7 +110,7 @@ namespace EnhancedTwitchChat.Bot
 
             SongListUtils.Initialize();
 
-            datapath=Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
+            datapath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
             if (!Directory.Exists(datapath))
                 Directory.CreateDirectory(datapath);
 
@@ -129,7 +129,7 @@ namespace EnhancedTwitchChat.Bot
             string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
             if (Directory.Exists(filesToDelete))
                 Utilities.EmptyDirectory(filesToDelete);
-            
+
             RequestQueue.Read();
             RequestHistory.Read();
             SongBlacklist.Read();
@@ -140,7 +140,7 @@ namespace EnhancedTwitchChat.Bot
             StartCoroutine(ProcessRequestQueue());
             StartCoroutine(ProcessBlacklistRequests());
         }
-        
+
         private void FixedUpdate()
         {
             if (_botMessageQueue.Count > 0)
@@ -157,7 +157,7 @@ namespace EnhancedTwitchChat.Bot
         private IEnumerator ProcessBlacklistRequests()
         {
             WaitUntil waitForBlacklistRequest = new WaitUntil(() => BlacklistQueue.Count > 0);
-            while(!Plugin.Instance.IsApplicationExiting)
+            while (!Plugin.Instance.IsApplicationExiting)
             {
                 yield return waitForBlacklistRequest;
 
@@ -170,7 +170,7 @@ namespace EnhancedTwitchChat.Bot
                         yield return web.SendWebRequest();
                         if (web.isNetworkError || web.isHttpError)
                         {
-                            if(!silence) QueueChatMessage($"Invalid BeatSaver ID \"{songId}\" specified.");
+                            if (!silence) QueueChatMessage($"Invalid BeatSaver ID \"{songId}\" specified.");
                             continue;
                         }
 
@@ -214,7 +214,7 @@ namespace EnhancedTwitchChat.Bot
             _botMessageQueue.Enqueue(message);
         }
 
-        private string GetStarRating(ref JSONObject song,bool mode=true)
+        private string GetStarRating(ref JSONObject song, bool mode = true)
         {
             if (!mode) return "";
             string stars = "******";
@@ -306,7 +306,7 @@ namespace EnhancedTwitchChat.Bot
                 {
                     if (errormessage == "") errormessage = $"No results found for request \"{request}\"";
                 }
-                else if (!Config.Instance.AutopickFirstSong &&  songs.Count >= 4)
+                else if (!Config.Instance.AutopickFirstSong && songs.Count >= 4)
                     errormessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
                 else if (!Config.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
                 {
@@ -335,7 +335,7 @@ namespace EnhancedTwitchChat.Bot
                 RequestQueue.Write();
 
                 Writedeck(requestor, "savedqueue"); // Might not be needed.. logic around saving and loading deck state needs to be reworked
-                QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song,Config.Instance.ShowStarRating)} ({song["version"].Value}) added to queue.");
+                QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song, Config.Instance.ShowStarRating)} ({song["version"].Value}) added to queue.");
 
                 UpdateRequestButton();
 
@@ -416,15 +416,15 @@ namespace EnhancedTwitchChat.Bot
 
                 // BUG: Songs status chat messages need to be configurable.
 
-                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} {GetSongLink(ref song, 2)} is next."); 
-                
+                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} {GetSongLink(ref song, 2)} is next.");
+
                 _songRequestMenu.Dismiss();
             }
         }
-        
 
-        public static  string GetSongLink(ref JSONObject song,int formatindex)
-                {
+
+        public static string GetSongLink(ref JSONObject song, int formatindex)
+        {
             string[] link ={
                     $"({song["version"].Value})",
                     $"https://beatsaver.com/browse/detail/{song["version"].Value}",
@@ -472,7 +472,7 @@ namespace EnhancedTwitchChat.Bot
 
             // Decrement the requestors request count, since their request is now out of the queue
             if (RequestTracker.ContainsKey(request.requestor.id)) RequestTracker[request.requestor.id].numRequests--;
-            
+
             UpdateRequestButton();
             _refreshQueue = true;
         }
@@ -531,6 +531,31 @@ namespace EnhancedTwitchChat.Bot
         {
             Instance?.StartCoroutine(ProcessSongRequest(0));
         }
+
+        // Prototype code only
+        public struct BOTCOMMAND
+        {
+            public Action<TwitchUser, string> function;
+            public int permissions;
+            public string shorthelp;
+
+            public BOTCOMMAND(Action<TwitchUser, string> f, int permission,string shorthelptext)
+                {
+                function = f;
+                permissions = permission;
+                shorthelp = shorthelptext;
+                }
+        }
+
+        public static List<BOTCOMMAND> cmdlist = new List<BOTCOMMAND>() ; 
+
+        public void test ()
+            {
+            cmdlist.Add( new BOTCOMMAND (Ban,100, "queue"));
+
+            cmdlist[0].function?.Invoke(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
+            }
+
         
         private void InitializeCommands()
         {
@@ -573,10 +598,16 @@ namespace EnhancedTwitchChat.Bot
             // Whitelists mappers and add new songs, this code is being refactored and transitioned to testing
 
             Commands.Add("mapperwhitelist", mapperWhitelist);  // this interface will change shortly.
+            Commands.Add("mapperblacklist", mapperBlacklist);  // Subject to change
+
             Commands.Add("addnew", addNewSongs);
+            Commands.Add("addlatest", addNewSongs);
+            Commands.Add("addsongs", addSongs); // Basically search all, need to decide if its useful
+
 
             LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
             mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
+
 
             // Temporary commands for testing
             Commands.Add("load", LoadList);
@@ -588,16 +619,11 @@ namespace EnhancedTwitchChat.Bot
 
 
 #if PRIVATE
-            Commands.Add("goodmappers",mapperWhitelist);
-            Commands.Add("addlatest",addNewSongs);          
             Commands.Add("deck",createdeck);
             Commands.Add("unloaddeck",unloaddeck);      
-            Commands.Add("mapper", addsongsbymapper);
-            Commands.Add("addsongs",addSongs);
             Commands.Add("loaddecks",loaddecks);
             Commands.Add("decklist",decklist);
-            Commands.Add("badmappers",mapperBlacklist);
-            Commands.Add("mapperblacklist",mapperBlacklist);
+            Commands.Add("mapper", addsongsbymapper); // This is actually most useful if we send it straight to list
 
             loaddecks (TwitchWebSocketClient.OurTwitchUser,"");
 #endif
@@ -668,7 +694,6 @@ namespace EnhancedTwitchChat.Bot
                 }
                 */
 
-                // Only rate limit users who aren't mods or the broadcaster
                 if (!requestor.isBroadcaster)
                 {
                     if (RequestTracker[requestor.id].numRequests >= limit)
@@ -716,6 +741,7 @@ namespace EnhancedTwitchChat.Bot
                     if (parts.Length > 1) param += " " + parts[1];
                 }
                 Commands[command]?.Invoke(user, param);
+
             }
         }
 

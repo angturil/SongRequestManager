@@ -134,6 +134,7 @@ namespace EnhancedTwitchChat.Bot
         private bool filtersong(JSONObject song)
         {
             string songid = song["id"].Value;
+            if (IsInQueue(songid)) return true;
             if (SongBlacklist.Songs.ContainsKey(songid)) return true;
             if (duplicatelist.Contains(songid)) return true;
             return false;
@@ -257,7 +258,6 @@ namespace EnhancedTwitchChat.Bot
                             found = true;
                             JSONObject song = entry;
 
-                            if (IsInQueue(song["id"].Value)) continue;
                             if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
                             if (filtersong(song)) continue;
                             ProcessSongRequest(requestor, song["version"].Value);
@@ -397,17 +397,13 @@ namespace EnhancedTwitchChat.Bot
                 }
                 JSONObject song;
 
-                string songlist = "";
-
-
                 if (result["songs"].IsArray)
                 {
                     int count = 0;
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-                        if (count > 0) songlist += ", ";
-
+  
                         if (filtersong(song)) continue;
                         ProcessSongRequest(requestor, song["version"].Value);
                         count++;
@@ -417,7 +413,7 @@ namespace EnhancedTwitchChat.Bot
                 else
                 {
                     song = result["song"].AsObject;
-                    songlist += $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
+                     // $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
 
                     ProcessSongRequest(requestor, song["version"].Value);
                     totalSongs++;
@@ -1047,7 +1043,9 @@ namespace EnhancedTwitchChat.Bot
         {
 
 
-            var msg = new QueueLongMessage(4);
+            var msg = new QueueLongMessage(2);
+
+            msg.Header($"{played.Count} songs played tonight: ");
 
             foreach (JSONObject song in played)
             {
