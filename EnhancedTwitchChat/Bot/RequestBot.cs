@@ -47,6 +47,10 @@ namespace EnhancedTwitchChat.Bot
         private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);
         private static readonly Regex _RemapRegex = new Regex("^[0-9]+,[0-9]+$", RegexOptions.Compiled);
 
+        private static readonly Regex _beatsaversong=new Regex("^[0-9]+$|^[0-9]+-[0-9]+$", RegexOptions.Compiled);
+
+        private static readonly Regex _nothing = new Regex("$^", RegexOptions.Compiled);
+        private static readonly Regex _anything = new Regex(".*", RegexOptions.Compiled); // Is this the most efficient way?
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
@@ -550,7 +554,7 @@ namespace EnhancedTwitchChat.Bot
             // Testing prototype code now
             AddCommand("queue", ListQueue,Everyone,"%user, this command is restricted to %rights use: [ %alias ] ... Displays a list of the currently requested songs.");
             AddCommand("unblock", Unban,Mod,"usage: %alias <song id>, do not include <,>'s.");
-            AddCommand("block", Ban,Mod,"usage: %alias <song id>, do not include <,>'s.");
+            AddCommand("block", Ban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
             AddCommand("remove", DequeueSong,Mod);
             AddCommand("clearqueue", Clearqueue,Broadcasteronly);
             AddCommand("mtt", MoveRequestToTop,Mod);
@@ -765,13 +769,13 @@ namespace EnhancedTwitchChat.Bot
             public CmdFlags cmdflags;                  // flags
             public string ShortHelp;                   // short help text (on failing preliminary check
             public List<string> aliases;               // list of command aliases
-            public List<string> regexfilters;          // reg ex filters to apply If Any match, you're good.
+            public Regex regexfilter;                 // reg ex filter to apply. For now, we're going to use a single string
 
             public string LongHelp; // Long help text
             public string HelpLink; // Help website link
             StringListManager permittedusers; // List of users permitted to use the command, uses list manager.
 
-            public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, string[] alias)
+            public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext,Regex regex, string[] alias)
             {
                 Method = method;
                 cmdflags = flags;
@@ -780,23 +784,28 @@ namespace EnhancedTwitchChat.Bot
                 LongHelp = "";
                 HelpLink = "";
                 permittedusers = null;
-                regexfilters = null;
+                if (regex == null)
+                    regexfilter = _anything;
+                else
+                    regexfilter = regex;
+                ;
+
+
                 foreach (var entry in aliases) NewCommands.Add(entry, this);
             }
         }
 
-
         public static List<BOTCOMMAND> cmdlist = new List<BOTCOMMAND>();
 
-        public void AddCommand(string[] alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights")
+        public void AddCommand(string[] alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights",Regex regex=null)
         {
-            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, alias));
+            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext,regex, alias));
         }
 
-        public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights")
+        public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights",Regex regex=null)
         {
             string[] list = new string[] { alias };
-            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, list));
+            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex,list));
         }
 
 
@@ -867,6 +876,12 @@ namespace EnhancedTwitchChat.Bot
             return;
             }
 
+
+        private void nop(TwitchUser requestor, string request)
+            {
+            // This is command does nothing, it can be used as a placeholder for help text aliases.
+            }
+
         // Get help on a command
         private void help(TwitchUser requestor, string request)
             {
@@ -923,6 +938,16 @@ namespace EnhancedTwitchChat.Bot
                 ShowHelpMessage(ref botcmd, ref user, param,true);
                 return;
                 }
+
+            // Check regex
+
+            
+            if (!botcmd.regexfilter.IsMatch(param))
+                {
+                ShowHelpMessage(ref botcmd, ref user, param, false);
+                return;
+                }
+
 
             try
             {
