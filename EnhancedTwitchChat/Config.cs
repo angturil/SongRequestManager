@@ -95,6 +95,8 @@ namespace EnhancedTwitchChat
         private bool _saving;
 
         public static Config Instance = null;
+
+        public string AddSongToQueueText="Request %songName %songSubName by %authorName  %rating% (%version) added to queue.";
         
         public Color TextColor
         {

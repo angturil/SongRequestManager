@@ -355,7 +355,7 @@ namespace EnhancedTwitchChat.Bot
 
                 // We want to allow the end user to customize some of the bot messages to their own preferences. You can read the message text from a file.
 
-                new DynamicText().AddJSON(ref song).QueueMessage("Request %songName %songSubName by %authorName  %rating% (%version) added to queue.");
+                new DynamicText().AddJSON(ref song).QueueMessage(Config.Instance.AddSongToQueueText);
 
                 UpdateRequestButton();
                 _refreshQueue = true;
