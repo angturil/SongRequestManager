@@ -297,29 +297,24 @@ namespace EnhancedTwitchChat.Bot
 
                 string errormessage = "";
 
-                int BestSongIndex = 0;
-                float HighestRating = 0;
+
                 if (result["songs"].IsArray)
                 {
-                    int count = 0;
 
+                    // Might consider sorting the list by rating to improve quality of results            
                     foreach (JSONObject currentSong in result["songs"].AsArray)
                     {
                 
                         errormessage = SongSearchFilter(currentSong, false);
                         if (errormessage == "")
-                        {
-                            float songrating = currentSong["rating"].AsFloat;
-                            if (songrating > HighestRating) { HighestRating = songrating;BestSongIndex = count; }
-                        songs.Add(currentSong);
-                        }
-                    count++;
+                            songs.Add(currentSong);
                     }
                 }
                 else
                 {
                     songs.Add(result["song"].AsObject);
                 }
+
 
                 // Filter out too many or too few results
                 if (songs.Count == 0)
