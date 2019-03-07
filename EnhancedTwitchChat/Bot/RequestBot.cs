@@ -890,7 +890,12 @@ namespace EnhancedTwitchChat.Bot
 
             public DynamicFields AddSong(ref JSONObject song)
             {
-
+                Add("songId", song["id"].Value);
+                Add("songVersion", song["version"].Value);
+                Add("songAuthor", song["authorName"].Value);
+                Add("songName", song["songName"].Value);
+                Add("songSubName", song["songSubName"].Value);
+                Add("songRating", song["rating"].Value.ToString());
                 return this;
             }
 
@@ -944,7 +949,7 @@ namespace EnhancedTwitchChat.Bot
         public static void ParseHelpMessage(ref string message, ref BOTCOMMAND botcmd, ref TwitchUser user, ref string param, bool parselong = false)
                 {
 
-                // I will sure go to C sharp hell for this. (this may even work well in C# 7.2
+                // I will surely go to C sharp hell for this. (this may even work well in C# 7.2)
 
                 new DynamicFields().AddUser(ref user).AddBotCmd(ref botcmd).QueueMessage(ref message,parselong);
 
