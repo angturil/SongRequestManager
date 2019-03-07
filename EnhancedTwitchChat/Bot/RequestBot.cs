@@ -355,12 +355,13 @@ namespace EnhancedTwitchChat.Bot
 
                 // We want to allow the end user to customize some of the bot messages to their own preferences.
 
-                new DynamicText().AddJSON(ref song).QueueMessage("Request %songName %songSubName by %authorName (%rating%) (%version) added to queue.");
+                new DynamicText().AddJSON(ref song).QueueMessage("Request %songName %songSubName by %authorName  %rating% (%version) added to queue.");
 
                 UpdateRequestButton();
                 _refreshQueue = true;
             }
         }
+
 
         private static IEnumerator ProcessSongRequest(int index, bool fromHistory = false)
         {
@@ -839,6 +840,9 @@ namespace EnhancedTwitchChat.Bot
         public class DynamicText
             {
             public List  <KeyValuePair<string,string>>  dynamicvariables=new List<KeyValuePair<string, string>>();  // A list of the variables available to us, we're using a list of pairs because the match we use uses BeginsWith,since the name of the string is unknown. The list is very short, so no biggie
+
+            public bool AllowLinks=true;
+            
             string Get(ref string fieldname) // Get the field. Failure is an option,  The fieldname may include extra characters. It is case sensitive.
             {
                 string result = "";
@@ -849,18 +853,29 @@ namespace EnhancedTwitchChat.Bot
                 return result;
             }
  
-            private void Add(string key, string value)
+            public DynamicText Add(string key, string value)
                 {
                 dynamicvariables.Add(new KeyValuePair<string, string>(key, value)); // Make the code slower but more readable :(
+                return this;
                 }
 
             public DynamicText()
                  {
                 // BUG: These need be replaced if link generation is disabled.
                 Add("endusage", "");
-                Add("beatsaver", "https://beatsaver.com");
-                Add("beatsaber", "https://beatsaber.com");
-                Add("scoresaber", "https://scoresaber.com");
+
+                if (AllowLinks)
+                {
+                    Add("beatsaver", "https://beatsaver.com");
+                    Add("beatsaber", "https://beatsaber.com");
+                    Add("scoresaber", "https://scoresaber.com");
+                }
+                else
+                {
+                    Add("beatsaver", "beatsaver site");
+                    Add("beatsaver", "beatsaber site");
+                    Add("scoresaber", "scoresaber site");
+                }
 
                 Add("time", "00:00:00"); // BUG: Placeholder text
                 Add("date", "2019-01-01"); // BUG: Placeholder, insert code here
@@ -886,22 +901,10 @@ namespace EnhancedTwitchChat.Bot
                 aliastext.Append(botcmd.cmdflags & CmdFlags.TwitchLevel).ToString();
                 aliastext.Append(']');
                 Add("rights", aliastext.ToString());
-
-
                 return this;
             }
 
-            public DynamicText AddSong(ref JSONObject song)
-            {
-                Add("songId", song["id"].Value);
-                Add("songVersion", song["version"].Value);
-                Add("songAuthor", song["authorName"].Value);
-                Add("songName", song["songName"].Value);
-                Add("songSubName", song["songSubName"].Value);
-                Add("songRating", song["rating"].Value.ToString());
-                return this;
-            }
-
+            // Adds a JSON object to the dictionary. You can define a prefix to make the object identifiers unique if needed.
             public DynamicText AddJSON (ref JSONObject json, string prefix="")
                 {
                 foreach (var element in json) Add(prefix + element.Key, element.Value);
@@ -929,7 +932,7 @@ namespace EnhancedTwitchChat.Bot
                         {
                             if (parts[i].StartsWith(entry.Key))
                                 {
-                            if (entry.Key == "endusage" && !parselong) return msgtext.ToString(); // BUG: If we can identify the iterator as being first, we can avoid the string compare.
+                            if (entry.Key == "endusage" && !parselong) return msgtext.ToString(); // BUG: This works, but isn't the most elegant solution. Look into this later.
  
                                 msgtext.Append (entry.Value);
                                 msgtext.Append(parts[i].Substring(entry.Key.Length));
