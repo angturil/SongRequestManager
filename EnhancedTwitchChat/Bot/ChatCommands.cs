@@ -111,7 +111,7 @@ namespace EnhancedTwitchChat.Bot
 
             foreach (string term in terms)
                 foreach (string word in request.Split(' '))
-                    if (word.Length > 2 && request.Contains(word.ToLower())) return true;
+                    if (word.Length > 2 && term.ToLower().Contains(word)) return true;
 
             return false;
         }
@@ -957,7 +957,6 @@ namespace EnhancedTwitchChat.Bot
         // BUG: once we have aliases and command permissions, we can filter the results, so users do not see commands they have no access to    
     private void showCommandlist(TwitchUser requestor, string request)
         {
-            if (isNotModerator(requestor)) return;
 
             var msg = new QueueLongMessage();
 

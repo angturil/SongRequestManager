@@ -23,7 +23,6 @@ namespace EnhancedTwitchChat.Bot
 {
     class RequestBotListViewController : CustomListViewController
     {
-
         public static RequestBotListViewController Instance;
 
         private CustomMenu _confirmationDialog;
