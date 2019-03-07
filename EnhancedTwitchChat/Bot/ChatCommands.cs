@@ -959,7 +959,7 @@ namespace EnhancedTwitchChat.Bot
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-                        msg.Add(new DynamicText().AddSong(ref song).Parse(ref Config.Instance.LookupSongDetail));
+                        msg.Add(new DynamicText().AddSong(ref song).Parse(ref Config.Instance.LookupSongDetail),", ");
                     }
 
                 }

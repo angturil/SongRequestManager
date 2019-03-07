@@ -636,6 +636,10 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("list", ListList);
             AddCommand("lists", showlists);
 
+            //AddCommand("setflags", SetFlags); // Set flags on a command
+            //AddCommand("clearflags", ClearFlags); // Clear flags on a command
+            //AddCommand("changhelptext",ChangeHelpText); // Change the help text on a command ... 
+
 #if PRIVATE
             AddCommand("deck",createdeck);
             AddCommand("unloaddeck",unloaddeck);      
