@@ -579,7 +579,7 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("unmap", Unmap,Mod,"usage: %alias <songid> %endusage ... Remove future remaps for songid.",_beatsaversong);
 
-            AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"usage: %rights [%alias] <song name> or <beatsaber id>, omit <>'s.%endusage Get a list of songs from %beatsaver matching your search criteria.");
+            AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"usage: %alias <song name> or <beatsaber id>, omit <>'s.%endusage Get a list of songs from %beatsaver matching your search criteria.");
 
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom,Mod,"usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the bottom of the request queue.", _anything);
 
@@ -830,70 +830,126 @@ namespace EnhancedTwitchChat.Bot
             cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex,list));
         }
 
+        // A much more general solution for extracting dymatic values into a text string. If we need to convert a text message to one containing local values, but the availability of those values varies by calling location
+        // We thus build a table with only those values we have. 
 
-        public static string ParseHelpMessage(ref string message, ref BOTCOMMAND botcmd, ref TwitchUser user, ref string param, bool parselong = false)
+        public class DynamicFields
             {
-            StringBuilder msgtext = new StringBuilder();
-
-            bool skipfirst = message[0] != '%'; // This tells us if the very start of the text needs to be substituted
-            string[] parts = message.Split(new char[] { '%' }); // Split entire help message by % boundaries
-
-            if (parts.Length == 0) return "";
-            for (int i = 0; i < parts.Length; i++)
+            public List  <KeyValuePair<string,string>>  dynamicvariables=new List<KeyValuePair<string, string>>();  // A list of the variables available to us, we're using a list of pairs because the match we use uses BeginsWith,since the name of the string is unknown. The list is very short, so no biggie
+            string Get(ref string fieldname) // Get the field. Failure is an option,  The fieldname may include extra characters. It is case sensitive.
             {
-                if (skipfirst)
+                string result = "";
+                foreach (var entry in dynamicvariables)
                 {
-                    skipfirst = false;
+                    if (fieldname.StartsWith(entry.Key)) return entry.Value;
+                }
+                return result;
+            }
+ 
+            private void Add(string key, string value)
+                {
+                dynamicvariables.Add(new KeyValuePair<string, string>(key, value)); // Make the code slower but more readable :(
+                }
+
+            public DynamicFields()
+                 {
+                // BUG: These need be replaced if link generation is disabled.
+                Add("endusage", "");
+                Add("beatsaver", "https://beatsaver.com");
+                Add("beatsaber", "https://beatsaber.com");
+                Add("scoresaber", "https://scoresaber.com");
+
+                Add("time", "00:00:00"); // BUG: Placeholder text
+                Add("date", "2019-01-01"); // BUG: Placeholder, insert code here
+                }
+
+            // To make this efficient, The return type needs to be a ref (using ref struct for the class). c# 7.2 supports this. This might be ugly IRL. Not sure if Unused return types execute a copy (assume not).
+            public DynamicFields AddUser(ref TwitchUser user)
+                {
+                Add("user", user.displayName);
+
+                return this;
+                }
+
+            public DynamicFields AddBotCmd(ref BOTCOMMAND botcmd)
+            {
+
+                StringBuilder aliastext = new StringBuilder();
+                foreach (var alias in botcmd.aliases) aliastext.Append($"!{alias} ");
+                Add("alias", aliastext.ToString());
+
+                aliastext.Clear();
+                aliastext.Append('[');
+                aliastext.Append(botcmd.cmdflags & CmdFlags.TwitchLevel).ToString();
+                aliastext.Append(']');
+                Add("rights", aliastext.ToString());
+
+
+                return this;
+            }
+
+            public DynamicFields AddSong(ref JSONObject song)
+            {
+
+                return this;
+            }
+
+            public string Parse(ref string text,bool parselong=false)
+                {
+                StringBuilder msgtext = new StringBuilder();
+                bool skipfirst = text[0] != '%'; // This tells us if the very start of the text needs to be substituted
+                string[] parts = text.Split(new char[] { '%' }); // Split entire help message by % boundaries
+
+                if (parts.Length == 0) return "";
+                for (int i = 0; i < parts.Length; i++)
+                    {
+                        if (skipfirst)
+                        {
+                            skipfirst = false;
+                            msgtext.Append(parts[i]);
+                            continue; // Skip the first entry if it wasn't a % in the original string
+                        }
+
+                        bool found=false;
+                        foreach (var entry in dynamicvariables)
+                        {
+                            if (parts[i].StartsWith(entry.Key))
+                                {
+                            if (entry.Key == "endusage" && !parselong) return msgtext.ToString(); // BUG: If we can identify the iterator as being first, we can avoid the string compare.
+ 
+                                msgtext.Append (entry.Value);
+                                msgtext.Append(parts[i].Substring(entry.Key.Length));
+                                found = true;
+                                break;
+                                }
+                        }
+                    if (found) continue;
+
+                    msgtext.Append('%');
                     msgtext.Append(parts[i]);
-                    continue; // Skip the first entry if it wasn't a % in the original string
-                }
-                // The text in part[i] is now our command (AND the following text)
+                    }
 
-                // Ideally, this should be a call table, but for now, we'll hack it, its not actually that bad
-                if (parts[i].ToLower().StartsWith("user"))
-                {
-                    msgtext.Append(user.displayName);
-                    msgtext.Append(parts[i].Substring(4));
-                }
-                else if (parts[i].ToLower().StartsWith("alias"))
-                {
-                    StringBuilder aliastext = new StringBuilder();
-                    foreach (var alias in botcmd.aliases) aliastext.Append( $"!{alias} ");
-                    msgtext.Append(aliastext);
-                    msgtext.Append(parts[i].Substring(5));
-                }
-                else if (parts[i].ToLower().StartsWith("rights"))
-                {
-                    var aliastext = "[";
-                    aliastext+=(botcmd.cmdflags & CmdFlags.TwitchLevel).ToString();
-                    aliastext += "]";
-                    msgtext.Append(aliastext);
-                    msgtext.Append(parts[i].Substring(6));
-                }
-                else if (parts[i].ToLower().StartsWith("endusage")) // This lets us show only the usage part, if parselong is set to true, we process the rest of the message too
-                {
-                    if (!parselong) break;    
-                    msgtext.Append(parts[i].Substring(8));
-                }
-                else if (parts[i].ToLower().StartsWith("beatsaver")) // This lets us show only the usage part, if parselong is set to true, we process the rest of the message too
-                {
-                    msgtext.Append("https://beatsaver.com"); // We can turn this off here    
-                    msgtext.Append(parts[i].Substring(9));
+              return msgtext.ToString();
                 }
 
-                else if (parts[i].ToLower().StartsWith("currentsong")) // This lets us show only the usage part, if parselong is set to true, we process the rest of the message too
+            public DynamicFields QueueMessage(ref string text,bool parselong=false)
                 {
-                    var song = RequestBotListViewController.currentsong.song;
-
-                    if (song!=null) msgtext.Append($"{song["songName"].Value} {song["songSubName"].Value} by {song["authorName"].Value} {GetSongLink(ref song, 1)}");
-                    msgtext.Append(parts[i].Substring(11));
+                Instance.QueueChatMessage(Parse(ref text,parselong));
+                return this;
                 }
 
             }
 
 
-            return msgtext.ToString();
-            }   
+        public static void ParseHelpMessage(ref string message, ref BOTCOMMAND botcmd, ref TwitchUser user, ref string param, bool parselong = false)
+                {
+
+                // I will sure go to C sharp hell for this. (this may even work well in C# 7.2
+
+                new DynamicFields().AddUser(ref user).AddBotCmd(ref botcmd).QueueMessage(ref message,parselong);
+
+                }
+
 
         public static void ShowHelpMessage(ref BOTCOMMAND botcmd,ref TwitchUser user, string param,bool showlong) 
             {
@@ -902,10 +958,9 @@ namespace EnhancedTwitchChat.Bot
             string helpmsg = botcmd.ShortHelp;
 
 
-            var text = ParseHelpMessage(ref helpmsg,ref  botcmd, ref user, ref param,showlong);
+            ParseHelpMessage(ref helpmsg,ref  botcmd, ref user, ref param,showlong);
                             // Quick and dirty help text variable expander, this is a bit of a hack!
-                            Instance?.QueueChatMessage(text);
-
+            
             return;
             }
 
