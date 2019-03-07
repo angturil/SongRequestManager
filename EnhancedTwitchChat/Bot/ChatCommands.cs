@@ -958,7 +958,9 @@ namespace EnhancedTwitchChat.Bot
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-                        string songdetail = $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
+                        string songdetail=new DynamicText().AddJSON(ref song).Parse(ref Config.Instance.LookupSongDetail);
+
+                        //string songdetail = $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
                         //QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} (#{song["id"]})");
 
                         if (songlist.Length + songdetail.Length > MaximumTwitchMessageLength) break;
