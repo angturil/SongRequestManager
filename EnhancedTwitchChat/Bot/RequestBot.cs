@@ -297,12 +297,23 @@ namespace EnhancedTwitchChat.Bot
 
                 string errormessage = "";
 
+                int BestSongIndex = 0;
+                float HighestRating = 0;
                 if (result["songs"].IsArray)
                 {
+                    int count = 0;
+
                     foreach (JSONObject currentSong in result["songs"].AsArray)
                     {
+                
                         errormessage = SongSearchFilter(currentSong, false);
-                        if (errormessage == "") songs.Add(currentSong);
+                        if (errormessage == "")
+                        {
+                            float songrating = currentSong["rating"].AsFloat;
+                            if (songrating > HighestRating) { HighestRating = songrating;BestSongIndex = count; }
+                        songs.Add(currentSong);
+                        }
+                    count++;
                     }
                 }
                 else
@@ -398,7 +409,7 @@ namespace EnhancedTwitchChat.Bot
                     yield return Utilities.ExtractZip(localPath, currentSongDirectory);
                     yield return SongListUtils.RefreshSongs(false, false, true);
 
-
+ 
                     Utilities.EmptyDirectory(".requestcache", true);
                     levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
                 }
