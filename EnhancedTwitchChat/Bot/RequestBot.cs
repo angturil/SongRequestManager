@@ -576,7 +576,8 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("mtt", MoveRequestToTop,Mod,"usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the top of the request queue.",_anything );
 
             AddCommand("remap", Remap,Mod,"usage: %alias <songid1> , <songid2>%endusage ... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.",_RemapRegex);
-            AddCommand("unmap", Unmap,Mod);
+
+            AddCommand("unmap", Unmap,Mod,"usage: %alias <songid> %endusage ... Remove future remaps for songid.",_beatsaversong);
 
             AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"usage: %rights [%alias] <song name> or <beatsaber id>, omit <>'s.%endusage Get a list of songs from %beatsaver matching your search criteria.");
 
@@ -634,13 +635,6 @@ namespace EnhancedTwitchChat.Bot
             ReadRemapList();
             LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
             mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
-
-            var msg = new QueueLongMessage();
-            msg.Header("New command table: ");
-            foreach (var entry in cmdlist)
-                foreach (var alias in entry.aliases)
-                    msg.Add(alias, ", ");
-            msg.end("...", "No new commands defined");
 
         }
 
