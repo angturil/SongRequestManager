@@ -351,10 +351,13 @@ namespace EnhancedTwitchChat.Bot
 
                 Writedeck(requestor, "savedqueue"); // Might not be needed.. logic around saving and loading deck state needs to be reworked
 
-                QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song, Config.Instance.ShowStarRating)} ({song["version"].Value}) added to queue.");  
+                //QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song, Config.Instance.ShowStarRating)} ({song["version"].Value}) added to queue.");
+
+                // We want to allow the end user to customize some of the bot messages to their own preferences.
+
+                new DynamicText().AddJSON(ref song).QueueMessage("Request %songName %songSubName by %authorName (%rating%) (%version) added to queue.");
 
                 UpdateRequestButton();
-
                 _refreshQueue = true;
             }
         }
@@ -833,7 +836,7 @@ namespace EnhancedTwitchChat.Bot
         // A much more general solution for extracting dymatic values into a text string. If we need to convert a text message to one containing local values, but the availability of those values varies by calling location
         // We thus build a table with only those values we have. 
 
-        public class DynamicFields
+        public class DynamicText
             {
             public List  <KeyValuePair<string,string>>  dynamicvariables=new List<KeyValuePair<string, string>>();  // A list of the variables available to us, we're using a list of pairs because the match we use uses BeginsWith,since the name of the string is unknown. The list is very short, so no biggie
             string Get(ref string fieldname) // Get the field. Failure is an option,  The fieldname may include extra characters. It is case sensitive.
@@ -851,7 +854,7 @@ namespace EnhancedTwitchChat.Bot
                 dynamicvariables.Add(new KeyValuePair<string, string>(key, value)); // Make the code slower but more readable :(
                 }
 
-            public DynamicFields()
+            public DynamicText()
                  {
                 // BUG: These need be replaced if link generation is disabled.
                 Add("endusage", "");
@@ -864,14 +867,14 @@ namespace EnhancedTwitchChat.Bot
                 }
 
             // To make this efficient, The return type needs to be a ref (using ref struct for the class). c# 7.2 supports this. This might be ugly IRL. Not sure if Unused return types execute a copy (assume not).
-            public DynamicFields AddUser(ref TwitchUser user)
+            public DynamicText AddUser(ref TwitchUser user)
                 {
                 Add("user", user.displayName);
 
                 return this;
                 }
 
-            public DynamicFields AddBotCmd(ref BOTCOMMAND botcmd)
+            public DynamicText AddBotCmd(ref BOTCOMMAND botcmd)
             {
 
                 StringBuilder aliastext = new StringBuilder();
@@ -888,7 +891,7 @@ namespace EnhancedTwitchChat.Bot
                 return this;
             }
 
-            public DynamicFields AddSong(ref JSONObject song)
+            public DynamicText AddSong(ref JSONObject song)
             {
                 Add("songId", song["id"].Value);
                 Add("songVersion", song["version"].Value);
@@ -898,6 +901,12 @@ namespace EnhancedTwitchChat.Bot
                 Add("songRating", song["rating"].Value.ToString());
                 return this;
             }
+
+            public DynamicText AddJSON (ref JSONObject json, string prefix="")
+                {
+                foreach (var element in json) Add(prefix + element.Key, element.Value);
+                return this;
+                }
 
             public string Parse(ref string text,bool parselong=false)
                 {
@@ -937,7 +946,14 @@ namespace EnhancedTwitchChat.Bot
               return msgtext.ToString();
                 }
 
-            public DynamicFields QueueMessage(ref string text,bool parselong=false)
+            public DynamicText QueueMessage(string text, bool parselong = false)
+            {
+                QueueMessage(ref text, parselong);
+                return this;
+            }
+
+
+            public DynamicText QueueMessage(ref string text,bool parselong=false)
                 {
                 Instance.QueueChatMessage(Parse(ref text,parselong));
                 return this;
@@ -951,7 +967,7 @@ namespace EnhancedTwitchChat.Bot
 
                 // I will surely go to C sharp hell for this. (this may even work well in C# 7.2)
 
-                new DynamicFields().AddUser(ref user).AddBotCmd(ref botcmd).QueueMessage(ref message,parselong);
+                new DynamicText().AddUser(ref user).AddBotCmd(ref botcmd).QueueMessage(ref message,parselong);
 
                 }
 
