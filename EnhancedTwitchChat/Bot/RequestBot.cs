@@ -353,7 +353,7 @@ namespace EnhancedTwitchChat.Bot
 
                 //QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song, Config.Instance.ShowStarRating)} ({song["version"].Value}) added to queue.");
 
-                // We want to allow the end user to customize some of the bot messages to their own preferences.
+                // We want to allow the end user to customize some of the bot messages to their own preferences. You can read the message text from a file.
 
                 new DynamicText().AddJSON(ref song).QueueMessage("Request %songName %songSubName by %authorName  %rating% (%version) added to queue.");
 
@@ -644,11 +644,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void lookup(TwitchUser requestor, string request)
         {
-            if (isNotModerator(requestor) && !requestor.isSub)
-            {
-                QueueChatMessage($"lookup command is limited to Subscribers and moderators.");
-                return;
-            }
             StartCoroutine(LookupSongs(requestor, request));
         }
         
@@ -667,18 +662,13 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-                if (QueueOpen == false && isNotModerator(requestor))
+                if (QueueOpen == false && isNotModerator(requestor)) // BUG: Complex permission, Queue state message needs to be handled higher up
                 {
                     QueueChatMessage($"Queue is currently closed.");
                     return;
                 }
 
-                if (request == "")
-                {
-                    // Would be nice if it was configurable
-                    QueueChatMessage($"usage: bsr <song id> or <part of song name and mapper if known>");
-                    return;
-                }
+                // The help text is part of help now, and will be configurable
 
                 if (!RequestTracker.ContainsKey(requestor.id))
                     RequestTracker.Add(requestor.id, new RequestUserTracker());
@@ -712,6 +702,11 @@ namespace EnhancedTwitchChat.Bot
                     if (RequestTracker[requestor.id].numRequests >= limit)
                     {
                         QueueChatMessage($"You already have {RequestTracker[requestor.id].numRequests} on the queue. You can add another once one is played. Subscribers are limited to {Config.Instance.SubRequestLimit}.");
+
+                        // Custom text example. This one of the messages users likely want to be able to change.
+                        // new DynamicText().Add("requests", RequestTracker[requestor.id].numRequests.ToString()).Add("RequestLimit", Config.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests on the queue.You can add another once one is played.Subscribers are limited to %RequestLimit.)");
+ 
+
                         return;
                     }
                 }
