@@ -220,11 +220,9 @@ namespace EnhancedTwitchChat.Bot
             _botMessageQueue.Enqueue(message);
         }
 
-        private string GetStarRating(ref JSONObject song, bool mode = true)
+        public static string GetStarRating(ref JSONObject song, bool mode = true)
         {
             if (!mode) return "";
-
-            return $"{song["rating"].AsInt}%";
 
             string stars = "******";
             float rating = song["rating"].AsFloat;
@@ -232,6 +230,17 @@ namespace EnhancedTwitchChat.Bot
             string starrating = stars.Substring(0, (int)(rating / 17)); // 17 is used to produce a 5 star rating from 80ish to 100.
             return starrating;
         }
+
+        public static string GetRating(ref JSONObject song, bool mode = true)
+        {
+            if (!mode) return "";
+
+            string rating = song["rating"].AsInt.ToString();
+            if (rating == "0") return "";
+            return rating+'%';
+
+        }
+
 
         private IEnumerator ProcessRequestQueue()
         {
@@ -355,7 +364,7 @@ namespace EnhancedTwitchChat.Bot
 
                 // We want to allow the end user to customize some of the bot messages to their own preferences. You can read the message text from a file.
 
-                new DynamicText().AddJSON(ref song).QueueMessage(Config.Instance.AddSongToQueueText);
+                new DynamicText().AddSong(ref song).QueueMessage(Config.Instance.AddSongToQueueText);
 
                 UpdateRequestButton();
                 _refreshQueue = true;
@@ -437,6 +446,7 @@ namespace EnhancedTwitchChat.Bot
                 // BUG: Songs status chat messages need to be configurable.
 
                 Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} {GetSongLink(ref song, 2)} is next.");
+
 
                 _songRequestMenu.Dismiss();
             }
@@ -906,22 +916,26 @@ namespace EnhancedTwitchChat.Bot
                 return this;
                 }
 
+            public DynamicText AddSong(ref JSONObject json, string prefix = "")
+                {
+                AddJSON(ref json, prefix);
+                Add("StarRating", GetStarRating(ref json));
+                Add("Rating", GetRating(ref json));
+                return this;
+                }
+
+
             public string Parse(ref string text,bool parselong=false)
                 {
                 StringBuilder msgtext = new StringBuilder();
-                bool skipfirst = text[0] != '%'; // This tells us if the very start of the text needs to be substituted
                 string[] parts = text.Split(new char[] { '%' }); // Split entire help message by % boundaries
+
+                Instance.QueueChatMessage($"0: {parts[0]} 1: {parts[1]}");
 
                 if (parts.Length == 0) return "";
                 for (int i = 0; i < parts.Length; i++)
                     {
-                        if (skipfirst)
-                        {
-                            skipfirst = false;
-                            msgtext.Append(parts[i]);
-                            continue; // Skip the first entry if it wasn't a % in the original string
-                        }
-
+ 
                         bool found=false;
                         foreach (var entry in dynamicvariables)
                         {
@@ -937,7 +951,7 @@ namespace EnhancedTwitchChat.Bot
                         }
                     if (found) continue;
 
-                    msgtext.Append('%');
+                    if (i!=0) msgtext.Append('%'); // Basically, we need to put the %'s back that were removed by split. The first % though is always fake.
                     msgtext.Append(parts[i]);
                     }
 

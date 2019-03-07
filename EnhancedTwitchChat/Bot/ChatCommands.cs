@@ -952,32 +952,24 @@ namespace EnhancedTwitchChat.Bot
 
                 string songlist = "";
 
+                var msg=new QueueLongMessage(1);
+
                 if (result["songs"].IsArray)
                 {
-                    int count = 0;
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-                        string songdetail=new DynamicText().AddJSON(ref song).Parse(ref Config.Instance.LookupSongDetail);
-
-                        //string songdetail = $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
-                        //QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} (#{song["id"]})");
-
-                        if (songlist.Length + songdetail.Length > MaximumTwitchMessageLength) break;
-                        if (count > 0) songlist += ", ";
-                        songlist += songdetail;
-                        count++;
-
+                        msg.Add(new DynamicText().AddSong(ref song).Parse(ref Config.Instance.LookupSongDetail));
                     }
 
                 }
                 else
                 {
                     song = result["song"].AsObject;
-                    songlist += $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
+                    msg.Add(new DynamicText().AddSong(ref song).Parse(ref Config.Instance.LookupSongDetail));
                 }
 
-                QueueChatMessage(songlist);
+                msg.end("...","No results for for request <request>");
 
                 yield return null;
 
