@@ -223,6 +223,9 @@ namespace EnhancedTwitchChat.Bot
         private string GetStarRating(ref JSONObject song, bool mode = true)
         {
             if (!mode) return "";
+
+            return $"{song["rating"].AsInt}%";
+
             string stars = "******";
             float rating = song["rating"].AsFloat;
             if (rating < 0 || rating > 100) rating = 0;
@@ -577,9 +580,9 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("blist", ShowBanList,Broadcasteronly,"usage: Don't use, it will spam chat.",_nothing);
 
-            AddCommand("open", OpenQueue,Broadcasteronly,"usage: %alias %endusage ... Opens the queue allowing song requests.",_nothing);
+            AddCommand("open", OpenQueue,Mod,"usage: %alias %endusage ... Opens the queue allowing song requests.",_nothing);
 
-            AddCommand("close", CloseQueue,Broadcasteronly, "usage: %alias %endusage ... Closes the request queue.", _nothing);
+            AddCommand("close", CloseQueue,Mod, "usage: %alias %endusage ... Closes the request queue.", _nothing);
 
             AddCommand("restore", restoredeck,Broadcasteronly,"usage: %alias %endusage ... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.",_nothing );
 

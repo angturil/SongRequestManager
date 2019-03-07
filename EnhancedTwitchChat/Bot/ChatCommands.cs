@@ -471,14 +471,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void Unban(TwitchUser requestor, string request)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
-
             var unbanvalue = GetBeatSaverId(request);
-            if (unbanvalue == "")
-            {
-                QueueChatMessage($"usage: !unblock <songid>, omit <>'s");
-                return;
-            }
 
             if (SongBlacklist.Songs.ContainsKey(unbanvalue))
             {
@@ -578,13 +571,6 @@ namespace EnhancedTwitchChat.Bot
         #region Dequeue Song
         private void DequeueSong(TwitchUser requestor, string request)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
-
-            if (request == "")
-            {
-                QueueChatMessage($"Usage: !remove <song>, omit <>'s.");
-                return;
-            }
 
             var songId = GetBeatSaverId(request);
             for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
@@ -620,7 +606,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void LoadList(TwitchUser requestor, string request)
             {
-            if (isNotBroadcaster(requestor)) return;
              StringListManager newlist = new StringListManager();
             if (newlist.Readfile(request))
             {
@@ -635,12 +620,10 @@ namespace EnhancedTwitchChat.Bot
 
     private void writelist(TwitchUser requestor, string request)
         {
-            if (isNotBroadcaster(requestor)) return;
         }
 
         private void ClearList(TwitchUser requestor, string request)
         {
-            if (isNotBroadcaster(requestor)) return;
 
         try
             {
@@ -655,7 +638,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void UnloadList(TwitchUser requestor, string request)
         {
-            if (isNotBroadcaster(requestor)) return;
 
             try
             {
@@ -671,7 +653,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void ListList(TwitchUser requestor, string request)
         {
-            if (isNotBroadcaster(requestor)) return;
 
             try
             {
@@ -689,7 +670,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void showlists(TwitchUser requestor, string request)
         {
-            if (isNotBroadcaster(requestor)) return;
 
             var msg = new QueueLongMessage();
 
@@ -814,15 +794,6 @@ namespace EnhancedTwitchChat.Bot
         // BUG: Ok, this is much better, but there's still a bit of code duplication to slay... to be continued.
         private void mapperWhitelist(TwitchUser requestor, string request)
         {
-            if (!requestor.isBroadcaster) return;
-
-            if (request == "")
-            {
-                QueueChatMessage("usage: mapperwhitelist <name of mapper list>");
-                return;
-            }
-
-
             string key = request.ToLower();
             if (listcollection.ListCollection.ContainsKey(key))
                 {
@@ -837,14 +808,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void mapperBlacklist(TwitchUser requestor, string request)
         {
-            if (!requestor.isBroadcaster) return;
-
-            if (request == "")
-            {
-                QueueChatMessage("usage: mapperblacklist <name of mapper list>");
-                return;
-            }
-
 
             string key = request.ToLower();
             if (listcollection.ListCollection.ContainsKey(key))
@@ -897,14 +860,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void MoveRequestPositionInQueue(TwitchUser requestor, string request, bool top)
         {
-            if (!requestor.isMod && !requestor.isBroadcaster) return;
-
-            if (request == "")
-            {
-                QueueChatMessage($"usage: !{(top ? "mtt" : "last")} <song id> , omit <>'s.");
-                return;
-            }
-
+ 
             string moveId = GetBeatSaverId(request);
             for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
             {
@@ -1061,7 +1017,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void ShowBanList(TwitchUser requestor, string request)
         {
-            if (isNotBroadcaster(requestor, "blist")) return;
 
             var msg = new QueueLongMessage();
 
@@ -1090,8 +1045,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
         {
-            if (isNotModerator(requestor)) return;
-
             QueueOpen = state;
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
             WriteQueueStatusToFile(state ? "Queue is open" : "Queue is closed");
@@ -1150,9 +1103,7 @@ namespace EnhancedTwitchChat.Bot
 
 
         private void Clearqueue(TwitchUser requestor, string request)
-        {
-            if (isNotBroadcaster(requestor)) return;
-
+        {      
             // Write our current queue to file so we can restore it if needed
             Writedeck(requestor, "justcleared");
 
@@ -1180,8 +1131,6 @@ namespace EnhancedTwitchChat.Bot
         #region Unmap/Remap Commands
         private void Remap(TwitchUser requestor, string request)
         {
-            if (isNotModerator(requestor)) return;
-
             string[] parts = request.Split(',', ' ');
 
             if (parts.Length < 2)
@@ -1198,8 +1147,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void Unmap(TwitchUser requestor, string request)
         {
-            if (isNotModerator(requestor)) return;
-
+    
             if (songremap.ContainsKey(request))
             {
                 QueueChatMessage($"Remap entry {request} removed.");

@@ -30,6 +30,10 @@ namespace EnhancedTwitchChat.Bot
         private LevelListTableCell _songListTableCellInstance;
         private SongPreviewPlayer _songPreviewPlayer;
         private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton,_queueButton;
+        #if PRIVATE
+        private Button _BlacklistLastButton;
+        #endif
+
         private TextMeshProUGUI _warningTitle, _warningMessage;
         private HoverHint _historyHintText;
         private int _requestRow = 0;
@@ -86,7 +90,37 @@ namespace EnhancedTwitchChat.Bot
                     _lastSelection = -1;
                 });
                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
-                
+
+
+                #if PRIVATE
+         
+                 // Blacklist previous button, Since this is the 2nd most used option after play. It does make things a little crowded though
+
+                _BlacklistLastButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
+                _BlacklistLastButton.ToggleWordWrapping(false);
+                (_BlacklistLastButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 20f);
+                _BlacklistLastButton.SetButtonText("BL Last");
+                //_blacklistButton.GetComponentInChildren<Image>().color = Color.red;
+                _BlacklistLastButton.onClick.RemoveAllListeners();
+                _BlacklistLastButton.onClick.AddListener(delegate ()
+                {
+                    _onConfirm = () => {
+                        RequestBot.Blacklist(0,true,false); 
+                    };
+
+                    if (RequestHistory.Songs.Count > 0)
+                    {
+                        var song = RequestHistory.Songs[0].song;
+                        _warningTitle.text = "Blacklist Song Warning";
+                        _warningMessage.text = $"Blacklisting {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?";
+                        _confirmationDialog.Present();
+                    }
+                });
+                BeatSaberUI.AddHintText(_BlacklistLastButton.transform as RectTransform, "Block the selected request from being queued in the future.");
+
+                #endif
+
+
                 // Blacklist button
                 _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
                 _blacklistButton.ToggleWordWrapping(false);
