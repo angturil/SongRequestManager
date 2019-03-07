@@ -930,8 +930,7 @@ namespace EnhancedTwitchChat.Bot
                 StringBuilder msgtext = new StringBuilder();
                 string[] parts = text.Split(new char[] { '%' }); // Split entire help message by % boundaries
 
-                Instance.QueueChatMessage($"0: {parts[0]} 1: {parts[1]}");
-
+             
                 if (parts.Length == 0) return "";
                 for (int i = 0; i < parts.Length; i++)
                     {
