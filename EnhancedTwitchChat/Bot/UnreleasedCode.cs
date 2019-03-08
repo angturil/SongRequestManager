@@ -14,11 +14,7 @@ namespace EnhancedTwitchChat.Bot
 {
     public partial class RequestBot : MonoBehaviour
     {
-        // BEGIN EXTRA FEATURES SECTION
 
-    #if UNRELEASED
-    if YOUR COMPILE BREAKS, IT MEANS GITIGNORE ISN'T WORKING
-    #endif
 
     }
-}       
+}
