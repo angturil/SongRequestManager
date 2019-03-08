@@ -174,7 +174,7 @@ namespace EnhancedTwitchChat.Bot
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
                 var song = req.song;
-                if (song[matchby].Value == request) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!!"; // The double !! is for testing to distinguish this duplicate check from the 2nd one
+                if (song[matchby].Value == request) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!"; 
             }
 
             return ""; // Empty string: The request is not in the RequestQueue.Songs
@@ -1025,6 +1025,12 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
         #region Queue Related
+
+        // This function existing to unify the queue message strings, and to allow user configurable QueueMessages in the future
+        public static string QueueMessage(bool QueueState) 
+            {
+            return QueueState ? "Queue is open" : "Queue is closed";
+            }
         private void OpenQueue(TwitchUser requestor, string request)
         {
             ToggleQueue(requestor, request, true);
@@ -1039,7 +1045,7 @@ namespace EnhancedTwitchChat.Bot
         {
             QueueOpen = state;
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
-            WriteQueueStatusToFile(state ? "Queue is open" : "Queue is closed");
+            WriteQueueStatusToFile(QueueMessage(state));
             _refreshQueue = true;
         }
         private static void WriteQueueSummaryToFile()
@@ -1077,7 +1083,7 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
-        public static void WriteQueueStatusToFile(string status)
+        public static void WriteQueueStatusToFile(string status) 
         {
             try
             {

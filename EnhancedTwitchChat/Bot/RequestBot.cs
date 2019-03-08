@@ -42,17 +42,19 @@ namespace EnhancedTwitchChat.Bot
             Played
         }
 
+        #region common Regex expressions
+
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);
         private static readonly Regex _RemapRegex = new Regex("^[0-9]+,[0-9]+$", RegexOptions.Compiled);
-
         private static readonly Regex _beatsaversong=new Regex("^[0-9]+$|^[0-9]+-[0-9]+$", RegexOptions.Compiled);
-
         private static readonly Regex _nothing = new Regex("$^", RegexOptions.Compiled);
         private static readonly Regex _anything = new Regex(".*", RegexOptions.Compiled); // Is this the most efficient way?
-
         private static readonly Regex _atleast1 = new Regex("..*", RegexOptions.Compiled); // Allow usage message to kick in for blank 
+        private static readonly Regex _fail = new Regex("(?!x)x", RegexOptions.Compiled); // Not sure what the official fastest way to auto-fail a match is, so this will do
+
+        #endregion
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
@@ -69,11 +71,12 @@ namespace EnhancedTwitchChat.Bot
 
         private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // This will replace command dictionary
 
-        static public bool QueueOpen = false;
-        bool mapperwhiteliston = false;
+        static public bool QueueOpen = false; // BUG: Shoudld per persistent
+
+        bool mapperwhiteliston = false; // BUG: Need to clean these up a bit.
         bool mapperblackliston = false;
 
-        private static System.Random generator = new System.Random();
+        private static System.Random generator = new System.Random(); // BUG: Should at least seed from unity?
 
         public static List<JSONObject> played = new List<JSONObject>(); // Played list
 
@@ -84,7 +87,7 @@ namespace EnhancedTwitchChat.Bot
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         private static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
 
-        public static string datapath;
+        public static string datapath; // Location of all local data files
 
         private static CustomMenu _songRequestMenu = null;
         private static RequestBotListViewController _songRequestListViewController = null;
@@ -92,6 +95,10 @@ namespace EnhancedTwitchChat.Bot
 
         public static void OnLoad()
         {
+            datapath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
+            if (!Directory.Exists(datapath))
+                Directory.CreateDirectory(datapath);
+
             _levelSelectionFlowCoordinator = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
             if (_levelSelectionFlowCoordinator)
                 _levelSelectionNavigationController = _levelSelectionFlowCoordinator.GetPrivateField<DismissableNavigationController>("_navigationController");
@@ -118,12 +125,8 @@ namespace EnhancedTwitchChat.Bot
 
             SongListUtils.Initialize();
 
-            datapath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
-            if (!Directory.Exists(datapath))
-                Directory.CreateDirectory(datapath);
-
             WriteQueueSummaryToFile();
-            WriteQueueStatusToFile(QueueOpen ? "Queue is open" : "Queue is closed");
+            WriteQueueStatusToFile(QueueMessage(QueueOpen));
 
 
             if (Instance) return;
@@ -453,19 +456,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        public static string GetSongLink(ref JSONObject song, int formatindex)
-        {
-            string[] link ={
-                    $"({song["version"].Value})",
-                    $"https://beatsaver.com/browse/detail/{song["version"].Value}",
-                    $"https://bsaber.com/songs/{song["id"].Value}"
-                    };
-
-            if (formatindex >= link.Length) return "";
-
-            return link[formatindex];
-        }
-
         private static void UpdateRequestButton()
         {
             try
@@ -667,6 +657,9 @@ namespace EnhancedTwitchChat.Bot
                 Plugin.Log($"Added command alias \"{c}\" for song requests.");
             }
 
+            // BUG / or is it a feature? Currently, commands are incorrectly(?) Being added as separate copies per alias, instead of referring to a single shared object. This means each subcommand actually only modifies its own settings. Will fix at a later date. This only affects commands with aliases. 
+            // Since the only user modifiable fields atm are flags and help message, we can hack a fix though the appropriate functions to set those, to replicate those changes across alias copies.. ugh. 
+
             // Testing prototype code now
             AddCommand("queue", ListQueue, Everyone, "usage: %alias %endusage  ... Displays a list of the currently requested songs.", _nothing);
 
@@ -727,9 +720,14 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("list", ListList);
             AddCommand("lists", showlists);
 
+
             //AddCommand("setflags", SetFlags); // Set flags on a command
             //AddCommand("clearflags", ClearFlags); // Clear flags on a command
             //AddCommand("changhelptext",ChangeHelpText); // Change the help text on a command ... 
+
+
+            AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 1.1.?:", _fail); // Sample help command template, User Everyone/Help to determine if the command is registered
+
 
 #if PRIVATE
             AddCommand("deck", createdeck);
@@ -739,12 +737,13 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("mapper", addsongsbymapper); // This is actually most useful if we send it straight to list
 
             loaddecks(TwitchWebSocketClient.OurTwitchUser, "");
+
 #endif
 
+            // BUG: These options are one time, and belong elsewhere
             ReadRemapList();
             LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
             mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
-
         }
 
 
@@ -755,7 +754,7 @@ namespace EnhancedTwitchChat.Bot
         public enum CmdFlags
         {
             None = 0,
-            Everyone = 1,
+            Everyone = 1, // Im
             Sub = 2,
             Mod = 4,
             Broadcaster = 8,
@@ -764,8 +763,10 @@ namespace EnhancedTwitchChat.Bot
             TwitchLevel = 63, // This is used to show ONLY the twitch user flags when showing permissions
 
             ShowRestrictions = 64, // Using the command without the right access level will show permissions error. Mostly used for commands that can be unlocked at different tiers.
-            UsageHelp = 128, // Enable usage help for blank / invalid command and ?
-            LongHelp = 256, // Enable ? operation, showing a longer explanation in stream (try to limit it to one message)
+
+            BypassRights = 128, // Bypass right check on command, allowing error messages, and a later code based check. Often used for help only commands. 
+            QuietFail = 256, // Return no results on failed preflight checks.
+
             HelpLink = 512, // Enable link to web documentation
 
             WhisperReply = 1024, // Reply in a whisper to the user (future feature?). Allow commands to send the results to the user, avoiding channel spam
@@ -790,12 +791,13 @@ namespace EnhancedTwitchChat.Bot
             Disabled = 1 << 30, // If ON, the command will not be added to the alias list at all.
         }
 
-        const CmdFlags Default = CmdFlags.UsageHelp;
+        const CmdFlags Default = 0;
         const CmdFlags Everyone = Default | CmdFlags.Everyone;
         const CmdFlags Broadcasteronly = Default | CmdFlags.Broadcaster;
         const CmdFlags Mod = Default | CmdFlags.Broadcaster | CmdFlags.Mod;
         const CmdFlags Sub = Default | CmdFlags.Sub;
         const CmdFlags VIP = Default | CmdFlags.VIP;
+        const CmdFlags Help = CmdFlags.BypassRights;
 
         // Prototype code only
         public struct BOTCOMMAND
@@ -807,9 +809,10 @@ namespace EnhancedTwitchChat.Bot
             public Regex regexfilter;                 // reg ex filter to apply. For now, we're going to use a single string
 
             public string LongHelp; // Long help text
-            public string HelpLink; // Help website link
+            public string HelpLink; // Help website link, Using a wikia might be the way to go
             StringListManager permittedusers; // List of users permitted to use the command, uses list manager.
-            public string userparameter; // This is here incase I need it for some specific purpose
+            public string userParameter; // This is here incase I need it for some specific purpose
+            public int userNumber;
 
             public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext,Regex regex, string[] alias)
             {
@@ -825,8 +828,8 @@ namespace EnhancedTwitchChat.Bot
                 else
                     regexfilter = regex;
 
-                userparameter = "";
-
+                userParameter = "";
+                userNumber = 0;
 
                 foreach (var entry in aliases) NewCommands.Add(entry, this);
             }
@@ -872,7 +875,6 @@ namespace EnhancedTwitchChat.Bot
 
             public DynamicText()
                  {
-                // BUG: These need be replaced if link generation is disabled.
                 Add("endusage", "");
 
                 if (AllowLinks)
@@ -888,8 +890,11 @@ namespace EnhancedTwitchChat.Bot
                     Add("scoresaber", "scoresaber site");
                 }
 
-                Add("time", "00:00:00"); // BUG: Placeholder text
-                Add("date", "2019-01-01"); // BUG: Placeholder, insert code here
+                DateTime Now = DateTime.Now; //"MM/dd/yyyy hh:mm:ss.fffffff";
+          
+                Add("Time", Now.ToString("hh:mm"));
+                Add("LongTime", Now.ToString("hh:mm:ss")); 
+                Add("Date", "yyyy/MM/dd"); 
                 }
 
             // To make this efficient, The return type needs to be a ref (using ref struct for the class). c# 7.2 supports this. This might be ugly IRL. Not sure if Unused return types execute a copy (assume not).
@@ -998,7 +1003,7 @@ namespace EnhancedTwitchChat.Bot
 
         public static void ShowHelpMessage(ref BOTCOMMAND botcmd,ref TwitchUser user, string param,bool showlong) 
             {
-            if (!botcmd.cmdflags.HasFlag(CmdFlags.UsageHelp)) return; // Make sure we're allowed to show help
+            if (botcmd.cmdflags.HasFlag(CmdFlags.QuietFail)) return; // Make sure we're allowed to show help
 
             string helpmsg = botcmd.ShortHelp;
 
@@ -1058,7 +1063,7 @@ namespace EnhancedTwitchChat.Bot
 
             bool allow = HasRights(ref botcmd,ref user);
 
-            if (!allow)
+            if (!allow && !botcmd.cmdflags.HasFlag(CmdFlags.BypassRights))
                 {
                 CmdFlags twitchpermission = botcmd.cmdflags & CmdFlags.TwitchLevel;
                 if (!botcmd.cmdflags.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
@@ -1113,7 +1118,7 @@ namespace EnhancedTwitchChat.Bot
                     param = command;
                     if (parts.Length > 1) param += " " + parts[1];
                 }
-                //Commands[command]?.Invoke(user, param);
+
                 ExecuteCommand(command,ref user,param);
             }
         }
