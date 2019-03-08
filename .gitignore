@@ -261,5 +261,5 @@ __pycache__/
 *.pyc
 
 # Ignore local development files
-EnhancedTwitchChat/AngturilPrivate
-unreleased.cs
+EnhancedTwitchChat/AngturilPrivate/
+ 

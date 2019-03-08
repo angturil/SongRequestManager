@@ -132,6 +132,7 @@
     <Compile Include="Bot\RequestManager.cs" />
     <Compile Include="Bot\RequestUserTracker.cs" />
     <Compile Include="Bot\SongRequest.cs" />
+    <Compile Include="Bot\test.cs" />
     <Compile Include="Bot\UnreleasedCode.cs" />
     <Compile Include="Chat\MessageHandlers.cs" />
     <Compile Include="Chat\TwitchMessage.cs" />
