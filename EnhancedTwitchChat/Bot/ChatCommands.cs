@@ -506,7 +506,6 @@ namespace EnhancedTwitchChat.Bot
                 }
 
                 int count = 0;
-
                 if (RequestQueue.Songs.Count == 0)
                 {
                     QueueChatMessage("Queue is empty  .");
@@ -1064,9 +1063,9 @@ namespace EnhancedTwitchChat.Bot
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
                 {
                     var song = req.song;
-                    queuesummary += $"{song["songName"].Value}\n";
+                    queuesummary += new DynamicText().AddSong(song).Parse(Config.Instance.QueueTextFileFormat);  // Format of Queue is now user configurable
 
-                    if (++count > 8)
+                    if (++count > Config.Instance.MaximumQueueTextEntries)
                     {
                         queuesummary += "...\n";
                         break;

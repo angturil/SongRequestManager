@@ -904,7 +904,8 @@ namespace EnhancedTwitchChat.Bot
           
                 Add("Time", Now.ToString("hh:mm"));
                 Add("LongTime", Now.ToString("hh:mm:ss")); 
-                Add("Date", "yyyy/MM/dd"); 
+                Add("Date", "yyyy/MM/dd");
+                Add("EOL", "\n"); // Allow carriage return
                 }
 
             // To make this efficient, The return type needs to be a ref (using ref struct for the class). c# 7.2 supports this. This might be ugly IRL. Not sure if Unused return types execute a copy (assume not).
@@ -937,6 +938,11 @@ namespace EnhancedTwitchChat.Bot
                 return this;
                 }
 
+            public DynamicText AddSong(JSONObject json, string prefix = "") // Alternate call for direct object
+            {
+                return AddSong(ref json, prefix);
+            }
+
             public DynamicText AddSong(ref JSONObject song, string prefix = "")
                 {
                 AddJSON(ref song, prefix);
@@ -948,10 +954,13 @@ namespace EnhancedTwitchChat.Bot
                 return this;
                 }
 
-            public DynamicText AddSong(JSONObject json,string prefix="")
+
+            public string Parse(string text, bool parselong = false) // We implement a path for ref or nonref
                 {
-                return AddSong(ref json, prefix);
-                }
+                return Parse(ref text, parselong);
+                }      
+
+
 
             public string Parse(ref string text,bool parselong=false)
                 {

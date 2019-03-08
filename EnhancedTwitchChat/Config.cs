@@ -104,6 +104,8 @@ namespace EnhancedTwitchChat
         public string LinkSonglink = "%songName %songSubName/%authorName %Rating (%version) %BeatsaverLink";
         public string NextSonglink = "%songName %songSubName/%authorName %Rating (%version) %BeatsaberLink";
 
+        public string QueueTextFileFormat = "%songName%EOL";         // Don't forget to include \n for these.
+        public int MaximumQueueTextEntries = 8; 
 
         public Color TextColor
         {
