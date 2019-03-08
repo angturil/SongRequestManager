@@ -1090,7 +1090,7 @@ namespace EnhancedTwitchChat.Bot
                 string statusfile = Path.Combine(datapath, "queuestatus.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
                 fileWriter.Write(status);
-                fileWriter.Close();
+                fileWriter.Close();              
             }
 
             catch (Exception ex)

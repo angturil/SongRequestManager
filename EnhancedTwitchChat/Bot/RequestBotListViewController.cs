@@ -30,7 +30,7 @@ namespace EnhancedTwitchChat.Bot
         private LevelListTableCell _songListTableCellInstance;
         private SongPreviewPlayer _songPreviewPlayer;
         private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton,_queueButton;
-        #if PRIVATE
+        #if UNRELEASED
         private Button _BlacklistLastButton;
         #endif
 
@@ -92,7 +92,7 @@ namespace EnhancedTwitchChat.Bot
                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
 
 
-                #if PRIVATE
+                #if UNRELEASED
          
                  // Blacklist previous button, Since this is the 2nd most used option after play. It does make things a little crowded though
 
@@ -184,6 +184,9 @@ namespace EnhancedTwitchChat.Bot
                         SetUIInteractivity(false);
                         
                         RequestBot.Process(_selectedRow, isShowingHistory);
+
+ 
+
                     }
                 });
                 BeatSaberUI.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");

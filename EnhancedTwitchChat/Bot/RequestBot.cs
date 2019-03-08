@@ -1,6 +1,4 @@
-﻿//#define PRIVATE 
-
-using CustomUI.BeatSaber;
+﻿using CustomUI.BeatSaber;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.UI;
@@ -72,6 +70,11 @@ namespace EnhancedTwitchChat.Bot
         private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // This will replace command dictionary
 
         static public bool QueueOpen = false; // BUG: Shoudld per persistent
+
+        #if UNRELEASED
+        static private string CommandOnEmptyQueue = "!fun"; // Experimental feature. Execute this command when the queue gets empty.
+        static private string CommandEverXminutes ="!add waterbreak song";   
+        #endif
 
         bool mapperwhiteliston = false; // BUG: Need to clean these up a bit.
         bool mapperblackliston = false;
@@ -390,6 +393,12 @@ namespace EnhancedTwitchChat.Bot
                 {
                     SetRequestStatus(index, RequestStatus.Played);
                     request = DequeueRequest(index);
+
+                    // BUG: Need to find a better place for this               
+                    #if UNRELEASED     
+                    if (QueueOpen) Parse(TwitchWebSocketClient.OurTwitchUser, CommandOnEmptyQueue);
+                    #endif
+
                 }
                 else
                 {
@@ -729,7 +738,8 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 1.1.?:", _fail); // Sample help command template, User Everyone/Help to determine if the command is registered
 
 
-#if PRIVATE
+#if UNRELEASED
+
             AddCommand("deck", createdeck);
             AddCommand("unloaddeck", unloaddeck);
             AddCommand("loaddecks", loaddecks);
