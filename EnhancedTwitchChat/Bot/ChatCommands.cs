@@ -919,7 +919,7 @@ namespace EnhancedTwitchChat.Bot
             foreach (var entry in NewCommands)
             {
                 var botcmd = entry.Value;
-                if (HasRights(ref botcmd, ref requestor)) msg.Add($"!{entry.Key}", " ");
+                if (HasRights(ref botcmd, ref requestor)) msg.Add($"!{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
 
@@ -949,8 +949,6 @@ namespace EnhancedTwitchChat.Bot
                     yield break;
                 }
                 JSONObject song;
-
-                string songlist = "";
 
                 var msg=new QueueLongMessage(1);
 
@@ -1012,7 +1010,7 @@ namespace EnhancedTwitchChat.Bot
         private void ShowBanList(TwitchUser requestor, string request)
         {
 
-            var msg = new QueueLongMessage();
+            var msg = new QueueLongMessage(1);
 
             msg.Header("Banlist ");
 

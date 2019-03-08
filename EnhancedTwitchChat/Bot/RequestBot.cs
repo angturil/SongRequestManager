@@ -52,6 +52,8 @@ namespace EnhancedTwitchChat.Bot
         private static readonly Regex _nothing = new Regex("$^", RegexOptions.Compiled);
         private static readonly Regex _anything = new Regex(".*", RegexOptions.Compiled); // Is this the most efficient way?
 
+        private static readonly Regex _atleast1 = new Regex("..*", RegexOptions.Compiled); // Allow usage message to kick in for blank 
+
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
         public static ConcurrentQueue<KeyValuePair<SongRequest, bool>> BlacklistQueue = new ConcurrentQueue<KeyValuePair<SongRequest, bool>>();
@@ -563,99 +565,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void InitializeCommands()
-        {
-
-            // Note: Default permissions are broadcaster only, so don't need to set them
-            // These settings need to be able to reconstruct  
-
-            // Note, this really should pass the alias list instead of adding 3 commmands.
-            foreach (string c in Config.Instance.RequestCommandAliases.Split(',').Distinct())
-            {
-                AddCommand(c, ProcessSongRequest,Everyone,"usage: %alias <songname> or <song id>, omit <,>'s. %endusage This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver",_anything);
-                Plugin.Log($"Added command alias \"{c}\" for song requests.");
-            }
-  
-            // Testing prototype code now
-            AddCommand("queue", ListQueue,Everyone,"usage: %alias %endusage  ... Displays a list of the currently requested songs.",_nothing);
-
-            AddCommand("unblock", Unban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
-
-            AddCommand("block", Ban,Mod,"usage: %alias <song id>, do not include <,>'s.",_beatsaversong);
-
-            AddCommand("remove", DequeueSong,Mod, "usage: %alias <songname>,<username>,<song id> %endusage ... Removes a song from the queue.",_anything);
-
-            AddCommand("clearqueue", Clearqueue,Broadcasteronly,"usage: %alias %endusage ... Clears the song request queue. You can still get it back from the JustCleared deck, or the history window",_nothing);
-
-            AddCommand("mtt", MoveRequestToTop,Mod,"usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the top of the request queue.",_anything );
-
-            AddCommand("remap", Remap,Mod,"usage: %alias <songid1> , <songid2>%endusage ... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.",_RemapRegex);
-
-            AddCommand("unmap", Unmap,Mod,"usage: %alias <songid> %endusage ... Remove future remaps for songid.",_beatsaversong);
-
-            AddCommand(new string [] { "lookup","find"}, lookup,Mod | Sub | VIP ,"usage: %alias <song name> or <beatsaber id>, omit <>'s.%endusage Get a list of songs from %beatsaver matching your search criteria.");
-
-            AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom,Mod,"usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the bottom of the request queue.", _anything);
-
-            AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong,Everyone,"usage: %alias %endusage ... Removes your last requested song form the queue. It can be requested again later.",_nothing);
-
-            AddCommand("blist", ShowBanList,Broadcasteronly,"usage: Don't use, it will spam chat.",_nothing);
-
-            AddCommand("open", OpenQueue,Mod,"usage: %alias %endusage ... Opens the queue allowing song requests.",_nothing);
-
-            AddCommand("close", CloseQueue,Mod, "usage: %alias %endusage ... Closes the request queue.", _nothing);
-
-            AddCommand("restore", restoredeck,Broadcasteronly,"usage: %alias %endusage ... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.",_nothing );
-
-            AddCommand("commandlist", showCommandlist,Everyone,"usage: %alias %endusage ... Displays all the bot commands available to you.",_nothing);
-
-            AddCommand("played", ShowSongsplayed,Mod,"usage: %alias %endusage ... Displays all the songs already played this session.", _nothing);
-
-            AddCommand("readdeck", Readdeck);
-            AddCommand("writedeck", Writedeck);
-
-            AddCommand("clearalreadyplayed", ClearDuplicateList,Broadcasteronly,"usage: %alias %endusage ... clears the list of already requested songs, allowing them to be requested again.",_nothing); // Needs a better name
-
-            AddCommand("help", help, Everyone, "usage: %alias <command name>, or just %alias to show a list of all commands available to you.",_anything);
-
-            AddCommand("link", ShowSongLink,Everyone,"usage: %alias%endusage ... Shows details, and a link to the current song",_nothing);
-
-            // Whitelists mappers and add new songs, this code is being refactored and transitioned to testing
-
-            AddCommand("allowmappers", mapperWhitelist,Broadcasteronly,"usage: %alias <mapper list> %endusage ... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver, filtered by the mapper list.",_alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
-            AddCommand("blockmappers", mapperBlacklist,Broadcasteronly,"usage: %alias <mapper list> %endusage ... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex);
-
-            AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs,Mod,"usage: %alias %endusage ... Adds the latest maps from %beatsaver, filtered by the previous selected allowmappers command",_nothing); // BUG: Note, need something to get the one of the true commands referenced, incases its renamed
-            AddCommand("addsongs", addSongs,Broadcasteronly); // Basically search all, need to decide if its useful
-
-            // Temporary commands for testing
-            AddCommand("load", LoadList);
-            AddCommand("unload", UnloadList);
-            AddCommand("clearlist", ClearList);
-            AddCommand("write", writelist);
-            AddCommand("list", ListList);
-            AddCommand("lists", showlists);
-
-            //AddCommand("setflags", SetFlags); // Set flags on a command
-            //AddCommand("clearflags", ClearFlags); // Clear flags on a command
-            //AddCommand("changhelptext",ChangeHelpText); // Change the help text on a command ... 
-
-#if PRIVATE
-            AddCommand("deck",createdeck);
-            AddCommand("unloaddeck",unloaddeck);      
-            AddCommand("loaddecks",loaddecks);
-            AddCommand("decklist",decklist);
-            AddCommand("mapper", addsongsbymapper); // This is actually most useful if we send it straight to list
-
-            loaddecks (TwitchWebSocketClient.OurTwitchUser,"");
-#endif
-
-            ReadRemapList();
-            LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
-            mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
-
-        }
-
         private void lookup(TwitchUser requestor, string request)
         {
             StartCoroutine(LookupSongs(requestor, request));
@@ -746,6 +655,101 @@ namespace EnhancedTwitchChat.Bot
 
 
         #region NEW Command Processor
+
+        private void InitializeCommands()
+        {
+
+            // Note: Default permissions are broadcaster only, so don't need to set them
+            // These settings need to be able to reconstruct  
+
+            // Note, this really should pass the alias list instead of adding 3 commmands.
+            foreach (string c in Config.Instance.RequestCommandAliases.Split(',').Distinct())
+            {
+                AddCommand(c, ProcessSongRequest, Everyone, "usage: %alias <songname> or <song id>, omit <,>'s. %endusage This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver", _atleast1);
+                Plugin.Log($"Added command alias \"{c}\" for song requests.");
+            }
+
+            // Testing prototype code now
+            AddCommand("queue", ListQueue, Everyone, "usage: %alias %endusage  ... Displays a list of the currently requested songs.", _nothing);
+
+            AddCommand("unblock", Unban, Mod, "usage: %alias <song id>, do not include <,>'s.", _beatsaversong);
+
+            AddCommand("block", Ban, Mod, "usage: %alias <song id>, do not include <,>'s.", _beatsaversong);
+
+            AddCommand("remove", DequeueSong, Mod, "usage: %alias <songname>,<username>,<song id> %endusage ... Removes a song from the queue.", _atleast1);
+
+            AddCommand("clearqueue", Clearqueue, Broadcasteronly, "usage: %alias %endusage ... Clears the song request queue. You can still get it back from the JustCleared deck, or the history window", _nothing);
+
+            AddCommand("mtt", MoveRequestToTop, Mod, "usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the top of the request queue.", _atleast1);
+
+            AddCommand("remap", Remap, Mod, "usage: %alias <songid1> , <songid2>%endusage ... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.", _RemapRegex);
+
+            AddCommand("unmap", Unmap, Mod, "usage: %alias <songid> %endusage ... Remove future remaps for songid.", _beatsaversong);
+
+            AddCommand(new string[] { "lookup", "find" }, lookup, Mod | Sub | VIP, "usage: %alias <song name> or <beatsaber id>, omit <>'s.%endusage Get a list of songs from %beatsaver matching your search criteria.",_atleast1);
+
+            AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom, Mod, "usage: %alias <songname>,<username>,<song id> %endusage ... Moves a song to the bottom of the request queue.", _atleast1);
+
+            AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong, Everyone, "usage: %alias %endusage ... Removes your last requested song form the queue. It can be requested again later.", _nothing);
+
+            AddCommand("blist", ShowBanList, Broadcasteronly, "usage: Don't use, it will spam chat.", _nothing);
+
+            AddCommand("open", OpenQueue, Mod, "usage: %alias %endusage ... Opens the queue allowing song requests.", _nothing);
+
+            AddCommand("close", CloseQueue, Mod, "usage: %alias %endusage ... Closes the request queue.", _nothing);
+
+            AddCommand("restore", restoredeck, Broadcasteronly, "usage: %alias %endusage ... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
+
+            AddCommand("commandlist", showCommandlist, Everyone, "usage: %alias %endusage ... Displays all the bot commands available to you.", _nothing);
+
+            AddCommand("played", ShowSongsplayed, Mod, "usage: %alias %endusage ... Displays all the songs already played this session.", _nothing);
+
+            AddCommand("readdeck", Readdeck);
+            AddCommand("writedeck", Writedeck);
+
+            AddCommand("clearalreadyplayed", ClearDuplicateList, Broadcasteronly, "usage: %alias %endusage ... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
+
+            AddCommand("help", help, Everyone, "usage: %alias <command name>, or just %alias to show a list of all commands available to you.", _anything);
+
+            AddCommand("link", ShowSongLink, Everyone, "usage: %alias%endusage ... Shows details, and a link to the current song", _nothing);
+
+            // Whitelists mappers and add new songs, this code is being refactored and transitioned to testing
+
+            AddCommand("allowmappers", mapperWhitelist, Broadcasteronly, "usage: %alias <mapper list> %endusage ... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
+            AddCommand("blockmappers", mapperBlacklist, Broadcasteronly, "usage: %alias <mapper list> %endusage ... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex);
+
+            AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs, Mod, "usage: %alias %endusage ... Adds the latest maps from %beatsaver, filtered by the previous selected allowmappers command", _nothing); // BUG: Note, need something to get the one of the true commands referenced, incases its renamed
+            AddCommand("addsongs", addSongs, Broadcasteronly); // Basically search all, need to decide if its useful
+
+            // Temporary commands for testing
+            AddCommand("load", LoadList);
+            AddCommand("unload", UnloadList);
+            AddCommand("clearlist", ClearList);
+            AddCommand("write", writelist);
+            AddCommand("list", ListList);
+            AddCommand("lists", showlists);
+
+            //AddCommand("setflags", SetFlags); // Set flags on a command
+            //AddCommand("clearflags", ClearFlags); // Clear flags on a command
+            //AddCommand("changhelptext",ChangeHelpText); // Change the help text on a command ... 
+
+#if PRIVATE
+            AddCommand("deck", createdeck);
+            AddCommand("unloaddeck", unloaddeck);
+            AddCommand("loaddecks", loaddecks);
+            AddCommand("decklist", decklist,Mod,"usage: %alias",_nothing);
+            AddCommand("mapper", addsongsbymapper); // This is actually most useful if we send it straight to list
+
+            loaddecks(TwitchWebSocketClient.OurTwitchUser, "");
+#endif
+
+            ReadRemapList();
+            LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
+            mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
+
+        }
+
+
 
         // This code probably needs its own file
         // Some of these are just ideas, putting them all down, can filter them out later
