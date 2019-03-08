@@ -178,7 +178,7 @@ namespace EnhancedTwitchChat.Bot
                         yield return web.SendWebRequest();
                         if (web.isNetworkError || web.isHttpError)
                         {
-                            if (!silence) QueueChatMessage($"Invalid BeatSaver ID \"{songId}\" specified.");
+                            if (!silence) QueueChatMessage($"Invalid BeatSaver ID \"{songId}\" specified."); 
                             continue;
                         }
 
@@ -195,7 +195,7 @@ namespace EnhancedTwitchChat.Bot
                         SongBlacklist.Songs.Add(songId, request.Key);
                         SongBlacklist.Write();
 
-                        if (!silence) QueueChatMessage($"{request.Key.song["songName"].Value} by {request.Key.song["authorName"].Value} ({songId}) added to the blacklist.");
+                        if (!silence) QueueChatMessage($"{request.Key.song["songName"].Value}/{request.Key.song["authorName"].Value} ({songId}) added to the blacklist.");
                     }
                 }
             }
@@ -336,9 +336,13 @@ namespace EnhancedTwitchChat.Bot
                     errormessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
                 else if (!Config.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
                 {
-                    string songlist = $"@{requestor.displayName}, please choose: ";
-                    foreach (var eachsong in songs) songlist += $"{eachsong["songName"].Value}-{eachsong["songSubName"].Value}-{eachsong["authorName"].Value} ({eachsong["version"].Value}), ";
-                    errormessage = songlist.Substring(0, songlist.Length - 2); // Remove trailing ,'s
+                    var msg =new QueueLongMessage(1,5);
+
+                    msg.Header($"@{requestor.displayName}, please choose: ");
+                    foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(ref Config.Instance.BsrSongDetail), ", ");
+                    msg.end("...", $"No matching songs for for {request}");
+                    yield break;
+        
                 }
                 else
                 {
@@ -442,13 +446,7 @@ namespace EnhancedTwitchChat.Bot
                     Plugin.Log("Failed to find new level!");
                 }
 
-
-                var song = request.song;
-
-                // BUG: Songs status chat messages need to be configurable.
-
-                Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} {GetSongLink(ref song, 2)} is next.");
-
+                if (!request.song.IsNull) new DynamicText().AddSong(request.song).QueueMessage(Config.Instance.NextSonglink); // Display next song message
 
                 _songRequestMenu.Dismiss();
             }
@@ -924,14 +922,21 @@ namespace EnhancedTwitchChat.Bot
                 return this;
                 }
 
-            public DynamicText AddSong(ref JSONObject json, string prefix = "")
+            public DynamicText AddSong(ref JSONObject song, string prefix = "")
                 {
-                AddJSON(ref json, prefix);
-                Add("StarRating", GetStarRating(ref json));
-                Add("Rating", GetRating(ref json));
+                AddJSON(ref song, prefix);
+                Add("StarRating", GetStarRating(ref song));
+                Add("Rating", GetRating(ref song));
+                Add("BeatsaverLink", $"https://beatsaver.com/browse/detail/{song["version"].Value}");
+                Add("BeatsaberLink", $"https://bsaber.com/songs/{song["id"].Value}");
+
                 return this;
                 }
 
+            public DynamicText AddSong(JSONObject json,string prefix="")
+                {
+                return AddSong(ref json, prefix);
+                }
 
             public string Parse(ref string text,bool parselong=false)
                 {

@@ -64,7 +64,7 @@ namespace EnhancedTwitchChat
         public bool FilterCommandMessages = false;
         public bool FilterBroadcasterMessages = false;
 
-        public string RequestCommandAliases = "request,bsr,add";
+        public string RequestCommandAliases = "request,bsr,add,sr";
 
         public int RequestHistoryLimit = 20;
         public int RequestLimit = 5;
@@ -96,9 +96,15 @@ namespace EnhancedTwitchChat
 
         public static Config Instance = null;
 
-        public string AddSongToQueueText="Request %songName %songSubName by %authorName  %Rating (%version) added to queue.";
-        public string LookupSongDetail = "%songName %songSubName-%authorName %Rating (%version)";
-        
+        // These settings let you configure the text of various bot commands.
+
+        public string AddSongToQueueText="Request %songName %songSubName/%authorName %Rating (%version) added to queue.";
+        public string LookupSongDetail = "%songName %songSubName/%authorName %Rating (%version)";
+        public string BsrSongDetail = "%songName %songSubName/%authorName %Rating (%version)";
+        public string LinkSonglink = "%songName %songSubName/%authorName %Rating (%version) %BeatsaverLink";
+        public string NextSonglink = "%songName %songSubName/%authorName %Rating (%version) %BeatsaberLink";
+
+
         public Color TextColor
         {
             get

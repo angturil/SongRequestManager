@@ -149,7 +149,7 @@ namespace EnhancedTwitchChat.Bot
             string songid = song["id"].Value;
             if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
 
-            if (filter.HasFlag(SongFilter.Blacklist) && SongBlacklist.Songs.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is blacklisted!";
+            if (filter.HasFlag(SongFilter.Blacklist) && SongBlacklist.Songs.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is banned!";
 
             if (filter.HasFlag(SongFilter.Mapper) && mapperwhiteliston && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
@@ -950,7 +950,7 @@ namespace EnhancedTwitchChat.Bot
                 }
                 JSONObject song;
 
-                var msg=new QueueLongMessage(1);
+                var msg=new QueueLongMessage(1,5); // One message maximum, 5 bytes reserved for the ...
 
                 if (result["songs"].IsArray)
                 {
@@ -1224,8 +1224,8 @@ namespace EnhancedTwitchChat.Bot
             try  // We're accessing an element across threads, this is only 99.99% safe
             {
                 var song = RequestBotListViewController.currentsong.song;
+                if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(Config.Instance.LinkSonglink);
 
-                QueueChatMessage($"{song["songName"].Value} {song["songSubName"].Value} by {song["authorName"].Value} {GetSongLink(ref song, 1)}");
             }
             catch (Exception ex)
             {
