@@ -371,7 +371,6 @@ namespace EnhancedTwitchChat.Bot
             JSONObject song = request.song;
 
             //BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
-
        
             var dt = new RequestBot.DynamicText().AddSong(ref song).AddUser(ref request.requestor); // Get basic fields
             dt.Add("Status", request.status.ToString());

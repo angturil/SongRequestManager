@@ -729,6 +729,9 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("list", ListList);
             AddCommand("lists", showlists);
 
+            AddCommand("addtolist", Addtolist,Broadcasteronly,"usage: %alias <list> <value to add>",_atleast1);
+            AddCommand("RemoveFromlist", Addtolist, Broadcasteronly, "usage: %alias <list> <value to add>", _atleast1); // BUG: No function defined yet
+
             //AddCommand("setflags", SetFlags); // Set flags on a command
             //AddCommand("clearflags", ClearFlags); // Clear flags on a command
             //AddCommand("changhelptext",ChangeHelpText); // Change the help text on a command ... 

@@ -647,6 +647,34 @@ namespace EnhancedTwitchChat.Bot
             }
 
 
+        private void Addtolist (TwitchUser requestor, string request)
+        {
+        string[] parts = request.Split(new char[] { ' ',',' }, 2);
+        if (parts.Length<2)
+            {
+           //     NewCommands[Addtolist].ShortHelp();
+            QueueChatMessage("Usage text... use the official help method");
+            return;    
+            }
+
+            try
+            {
+                var list = listcollection.ListCollection[parts[0].ToLower()];
+                list.Add(parts[1]);
+                QueueChatMessage($"Added {parts[1]} to {parts[0]}");
+
+            }
+            catch
+            {
+                QueueChatMessage($"list {parts[0]} not found.");
+            }
+
+
+
+
+        }
+
+
         private void ClearList(TwitchUser requestor, string request)
         {
 
@@ -814,8 +842,6 @@ namespace EnhancedTwitchChat.Bot
             
             }
 
-
-        // BUG: Ok, this is much better, but there's still a bit of code duplication to slay... to be continued.
         private void MapperAllowList(TwitchUser requestor, string request)
         {
             string key = request.ToLower();

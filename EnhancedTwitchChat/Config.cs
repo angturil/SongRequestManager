@@ -106,7 +106,7 @@ namespace EnhancedTwitchChat
 
         public string SongHintText="Requested by %user%LFStatus: %Status%LF%LF<size=60%>Request Time: %RequestTime</size>%LF<size=60%>Song ID %version ,rating: %Rating</size>";
 
-        public string QueueTextFileFormat = "%songName%EOL";         // Don't forget to include \n for these.
+        public string QueueTextFileFormat = "%songName%LF";         // Don't forget to include \n for these.
         public int MaximumQueueTextEntries = 8; 
 
         public Color TextColor
