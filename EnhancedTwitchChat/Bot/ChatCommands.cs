@@ -1469,7 +1469,7 @@ namespace EnhancedTwitchChat.Bot
 
                 aliastext.Clear();
                 aliastext.Append('[');
-                aliastext.Append(botcmd.cmdflags & CmdFlags.TwitchLevel).ToString();
+                aliastext.Append(botcmd.rights & CmdFlags.TwitchLevel).ToString();
                 aliastext.Append(']');
                 Add("rights", aliastext.ToString());
                 return this;

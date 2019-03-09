@@ -805,7 +805,7 @@ namespace EnhancedTwitchChat.Bot
         public struct BOTCOMMAND
         {
             public Action<TwitchUser, string> Method;  // Method to call
-            public CmdFlags cmdflags;                  // flags
+            public CmdFlags rights;                  // flags
             public string ShortHelp;                   // short help text (on failing preliminary check
             public List<string> aliases;               // list of command aliases
             public Regex regexfilter;                 // reg ex filter to apply. For now, we're going to use a single string
@@ -830,7 +830,7 @@ namespace EnhancedTwitchChat.Bot
             public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
             {
                 Method = method;
-                cmdflags = flags;
+                this.rights = flags;
                 ShortHelp = shorthelptext;
                 aliases = alias.ToList();
                 LongHelp = "";
@@ -885,7 +885,7 @@ namespace EnhancedTwitchChat.Bot
 
         public static void ShowHelpMessage(ref BOTCOMMAND botcmd,ref TwitchUser user, string param,bool showlong) 
             {
-            if (botcmd.cmdflags.HasFlag(CmdFlags.QuietFail)) return; // Make sure we're allowed to show help
+            if (botcmd.rights.HasFlag(CmdFlags.QuietFail)) return; // Make sure we're allowed to show help
 
             string helpmsg = botcmd.ShortHelp;
 
@@ -928,11 +928,11 @@ namespace EnhancedTwitchChat.Bot
 
         public static bool HasRights(ref BOTCOMMAND botcmd,ref TwitchUser user)
         {
-            if (botcmd.cmdflags.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
-            if (user.isBroadcaster & botcmd.cmdflags.HasFlag(CmdFlags.Broadcaster)) return true;
-            if (user.isMod & botcmd.cmdflags.HasFlag(CmdFlags.Mod)) return true;
-            if (user.isSub & botcmd.cmdflags.HasFlag(CmdFlags.Sub)) return true;
-            if (user.isVip & botcmd.cmdflags.HasFlag(CmdFlags.VIP)) return true;
+            if (botcmd.rights.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
+            if (user.isBroadcaster & botcmd.rights.HasFlag(CmdFlags.Broadcaster)) return true;
+            if (user.isMod & botcmd.rights.HasFlag(CmdFlags.Mod)) return true;
+            if (user.isSub & botcmd.rights.HasFlag(CmdFlags.Sub)) return true;
+            if (user.isVip & botcmd.rights.HasFlag(CmdFlags.VIP)) return true;
             return false;
 
         }
@@ -944,14 +944,79 @@ namespace EnhancedTwitchChat.Bot
 
             if (!NewCommands.TryGetValue(command, out botcmd)) return; // Unknown command
 
+
+            if (user.isBroadcaster && param.StartsWith("!"))
+            {
+
+                if (param.StartsWith("!allow")) // 
+                {
+                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
+                    if (parts.Length > 1)
+                    {
+                        string key = parts[1].ToLower();
+                        botcmd.permittedusers = key;
+                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
+
+                        Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
+                    }
+
+                    return;
+                }
+
+                if (param.StartsWith("!sethelp")) // 
+                {
+                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
+                    if (parts.Length > 1)
+                    {
+                        botcmd.ShortHelp = parts[1];
+                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
+
+                        Instance?.QueueChatMessage($"{command} help: {parts[1]}");
+                    }
+
+                    return;
+                }
+
+
+                if (param.StartsWith("!flags")) // 
+                {
+                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
+                    Instance?.QueueChatMessage($"{command} flags: {botcmd.rights.ToString()}");
+
+                    return;
+                }
+
+
+                if (param.StartsWith("!setflags")) // 
+                {
+                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
+                    if (parts.Length > 1)
+                    {
+                        string[] flags = parts[1].Split(new char[] { ' ', ',' });
+
+                        CmdFlags flag;
+
+                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
+
+                        // BUG: Not working yet
+
+                        Instance?.QueueChatMessage($"Not implemented");
+                    }
+
+                    return;
+
+                }
+
+            }
+
             // Check permissions first
 
             bool allow = HasRights(ref botcmd,ref user);
 
-            if (!allow && !botcmd.cmdflags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers,user.displayName.ToLower()))
+            if (!allow && !botcmd.rights.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers,user.displayName.ToLower()))
                 {
-                CmdFlags twitchpermission = botcmd.cmdflags & CmdFlags.TwitchLevel;
-                if (!botcmd.cmdflags.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
+                CmdFlags twitchpermission = botcmd.rights & CmdFlags.TwitchLevel;
+                if (!botcmd.rights.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
                 return;
                 }
 
@@ -971,60 +1036,7 @@ namespace EnhancedTwitchChat.Bot
             //          !decklsit !setflags SUB
             //          !lookup !sethelp usage: %alias <song name or id>
 
-            if (user.isBroadcaster) {
-
-                if (param.StartsWith("!allow")) // 
-                {
-                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
-                    if (parts.Length > 1)
-                    {
-                        string key = parts[1].ToLower();
-                        botcmd.permittedusers = key;
-                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
- 
-                        Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");   
-                    }
-
-                return;
-                }
-
-                if (param.StartsWith("!sethelp")) // 
-                {
-                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
-                    if (parts.Length > 1)
-                    {
-                        botcmd.ShortHelp = parts[1];
-                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
-
-                        Instance?.QueueChatMessage($"{command} help: {parts[1]}");
-                    }
-
-                    return;
-                }
-
-
-
-                if (param.StartsWith("!setflags")) // 
-                {
-                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
-                    if (parts.Length > 1)
-                    {
-                        string key = parts[1].ToLower();
-
-                        botcmd.permittedusers = key;
-                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
-
-                        // BUG: Not working yet
-
-                        Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
-                    }
-
-                    return;
-
-                }
-
-            }
-
+  
             // Check regex
 
             if (!botcmd.regexfilter.IsMatch(param))
