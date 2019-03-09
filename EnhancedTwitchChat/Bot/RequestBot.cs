@@ -721,7 +721,10 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("chatmessage", ChatMessage, Broadcasteronly, "usage: %alias <what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
 
-            // Temporary commands for testing
+            AddCommand("runscript", RunScript, Broadcasteronly, "usage: %alias <name>%endusage Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
+
+            // Temporary commands for testing, most of these will be unified in a general list/parameter interface
+
             AddCommand("load", LoadList);
             AddCommand("openlist", OpenList);
 

@@ -36,6 +36,13 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
+        public void RunScript(TwitchUser requestor, string request)
+        {
+            // Do nothing for now.
+
+        }
+
+
         // BUG: Attempted rewrite of CheckSong/partial song list produced unexpected formatting... please investigate
         public class QueueLongMessage
         {
@@ -831,7 +838,7 @@ namespace EnhancedTwitchChat.Bot
 
         
         
-
+         
         public class StringListManager
         {
             public List<string> list = new List<string>();
