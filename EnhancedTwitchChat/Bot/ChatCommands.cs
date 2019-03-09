@@ -195,6 +195,21 @@ namespace EnhancedTwitchChat.Bot
 
         #endregion
 
+        public void ChatMessage(TwitchUser requestor, string request)
+            {
+            var dt=new DynamicText().AddUser(ref requestor);
+            try
+                {
+                dt.AddSong(RequestBotListViewController.currentsong.song);
+                }            
+            catch      
+                {
+ 
+                }
+            dt.QueueMessage(request);
+
+            }
+
         #region AddSongs/AddSongsByMapper Commands
 
         /*
@@ -603,6 +618,16 @@ namespace EnhancedTwitchChat.Bot
 
         #region List Manager Related functions ... probably needs its own file
 
+        // List types:
+
+        // This is a work in progress. 
+
+        // .deck = lists of songs
+        // .mapper = mapper lists
+        // .user = twitch user lists
+        // .command = command lists = linear scripting
+        // .dict = list contains key value pairs
+
         private void LoadList(TwitchUser requestor, string request)
             {
              StringListManager newlist = new StringListManager();
@@ -617,9 +642,22 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-    private void writelist(TwitchUser requestor, string request)
-        {
-        }
+        private void writelist(TwitchUser requestor, string request)
+            {
+            }
+
+        // Add list to queue, filtered by InQueue and duplicatelist
+        private void queuelist(TwitchUser requestor, string request)
+            {
+
+            }
+
+        // Remove entire list from queue
+        private void unqueuelist(TwitchUser requestor, string request)
+            {
+            
+            }
+
 
         private void ClearList(TwitchUser requestor, string request)
         {
@@ -656,8 +694,8 @@ namespace EnhancedTwitchChat.Bot
             try
             {
                 var list = listcollection.ListCollection[request.ToLower()];
-                var msg = new QueueLongMessage();
 
+                var msg = new QueueLongMessage();
                 foreach (var entry in list.list) msg.Add(entry, ", ");
                 msg.end("...", $"{request} is empty");
             }
@@ -786,7 +824,6 @@ namespace EnhancedTwitchChat.Bot
                 foreach (string entry in list) msg.Add(entry, separator);                 
                 }
             
-
             }
 
 

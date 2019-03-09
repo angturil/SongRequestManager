@@ -51,6 +51,7 @@ namespace EnhancedTwitchChat.Bot
         private static readonly Regex _anything = new Regex(".*", RegexOptions.Compiled); // Is this the most efficient way?
         private static readonly Regex _atleast1 = new Regex("..*", RegexOptions.Compiled); // Allow usage message to kick in for blank 
         private static readonly Regex _fail = new Regex("(?!x)x", RegexOptions.Compiled); // Not sure what the official fastest way to auto-fail a match is, so this will do
+        private static readonly Regex _deck = new Regex("^(current|draw|first|last|random|unload)$|$^", RegexOptions.Compiled); // Checks deck command parameters
 
         #endregion
 
@@ -73,7 +74,7 @@ namespace EnhancedTwitchChat.Bot
 
         #if UNRELEASED
         static private string CommandOnEmptyQueue = "!fun"; // Experimental feature. Execute this command when the queue gets empty.
-        static private string CommandEverXminutes ="!add waterbreak song";   
+        static private string CommandEveryXminutes ="!add waterbreak song";   
         #endif
 
         bool mapperwhiteliston = false; // BUG: Need to clean these up a bit.
@@ -150,6 +151,7 @@ namespace EnhancedTwitchChat.Bot
 
             UpdateRequestButton();
             InitializeCommands();
+            RunStartupScripts(); 
 
             StartCoroutine(ProcessRequestQueue());
             StartCoroutine(ProcessBlacklistRequests());
@@ -394,11 +396,6 @@ namespace EnhancedTwitchChat.Bot
                     SetRequestStatus(index, RequestStatus.Played);
                     request = DequeueRequest(index);
 
-                    // BUG: Need to find a better place for this               
-                    #if UNRELEASED     
-                    if (QueueOpen) Parse(TwitchWebSocketClient.OurTwitchUser, CommandOnEmptyQueue);
-                    #endif
-
                 }
                 else
                 {
@@ -510,8 +507,19 @@ namespace EnhancedTwitchChat.Bot
         {
             SongRequest request = RequestQueue.Songs.ElementAt(index);
 
+ 
+
             if (request != null)
                 DequeueRequest(request);
+
+
+            #if UNRELEASED
+
+            // If the queue is empty, Execute a custom command, the could be a chat message, a deck request, or nothing
+            if (QueueOpen && RequestQueue.Songs.Count == 0 && CommandOnEmptyQueue!="") Parse(TwitchWebSocketClient.OurTwitchUser, CommandOnEmptyQueue);
+            #endif
+
+
             return request;
         }
 
@@ -653,6 +661,19 @@ namespace EnhancedTwitchChat.Bot
 
         #region NEW Command Processor
 
+        private void RunStartupScripts()
+            {
+
+            ReadRemapList();
+            LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
+            mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
+            
+            #if UNRELEASED
+            loaddecks(TwitchWebSocketClient.OurTwitchUser, "");
+            #endif
+
+        }
+
         private void InitializeCommands()
         {
 
@@ -721,6 +742,8 @@ namespace EnhancedTwitchChat.Bot
             AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs, Mod, "usage: %alias %endusage ... Adds the latest maps from %beatsaver, filtered by the previous selected allowmappers command", _nothing); // BUG: Note, need something to get the one of the true commands referenced, incases its renamed
             AddCommand("addsongs", addSongs, Broadcasteronly); // Basically search all, need to decide if its useful
 
+            AddCommand("chatmessage", ChatMessage, Broadcasteronly, "usage: %alias <what you want to say in chat, supports % variables>", _atleast1);
+
             // Temporary commands for testing
             AddCommand("load", LoadList);
             AddCommand("unload", UnloadList);
@@ -729,11 +752,9 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("list", ListList);
             AddCommand("lists", showlists);
 
-
             //AddCommand("setflags", SetFlags); // Set flags on a command
             //AddCommand("clearflags", ClearFlags); // Clear flags on a command
             //AddCommand("changhelptext",ChangeHelpText); // Change the help text on a command ... 
-
 
             AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 1.1.?:", _fail); // Sample help command template, User Everyone/Help to determine if the command is registered
 
@@ -743,18 +764,11 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("deck", createdeck);
             AddCommand("unloaddeck", unloaddeck);
             AddCommand("loaddecks", loaddecks);
-            AddCommand("decklist", decklist,Mod,"usage: %alias",_nothing);
-            AddCommand("mapper", addsongsbymapper); // This is actually most useful if we send it straight to list
-
-            loaddecks(TwitchWebSocketClient.OurTwitchUser, "");
-
+            AddCommand("decklist", decklist,Mod,"usage: %alias",_deck);
+            AddCommand("whatdeck", whatdeck, Mod, "usage: %alias <songid> or 'current'", _anything);
+            AddCommand("mapper", addsongsbymapper,Broadcasteronly,"usage: %alias <mapperlist>" ); // This is actually most useful if we send it straight to list
 #endif
-
-            // BUG: These options are one time, and belong elsewhere
-            ReadRemapList();
-            LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
-            mapperWhitelist(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
-        }
+            }
 
 
 
@@ -887,21 +901,9 @@ namespace EnhancedTwitchChat.Bot
                  {
                 Add("endusage", "");
 
-                if (AllowLinks)
-                {
-                    Add("beatsaver", "https://beatsaver.com");
-                    Add("beatsaber", "https://beatsaber.com");
-                    Add("scoresaber", "https://scoresaber.com");
-                }
-                else
-                {
-                    Add("beatsaver", "beatsaver site");
-                    Add("beatsaver", "beatsaber site");
-                    Add("scoresaber", "scoresaber site");
-                }
+                AddLinks();
 
-                DateTime Now = DateTime.Now; //"MM/dd/yyyy hh:mm:ss.fffffff";
-          
+                DateTime Now = DateTime.Now; //"MM/dd/yyyy hh:mm:ss.fffffff";         
                 Add("Time", Now.ToString("hh:mm"));
                 Add("LongTime", Now.ToString("hh:mm:ss")); 
                 Add("Date", "yyyy/MM/dd");
@@ -915,6 +917,24 @@ namespace EnhancedTwitchChat.Bot
 
                 return this;
                 }
+
+            public DynamicText AddLinks()
+                {
+                if (AllowLinks)
+                {
+                    Add("beatsaver", "https://beatsaver.com");
+                    Add("beatsaber", "https://beatsaber.com");
+                    Add("scoresaber", "https://scoresaber.com");
+                }
+                else
+                {
+                    Add("beatsaver", "beatsaver site");
+                    Add("beatsaver", "beatsaber site");
+                    Add("scoresaber", "scoresaber site");
+                }
+
+                return this;
+            }
 
             public DynamicText AddBotCmd(ref BOTCOMMAND botcmd)
             {
@@ -959,8 +979,6 @@ namespace EnhancedTwitchChat.Bot
                 {
                 return Parse(ref text, parselong);
                 }      
-
-
 
             public string Parse(ref string text,bool parselong=false)
                 {

@@ -15,6 +15,8 @@ namespace EnhancedTwitchChat.Bot
     public partial class RequestBot : MonoBehaviour
     {
 
+ 
+
 
 
     }

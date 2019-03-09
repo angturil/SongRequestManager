@@ -96,7 +96,7 @@ namespace EnhancedTwitchChat
 
         public static Config Instance = null;
 
-        // These settings let you configure the text of various bot commands.
+        // These settings let you configure the text of various bot commands. I might just use a list for this.
 
         public string AddSongToQueueText="Request %songName %songSubName/%authorName %Rating (%version) added to queue.";
         public string LookupSongDetail = "%songName %songSubName/%authorName %Rating (%version)";
