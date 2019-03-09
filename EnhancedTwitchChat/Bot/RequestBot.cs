@@ -723,6 +723,8 @@ namespace EnhancedTwitchChat.Bot
 
             // Temporary commands for testing
             AddCommand("load", LoadList);
+            AddCommand("openlist", OpenList);
+
             AddCommand("unload", UnloadList);
             AddCommand("clearlist", ClearList);
             AddCommand("write", writelist);
@@ -814,11 +816,25 @@ namespace EnhancedTwitchChat.Bot
 
             public string LongHelp; // Long help text
             public string HelpLink; // Help website link, Using a wikia might be the way to go
-            StringListManager permittedusers; // List of users permitted to use the command, uses list manager.
+            public StringListManager permittedusers; // List of users permitted to use the command, uses list manager.
             public string userParameter; // This is here incase I need it for some specific purpose
             public int userNumber;
 
-            public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext,Regex regex, string[] alias)
+            public bool SetPermittedUsers(string listname)
+                {
+                string key = listname.ToLower();
+                if (listcollection.ListCollection.ContainsKey(key))
+                {
+                    permittedusers = listcollection.ListCollection[key];
+                    return true;
+                }
+                else
+                {
+                    return false;
+                } 
+                }
+
+            public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
             {
                 Method = method;
                 cmdflags = flags;
@@ -826,7 +842,7 @@ namespace EnhancedTwitchChat.Bot
                 aliases = alias.ToList();
                 LongHelp = "";
                 HelpLink = "";
-                permittedusers = null;
+                permittedusers = new StringListManager() ;
                 if (regex == null)
                     regexfilter = _anything;
                 else
@@ -835,7 +851,15 @@ namespace EnhancedTwitchChat.Bot
                 userParameter = "";
                 userNumber = 0;
 
-                foreach (var entry in aliases) NewCommands.Add(entry, this);
+                foreach (var entry in aliases)
+                {
+                if (!NewCommands.ContainsKey(entry))
+                    NewCommands.Add(entry, this);
+                else
+                    {
+                    // BUG: Command alias is a duplicate
+                    }
+                }
             }
         }
 
@@ -922,13 +946,22 @@ namespace EnhancedTwitchChat.Bot
 
         public static void ExecuteCommand(string command, ref TwitchUser user, string param)
         {
-        var botcmd= NewCommands[command];
+        var botcmd=  NewCommands[command];
 
             // Check permissions first
 
             bool allow = HasRights(ref botcmd,ref user);
 
-            if (!allow && !botcmd.cmdflags.HasFlag(CmdFlags.BypassRights))
+            try
+            {
+                RequestBot.Instance.QueueChatMessage($"{user.displayName} {botcmd.permittedusers.list[0]}");
+            }
+            catch
+            {
+
+            }
+
+            if (!allow && !botcmd.cmdflags.HasFlag(CmdFlags.BypassRights) && !botcmd.permittedusers.list.Contains(user.displayName.ToLower()))
                 {
                 CmdFlags twitchpermission = botcmd.cmdflags & CmdFlags.TwitchLevel;
                 if (!botcmd.cmdflags.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
@@ -941,8 +974,30 @@ namespace EnhancedTwitchChat.Bot
                 return;
                 }
 
+            // This is prototype code, it will of course be replaced.
+
+            if (param.StartsWith("!permit"))
+                {
+                string[] parts = param.Split(new char[] { ' ',',' }, 2);
+                if (parts.Length>1)
+                    {
+                    string key = parts[1].ToLower();
+                    if (listcollection.ListCollection.ContainsKey(key))
+                    {
+                        NewCommands[command].SetPermittedUsers(key);
+                        Instance?.QueueChatMessage($"Permit custom users set to  {key}.");
+                    }
+                    else
+                    {
+                        Instance?.QueueChatMessage($"Unable to permit user list {key}.");
+                    }
+
+                }
+
+            }   
+
             // Check regex
-            
+
             if (!botcmd.regexfilter.IsMatch(param))
                 {
                 ShowHelpMessage(ref botcmd, ref user, param, false);

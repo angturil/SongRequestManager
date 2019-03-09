@@ -630,8 +630,41 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
+        private void OpenList(TwitchUser requestor, string request)
+        {
+            StringListManager newlist = new StringListManager();
+            if (newlist.Readfile(request))
+            {
+                QueueChatMessage($"{request} ({newlist.Count()}) is loaded.");
+                listcollection.ListCollection.Add(request.ToLower(), newlist);
+            }
+            else
+            {
+                listcollection.ListCollection.Add(request.ToLower(), newlist);
+                QueueChatMessage($"{request} ({newlist.Count()}) is created.");
+            }
+        }
+
+
+        private void OpenList(string request)
+        {
+            StringListManager newlist = new StringListManager();
+            if (newlist.Readfile(request))
+            {
+                QueueChatMessage($"{request} ({newlist.Count()}) is loaded.");
+                listcollection.ListCollection.Add(request.ToLower(), newlist);
+            }
+            else
+            {
+                listcollection.ListCollection.Add(request.ToLower(), newlist);
+                QueueChatMessage($"{request} ({newlist.Count()}) is created.");
+            }
+        }
+
+
         private void writelist(TwitchUser requestor, string request)
             {
+            
             }
 
         // Add list to queue, filtered by InQueue and duplicatelist
@@ -745,7 +778,7 @@ namespace EnhancedTwitchChat.Bot
 
             }
 
-        public ListCollectionManager listcollection = new ListCollectionManager();
+        public static ListCollectionManager listcollection = new ListCollectionManager();
         
 
         public class StringListManager
