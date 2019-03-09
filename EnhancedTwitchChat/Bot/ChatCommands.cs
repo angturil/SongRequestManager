@@ -828,7 +828,7 @@ namespace EnhancedTwitchChat.Bot
 
 
         // BUG: Ok, this is much better, but there's still a bit of code duplication to slay... to be continued.
-        private void mapperWhitelist(TwitchUser requestor, string request)
+        private void MapperAllowList(TwitchUser requestor, string request)
         {
             string key = request.ToLower();
             if (listcollection.ListCollection.ContainsKey(key))
@@ -842,7 +842,7 @@ namespace EnhancedTwitchChat.Bot
                 } 
         }
 
-        private void mapperBlacklist(TwitchUser requestor, string request)
+        private void MapperBlockList(TwitchUser requestor, string request)
         {
 
             string key = request.ToLower();
@@ -1275,6 +1275,164 @@ namespace EnhancedTwitchChat.Bot
             }
 
         }
+
+        #region DynamicText class and support functions.
+
+        public class DynamicText
+        {
+            public List<KeyValuePair<string, string>> dynamicvariables = new List<KeyValuePair<string, string>>();  // A list of the variables available to us, we're using a list of pairs because the match we use uses BeginsWith,since the name of the string is unknown. The list is very short, so no biggie
+
+            public bool AllowLinks = true;
+
+            string Get(ref string fieldname) // Get the field. Failure is an option,  The fieldname may include extra characters. It is case sensitive.
+            {
+                string result = "";
+                foreach (var entry in dynamicvariables)
+                {
+                    if (fieldname.StartsWith(entry.Key)) return entry.Value;
+                }
+                return result;
+            }
+
+            public DynamicText Add(string key, string value)
+            {
+                dynamicvariables.Add(new KeyValuePair<string, string>(key, value)); // Make the code slower but more readable :(
+                return this;
+            }
+
+            public DynamicText()
+            {
+                Add("endusage", "");
+
+                AddLinks();
+
+                DateTime Now = DateTime.Now; //"MM/dd/yyyy hh:mm:ss.fffffff";         
+                Add("Time", Now.ToString("hh:mm"));
+                Add("LongTime", Now.ToString("hh:mm:ss"));
+                Add("Date", Now.ToString("yyyy/MM/dd"));
+                Add("EOL", "\n"); // Allow carriage return
+            }
+
+            // To make this efficient, The return type needs to be a ref (using ref struct for the class). c# 7.2 supports this. This might be ugly IRL. Not sure if Unused return types execute a copy (assume not).
+            public DynamicText AddUser(ref TwitchUser user)
+            {
+                Add("user", user.displayName);
+
+                return this;
+            }
+
+            public DynamicText AddLinks()
+            {
+                if (AllowLinks)
+                {
+                    Add("beatsaver", "https://beatsaver.com");
+                    Add("beatsaber", "https://beatsaber.com");
+                    Add("scoresaber", "https://scoresaber.com");
+                }
+                else
+                {
+                    Add("beatsaver", "beatsaver site");
+                    Add("beatsaver", "beatsaber site");
+                    Add("scoresaber", "scoresaber site");
+                }
+
+                return this;
+            }
+
+
+            public DynamicText AddBotCmd(ref BOTCOMMAND botcmd)
+            {
+
+                StringBuilder aliastext = new StringBuilder();
+                foreach (var alias in botcmd.aliases) aliastext.Append($"!{alias} ");
+                Add("alias", aliastext.ToString());
+
+                aliastext.Clear();
+                aliastext.Append('[');
+                aliastext.Append(botcmd.cmdflags & CmdFlags.TwitchLevel).ToString();
+                aliastext.Append(']');
+                Add("rights", aliastext.ToString());
+                return this;
+            }
+
+            // Adds a JSON object to the dictionary. You can define a prefix to make the object identifiers unique if needed.
+            public DynamicText AddJSON(ref JSONObject json, string prefix = "")
+            {
+                foreach (var element in json) Add(prefix + element.Key, element.Value);
+                return this;
+            }
+
+            public DynamicText AddSong(JSONObject json, string prefix = "") // Alternate call for direct object
+            {
+                return AddSong(ref json, prefix);
+            }
+
+            public DynamicText AddSong(ref JSONObject song, string prefix = "")
+            {
+                AddJSON(ref song, prefix);
+                Add("StarRating", GetStarRating(ref song));
+                Add("Rating", GetRating(ref song));
+                Add("BeatsaverLink", $"https://beatsaver.com/browse/detail/{song["version"].Value}");
+                Add("BeatsaberLink", $"https://bsaber.com/songs/{song["id"].Value}");
+
+                return this;
+            }
+
+
+            public string Parse(string text, bool parselong = false) // We implement a path for ref or nonref
+            {
+                return Parse(ref text, parselong);
+            }
+
+            public string Parse(ref string text, bool parselong = false)
+            {
+                StringBuilder msgtext = new StringBuilder();
+                string[] parts = text.Split(new char[] { '%' }); // Split entire help message by % boundaries
+
+
+                if (parts.Length == 0) return "";
+                for (int i = 0; i < parts.Length; i++)
+                {
+
+                    bool found = false;
+                    foreach (var entry in dynamicvariables)
+                    {
+                        if (parts[i].StartsWith(entry.Key))
+                        {
+                            if (entry.Key == "endusage" && !parselong) return msgtext.ToString(); // BUG: This works, but isn't the most elegant solution. Look into this later.
+
+                            msgtext.Append(entry.Value);
+                            msgtext.Append(parts[i].Substring(entry.Key.Length));
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) continue;
+
+                    if (i != 0) msgtext.Append('%'); // Basically, we need to put the %'s back that were removed by split. The first % though is always fake.
+                    msgtext.Append(parts[i]);
+                }
+
+                return msgtext.ToString();
+            }
+
+            public DynamicText QueueMessage(string text, bool parselong = false)
+            {
+                QueueMessage(ref text, parselong);
+                return this;
+            }
+
+
+            public DynamicText QueueMessage(ref string text, bool parselong = false)
+            {
+                Instance.QueueChatMessage(Parse(ref text, parselong));
+                return this;
+            }
+
+        }
+
+    #endregion
+
 
     }
 }
