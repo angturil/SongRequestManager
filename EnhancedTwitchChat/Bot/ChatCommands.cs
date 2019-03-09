@@ -14,7 +14,8 @@ namespace EnhancedTwitchChat.Bot
 {
     public partial class RequestBot : MonoBehaviour
     {
-        // This one needs to be cleaned up a lot imo
+        // BUG: This one needs to be cleaned up a lot imo
+        // BUG: This file needs to be split up a little, but not just yet... Its easier for me to move around in one massive file, since I can see the whole thing at once. 
 
         #region Utility functions
 
@@ -29,7 +30,7 @@ namespace EnhancedTwitchChat.Bot
             }
             catch
             {
-
+            
             }
             dt.QueueMessage(request);
 
@@ -509,10 +510,8 @@ namespace EnhancedTwitchChat.Bot
             Readdeck(requestor, "savedqueue");
         }
 
-
         private void Writedeck(TwitchUser requestor, string request)
         {
-
             try
             {
 
@@ -764,8 +763,11 @@ namespace EnhancedTwitchChat.Bot
             msg.end("...", "No lists loaded."); 
         }
 
+        // The list collection maintains a dictionary of named, PERSISTENT lists. Accessing a collection by name automatically loads or crates it.
         public class ListCollectionManager
             {
+
+            // BUG: DoNotCreate flags currently do nothing
 
             public Dictionary<string, StringListManager> ListCollection = new Dictionary<string, StringListManager>();
 
@@ -776,9 +778,38 @@ namespace EnhancedTwitchChat.Bot
                 ListCollection.Add("empty", empty);
                 }   
 
-            }
+            // Normalize any keys, checking for case, and naming rules 
+            // BUG: Naming check does not verify valid list names
+            private string normalize(ref string  listkey)
+                {
+                return listkey.ToLower();
+                }
+
+            public bool contains(ref string listname,string key, bool DoNotCreate = false)
+                {
+                try
+                {
+                    RequestBot.Instance.QueueChatMessage($"{listname} {key}");
+                return ListCollection[normalize(ref listname)].list.Contains(key);
+                }
+                catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
+         
+                return false;
+                }
+        public void ClearList(ref string listname,bool DoNotCreate=false)
+                {
+                try
+                {
+                ListCollection[normalize(ref listname)].Clear();
+                }
+                catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
+                }
+
+        }
 
         public static ListCollectionManager listcollection = new ListCollectionManager();
+
+        
         
 
         public class StringListManager

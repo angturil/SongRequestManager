@@ -816,22 +816,19 @@ namespace EnhancedTwitchChat.Bot
 
             public string LongHelp; // Long help text
             public string HelpLink; // Help website link, Using a wikia might be the way to go
-            public StringListManager permittedusers; // List of users permitted to use the command, uses list manager.
+            public string permittedusers; // Name of list of permitted users.
             public string userParameter; // This is here incase I need it for some specific purpose
             public int userNumber;
 
-            public bool SetPermittedUsers(string listname)
+            // Note to self: C# does not (in this build version at least) permit references to Lists, or any other external element. 
+            // in an ideal world, we'd take a reference to the element storing the user name list (or even just name), but c# strongly discourages this.
+            // There's a lot of overhead to this, because looking up an element can take a non-trivial amount of time. This is particular code does not NEED to be fast, but I can't help but think that 
+            // everything is actually running 10x or more slower than the c++ version would be. I'm not really exaggerating.. Sorry, just woke up, this is my morning pre-espresso rant.
+            // Remove after reading this when awake.
+            
+            public void SetPermittedUsers(string listname)
                 {
-                string key = listname.ToLower();
-                if (listcollection.ListCollection.ContainsKey(key))
-                {
-                    permittedusers = listcollection.ListCollection[key];
-                    return true;
-                }
-                else
-                {
-                    return false;
-                } 
+                permittedusers = listname.ToLower();
                 }
 
             public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
@@ -842,7 +839,7 @@ namespace EnhancedTwitchChat.Bot
                 aliases = alias.ToList();
                 LongHelp = "";
                 HelpLink = "";
-                permittedusers = new StringListManager() ;
+                permittedusers = "" ;
                 if (regex == null)
                     regexfilter = _anything;
                 else
@@ -946,22 +943,15 @@ namespace EnhancedTwitchChat.Bot
 
         public static void ExecuteCommand(string command, ref TwitchUser user, string param)
         {
-        var botcmd=  NewCommands[command];
+            BOTCOMMAND botcmd;
+
+            if (!NewCommands.TryGetValue(command, out botcmd)) return; // Unknown command
 
             // Check permissions first
 
             bool allow = HasRights(ref botcmd,ref user);
 
-            try
-            {
-                RequestBot.Instance.QueueChatMessage($"{user.displayName} {botcmd.permittedusers.list[0]}");
-            }
-            catch
-            {
-
-            }
-
-            if (!allow && !botcmd.cmdflags.HasFlag(CmdFlags.BypassRights) && !botcmd.permittedusers.list.Contains(user.displayName.ToLower()))
+            if (!allow && !botcmd.cmdflags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers,user.displayName.ToLower()))
                 {
                 CmdFlags twitchpermission = botcmd.cmdflags & CmdFlags.TwitchLevel;
                 if (!botcmd.cmdflags.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
@@ -974,26 +964,32 @@ namespace EnhancedTwitchChat.Bot
                 return;
                 }
 
-            // This is prototype code, it will of course be replaced.
+            // BUG: This is prototype code, it will of course be replaced. This message will be removed when its no longer prototype code
 
-            if (param.StartsWith("!permit"))
+            // Current thought is to use a common interface for command object configuration
+            // Permissions for these sub commands will always be by Broadcaster/userlist ONLY. 
+            // Since these are never meant for an end user, they are not going to be configurable.
+            //
+            // Example: !challenge !allow myfriends
+            //          !decklsit !setflags SUB
+            //          !lookup !sethelp usage: %alias <song name or id>
+
+            if (user.isBroadcaster) {
+
+                if (param.StartsWith("!allow")) // 
                 {
-                string[] parts = param.Split(new char[] { ' ',',' }, 2);
-                if (parts.Length>1)
+                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
+                    if (parts.Length > 1)
                     {
-                    string key = parts[1].ToLower();
-                    if (listcollection.ListCollection.ContainsKey(key))
-                    {
-                        NewCommands[command].SetPermittedUsers(key);
-                        Instance?.QueueChatMessage($"Permit custom users set to  {key}.");
-                    }
-                    else
-                    {
-                        Instance?.QueueChatMessage($"Unable to permit user list {key}.");
+                        string key = parts[1].ToLower();
+                        botcmd.permittedusers = key;
+                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
+ 
+                        Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
+
                     }
 
                 }
-
             }   
 
             // Check regex
@@ -1039,7 +1035,17 @@ namespace EnhancedTwitchChat.Bot
                     if (parts.Length > 1) param += " " + parts[1];
                 }
 
-                ExecuteCommand(command,ref user,param);
+                try
+                    {
+                    ExecuteCommand(command, ref user, param);
+                    }
+                catch (Exception ex)
+                    {
+                        // Display failure message, and lock out command for a time period. Not yet.
+
+                        Plugin.Log(ex.ToString());
+
+                    }
             }
         }
 
