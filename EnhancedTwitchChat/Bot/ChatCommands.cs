@@ -836,6 +836,16 @@ namespace EnhancedTwitchChat.Bot
         {
             public List<string> list = new List<string>();
 
+            private bool ReadOnly=false; // The list may not write changes to disk
+            private bool Dynamic = false; // This list comes from a callback
+
+            // Callback function prototype here
+            
+            public StringListManager(bool _ReadOnly=false)
+                {
+                ReadOnly = _ReadOnly;                
+                }   
+
             public bool Readfile(string filename,bool ConvertToLower=true)
             {
                 try
