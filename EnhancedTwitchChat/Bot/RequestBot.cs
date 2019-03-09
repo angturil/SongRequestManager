@@ -78,14 +78,13 @@ namespace EnhancedTwitchChat.Bot
         #endif
 
         bool mapperwhiteliston = false; // BUG: Need to clean these up a bit.
-        bool mapperblackliston = false;
 
         private static System.Random generator = new System.Random(); // BUG: Should at least seed from unity?
 
         public static List<JSONObject> played = new List<JSONObject>(); // Played list
 
         private static StringListManager mapperwhitelist = new StringListManager(); // Lists because we need to interate them per song
-        private static StringListManager mapperblacklist = new StringListManager(); // Lists because we need to interate them per song
+        private static StringListManager mapperBanlist = new StringListManager(); // Lists because we need to interate them per song
 
         private static HashSet<string> duplicatelist = new HashSet<string>();
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
@@ -230,27 +229,7 @@ namespace EnhancedTwitchChat.Bot
             _botMessageQueue.Enqueue(message);
         }
 
-        public static string GetStarRating(ref JSONObject song, bool mode = true)
-        {
-            if (!mode) return "";
-
-            string stars = "******";
-            float rating = song["rating"].AsFloat;
-            if (rating < 0 || rating > 100) rating = 0;
-            string starrating = stars.Substring(0, (int)(rating / 17)); // 17 is used to produce a 5 star rating from 80ish to 100.
-            return starrating;
-        }
-
-        public static string GetRating(ref JSONObject song, bool mode = true)
-        {
-            if (!mode) return "";
-
-            string rating = song["rating"].AsInt.ToString();
-            if (rating == "0") return "";
-            return rating+'%';
-
-        }
-
+  
 
         private IEnumerator ProcessRequestQueue()
         {
@@ -725,8 +704,8 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("played", ShowSongsplayed, Mod, "usage: %alias %endusage ... Displays all the songs already played this session.", _nothing);
 
-            AddCommand("readdeck", Readdeck);
-            AddCommand("writedeck", Writedeck);
+            AddCommand("readdeck", Readdeck,Broadcasteronly,"usage: %alias",_alphaNumericRegex);
+            AddCommand("writedeck", Writedeck,Broadcasteronly,"usage: %alias",_alphaNumericRegex);
 
             AddCommand("clearalreadyplayed", ClearDuplicateList, Broadcasteronly, "usage: %alias %endusage ... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
 
@@ -735,7 +714,7 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("link", ShowSongLink, Everyone, "usage: %alias%endusage ... Shows details, and a link to the current song", _nothing);
 
             AddCommand("allowmappers", MapperAllowList, Broadcasteronly, "usage: %alias <mapper list> %endusage ... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
-            AddCommand("blockmappers", MapperBlockList, Broadcasteronly, "usage: %alias <mapper list> %endusage ... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex);
+            AddCommand("blockmappers", MapperBanList, Broadcasteronly, "usage: %alias <mapper list> %endusage ... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex);
 
             AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs, Mod, "usage: %alias %endusage ... Adds the latest maps from %beatsaver, filtered by the previous selected allowmappers command", _nothing); // BUG: Note, need something to get the one of the true commands referenced, incases its renamed
             AddCommand("addsongs", addSongs, Broadcasteronly); // Basically search all, need to decide if its useful

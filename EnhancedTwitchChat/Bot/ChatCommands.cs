@@ -18,8 +18,24 @@ namespace EnhancedTwitchChat.Bot
 
         #region Utility functions
 
-        const int MaximumTwitchMessageLength = 498; // BUG: Replace this with a cannonical source
+        const int MaximumTwitchMessageLength = 498; 
 
+        public void ChatMessage(TwitchUser requestor, string request)
+        {
+            var dt = new DynamicText().AddUser(ref requestor);
+            try
+            {
+                dt.AddSong(RequestBotListViewController.currentsong.song);
+            }
+            catch
+            {
+
+            }
+            dt.QueueMessage(request);
+
+        }
+
+        // BUG: Attempted rewrite of CheckSong/partial song list produced unexpected formatting... please investigate
         public class QueueLongMessage
         {
             private StringBuilder msgBuilder = new StringBuilder();
@@ -195,20 +211,6 @@ namespace EnhancedTwitchChat.Bot
 
         #endregion
 
-        public void ChatMessage(TwitchUser requestor, string request)
-            {
-            var dt=new DynamicText().AddUser(ref requestor);
-            try
-                {
-                dt.AddSong(RequestBotListViewController.currentsong.song);
-                }            
-            catch      
-                {
- 
-                }
-            dt.QueueMessage(request);
-
-            }
 
         #region AddSongs/AddSongsByMapper Commands
 
@@ -474,7 +476,7 @@ namespace EnhancedTwitchChat.Bot
 
             if (SongBlacklist.Songs.ContainsKey(songId))
             {
-                QueueChatMessage($"{request} is already on the blacklist.");
+                QueueChatMessage($"{request} is already on the ban list.");
             }
             else
             {
@@ -490,13 +492,13 @@ namespace EnhancedTwitchChat.Bot
 
             if (SongBlacklist.Songs.ContainsKey(unbanvalue))
             {
-                QueueChatMessage($"Removed {request} from the blacklist.");
+                QueueChatMessage($"Removed {request} from the ban list.");
                 SongBlacklist.Songs.Remove(unbanvalue);
                 SongBlacklist.Write();
             }
             else
             {
-                QueueChatMessage($"{request} is not on the blacklist.");
+                QueueChatMessage($"{request} is not on the ban list.");
             }
         }
         #endregion
@@ -510,15 +512,9 @@ namespace EnhancedTwitchChat.Bot
 
         private void Writedeck(TwitchUser requestor, string request)
         {
-            if (isNotBroadcaster(requestor) && request != "savedqueue") return;
 
             try
             {
-                if (!_alphaNumericRegex.IsMatch(request))
-                {
-                    QueueChatMessage("usage: writedeck <alphanumeric deck name>");
-                    return;
-                }
 
                 int count = 0;
                 if (RequestQueue.Songs.Count == 0)
@@ -551,14 +547,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void Readdeck(TwitchUser requestor, string request)
         {
-
-            if (isNotBroadcaster(requestor)) return;
-
-            if (!_alphaNumericRegex.IsMatch(request))
-            {
-                QueueChatMessage("usage: readdeck <alphanumeric deck name>");
-                return;
-            }
 
             try
             {
@@ -842,18 +830,18 @@ namespace EnhancedTwitchChat.Bot
                 } 
         }
 
-        private void MapperBlockList(TwitchUser requestor, string request)
+        private void MapperBanList(TwitchUser requestor, string request)
         {
 
             string key = request.ToLower();
             if (listcollection.ListCollection.ContainsKey(key))
             {
-                mapperblacklist = listcollection.ListCollection[key];
+                mapperBanlist = listcollection.ListCollection[key];
                 QueueChatMessage($"Mapper black list set to {request}.");
             }
             else
             {
-                QueueChatMessage($"Unable to set mapper blacklist to {request}.");
+                QueueChatMessage($"Unable to set mapper banlist to {request}.");
             }
         }
 
@@ -871,7 +859,7 @@ namespace EnhancedTwitchChat.Bot
                 return true;
             }
 
-            foreach (var mapper in mapperblacklist.list)
+            foreach (var mapper in mapperBanlist.list)
             {
                 if (normalizedauthor.Contains(mapper)) return true;
             }
@@ -1028,8 +1016,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void ShowSongsplayed(TwitchUser requestor, string request) // Note: This can be spammy.
         {
-
-
             var msg = new QueueLongMessage(2);
 
             msg.Header($"{played.Count} songs played tonight: ");
@@ -1275,6 +1261,28 @@ namespace EnhancedTwitchChat.Bot
             }
 
         }
+
+        public static string GetStarRating(ref JSONObject song, bool mode = true)
+        {
+            if (!mode) return "";
+
+            string stars = "******";
+            float rating = song["rating"].AsFloat;
+            if (rating < 0 || rating > 100) rating = 0;
+            string starrating = stars.Substring(0, (int)(rating / 17)); // 17 is used to produce a 5 star rating from 80ish to 100.
+            return starrating;
+        }
+
+        public static string GetRating(ref JSONObject song, bool mode = true)
+        {
+            if (!mode) return "";
+
+            string rating = song["rating"].AsInt.ToString();
+            if (rating == "0") return "";
+            return rating + '%';
+
+        }
+
 
         #region DynamicText class and support functions.
 
