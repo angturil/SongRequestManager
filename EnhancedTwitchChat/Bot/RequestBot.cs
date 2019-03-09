@@ -735,7 +735,9 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("lists", showlists);
 
             AddCommand("addtolist", Addtolist,Broadcasteronly,"usage: %alias <list> <value to add>",_atleast1);
-            AddCommand("RemoveFromlist", Addtolist, Broadcasteronly, "usage: %alias <list> <value to add>", _atleast1); // BUG: No function defined yet
+            AddCommand("removelist", Addtolist, Broadcasteronly, "usage: %alias <list> <value to add>", _atleast1); // BUG: No function defined yet
+            AddCommand("listundo", Addtolist, Broadcasteronly, "usage: %alias <list>", _atleast1); // BUG: No function defined yet, undo the last operation
+
 
             AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 1.1.?:", _fail); // BUG: Still not quite working. Sample help command template, User Everyone/Help to determine if the command is registered
 
@@ -948,6 +950,17 @@ namespace EnhancedTwitchChat.Bot
             if (!NewCommands.TryGetValue(command, out botcmd)) return; // Unknown command
 
 
+            // BUG: This is prototype code, it will of course be replaced. This message will be removed when its no longer prototype code
+
+            // Current thought is to use a common interface for command object configuration
+            // Permissions for these sub commands will always be by Broadcaster/userlist ONLY. 
+            // Since these are never meant for an end user, they are not going to be configurable.
+            //
+            // Example: !challenge !allow myfriends
+            //          !decklsit !setflags SUB
+            //          !lookup !sethelp usage: %alias <song name or id>
+
+
             if (user.isBroadcaster && param.StartsWith("!"))
             {
 
@@ -1029,15 +1042,6 @@ namespace EnhancedTwitchChat.Bot
                 return;
                 }
 
-            // BUG: This is prototype code, it will of course be replaced. This message will be removed when its no longer prototype code
-
-            // Current thought is to use a common interface for command object configuration
-            // Permissions for these sub commands will always be by Broadcaster/userlist ONLY. 
-            // Since these are never meant for an end user, they are not going to be configurable.
-            //
-            // Example: !challenge !allow myfriends
-            //          !decklsit !setflags SUB
-            //          !lookup !sethelp usage: %alias <song name or id>
 
   
             // Check regex

@@ -770,6 +770,9 @@ namespace EnhancedTwitchChat.Bot
             msg.end("...", "No lists loaded."); 
         }
 
+        [Flags] public enum ListFlags { ReadOnly = 1, InMemory = 2, Cached = 4, Dynamic = 8 };
+
+
         // The list collection maintains a dictionary of named, PERSISTENT lists. Accessing a collection by name automatically loads or crates it.
         public class ListCollectionManager
             {
@@ -792,18 +795,20 @@ namespace EnhancedTwitchChat.Bot
                 return listkey.ToLower();
                 }
 
-            private StringListManager OpenList(string request)
+            private StringListManager OpenList(string request,ListFlags flags=ListFlags.Cached) // All lists are accessed through here, flags determine mode
             {
-                StringListManager newlist = new StringListManager();
-                if (newlist.Readfile(request))
+                StringListManager list;
+                if (!ListCollection.TryGetValue(request, out list))
                 {
-                    listcollection.ListCollection.Add(request.ToLower(), newlist);
+                    list = new StringListManager();
+                    ListCollection.Add(request, list);
+                    list.Readfile(request);
                 }
                 else
                 {
-                    listcollection.ListCollection.Add(request.ToLower(), newlist);
+                if (!flags.HasFlag(ListFlags.Cached)) list.Readfile(request);
                 }
-                return newlist;
+                return list;
             }
 
 
@@ -811,12 +816,8 @@ namespace EnhancedTwitchChat.Bot
                 {
                 try
                 {
-                StringListManager list;
-                if (!ListCollection.TryGetValue(listname, out list))
-                    {
-                    list=OpenList(listname);                   
-                    }        
-
+                StringListManager list=OpenList(listname);
+             
                 return list.list.Contains(key);
                 }
                 catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
@@ -838,23 +839,25 @@ namespace EnhancedTwitchChat.Bot
 
         
         
-         
+        // All variables are public for now until we finalize the interface
         public class StringListManager
         {
             public List<string> list = new List<string>();
 
-            private bool ReadOnly=false; // The list may not write changes to disk
-            private bool Dynamic = false; // This list comes from a callback
+
+            ListFlags flags = ListFlags.Cached;
 
             // Callback function prototype here
             
-            public StringListManager(bool _ReadOnly=false)
+            public StringListManager(ListFlags ReadOnly=ListFlags.Cached)
                 {
-                ReadOnly = _ReadOnly;                
+                                
                 }   
 
             public bool Readfile(string filename,bool ConvertToLower=true)
             {
+                if (flags.HasFlag(ListFlags.InMemory)) return false;
+
                 try
                 {
                     string listfilename = Path.Combine(datapath, filename);
@@ -943,9 +946,11 @@ namespace EnhancedTwitchChat.Bot
             
             }
 
+        // BUG: This actually needs to store the name of the list. Period.
         private void MapperAllowList(TwitchUser requestor, string request)
         {
             string key = request.ToLower();
+
             if (listcollection.ListCollection.ContainsKey(key))
                 {
                 mapperwhitelist = listcollection.ListCollection[key];
