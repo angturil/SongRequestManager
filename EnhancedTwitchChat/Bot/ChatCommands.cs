@@ -1319,6 +1319,8 @@ namespace EnhancedTwitchChat.Bot
                 Add("LongTime", Now.ToString("hh:mm:ss"));
                 Add("Date", Now.ToString("yyyy/MM/dd"));
                 Add("EOL", "\n"); // Allow carriage return
+                Add("LF", "\n"); // Allow carriage return
+
             }
 
             // To make this efficient, The return type needs to be a ref (using ref struct for the class). c# 7.2 supports this. This might be ugly IRL. Not sure if Unused return types execute a copy (assume not).

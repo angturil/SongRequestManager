@@ -370,7 +370,15 @@ namespace EnhancedTwitchChat.Bot
             SongRequest request = SongInfoForRow(row);
             JSONObject song = request.song;
 
-            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
+            //BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
+
+       
+            var dt = new RequestBot.DynamicText().AddSong(ref song).AddUser(ref request.requestor); // Get basic fields
+            dt.Add("Status", request.status.ToString());
+            dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString());
+
+            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(Config.Instance.SongHintText));
+
             _tableCell.songName = song["songName"].Value;
             _tableCell.author = song["authorName"].Value;
             if (SongLoader.AreSongsLoaded)
