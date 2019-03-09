@@ -734,10 +734,6 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("addtolist", Addtolist,Broadcasteronly,"usage: %alias <list> <value to add>",_atleast1);
             AddCommand("RemoveFromlist", Addtolist, Broadcasteronly, "usage: %alias <list> <value to add>", _atleast1); // BUG: No function defined yet
 
-            //AddCommand("setflags", SetFlags); // Set flags on a command
-            //AddCommand("clearflags", ClearFlags); // Clear flags on a command
-            //AddCommand("changhelptext",ChangeHelpText); // Change the help text on a command ... 
-
             AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 1.1.?:", _fail); // BUG: Still not quite working. Sample help command template, User Everyone/Help to determine if the command is registered
 
 
@@ -941,6 +937,7 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
+        // You can modify commands using !allow !setflags !clearflags and !sethelp
         public static void ExecuteCommand(string command, ref TwitchUser user, string param)
         {
             BOTCOMMAND botcmd;
@@ -985,12 +982,48 @@ namespace EnhancedTwitchChat.Bot
                         botcmd.permittedusers = key;
                         NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
  
-                        Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
-
+                        Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");   
                     }
 
+                return;
                 }
-            }   
+
+                if (param.StartsWith("!sethelp")) // 
+                {
+                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
+                    if (parts.Length > 1)
+                    {
+                        botcmd.ShortHelp = parts[1];
+                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
+
+                        Instance?.QueueChatMessage($"{command} help: {parts[1]}");
+                    }
+
+                    return;
+                }
+
+
+
+                if (param.StartsWith("!setflags")) // 
+                {
+                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
+                    if (parts.Length > 1)
+                    {
+                        string key = parts[1].ToLower();
+
+                        botcmd.permittedusers = key;
+                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
+
+                        // BUG: Not working yet
+
+                        Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
+                    }
+
+                    return;
+
+                }
+
+            }
 
             // Check regex
 

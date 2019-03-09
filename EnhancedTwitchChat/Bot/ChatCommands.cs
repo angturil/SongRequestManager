@@ -785,12 +785,32 @@ namespace EnhancedTwitchChat.Bot
                 return listkey.ToLower();
                 }
 
+            private StringListManager OpenList(string request)
+            {
+                StringListManager newlist = new StringListManager();
+                if (newlist.Readfile(request))
+                {
+                    listcollection.ListCollection.Add(request.ToLower(), newlist);
+                }
+                else
+                {
+                    listcollection.ListCollection.Add(request.ToLower(), newlist);
+                }
+                return newlist;
+            }
+
+
             public bool contains(ref string listname,string key, bool DoNotCreate = false)
                 {
                 try
                 {
-                    RequestBot.Instance.QueueChatMessage($"{listname} {key}");
-                return ListCollection[normalize(ref listname)].list.Contains(key);
+                StringListManager list;
+                if (!ListCollection.TryGetValue(listname, out list))
+                    {
+                    list=OpenList(listname);                   
+                    }        
+
+                return list.list.Contains(key);
                 }
                 catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
          
