@@ -98,15 +98,15 @@ namespace EnhancedTwitchChat
 
         // These settings let you configure the text of various bot commands. I might just use a list for this.
 
-        public string AddSongToQueueText="Request %songName %songSubName/%authorName %Rating (%version) added to queue.";
-        public string LookupSongDetail = "%songName %songSubName/%authorName %Rating (%version)";
-        public string BsrSongDetail = "%songName %songSubName/%authorName %Rating (%version)";
-        public string LinkSonglink = "%songName %songSubName/%authorName %Rating (%version) %BeatsaverLink";
-        public string NextSonglink = "%songName %songSubName/%authorName %Rating (%version) is next. %BeatsaberLink";
+        public string AddSongToQueueText="Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.";
+        public string LookupSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
+        public string BsrSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
+        public string LinkSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%";
+        public string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
 
-        public string SongHintText="Requested by %user%LFStatus: %Status%LF%LF<size=60%>Request Time: %RequestTime</size>%LF<size=60%>Song ID %version ,rating: %Rating</size>";
+        public string SongHintText="Requested by %user%%LF%Status: %Status%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
 
-        public string QueueTextFileFormat = "%songName%LF";         // Don't forget to include \n for these.
+        public string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include \n for these.
         public int MaximumQueueTextEntries = 8; 
 
         public Color TextColor
