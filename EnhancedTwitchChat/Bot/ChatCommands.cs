@@ -1099,15 +1099,17 @@ namespace EnhancedTwitchChat.Bot
 
             public DynamicText()
             {
-                Add("|", ""); // This is the official separator character, its used in help to separate usage from extended help, and because its easy to detect when parsing, being one character long
+                Add("|", ""); // This is the official section separator character, its used in help to separate usage from extended help, and because its easy to detect when parsing, being one character long
 
+                // BUG: Note -- Its my intent to allow sections to be used as a form of conditional. If a result failure occurs within a section, we should be able to rollback the entire section, and continue to the next. Its a better way of handline missing dynamic fields without excessive scripting
+                // This isn't implemented yet.
                 AddLinks();
+
 
                 DateTime Now = DateTime.Now; //"MM/dd/yyyy hh:mm:ss.fffffff";         
                 Add("Time", Now.ToString("hh:mm"));
                 Add("LongTime", Now.ToString("hh:mm:ss"));
                 Add("Date", Now.ToString("yyyy/MM/dd"));
-                Add("EOL", "\n"); // Allow carriage return
                 Add("LF", "\n"); // Allow carriage return
 
             }

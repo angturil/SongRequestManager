@@ -834,7 +834,11 @@ namespace EnhancedTwitchChat.Bot
             
             public void SetPermittedUsers(string listname)
                 {
-                permittedusers = listname.ToLower();
+                // BUG: Needs additional checking
+
+                string fixedname=listname.ToLower();
+                if (!fixedname.EndsWith(".users")) fixedname += ".users";
+                permittedusers = fixedname;
                 }
 
             public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
@@ -883,25 +887,13 @@ namespace EnhancedTwitchChat.Bot
         // We thus build a table with only those values we have. 
 
 
-        public static void ParseHelpMessage(ref string message, ref BOTCOMMAND botcmd, ref TwitchUser user, ref string param, bool parselong = false)
-                {
 
-                // I will surely go to C sharp hell for this. (this may even work well in C# 7.2)
-
-                new DynamicText().AddUser(ref user).AddBotCmd(ref botcmd).QueueMessage(ref message,parselong);
-
-                }
-
-
+        // BUG: This is actually part of botcmd, please move
         public static void ShowHelpMessage(ref BOTCOMMAND botcmd,ref TwitchUser user, string param,bool showlong) 
             {
             if (botcmd.rights.HasFlag(CmdFlags.QuietFail)) return; // Make sure we're allowed to show help
 
-            string helpmsg = botcmd.ShortHelp;
-
-
-            ParseHelpMessage(ref helpmsg,ref  botcmd, ref user, ref param,showlong);
-                            // Quick and dirty help text variable expander, this is a bit of a hack!
+            new DynamicText().AddUser(ref user).AddBotCmd(ref botcmd).QueueMessage(ref botcmd.ShortHelp, showlong);
             
             return;
             }
@@ -954,17 +946,17 @@ namespace EnhancedTwitchChat.Bot
 
             if (!NewCommands.TryGetValue(command, out botcmd)) return; // Unknown command
 
-
             // BUG: This is prototype code, it will of course be replaced. This message will be removed when its no longer prototype code
 
             // Current thought is to use a common interface for command object configuration
-            // Permissions for these sub commands will always be by Broadcaster/userlist ONLY. 
+            // Permissions for these sub commands will always be by Broadcaster/userlist ONLY. Note command behaviour that alters with permission should treat userlist as an escalation to Broadcaster.
             // Since these are never meant for an end user, they are not going to be configurable.
+            
+            // BUG: Better syntax might be desirable
             //
             // Example: !challenge !allow myfriends
             //          !decklsit !setflags SUB
             //          !lookup !sethelp usage: %alias%<song name or id>
-
 
             if (user.isBroadcaster && param.StartsWith("!"))
             {

@@ -79,7 +79,6 @@ namespace EnhancedTwitchChat.Bot
         string[] parts = request.Split(new char[] { ' ', ',' }, 2);
         if (parts.Length < 2)
         {
-            //     NewCommands[Addtolist].ShortHelp();
             QueueChatMessage("Usage text... use the official help method");
             return;
         }
@@ -179,7 +178,7 @@ namespace EnhancedTwitchChat.Bot
         msg.end("...", "No lists loaded.");
     }
 
-    [Flags] public enum ListFlags { ReadOnly = 1, InMemory = 2, Cached = 4, Dynamic = 8, LineSeparator = 16 };
+    [Flags] public enum ListFlags { ReadOnly = 1, InMemory = 2,Uncached = 4, Dynamic = 8, LineSeparator = 16,Unchanged=256};
 
     // The list collection maintains a dictionary of named, PERSISTENT lists. Accessing a collection by name automatically loads or crates it.
     public class ListCollectionManager
@@ -203,7 +202,7 @@ namespace EnhancedTwitchChat.Bot
             return listkey.ToLower();
         }
 
-        public StringListManager OpenList(string request, ListFlags flags = ListFlags.Cached) // All lists are accessed through here, flags determine mode
+        public StringListManager OpenList(string request, ListFlags flags = ListFlags.Unchanged) // All lists are accessed through here, flags determine mode
         {
             StringListManager list;
             if (!ListCollection.TryGetValue(request, out list))
@@ -214,13 +213,13 @@ namespace EnhancedTwitchChat.Bot
             }
             else
             {
-                if (!flags.HasFlag(ListFlags.Cached)) list.Readfile(request); // If Cache is off, ALWAYS re-read file.
+                if (flags.HasFlag(ListFlags.Uncached)) list.Readfile(request); // If Cache is off, ALWAYS re-read file.
             }
             return list;
         }
 
 
-        public bool contains(ref string listname, string key, ListFlags flags = ListFlags.Cached)
+        public bool contains(ref string listname, string key, ListFlags flags = ListFlags.Unchanged)
         {
             try
             {
@@ -233,7 +232,7 @@ namespace EnhancedTwitchChat.Bot
             return false;
         }
 
-        public bool add(ref string listname, ref string key, ListFlags flags = ListFlags.Cached)
+        public bool add(ref string listname, ref string key, ListFlags flags = ListFlags.Unchanged)
         {
             try
             {
@@ -248,7 +247,7 @@ namespace EnhancedTwitchChat.Bot
             return false;
         }
 
-        public bool remove(ref string listname, ref string key, ListFlags flags = ListFlags.Cached)
+        public bool remove(ref string listname, ref string key, ListFlags flags = ListFlags.Unchanged)
         {
             try
             {
@@ -274,7 +273,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        public void runscript(string listname, ListFlags flags = ListFlags.Cached)
+        public void runscript(string listname, ListFlags flags = ListFlags.Unchanged)
         {
 
             try
@@ -286,7 +285,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        public void ClearList(ref string listname, ListFlags flags = ListFlags.Cached)
+        public void ClearList(ref string listname, ListFlags flags = ListFlags.Unchanged)
         {
             try
             {
@@ -311,11 +310,11 @@ namespace EnhancedTwitchChat.Bot
 
         public List<string> list = new List<string>();
 
-        ListFlags flags = ListFlags.Cached;
+        ListFlags flags = 0;
 
         // Callback function prototype here
 
-        public StringListManager(ListFlags ReadOnly = ListFlags.Cached)
+        public StringListManager(ListFlags ReadOnly = ListFlags.Unchanged)
         {
 
         }

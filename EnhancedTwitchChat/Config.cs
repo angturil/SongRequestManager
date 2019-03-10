@@ -63,6 +63,7 @@ namespace EnhancedTwitchChat
         public bool PersistentRequestQueue = true;
         public bool FilterCommandMessages = false;
         public bool FilterBroadcasterMessages = false;
+        public bool FilterUserlistMessages= true; // Filter messages in chatexclude.users ( pick a better name ) 
 
         public string RequestCommandAliases = "request,bsr,add,sr";
 
