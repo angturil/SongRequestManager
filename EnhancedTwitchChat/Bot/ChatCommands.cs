@@ -19,7 +19,7 @@ namespace EnhancedTwitchChat.Bot
 
         #region Utility functions
 
-        const int MaximumTwitchMessageLength = 498; 
+        const int MaximumTwitchMessageLength = 498;
 
         public void ChatMessage(TwitchUser requestor, string request)
         {
@@ -30,7 +30,7 @@ namespace EnhancedTwitchChat.Bot
             }
             catch
             {
-            
+
             }
             dt.QueueMessage(request);
 
@@ -39,6 +39,8 @@ namespace EnhancedTwitchChat.Bot
         public void RunScript(TwitchUser requestor, string request)
         {
             // Do nothing for now.
+
+            listcollection.runscript(request);
 
         }
 
@@ -198,7 +200,7 @@ namespace EnhancedTwitchChat.Bot
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
                 var song = req.song;
-                if (song[matchby].Value == request) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!"; 
+                if (song[matchby].Value == request) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!";
             }
 
             return ""; // Empty string: The request is not in the RequestQueue.Songs
@@ -428,7 +430,7 @@ namespace EnhancedTwitchChat.Bot
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-  
+
                         if (filtersong(song)) continue;
                         ProcessSongRequest(requestor, song["version"].Value);
                         count++;
@@ -438,7 +440,7 @@ namespace EnhancedTwitchChat.Bot
                 else
                 {
                     song = result["song"].AsObject;
-                     // $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
+                    // $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
 
                     ProcessSongRequest(requestor, song["version"].Value);
                     totalSongs++;
@@ -562,10 +564,10 @@ namespace EnhancedTwitchChat.Bot
 
                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-           
+
                 for (int n = 0; n < integerStrings.Length; n++)
                 {
-                    if (IsInQueue( integerStrings[n])) continue;
+                    if (IsInQueue(integerStrings[n])) continue;
                     ProcessSongRequest(requestor, integerStrings[n]);
                 }
             }
@@ -589,7 +591,7 @@ namespace EnhancedTwitchChat.Bot
                 if (songId == "")
                 {
                     string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
-                  
+
                     if (DoesContainTerms(request, ref terms))
                         dequeueSong = true;
                 }
@@ -623,8 +625,8 @@ namespace EnhancedTwitchChat.Bot
         // .dict = list contains key value pairs
 
         private void LoadList(TwitchUser requestor, string request)
-            {
-             StringListManager newlist = new StringListManager();
+        {
+            StringListManager newlist = new StringListManager();
             if (newlist.Readfile(request))
             {
                 QueueChatMessage($"{request} ({newlist.Count()}) is loaded.");
@@ -632,7 +634,7 @@ namespace EnhancedTwitchChat.Bot
             }
             else
             {
-            QueueChatMessage($"Unable to load {request}.");
+                QueueChatMessage($"Unable to load {request}.");
             }
         }
 
@@ -651,55 +653,38 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-
-        private void OpenList(string request)
-        {
-            StringListManager newlist = new StringListManager();
-            if (newlist.Readfile(request))
-            {
-                QueueChatMessage($"{request} ({newlist.Count()}) is loaded.");
-                listcollection.ListCollection.Add(request.ToLower(), newlist);
-            }
-            else
-            {
-                listcollection.ListCollection.Add(request.ToLower(), newlist);
-                QueueChatMessage($"{request} ({newlist.Count()}) is created.");
-            }
-        }
-
-
         private void writelist(TwitchUser requestor, string request)
-            {
-            
-            }
+        {
+
+        }
 
         // Add list to queue, filtered by InQueue and duplicatelist
         private void queuelist(TwitchUser requestor, string request)
-            {
+        {
 
-            }
+        }
 
         // Remove entire list from queue
         private void unqueuelist(TwitchUser requestor, string request)
-            {
-            
-            }
-
-
-        private void Addtolist (TwitchUser requestor, string request)
         {
-        string[] parts = request.Split(new char[] { ' ',',' }, 2);
-        if (parts.Length<2)
+
+        }
+
+
+        private void Addtolist(TwitchUser requestor, string request)
+        {
+            string[] parts = request.Split(new char[] { ' ', ',' }, 2);
+            if (parts.Length < 2)
             {
-           //     NewCommands[Addtolist].ShortHelp();
-            QueueChatMessage("Usage text... use the official help method");
-            return;    
+                //     NewCommands[Addtolist].ShortHelp();
+                QueueChatMessage("Usage text... use the official help method");
+                return;
             }
 
             try
             {
-                var list = listcollection.ListCollection[parts[0].ToLower()];
-                list.Add(parts[1]);
+
+                listcollection.add(ref parts[0], ref parts[1]);
                 QueueChatMessage($"Added {parts[1]} to {parts[0]}");
 
             }
@@ -707,17 +692,38 @@ namespace EnhancedTwitchChat.Bot
             {
                 QueueChatMessage($"list {parts[0]} not found.");
             }
-
-
-
-
         }
+
+
+        private void RemoveFromlist(TwitchUser requestor, string request)
+        {
+            string[] parts = request.Split(new char[] { ' ', ',' }, 2);
+            if (parts.Length < 2)
+            {
+                //     NewCommands[Addtolist].ShortHelp();
+                QueueChatMessage("Usage text... use the official help method");
+                return;
+            }
+
+            try
+            {
+
+                listcollection.remove(ref parts[0], ref parts[1]);
+                QueueChatMessage($"Removed {parts[1]} from {parts[0]}");
+
+            }
+            catch
+            {
+                QueueChatMessage($"list {parts[0]} not found.");
+            }
+        }
+
 
 
         private void ClearList(TwitchUser requestor, string request)
         {
 
-        try
+            try
             {
                 listcollection.ListCollection[request.ToLower()].Clear();
                 QueueChatMessage($"{request} is cleared.");
@@ -736,7 +742,7 @@ namespace EnhancedTwitchChat.Bot
                 listcollection.ListCollection.Remove(request.ToLower());
                 QueueChatMessage($"{request} unloaded.");
             }
-        catch    
+            catch
             {
                 QueueChatMessage($"Unable to unload {request}");
             }
@@ -748,13 +754,13 @@ namespace EnhancedTwitchChat.Bot
 
             try
             {
-                var list = listcollection.ListCollection[request.ToLower()];
+                var list = listcollection.OpenList(request);
 
                 var msg = new QueueLongMessage();
                 foreach (var entry in list.list) msg.Add(entry, ", ");
                 msg.end("...", $"{request} is empty");
             }
-        catch
+            catch
             {
                 QueueChatMessage($"{request} not found.");
             }
@@ -766,84 +772,141 @@ namespace EnhancedTwitchChat.Bot
             var msg = new QueueLongMessage();
 
             msg.Header("Loaded lists: ");
-            foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})",", ");
-            msg.end("...", "No lists loaded."); 
+            foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})", ", ");
+            msg.end("...", "No lists loaded.");
         }
 
-        [Flags] public enum ListFlags { ReadOnly = 1, InMemory = 2, Cached = 4, Dynamic = 8 };
-
+        [Flags] public enum ListFlags { ReadOnly = 1, InMemory = 2, Cached = 4, Dynamic = 8, LineSeparator = 16 };
 
         // The list collection maintains a dictionary of named, PERSISTENT lists. Accessing a collection by name automatically loads or crates it.
         public class ListCollectionManager
-            {
+        {
 
             // BUG: DoNotCreate flags currently do nothing
 
             public Dictionary<string, StringListManager> ListCollection = new Dictionary<string, StringListManager>();
 
             public ListCollectionManager()
-                {
+            {
                 // Add an empty list so we can set various lists to empty
                 StringListManager empty = new StringListManager();
                 ListCollection.Add("empty", empty);
-                }   
+            }
 
             // Normalize any keys, checking for case, and naming rules 
             // BUG: Naming check does not verify valid list names
-            private string normalize(ref string  listkey)
-                {
+            private string normalize(ref string listkey)
+            {
                 return listkey.ToLower();
-                }
+            }
 
-            private StringListManager OpenList(string request,ListFlags flags=ListFlags.Cached) // All lists are accessed through here, flags determine mode
+            public StringListManager OpenList(string request, ListFlags flags = ListFlags.Cached) // All lists are accessed through here, flags determine mode
             {
                 StringListManager list;
                 if (!ListCollection.TryGetValue(request, out list))
                 {
                     list = new StringListManager();
                     ListCollection.Add(request, list);
-                    list.Readfile(request);
+                    if (!flags.HasFlag(ListFlags.InMemory)) list.Readfile(request); // If in memory, we never read from disk
                 }
                 else
                 {
-                if (!flags.HasFlag(ListFlags.Cached)) list.Readfile(request);
+                    if (!flags.HasFlag(ListFlags.Cached)) list.Readfile(request); // If Cache is off, ALWAYS re-read file.
                 }
                 return list;
             }
 
 
-            public bool contains(ref string listname,string key, bool DoNotCreate = false)
-                {
+            public bool contains(ref string listname, string key, ListFlags flags = ListFlags.Cached)
+            {
                 try
                 {
-                StringListManager list=OpenList(listname);
-             
-                return list.list.Contains(key);
+                    StringListManager list = OpenList(listname);
+
+                    return list.list.Contains(key);
                 }
                 catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
-         
+
                 return false;
-                }
-        public void ClearList(ref string listname,bool DoNotCreate=false)
-                {
+            }
+
+            public bool add(ref string listname, ref string key, ListFlags flags = ListFlags.Cached)
+            {
                 try
                 {
-                ListCollection[normalize(ref listname)].Clear();
+                    StringListManager list = OpenList(listname);
+                    list.list.Add(key);
+                    if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname);
+                    return true;
+
                 }
                 catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
+
+                return false;
+            }
+
+            public bool remove(ref string listname, ref string key, ListFlags flags = ListFlags.Cached)
+            {
+                try
+                {
+                    StringListManager list = OpenList(listname);
+
+                    for (int i = 0; i < list.list.Count; i++)
+                    {
+                        if (list.list[i].Contains(key))
+                        {
+                            list.list.RemoveAt(i);
+                            if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname);
+
+                            return true;
+                        }
+                    }
+
+                    return false;
+
                 }
+                catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
+
+                return false;
+            }
+
+
+            public void runscript(string listname, ListFlags flags = ListFlags.Cached)
+            {
+
+                try
+                {
+                    var script = OpenList(listname, flags);
+                    foreach (var line in script.list) Parse(TwitchWebSocketClient.OurTwitchUser, line);
+                }
+                catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
+            }
+
+
+            public void ClearList(ref string listname, ListFlags flags = ListFlags.Cached)
+            {
+                try
+                {
+                    //OpenList(listname);
+                    ListCollection[normalize(ref listname)].Clear(); // Does this work
+                }
+                catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
+            }
 
         }
 
         public static ListCollectionManager listcollection = new ListCollectionManager();
 
-        
+
         
         // All variables are public for now until we finalize the interface
         public class StringListManager
         {
-            public List<string> list = new List<string>();
 
+            private static char[] anyseparator = { ',', ' ', '\t', '\r', '\n' };
+            private static char[] lineseparator = { '\n','\r'};
+
+            public List<string> list = new List<string>();
 
             ListFlags flags = ListFlags.Cached;
 
@@ -856,13 +919,17 @@ namespace EnhancedTwitchChat.Bot
 
             public bool Readfile(string filename,bool ConvertToLower=true)
             {
-                if (flags.HasFlag(ListFlags.InMemory)) return false;
+                if (flags.HasFlag(ListFlags.InMemory)) return false;                
 
                 try
                 {
                     string listfilename = Path.Combine(datapath, filename);
                     string fileContent = File.ReadAllText(listfilename);
-                    list = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                    if (listfilename.EndsWith(".script"))
+                        list = fileContent.Split(lineseparator, StringSplitOptions.RemoveEmptyEntries).ToList();
+                    else
+                        list = fileContent.Split(anyseparator, StringSplitOptions.RemoveEmptyEntries).ToList();
+
                     if (ConvertToLower) LowercaseList();
                     return true;
                 }
@@ -874,12 +941,16 @@ namespace EnhancedTwitchChat.Bot
                 return false;
             }
 
-            public bool Writefile(string filename, string separator = ",")
+            public bool Writefile(string filename)
             {
+               
+                string separator = filename.EndsWith(".script") ? "\n" : ",";
+
                 try
                 {
                     string listfilename = Path.Combine(datapath, filename);
-                    var output = String.Join(",", list.ToArray());
+                        
+                        var output = String.Join(separator, list.ToArray());
                     File.WriteAllText(listfilename, output);
                     return true;
                 }

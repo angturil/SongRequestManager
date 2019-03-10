@@ -154,6 +154,8 @@ namespace EnhancedTwitchChat.Bot
 
             StartCoroutine(ProcessRequestQueue());
             StartCoroutine(ProcessBlacklistRequests());
+
+            
         }
 
         private void FixedUpdate()
@@ -492,10 +494,10 @@ namespace EnhancedTwitchChat.Bot
                 DequeueRequest(request);
 
 
-            #if UNRELEASED
+#if UNRELEASED
 
             // If the queue is empty, Execute a custom command, the could be a chat message, a deck request, or nothing
-            if (QueueOpen && RequestQueue.Songs.Count == 0 && CommandOnEmptyQueue!="") Parse(TwitchWebSocketClient.OurTwitchUser, CommandOnEmptyQueue);
+            if (QueueOpen && RequestQueue.Songs.Count == 0 && CommandOnEmptyQueue != "") RequestBot.listcollection.runscript("emptyqueue.script"); //Parse(TwitchWebSocketClient.OurTwitchUser, CommandOnEmptyQueue);
             #endif
 
 
@@ -651,6 +653,8 @@ namespace EnhancedTwitchChat.Bot
             loaddecks(TwitchWebSocketClient.OurTwitchUser, "");
             #endif
 
+            RunScript(TwitchWebSocketClient.OurTwitchUser, "startup.script");
+
         }
 
         private void InitializeCommands()
@@ -735,11 +739,12 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("lists", showlists);
 
             AddCommand("addtolist", Addtolist,Broadcasteronly,"usage: %alias <list> <value to add>",_atleast1);
-            AddCommand("removelist", Addtolist, Broadcasteronly, "usage: %alias <list> <value to add>", _atleast1); // BUG: No function defined yet
+            AddCommand("removefromlist", RemoveFromlist, Broadcasteronly, "usage: %alias <list> <value to add>", _atleast1);
+
             AddCommand("listundo", Addtolist, Broadcasteronly, "usage: %alias <list>", _atleast1); // BUG: No function defined yet, undo the last operation
 
 
-            AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 1.1.?:", _fail); // BUG: Still not quite working. Sample help command template, User Everyone/Help to determine if the command is registered
+            AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 2.0.0:", _fail); // BUG: Still not quite working. Sample help command template, User Everyone/Help to determine if the command is registered
 
 
 #if UNRELEASED
