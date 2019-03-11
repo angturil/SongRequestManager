@@ -396,46 +396,59 @@ namespace EnhancedTwitchChat.Bot
                 string currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
                 string songHash = request.song["hashMd5"].Value.ToUpper();
 
-            retry:
-                CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
-                if (levels.Length == 0)
-                {
-                    Utilities.EmptyDirectory(".requestcache", false);
-
-                    if (Directory.Exists(currentSongDirectory))
+                retry:
+                    CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
+                    if (levels.Length == 0)
                     {
-                        Utilities.EmptyDirectory(currentSongDirectory, true);
-                        Plugin.Log($"Deleting {currentSongDirectory}");
+                        Utilities.EmptyDirectory(".requestcache", false);
+
+                        if (Directory.Exists(currentSongDirectory))
+                        {
+                            Utilities.EmptyDirectory(currentSongDirectory, true);
+                            Plugin.Log($"Deleting {currentSongDirectory}");
+                        }
+
+                        string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
+                        yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
+                        yield return Utilities.ExtractZip(localPath, currentSongDirectory);
+                        yield return SongListUtils.RefreshSongs(false, false, true);
+
+
+                        Utilities.EmptyDirectory(".requestcache", true);
+                        levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
+                    }
+                    else
+                    {
+                        Plugin.Log($"Song {songName} already exists!");
                     }
 
-                    string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
-                    yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
-                    yield return Utilities.ExtractZip(localPath, currentSongDirectory);
-                    yield return SongListUtils.RefreshSongs(false, false, true);
+                    if (levels.Length > 0)
+                    {
 
+
+                    try
+                    {
+                        Plugin.Log($"Scrolling to level {levels[0].levelID}");
+                        if (!SongListUtils.ScrollToLevel(levels[0].levelID) && !retried)
+                        {
+                            retried = true;
+                            goto retry;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Display failure message, and lock out command for a time period. Not yet.
+
+                        Plugin.Log(ex.ToString());
+
+                    }
+
+                }
+                else
+                    {
+                        Plugin.Log("Failed to find new level!");
+                    }
  
-                    Utilities.EmptyDirectory(".requestcache", true);
-                    levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
-                }
-                else
-                {
-                    Plugin.Log($"Song {songName} already exists!");
-                }
-
-                if (levels.Length > 0)
-                {
-                    Plugin.Log($"Scrolling to level {levels[0].levelID}");
-                    if (!SongListUtils.ScrollToLevel(levels[0].levelID) && !retried)
-                    {
-                        retried = true;
-                        goto retry;
-                    }
-                }
-                else
-                {
-                    Plugin.Log("Failed to find new level!");
-                }
-
                 if (!request.song.IsNull) new DynamicText().AddSong(request.song).QueueMessage(Config.Instance.NextSonglink); // Display next song message
 
                 _songRequestMenu.Dismiss();
@@ -646,7 +659,7 @@ namespace EnhancedTwitchChat.Bot
             {
 
             ReadRemapList();
-            LoadList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
+            OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
             MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
             
             #if UNRELEASED
@@ -722,32 +735,30 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs, Mod, "usage: %alias%%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing); // BUG: Note, need something to get the one of the true commands referenced, incases its renamed
             AddCommand("addsongs", addSongs, Broadcasteronly); // Basically search all, need to decide if its useful
-
             AddCommand("chatmessage", ChatMessage, Broadcasteronly, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
 
             AddCommand("runscript", RunScript, Broadcasteronly, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
 
-            // Temporary commands for testing, most of these will be unified in a general list/parameter interface
-
-            AddCommand("load", LoadList);
-            AddCommand("openlist", OpenList);
-
-            AddCommand("unload", UnloadList);
-            AddCommand("clearlist", ClearList);
-            AddCommand("write", writelist);
-            AddCommand("list", ListList);
-            AddCommand("lists", showlists);
-
-            AddCommand("addtolist", Addtolist,Broadcasteronly,"usage: %alias%<list> <value to add>",_atleast1);
-            AddCommand("removefromlist", RemoveFromlist, Broadcasteronly, "usage: %alias%<list> <value to add>", _atleast1);
-
-            AddCommand("listundo", Addtolist, Broadcasteronly, "usage: %alias%<list>", _atleast1); // BUG: No function defined yet, undo the last operation
 
 
             AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 2.0.0:", _fail); // BUG: Still not quite working. Sample help command template, User Everyone/Help to determine if the command is registered
 
 
 #if UNRELEASED
+
+            // Temporary commands for testing, most of these will be unified in a general list/parameter interface
+
+            AddCommand("openlist", OpenList);
+            AddCommand("unload", UnloadList);
+            AddCommand("clearlist", ClearList);
+            AddCommand("write", writelist);
+            AddCommand("list", ListList);
+            AddCommand("lists", showlists);
+            AddCommand("addtolist", Addtolist,Broadcasteronly,"usage: %alias%<list> <value to add>",_atleast1);
+            AddCommand("addtoqueue", queuelist, Broadcasteronly, "usage: %alias%<list>", _atleast1);
+
+            AddCommand("removefromlist", RemoveFromlist, Broadcasteronly, "usage: %alias%<list> <value to add>", _atleast1);
+            AddCommand("listundo", Addtolist, Broadcasteronly, "usage: %alias%<list>", _atleast1); // BUG: No function defined yet, undo the last operation
 
             AddCommand("deck", createdeck);
             AddCommand("unloaddeck", unloaddeck);
@@ -756,7 +767,7 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _anything);
             AddCommand("mapper", addsongsbymapper,Broadcasteronly,"usage: %alias%<mapperlist>" ); // This is actually most useful if we send it straight to list
 #endif
-            }
+        }
 
 
 
@@ -825,13 +836,7 @@ namespace EnhancedTwitchChat.Bot
             public string permittedusers; // Name of list of permitted users.
             public string userParameter; // This is here incase I need it for some specific purpose
             public int userNumber;
-
-            // Note to self: C# does not (in this build version at least) permit references to Lists, or any other external element. 
-            // in an ideal world, we'd take a reference to the element storing the user name list (or even just name), but c# strongly discourages this.
-            // There's a lot of overhead to this, because looking up an element can take a non-trivial amount of time. This is particular code does not NEED to be fast, but I can't help but think that 
-            // everything is actually running 10x or more slower than the c++ version would be. I'm not really exaggerating.. Sorry, just woke up, this is my morning pre-espresso rant.
-            // Remove after reading this when awake.
-            
+      
             public void SetPermittedUsers(string listname)
                 {
                 // BUG: Needs additional checking
@@ -952,23 +957,21 @@ namespace EnhancedTwitchChat.Bot
             // Permissions for these sub commands will always be by Broadcaster/userlist ONLY. Note command behaviour that alters with permission should treat userlist as an escalation to Broadcaster.
             // Since these are never meant for an end user, they are not going to be configurable.
             
-            // BUG: Better syntax might be desirable
-            //
-            // Example: !challenge !allow myfriends
-            //          !decklsit !setflags SUB
-            //          !lookup !sethelp usage: %alias%<song name or id>
+            // Example: !challenge/allow myfriends
+            //          !decklist/setflags SUB
+            //          !lookup/sethelp usage: %alias%<song name or id>
 
             if (user.isBroadcaster && param.StartsWith("!"))
             {
 
-                if (param.StartsWith("!allow")) // 
+                if (param.StartsWith("/allow")) // 
                 {
                     string[] parts = param.Split(new char[] { ' ', ',' }, 2);
                     if (parts.Length > 1)
                     {
                         string key = parts[1].ToLower();
                         botcmd.permittedusers = key;
-                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
+                        NewCommands[command] = botcmd; 
 
                         Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
                     }
@@ -976,13 +979,13 @@ namespace EnhancedTwitchChat.Bot
                     return;
                 }
 
-                if (param.StartsWith("!sethelp")) // 
+                if (param.StartsWith("/sethelp")) // 
                 {
                     string[] parts = param.Split(new char[] { ' ', ',' }, 2);
                     if (parts.Length > 1)
                     {
                         botcmd.ShortHelp = parts[1];
-                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
+                        NewCommands[command] = botcmd; 
 
                         Instance?.QueueChatMessage($"{command} help: {parts[1]}");
                     }
@@ -991,7 +994,7 @@ namespace EnhancedTwitchChat.Bot
                 }
 
 
-                if (param.StartsWith("!flags")) // 
+                if (param.StartsWith("/flags")) // 
                 {
                     string[] parts = param.Split(new char[] { ' ', ',' }, 2);
                     Instance?.QueueChatMessage($"{command} flags: {botcmd.rights.ToString()}");
@@ -1000,7 +1003,7 @@ namespace EnhancedTwitchChat.Bot
                 }
 
 
-                if (param.StartsWith("!setflags")) // 
+                if (param.StartsWith("/setflags")) // 
                 {
                     string[] parts = param.Split(new char[] { ' ', ',' }, 2);
                     if (parts.Length > 1)
@@ -1009,7 +1012,7 @@ namespace EnhancedTwitchChat.Bot
 
                         CmdFlags flag;
 
-                        NewCommands[command] = botcmd; // I HATE c# so much. At least give me damn references... Ugh...
+                        NewCommands[command] = botcmd; 
 
                         // BUG: Not working yet
 
@@ -1068,20 +1071,29 @@ namespace EnhancedTwitchChat.Bot
         public static void Parse(TwitchUser user, string request)
         {
             if (!Instance) return;
-            if (!request.StartsWith("!")) return;
 
-            string[] parts = request.Split(new char[] { ' ' }, 2);
+            if (request.Length == 0) return; // Since we allow command user configurable commands, blanks are a possibility
 
-            if (parts.Length <= 0) return;
+            if (request[0]!='!') return;
 
-            string command = parts[0].Substring(1)?.ToLower();
+            int commandstart = 1; // This is technically 0, right now we're setting it to 1 to maintain the ! behaviour
+            int parameterstart = 1;
+
+            // This is a replacement for the much simpler Split code. It was changed to support /fakerest parameters, and sloppy users ... ie: !add4334-333 should now work, so should !command/flags
+            while (parameterstart<request.Length && ((request[parameterstart]>='a' && request[parameterstart]<='z') || request[parameterstart] >= 'A' && request[parameterstart] <= 'Z' || request[parameterstart]=='_')) parameterstart++;  // I'll replace this with a bit lookup later, or more appropriate method later            
+            int commandlength = parameterstart - commandstart;
+            while (parameterstart < request.Length && request[parameterstart] == ' ') parameterstart++; // Eat the space(s) if that's the separator after the command
+
+            if (commandlength == 0) return;    
+
+            string command = request.Substring(commandstart,commandlength).ToLower();
             if (NewCommands.ContainsKey(command))
             {
-                string param = parts.Length > 1 ? parts[1] : "";
-                if (deck.ContainsKey(command))
+                string param = request.Substring(parameterstart);
+
+                if (deck.ContainsKey(command)) 
                 {
-                    param = command;
-                    if (parts.Length > 1) param += " " + parts[1];
+                    param = command + " " + param; // This won't be needed once deck refactor is complete
                 }
 
                 try

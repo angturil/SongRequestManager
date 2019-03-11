@@ -238,7 +238,6 @@ namespace EnhancedTwitchChat.Bot
 
         private void addNewSongs(TwitchUser requestor, string request)
         {
-            if (isNotModerator(requestor, "addnew")) return;
 
             StartCoroutine(addsongsFromnewest(requestor, request));
         }
@@ -278,6 +277,8 @@ namespace EnhancedTwitchChat.Bot
 
                     // BUG: (Pre-merge) Non reproducible bug occured one time, resulting in unusual list - duplicate and incorrect entries. Not sure if its local, or beastaver db inconsistency?
 
+                     
+
                     if (result["songs"].IsArray)
                     {
                         foreach (JSONObject entry in result["songs"])
@@ -300,6 +301,10 @@ namespace EnhancedTwitchChat.Bot
             if (totalSongs == 0)
             {
                 QueueChatMessage($"No new songs found.");
+            }
+            else
+            {
+                //QueueChatMessage($"Added {totalSongs} to latest deck");  
             }
             yield return null;
         }
@@ -620,7 +625,7 @@ namespace EnhancedTwitchChat.Bot
 
             if (listcollection.ListCollection.ContainsKey(key))
                 {
-                mapperwhitelist = listcollection.ListCollection[key];
+                mapperwhitelist =  listcollection.ListCollection[key];
                 QueueChatMessage($"Mapper whitelist set to {request}.");
                 }
             else
@@ -1114,11 +1119,9 @@ namespace EnhancedTwitchChat.Bot
 
             }
 
-            // To make this efficient, The return type needs to be a ref (using ref struct for the class). c# 7.2 supports this. This might be ugly IRL. Not sure if Unused return types execute a copy (assume not).
             public DynamicText AddUser(ref TwitchUser user)
             {
                 Add("user", user.displayName);
-
                 return this;
             }
 

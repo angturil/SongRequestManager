@@ -10,6 +10,10 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
+
+// Feature requests: Add Reason for blacklists to unreleased list
+
+
 namespace EnhancedTwitchChat.Bot
 {
     public partial class RequestBot : MonoBehaviour

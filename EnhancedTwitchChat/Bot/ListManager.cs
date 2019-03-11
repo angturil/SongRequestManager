@@ -15,46 +15,20 @@ namespace EnhancedTwitchChat.Bot
     public partial class RequestBot : MonoBehaviour
     {
 
-    #region List Manager Related functions ...
+        #region List Manager Related functions ...
 
-    // List types:
+        // List types:
 
-    // This is a work in progress. 
+        // This is a work in progress. 
 
-    // .deck = lists of songs
-    // .mapper = mapper lists
-    // .user = twitch user lists
-    // .command = command lists = linear scripting
-    // .dict = list contains key value pairs
+        // .deck = lists of songs
+        // .mapper = mapper lists
+        // .user = twitch user lists
+        // .command = command lists = linear scripting
+        // .dict = list contains key value pairs
 
-    private void LoadList(TwitchUser requestor, string request)
-    {
-        StringListManager newlist = new StringListManager();
-        if (newlist.Readfile(request))
-        {
-            QueueChatMessage($"{request} ({newlist.Count()}) is loaded.");
-            listcollection.ListCollection.Add(request.ToLower(), newlist);
-        }
-        else
-        {
-            QueueChatMessage($"Unable to load {request}.");
-        }
-    }
 
-    private void OpenList(TwitchUser requestor, string request)
-    {
-        StringListManager newlist = new StringListManager();
-        if (newlist.Readfile(request))
-        {
-            QueueChatMessage($"{request} ({newlist.Count()}) is loaded.");
-            listcollection.ListCollection.Add(request.ToLower(), newlist);
-        }
-        else
-        {
-            listcollection.ListCollection.Add(request.ToLower(), newlist);
-            QueueChatMessage($"{request} ({newlist.Count()}) is created.");
-        }
-    }
+#if UNRELEASED
 
     private void writelist(TwitchUser requestor, string request)
     {
@@ -64,11 +38,18 @@ namespace EnhancedTwitchChat.Bot
     // Add list to queue, filtered by InQueue and duplicatelist
     private void queuelist(TwitchUser requestor, string request)
     {
+            try
+            {
+                StringListManager list = listcollection.OpenList(request);
+                foreach (var entry in list.list) ProcessSongRequest(requestor, entry);
 
-    }
+            }
+            catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
 
-    // Remove entire list from queue
-    private void unqueuelist(TwitchUser requestor, string request)
+        }
+
+        // Remove entire list from queue
+        private void unqueuelist(TwitchUser requestor, string request)
     {
 
     }
@@ -127,7 +108,7 @@ namespace EnhancedTwitchChat.Bot
 
         try
         {
-            listcollection.ListCollection[request.ToLower()].Clear();
+            listcollection.ClearList(ref request);
             QueueChatMessage($"{request} is cleared.");
         }
         catch
@@ -172,13 +153,20 @@ namespace EnhancedTwitchChat.Bot
     {
 
         var msg = new QueueLongMessage();
-
         msg.Header("Loaded lists: ");
         foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})", ", ");
         msg.end("...", "No lists loaded.");
     }
 
-    [Flags] public enum ListFlags { ReadOnly = 1, InMemory = 2,Uncached = 4, Dynamic = 8, LineSeparator = 16,Unchanged=256};
+#endif
+
+    private void OpenList(TwitchUser requestor, string request)
+        {
+        listcollection.OpenList(request.ToLower());
+        }
+
+
+        [Flags] public enum ListFlags { ReadOnly = 1, InMemory = 2,Uncached = 4, Dynamic = 8, LineSeparator = 16,Unchanged=256};
 
     // The list collection maintains a dictionary of named, PERSISTENT lists. Accessing a collection by name automatically loads or crates it.
     public class ListCollectionManager
@@ -188,7 +176,9 @@ namespace EnhancedTwitchChat.Bot
 
         public Dictionary<string, StringListManager> ListCollection = new Dictionary<string, StringListManager>();
 
-        public ListCollectionManager()
+       //     public Dictionary<string, dynamic> ListCollection = new Dictionary<string, dynamic>();
+
+            public ListCollectionManager()
         {
             // Add an empty list so we can set various lists to empty
             StringListManager empty = new StringListManager();
@@ -219,13 +209,15 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        public bool contains(ref string listname, string key, ListFlags flags = ListFlags.Unchanged)
+
+
+            public bool contains(ref string listname, string key, ListFlags flags = ListFlags.Unchanged)
         {
             try
             {
                 StringListManager list = OpenList(listname);
 
-                return list.list.Contains(key);
+                return list.Contains(key);
             }
             catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
 
@@ -237,8 +229,11 @@ namespace EnhancedTwitchChat.Bot
             try
             {
                 StringListManager list = OpenList(listname);
-                list.list.Add(key);
-                if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname);
+
+                    list.Add(key);        
+        
+                //list.list.Add(key);
+                //if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname);
                 return true;
 
             }
@@ -253,17 +248,9 @@ namespace EnhancedTwitchChat.Bot
             {
                 StringListManager list = OpenList(listname);
 
-                for (int i = 0; i < list.list.Count; i++)
-                {
-                    if (list.list[i].Contains(key))
-                    {
-                        list.list.RemoveAt(i);
-                        if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname);
+                list.Removeentry(key);
 
-                        return true;
-                    }
-                }
-
+                if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname);
                 return false;
 
             }
@@ -278,8 +265,8 @@ namespace EnhancedTwitchChat.Bot
 
             try
             {
-                var script = OpenList(listname, flags);
-                foreach (var line in script.list) Parse(TwitchWebSocketClient.OurTwitchUser, line);
+                 OpenList(listname, flags).runscript();
+               
             }
             catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
         }
@@ -309,6 +296,8 @@ namespace EnhancedTwitchChat.Bot
         private static char[] lineseparator = { '\n', '\r' };
 
         public List<string> list = new List<string>();
+        private HashSet<string> hashlist = new HashSet<string> ();
+       
 
         ListFlags flags = 0;
 
@@ -343,7 +332,19 @@ namespace EnhancedTwitchChat.Bot
             return false;
         }
 
-        public bool Writefile(string filename)
+        public void runscript()
+            {
+
+            try
+                {
+                foreach (var line in list) Parse(TwitchWebSocketClient.OurTwitchUser, line);
+                }
+            catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.            
+  
+            }
+
+
+            public bool Writefile(string filename)
         {
 
             string separator = filename.EndsWith(".script") ? "\n" : ",";
@@ -364,7 +365,13 @@ namespace EnhancedTwitchChat.Bot
             return false;
         }
 
-        public bool Add(string entry)
+
+        public bool Contains(string entry)
+            {
+                if (list.Contains(entry)) return true;
+                return false;
+            }
+            public bool Add(string entry)
         {
             if (list.Contains(entry)) return false;
             list.Add(entry);

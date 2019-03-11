@@ -101,14 +101,18 @@ namespace EnhancedTwitchChat
 
         public string AddSongToQueueText="Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.";
         public string LookupSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
+
         public string BsrSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
+
         public string LinkSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%";
+
         public string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
 
         public string SongHintText="Requested by %user%%LF%Status: %Status%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
 
-        public string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include \n for these.
-        public int MaximumQueueTextEntries = 8; 
+        public string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
+
+        public int MaximumQueueTextEntries = 8;  
 
         public Color TextColor
         {
