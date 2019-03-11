@@ -23,7 +23,6 @@ namespace EnhancedTwitchChat.Bot
 {
     class RequestBotListViewController : CustomListViewController
     {
-
         public static RequestBotListViewController Instance;
 
         private CustomMenu _confirmationDialog;
@@ -31,6 +30,10 @@ namespace EnhancedTwitchChat.Bot
         private LevelListTableCell _songListTableCellInstance;
         private SongPreviewPlayer _songPreviewPlayer;
         private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton,_queueButton;
+        #if UNRELEASED
+        private Button _BlacklistLastButton;
+        #endif
+
         private TextMeshProUGUI _warningTitle, _warningMessage;
         private HoverHint _historyHintText;
         private int _requestRow = 0;
@@ -87,7 +90,37 @@ namespace EnhancedTwitchChat.Bot
                     _lastSelection = -1;
                 });
                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
-                
+
+
+                #if UNRELEASED
+         
+                 // Blacklist previous button, Since this is the 2nd most used option after play. It does make things a little crowded though
+
+                _BlacklistLastButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
+                _BlacklistLastButton.ToggleWordWrapping(false);
+                (_BlacklistLastButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 20f);
+                _BlacklistLastButton.SetButtonText("BL Last");
+                //_blacklistButton.GetComponentInChildren<Image>().color = Color.red;
+                _BlacklistLastButton.onClick.RemoveAllListeners();
+                _BlacklistLastButton.onClick.AddListener(delegate ()
+                {
+                    _onConfirm = () => {
+                        RequestBot.Blacklist(0,true,false); 
+                    };
+
+                    if (RequestHistory.Songs.Count > 0)
+                    {
+                        var song = RequestHistory.Songs[0].song;
+                        _warningTitle.text = "Blacklist Song Warning";
+                        _warningMessage.text = $"Blacklisting {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?";
+                        _confirmationDialog.Present();
+                    }
+                });
+                BeatSaberUI.AddHintText(_BlacklistLastButton.transform as RectTransform, "Block the selected request from being queued in the future.");
+
+                #endif
+
+
                 // Blacklist button
                 _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
                 _blacklistButton.ToggleWordWrapping(false);
@@ -148,9 +181,15 @@ namespace EnhancedTwitchChat.Bot
 
                         currentsong = SongInfoForRow(_selectedRow);
                         RequestBot.played.Add(currentsong.song);
+                        RequestBot.WriteJSON(RequestBot.playedfilename, ref RequestBot.played);
+                        
+
                         SetUIInteractivity(false);
                         
                         RequestBot.Process(_selectedRow, isShowingHistory);
+
+ 
+
                     }
                 });
                 BeatSaberUI.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");
@@ -334,7 +373,14 @@ namespace EnhancedTwitchChat.Bot
             SongRequest request = SongInfoForRow(row);
             JSONObject song = request.song;
 
-            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
+            //BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
+       
+            var dt = new RequestBot.DynamicText().AddSong(ref song).AddUser(ref request.requestor); // Get basic fields
+            dt.Add("Status", request.status.ToString());
+            dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString());
+
+            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(Config.Instance.SongHintText));
+
             _tableCell.songName = song["songName"].Value;
             _tableCell.author = song["authorName"].Value;
             if (SongLoader.AreSongsLoaded)

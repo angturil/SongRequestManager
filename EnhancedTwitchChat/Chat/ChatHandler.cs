@@ -2,6 +2,7 @@
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.UI;
+using EnhancedTwitchChat.Bot;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -192,6 +193,14 @@ namespace EnhancedTwitchChat
                             return;
                         if (Config.Instance.FilterCommandMessages && messageToSend.twitchMessage.message.StartsWith("!"))
                             return;
+
+                        if (Config.Instance.FilterUserlistMessages)
+                            {
+                            string excludefilename = "chatexclude.users";
+                            if (RequestBot.Instance &&   RequestBot.listcollection.contains(ref excludefilename, messageToSend.twitchMessage.user.displayName.ToLower(), RequestBot.ListFlags.Uncached)) return;
+                             
+                            }
+
 
                         StartCoroutine(AddNewChatMessage(messageToSend.msg, messageToSend));
                     }

@@ -63,8 +63,9 @@ namespace EnhancedTwitchChat
         public bool PersistentRequestQueue = true;
         public bool FilterCommandMessages = false;
         public bool FilterBroadcasterMessages = false;
+        public bool FilterUserlistMessages= true; // Filter messages in chatexclude.users ( pick a better name ) 
 
-        public string RequestCommandAliases = "request,bsr,add";
+        public string RequestCommandAliases = "request,bsr,add,sr";
 
         public int RequestHistoryLimit = 20;
         public int RequestLimit = 5;
@@ -95,7 +96,26 @@ namespace EnhancedTwitchChat
         private bool _saving;
 
         public static Config Instance = null;
-        
+
+        // These settings let you configure the text of various bot commands. I might just use a list for this.
+
+        public string AddSongToQueueText="Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.";
+        public string LookupSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
+
+        public string BsrSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
+
+        public string LinkSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%";
+
+        public string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
+
+        public string SongHintText="Requested by %user%%LF%Status: %Status%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
+
+        public string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
+
+        public int MaximumQueueTextEntries = 8;
+
+        public int SessionResetAfterXHours = 8; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
+
         public Color TextColor
         {
             get
