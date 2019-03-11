@@ -66,15 +66,14 @@ namespace EnhancedTwitchChat.Bot
         private static FlowCoordinator _levelSelectionFlowCoordinator;
         private static DismissableNavigationController _levelSelectionNavigationController;
         private static Queue<string> _botMessageQueue = new Queue<string>();
-        //private static Dictionary<string, Action<TwitchUser, string>> Commands = new Dictionary<string, Action<TwitchUser, string>>();
 
-        private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // This will replace command dictionary
+        private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // BUG: Still not the final form
 
         static public bool QueueOpen = false; // BUG: Shoudld per persistent
 
         #if UNRELEASED
         static private string CommandOnEmptyQueue = "!fun"; // Experimental feature. Execute this command when the queue gets empty.
-        static private string CommandEveryXminutes ="!add waterbreak song";   
+        static private string CommandEveryXminutes ="!add waterbreak song";   // BUG: Not yet iplemented
         #endif
 
         bool mapperwhiteliston = false; // BUG: Need to clean these up a bit.
@@ -83,8 +82,8 @@ namespace EnhancedTwitchChat.Bot
 
         public static List<JSONObject> played = new List<JSONObject>(); // Played list
 
-        private static StringListManager mapperwhitelist = new StringListManager(); // Lists because we need to interate them per song
-        private static StringListManager mapperBanlist = new StringListManager(); // Lists because we need to interate them per song
+        private static StringListManager mapperwhitelist = new StringListManager(); // BUG: This needs to switch to list manager interface
+        private static StringListManager mapperBanlist = new StringListManager(); // BUG: This needs to switch to list manager interface
 
         private static string duplicatelist ="duplicate.list";
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
@@ -147,6 +146,8 @@ namespace EnhancedTwitchChat.Bot
             RequestQueue.Read();
             RequestHistory.Read();
             SongBlacklist.Read();
+
+            listcollection.ClearOldList("duplicate.list",TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)); 
 
             UpdateRequestButton();
             InitializeCommands();
@@ -740,7 +741,7 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("runscript", RunScript, Broadcasteronly, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
 
-
+            AddCommand("history", ShowHistory, Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
 
             AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 2.0.0:", _fail); // BUG: Still not quite working. Sample help command template, User Everyone/Help to determine if the command is registered
 
@@ -967,10 +968,10 @@ namespace EnhancedTwitchChat.Bot
 
             if (user.isBroadcaster && param.StartsWith("/"))
             {
+                string[] parts = param.Split(new char[] { ' ', ',' }, 2);
 
                 if (param.StartsWith("/allow")) // 
                 {
-                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
                     if (parts.Length > 1)
                     {
                         string key = parts[1].ToLower();
@@ -985,7 +986,6 @@ namespace EnhancedTwitchChat.Bot
 
                 if (param.StartsWith("/sethelp")) // 
                 {
-                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
                     if (parts.Length > 1)
                     {
                         botcmd.ShortHelp = parts[1];
@@ -1000,7 +1000,6 @@ namespace EnhancedTwitchChat.Bot
 
                 if (param.StartsWith("/flags")) // 
                 {
-                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
                     Instance?.QueueChatMessage($"{command} flags: {botcmd.rights.ToString()}");
 
                     return;
@@ -1009,7 +1008,6 @@ namespace EnhancedTwitchChat.Bot
 
                 if (param.StartsWith("/setflags")) // 
                 {
-                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
                     if (parts.Length > 1)
                     {
                         string[] flags = parts[1].Split(new char[] { ' ', ',' });

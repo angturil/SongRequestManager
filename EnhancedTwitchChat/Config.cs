@@ -112,7 +112,9 @@ namespace EnhancedTwitchChat
 
         public string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
 
-        public int MaximumQueueTextEntries = 8;  
+        public int MaximumQueueTextEntries = 8;
+
+        public int SessionResetAfterXHours = 8; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
 
         public Color TextColor
         {

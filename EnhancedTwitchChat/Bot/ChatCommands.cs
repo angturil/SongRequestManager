@@ -44,6 +44,11 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
+        public static TimeSpan GetFileAgeDifference(string filename)
+            {
+            DateTime lastModified = System.IO.File.GetLastWriteTime(filename);
+            return DateTime.Now - lastModified;
+            }
 
         // BUG: Attempted rewrite of CheckSong/partial song list produced unexpected formatting... please investigate
         public class QueueLongMessage
@@ -817,6 +822,22 @@ namespace EnhancedTwitchChat.Bot
             return;
 
         }
+
+        private void ShowHistory(TwitchUser requestor, string request)
+        {
+
+            var msg = new QueueLongMessage(1);
+
+            for (int i=RequestHistory.Songs.Count-1;i>=0;i--)
+            {
+                var song = RequestHistory.Songs[i].song;
+                if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
+            }
+            msg.end($" ... and {RequestHistory.Songs.Count - msg.Count} more songs.", "History is empty.");
+            return;
+
+        }
+
 
         private void ShowSongsplayed(TwitchUser requestor, string request) // Note: This can be spammy.
         {

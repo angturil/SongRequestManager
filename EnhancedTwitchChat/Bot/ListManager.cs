@@ -176,8 +176,6 @@ namespace EnhancedTwitchChat.Bot
 
         public Dictionary<string, StringListManager> ListCollection = new Dictionary<string, StringListManager>();
 
-       //     public Dictionary<string, dynamic> ListCollection = new Dictionary<string, dynamic>();
-
             public ListCollectionManager()
         {
             // Add an empty list so we can set various lists to empty
@@ -185,12 +183,22 @@ namespace EnhancedTwitchChat.Bot
             ListCollection.Add("empty", empty);
         }
 
-        // Normalize any keys, checking for case, and naming rules 
-        // BUG: Naming check does not verify valid list names
-        private string normalize(ref string listkey)
-        {
-            return listkey.ToLower();
-        }
+
+        public StringListManager ClearOldList(string request, TimeSpan delta,ListFlags flags = ListFlags.Unchanged)
+            {
+            string listfilename = Path.Combine(datapath, request);
+            TimeSpan UpdatedAge = GetFileAgeDifference(listfilename);
+          
+            StringListManager list = OpenList(request, flags);
+
+            if (UpdatedAge>delta)
+                    {
+                    RequestBot.Instance.QueueChatMessage($"Clearing old session {request}");
+                    list.Clear();
+                    }
+
+            return list;
+            }
 
         public StringListManager OpenList(string request, ListFlags flags = ListFlags.Unchanged) // All lists are accessed through here, flags determine mode
         {
@@ -208,15 +216,11 @@ namespace EnhancedTwitchChat.Bot
             return list;
         }
 
-
-
-
-            public bool contains(ref string listname, string key, ListFlags flags = ListFlags.Unchanged)
+        public bool contains(ref string listname, string key, ListFlags flags = ListFlags.Unchanged)
         {
             try
             {
                 StringListManager list = OpenList(listname);
-
                 return list.Contains(key);
             }
             catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
@@ -235,10 +239,9 @@ namespace EnhancedTwitchChat.Bot
             {
                 StringListManager list = OpenList(listname);
 
-                    list.Add(key);        
+                list.Add(key);        
         
-                //list.list.Add(key);
-                //if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname);
+                if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname);
                 return true;
 
             }
@@ -285,8 +288,7 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-                //OpenList(listname);
-                ListCollection[normalize(ref listname)].Clear(); // Does this work
+                ListCollection[listname].Clear();
             }
             catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
         }
