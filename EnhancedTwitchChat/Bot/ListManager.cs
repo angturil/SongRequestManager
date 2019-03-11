@@ -28,6 +28,7 @@ namespace EnhancedTwitchChat.Bot
         // .dict = list contains key value pairs
 
 
+        #region UNRELEASED
 #if UNRELEASED
 
     private void writelist(TwitchUser requestor, string request)
@@ -159,16 +160,21 @@ namespace EnhancedTwitchChat.Bot
     }
 
 #endif
+#endregion
 
-    private void OpenList(TwitchUser requestor, string request)
+        private void OpenList(TwitchUser requestor, string request)
         {
         listcollection.OpenList(request.ToLower());
         }
 
 
+        public static ListCollectionManager listcollection = new ListCollectionManager();
+
+
         [Flags] public enum ListFlags { ReadOnly = 1, InMemory = 2,Uncached = 4, Dynamic = 8, LineSeparator = 16,Unchanged=256};
 
-    // The list collection maintains a dictionary of named, PERSISTENT lists. Accessing a collection by name automatically loads or crates it.
+    // The list collection maintains a dictionary of named, persistent lists. Accessing a collection by name automatically loads or crates it.
+    // What I really want though is a collection of container objects with the same interface. I need to look into Dynamic to see if I can make this work. Damn being a c# noob
     public class ListCollectionManager
     {
 
@@ -294,9 +300,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
     }
-
-    public static ListCollectionManager listcollection = new ListCollectionManager();
-
 
 
     // All variables are public for now until we finalize the interface
@@ -438,7 +441,7 @@ namespace EnhancedTwitchChat.Bot
     }
 
 
-     #endregion
+#endregion
 
 
     }

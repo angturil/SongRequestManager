@@ -628,31 +628,17 @@ namespace EnhancedTwitchChat.Bot
         private void MapperAllowList(TwitchUser requestor, string request)
         {
             string key = request.ToLower();
+            mapperwhitelist = listcollection.OpenList(key);
+            QueueChatMessage($"Mapper whitelist set to {request}.");
 
-            if (listcollection.ListCollection.ContainsKey(key))
-                {
-                mapperwhitelist =  listcollection.ListCollection[key];
-                QueueChatMessage($"Mapper whitelist set to {request}.");
-                }
-            else
-                {
-                QueueChatMessage($"Unable to set mapper whitelist to {request}.");
-                } 
         }
 
         private void MapperBanList(TwitchUser requestor, string request)
         {
 
             string key = request.ToLower();
-            if (listcollection.ListCollection.ContainsKey(key))
-            {
-                mapperBanlist = listcollection.ListCollection[key];
-                QueueChatMessage($"Mapper black list set to {request}.");
-            }
-            else
-            {
-                QueueChatMessage($"Unable to set mapper banlist to {request}.");
-            }
+            mapperBanlist = listcollection.ListCollection[key];
+            QueueChatMessage($"Mapper ban list set to {request}.");
         }
 
         // Not super efficient, but what can you do

@@ -73,7 +73,7 @@ namespace EnhancedTwitchChat.Bot
 
         #if UNRELEASED
         static private string CommandOnEmptyQueue = "!fun"; // Experimental feature. Execute this command when the queue gets empty.
-        static private string CommandEveryXminutes ="!add waterbreak song";   // BUG: Not yet iplemented
+        //static private string CommandEveryXminutes ="!add waterbreak song";   // BUG: Not yet iplemented
         #endif
 
         bool mapperwhiteliston = false; // BUG: Need to clean these up a bit.
@@ -94,12 +94,15 @@ namespace EnhancedTwitchChat.Bot
         private static CustomMenu _songRequestMenu = null;
         private static RequestBotListViewController _songRequestListViewController = null;
 
+        public static string playedfilename="";
 
         public static void OnLoad()
         {
             datapath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
             if (!Directory.Exists(datapath))
                 Directory.CreateDirectory(datapath);
+
+            playedfilename = Path.Combine(datapath, "played.json");
 
             _levelSelectionFlowCoordinator = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
             if (_levelSelectionFlowCoordinator)
@@ -143,6 +146,10 @@ namespace EnhancedTwitchChat.Bot
             if (Directory.Exists(filesToDelete))
                 Utilities.EmptyDirectory(filesToDelete);
 
+
+            TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
+            if (PlayedAge < TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)) played=ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
+
             RequestQueue.Read();
             RequestHistory.Read();
             SongBlacklist.Read();
@@ -158,6 +165,52 @@ namespace EnhancedTwitchChat.Bot
 
             
         }
+
+
+        private void RunStartupScripts()
+            {                      
+            ReadRemapList(); // BUG: This should use list manager
+ 
+            OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
+            MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
+
+            #if UNRELEASED
+            loaddecks(TwitchWebSocketClient.OurTwitchUser, ""); // Load our default deck collection
+            #endif
+
+            RunScript(TwitchWebSocketClient.OurTwitchUser, "startup.script"); // Run startup script. This can include any bot commands.
+
+            }
+
+        // BUG: Here for convenience, needs to be moved, baltantly copied
+
+        public static List<JSONObject> ReadJSON(string path)
+        {
+            List<JSONObject> objs = new List<JSONObject>();
+            if (File.Exists(path))
+            {
+                JSONNode json = JSON.Parse(File.ReadAllText(path));
+                if (!json.IsNull)
+                {
+                    foreach (JSONObject j in json.AsArray)
+                        objs.Add(new JSONObject());
+                }
+            }
+            return objs;
+        }
+
+        public static void WriteJSON(string path, ref List<JSONObject> objs)
+        {
+            if (!Directory.Exists(Path.GetDirectoryName(path)))
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+
+            JSONArray arr = new JSONArray();
+            foreach(JSONObject obj in objs)
+                arr.Add(obj);
+
+            File.WriteAllText(path, arr.ToString());
+        }
+
 
         private void FixedUpdate()
         {
@@ -657,20 +710,6 @@ namespace EnhancedTwitchChat.Bot
 
         #region NEW Command Processor
 
-        private void RunStartupScripts()
-            {
-
-            ReadRemapList();
-            OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // BUG: There are 2 calls, will unify shortly
-            MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
-            
-            #if UNRELEASED
-            loaddecks(TwitchWebSocketClient.OurTwitchUser, "");
-            #endif
-
-            RunScript(TwitchWebSocketClient.OurTwitchUser, "startup.script");
-
-        }
 
         private void InitializeCommands()
         {
@@ -1012,6 +1051,7 @@ namespace EnhancedTwitchChat.Bot
                     {
                         string[] flags = parts[1].Split(new char[] { ' ', ',' });
 
+            
                         CmdFlags flag;
 
                         NewCommands[command] = botcmd; 
@@ -1095,7 +1135,11 @@ namespace EnhancedTwitchChat.Bot
 
                 if (deck.ContainsKey(command)) 
                 {
-                    param = command + " " + param; // This won't be needed once deck refactor is complete
+                    if (param == "") param = command;
+                    else
+                    {
+                        param = command + " " + param;
+                    }
                 }
 
                 try

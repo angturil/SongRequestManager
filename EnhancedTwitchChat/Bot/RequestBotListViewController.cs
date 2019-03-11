@@ -181,6 +181,9 @@ namespace EnhancedTwitchChat.Bot
 
                         currentsong = SongInfoForRow(_selectedRow);
                         RequestBot.played.Add(currentsong.song);
+                        RequestBot.WriteJSON(RequestBot.playedfilename, ref RequestBot.played);
+                        
+
                         SetUIInteractivity(false);
                         
                         RequestBot.Process(_selectedRow, isShowingHistory);
