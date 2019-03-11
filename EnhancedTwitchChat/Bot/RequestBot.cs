@@ -182,34 +182,6 @@ namespace EnhancedTwitchChat.Bot
 
             }
 
-        // BUG: Here for convenience, needs to be moved, baltantly copied
-
-        public static List<JSONObject> ReadJSON(string path)
-        {
-            List<JSONObject> objs = new List<JSONObject>();
-            if (File.Exists(path))
-            {
-                JSONNode json = JSON.Parse(File.ReadAllText(path));
-                if (!json.IsNull)
-                {
-                    foreach (JSONObject j in json.AsArray)
-                        objs.Add(new JSONObject());
-                }
-            }
-            return objs;
-        }
-
-        public static void WriteJSON(string path, ref List<JSONObject> objs)
-        {
-            if (!Directory.Exists(Path.GetDirectoryName(path)))
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-
-            JSONArray arr = new JSONArray();
-            foreach(JSONObject obj in objs)
-                arr.Add(obj);
-
-            File.WriteAllText(path, arr.ToString());
-        }
 
 
         private void FixedUpdate()
