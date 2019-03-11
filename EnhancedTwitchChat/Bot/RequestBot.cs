@@ -86,7 +86,7 @@ namespace EnhancedTwitchChat.Bot
         private static StringListManager mapperwhitelist = new StringListManager(); // Lists because we need to interate them per song
         private static StringListManager mapperBanlist = new StringListManager(); // Lists because we need to interate them per song
 
-        private static HashSet<string> duplicatelist = new HashSet<string>();
+        private static string duplicatelist ="duplicate.list";
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         private static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
 
@@ -348,7 +348,10 @@ namespace EnhancedTwitchChat.Bot
                 var song = songs[0];
 
                 RequestTracker[requestor.id].numRequests++;
-                duplicatelist.Add(song["id"].Value);
+                
+                //
+                //duplicatelist.Add(song["id"].Value);
+                listcollection.add(duplicatelist, song["id"].Value);
 
                 RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued));
                 RequestQueue.Write();
@@ -478,7 +481,7 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-        public static void DequeueRequest(SongRequest request)
+        public static void DequeueRequest(SongRequest request, bool updateUI = true)
         {
             RequestHistory.Songs.Insert(0, request);
             if (RequestHistory.Songs.Count > Config.Instance.RequestHistoryLimit)
@@ -493,24 +496,22 @@ namespace EnhancedTwitchChat.Bot
             // Decrement the requestors request count, since their request is now out of the queue
             if (RequestTracker.ContainsKey(request.requestor.id)) RequestTracker[request.requestor.id].numRequests--;
 
+            if (updateUI == false) return;
+
             UpdateRequestButton();
             _refreshQueue = true;
         }
 
-        public static SongRequest DequeueRequest(int index)
+        public static SongRequest DequeueRequest(int index,bool updateUI=true)
         {
             SongRequest request = RequestQueue.Songs.ElementAt(index);
 
- 
-
             if (request != null)
-                DequeueRequest(request);
+                DequeueRequest(request,updateUI);
 
-
-#if UNRELEASED
-
+            #if UNRELEASED
             // If the queue is empty, Execute a custom command, the could be a chat message, a deck request, or nothing
-            if (QueueOpen && RequestQueue.Songs.Count == 0 && CommandOnEmptyQueue != "") RequestBot.listcollection.runscript("emptyqueue.script"); //Parse(TwitchWebSocketClient.OurTwitchUser, CommandOnEmptyQueue);
+            if (QueueOpen && updateUI==true && RequestQueue.Songs.Count == 0 && CommandOnEmptyQueue != "") RequestBot.listcollection.runscript("emptyqueue.script"); 
             #endif
 
 
@@ -930,7 +931,11 @@ namespace EnhancedTwitchChat.Bot
                 {
                 var BotCmd = NewCommands[request.ToLower()];
                 ShowHelpMessage(ref BotCmd, ref requestor, request, true);
-                }            
+                }
+            else
+                {
+                QueueChatMessage($"Unable to find help for {request}.");  
+                }    
             }
 
         public static bool HasRights(ref BOTCOMMAND botcmd,ref TwitchUser user)
@@ -953,15 +958,14 @@ namespace EnhancedTwitchChat.Bot
 
             // BUG: This is prototype code, it will of course be replaced. This message will be removed when its no longer prototype code
 
-            // Current thought is to use a common interface for command object configuration
-            // Permissions for these sub commands will always be by Broadcaster/userlist ONLY. Note command behaviour that alters with permission should treat userlist as an escalation to Broadcaster.
+            // Permissions for these sub commands will always be by Broadcaster,or the (BUG: Future feature) user list of the EnhancedTwitchBot command. Note command behaviour that alters with permission should treat userlist as an escalation to Broadcaster.
             // Since these are never meant for an end user, they are not going to be configurable.
             
             // Example: !challenge/allow myfriends
             //          !decklist/setflags SUB
             //          !lookup/sethelp usage: %alias%<song name or id>
 
-            if (user.isBroadcaster && param.StartsWith("!"))
+            if (user.isBroadcaster && param.StartsWith("/"))
             {
 
                 if (param.StartsWith("/allow")) // 
@@ -1072,7 +1076,7 @@ namespace EnhancedTwitchChat.Bot
         {
             if (!Instance) return;
 
-            if (request.Length == 0) return; // Since we allow command user configurable commands, blanks are a possibility
+            if (request.Length == 0) return; // Since we allow user configurable commands, blanks are a possibility
 
             if (request[0]!='!') return;
 
@@ -1080,7 +1084,7 @@ namespace EnhancedTwitchChat.Bot
             int parameterstart = 1;
 
             // This is a replacement for the much simpler Split code. It was changed to support /fakerest parameters, and sloppy users ... ie: !add4334-333 should now work, so should !command/flags
-            while (parameterstart<request.Length && ((request[parameterstart]>='a' && request[parameterstart]<='z') || request[parameterstart] >= 'A' && request[parameterstart] <= 'Z' || request[parameterstart]=='_')) parameterstart++;  // I'll replace this with a bit lookup later, or more appropriate method later            
+            while (parameterstart<request.Length && ((request[parameterstart]>='a' && request[parameterstart]<='z') || request[parameterstart] >= 'A' && request[parameterstart] <= 'Z' || request[parameterstart]=='_')) parameterstart++;  // I'll replace this with a bit lookup, or more appropriate method later            
             int commandlength = parameterstart - commandstart;
             while (parameterstart < request.Length && request[parameterstart] == ' ') parameterstart++; // Eat the space(s) if that's the separator after the command
 

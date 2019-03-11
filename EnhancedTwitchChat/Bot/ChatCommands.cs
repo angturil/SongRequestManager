@@ -162,7 +162,7 @@ namespace EnhancedTwitchChat.Bot
             string songid = song["id"].Value;
             if (IsInQueue(songid)) return true;
             if (SongBlacklist.Songs.ContainsKey(songid)) return true;
-            if (duplicatelist.Contains(songid)) return true;
+            if (listcollection.contains(ref duplicatelist, songid)) return true;
             return false;
         }
 
@@ -179,7 +179,7 @@ namespace EnhancedTwitchChat.Bot
 
             if (filter.HasFlag(SongFilter.Mapper) && mapperwhiteliston && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
-            if (filter.HasFlag(SongFilter.Duplicate) && duplicatelist.Contains(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} has already been requested this session!";
+            if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist,songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} has already been requested this session!";
 
             if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"no permitted results found!";
 
@@ -216,7 +216,8 @@ namespace EnhancedTwitchChat.Bot
             if (isNotBroadcaster(requestor)) return;
 
             QueueChatMessage("Session duplicate list is now clear.");
-            duplicatelist.Clear();
+            
+            listcollection.ClearList(ref duplicatelist);
         }
 
         #endregion
@@ -931,12 +932,9 @@ namespace EnhancedTwitchChat.Bot
             Writedeck(requestor, "justcleared");
 
             // Cycle through each song in the final request queue, adding them to the song history
-            foreach (var song in RequestQueue.Songs)
-                RequestHistory.Songs.Insert(0, song);
-            RequestHistory.Write();
 
-            // Clear request queue and save it to file
-            RequestQueue.Songs.Clear();
+            while (RequestQueue.Songs.Count > 0) DequeueRequest(0, false); // More correct now, previous version did not keep track of user requests 
+         
             RequestQueue.Write();
 
             // Update the request button ui accordingly
@@ -1037,7 +1035,7 @@ namespace EnhancedTwitchChat.Bot
                 {
                     QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
 
-                    duplicatelist.Remove(song["id"].Value); // Special case, user removing own request does not result in a persistent duplicate. This can also be caused by a false !wrongsong which was unintended.
+                    listcollection.remove(duplicatelist, song["id"].Value);
                     RequestBot.Skip(i);
                     return;
                 }

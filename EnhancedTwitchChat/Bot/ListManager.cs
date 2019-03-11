@@ -224,6 +224,11 @@ namespace EnhancedTwitchChat.Bot
             return false;
         }
 
+        public bool add(string listname, string key, ListFlags flags = ListFlags.Unchanged)
+            {
+            return add(ref listname, ref key, flags);
+            }
+
         public bool add(ref string listname, ref string key, ListFlags flags = ListFlags.Unchanged)
         {
             try
@@ -242,7 +247,11 @@ namespace EnhancedTwitchChat.Bot
             return false;
         }
 
-        public bool remove(ref string listname, ref string key, ListFlags flags = ListFlags.Unchanged)
+            public bool remove(string listname, string key, ListFlags flags = ListFlags.Unchanged)
+            {
+                return remove(ref listname, ref key, flags);
+            }
+            public bool remove(ref string listname, ref string key, ListFlags flags = ListFlags.Unchanged)
         {
             try
             {
