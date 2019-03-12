@@ -199,15 +199,16 @@ namespace EnhancedTwitchChat.Bot
                 _queueButton.ToggleWordWrapping(false);
                 _queueButton.SetButtonTextSize(3.5f);
                 (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -30f);
-                _queueButton.SetButtonText(RequestBot.QueueOpen ? "Queue Open" : "Queue Closed");
-                _queueButton.GetComponentInChildren<Image>().color = RequestBot.QueueOpen ? Color.green : Color.red; ;
+                _queueButton.SetButtonText(Config.Instance.QueueOpen ? "Queue Open" : "Queue Closed");
+                _queueButton.GetComponentInChildren<Image>().color = Config.Instance.QueueOpen ? Color.green : Color.red; ;
                 _queueButton.interactable = true;
                 _queueButton.onClick.RemoveAllListeners();
                 _queueButton.onClick.AddListener(delegate ()
                 {
-                    RequestBot.QueueOpen = !RequestBot.QueueOpen;
-                    RequestBot.WriteQueueStatusToFile(RequestBot.QueueOpen ? "Queue is open." : "Queue is closed.");
-                    RequestBot.Instance.QueueChatMessage(RequestBot.QueueOpen ? "Queue is open." : "Queue is closed.");
+                    Config.Instance.QueueOpen = !Config.Instance.QueueOpen;
+                    Config.Instance.Save();
+                    RequestBot.WriteQueueStatusToFile(Config.Instance.QueueOpen ? "Queue is open." : "Queue is closed.");
+                    RequestBot.Instance.QueueChatMessage(Config.Instance.QueueOpen ? "Queue is open." : "Queue is closed.");
                     UpdateRequestUI();
                 });
                 BeatSaberUI.AddHintText(_queueButton.transform as RectTransform, "Open/Close the queue.");
@@ -229,8 +230,8 @@ namespace EnhancedTwitchChat.Bot
         {
             _skipButton.interactable = !isShowingHistory;
             _playButton.GetComponentInChildren<Image>().color = ((isShowingHistory && RequestHistory.Songs.Count > 0) || (!isShowingHistory && RequestQueue.Songs.Count > 0)) ? Color.green : Color.red;
-            _queueButton.SetButtonText(RequestBot.QueueOpen ? "Queue Open" : "Queue Closed");
-            _queueButton.GetComponentInChildren<Image>().color = RequestBot.QueueOpen ? Color.green : Color.red; ;
+            _queueButton.SetButtonText(Config.Instance.QueueOpen ? "Queue Open" : "Queue Closed");
+            _queueButton.GetComponentInChildren<Image>().color = Config.Instance.QueueOpen ? Color.green : Color.red; ;
             _historyHintText.text = isShowingHistory ? "Go back to your current song request queue." : "View the history of song requests from the current session.";
             _historyButton.SetButtonText(isShowingHistory ? "Requests" : "History");
             _playButton.SetButtonText(isShowingHistory ? "Replay" : "Play");
@@ -379,7 +380,7 @@ namespace EnhancedTwitchChat.Bot
             dt.Add("Status", request.status.ToString());
             dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString());
 
-            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(Config.Instance.SongHintText));
+            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
 
             _tableCell.songName = song["songName"].Value;
             _tableCell.author = song["authorName"].Value;

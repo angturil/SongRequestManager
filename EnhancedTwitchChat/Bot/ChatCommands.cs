@@ -17,6 +17,23 @@ namespace EnhancedTwitchChat.Bot
         // BUG: This one needs to be cleaned up a lot imo
         // BUG: This file needs to be split up a little, but not just yet... Its easier for me to move around in one massive file, since I can see the whole thing at once. 
 
+        // These are here for this release, since we're not yet ready to support users customizing this.
+
+        public static string AddSongToQueueText = "Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.";
+
+        public static string LookupSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
+
+        public static string BsrSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
+
+        public static string LinkSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%";
+
+        public static string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
+
+        public static string SongHintText = "Requested by %user%%LF%Status: %Status%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
+
+        public static string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
+
+
         #region Utility functions
 
         const int MaximumTwitchMessageLength = 498;
@@ -778,14 +795,14 @@ namespace EnhancedTwitchChat.Bot
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-                        msg.Add(new DynamicText().AddSong(ref song).Parse(ref Config.Instance.LookupSongDetail),", ");
+                        msg.Add(new DynamicText().AddSong(ref song).Parse(ref LookupSongDetail),", ");
                     }
 
                 }
                 else
                 {
                     song = result["song"].AsObject;
-                    msg.Add(new DynamicText().AddSong(ref song).Parse(ref Config.Instance.LookupSongDetail));
+                    msg.Add(new DynamicText().AddSong(ref song).Parse(ref LookupSongDetail));
                 }
 
                 msg.end("...","No results for for request <request>");
@@ -878,7 +895,9 @@ namespace EnhancedTwitchChat.Bot
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
         {
-            QueueOpen = state;
+            Config.Instance.QueueOpen = state;
+            Config.Instance.Save();
+
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
             WriteQueueStatusToFile(QueueMessage(state));
             _refreshQueue = true;
@@ -894,12 +913,12 @@ namespace EnhancedTwitchChat.Bot
                 StreamWriter fileWriter = new StreamWriter(statusfile);
 
                 string queuesummary = "";
-
                 int count = 0;
+
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
                 {
                     var song = req.song;
-                    queuesummary += new DynamicText().AddSong(song).Parse(Config.Instance.QueueTextFileFormat);  // Format of Queue is now user configurable
+                    queuesummary += new DynamicText().AddSong(song).Parse(ref QueueTextFileFormat);  // Format of Queue is now user configurable
 
                     if (++count > Config.Instance.MaximumQueueTextEntries)
                     {
@@ -1062,7 +1081,7 @@ namespace EnhancedTwitchChat.Bot
             try  // We're accessing an element across threads, this is only 99.99% safe
             {
                 var song = RequestBotListViewController.currentsong.song;
-                if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(Config.Instance.LinkSonglink);
+                if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(LinkSonglink);
 
             }
             catch (Exception ex)

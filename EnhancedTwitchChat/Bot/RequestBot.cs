@@ -69,8 +69,6 @@ namespace EnhancedTwitchChat.Bot
 
         private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // BUG: Still not the final form
 
-        static public bool QueueOpen = false; // BUG: Shoudld per persistent
-
         #if UNRELEASED
         static private string CommandOnEmptyQueue = "!fun"; // Experimental feature. Execute this command when the queue gets empty.
         //static private string CommandEveryXminutes ="!add waterbreak song";   // BUG: Not yet iplemented
@@ -131,7 +129,7 @@ namespace EnhancedTwitchChat.Bot
             SongListUtils.Initialize();
 
             WriteQueueSummaryToFile();
-            WriteQueueStatusToFile(QueueMessage(QueueOpen));
+            WriteQueueStatusToFile(QueueMessage(Config.Instance.QueueOpen));
 
 
             if (Instance) return;
@@ -150,7 +148,8 @@ namespace EnhancedTwitchChat.Bot
             TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
             if (PlayedAge < TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)) played=ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
 
-            RequestQueue.Read();
+            RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
+
             RequestHistory.Read();
             SongBlacklist.Read();
 
@@ -354,7 +353,7 @@ namespace EnhancedTwitchChat.Bot
                     var msg =new QueueLongMessage(1,5);
 
                     msg.Header($"@{requestor.displayName}, please choose: ");
-                    foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(ref Config.Instance.BsrSongDetail), ", ");
+                    foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(ref BsrSongDetail), ", ");
                     msg.end("...", $"No matching songs for for {request}");
                     yield break;
         
@@ -388,7 +387,7 @@ namespace EnhancedTwitchChat.Bot
 
                 // We want to allow the end user to customize some of the bot messages to their own preferences. You can read the message text from a file.
 
-                new DynamicText().AddSong(ref song).QueueMessage(Config.Instance.AddSongToQueueText);
+                new DynamicText().AddSong(ref song).QueueMessage(AddSongToQueueText);
 
                 UpdateRequestButton();
                 _refreshQueue = true;
@@ -478,7 +477,7 @@ namespace EnhancedTwitchChat.Bot
                         Plugin.Log("Failed to find new level!");
                     }
  
-                if (!request.song.IsNull) new DynamicText().AddSong(request.song).QueueMessage(Config.Instance.NextSonglink); // Display next song message
+                if (!request.song.IsNull) new DynamicText().AddSong(request.song).QueueMessage(NextSonglink); // Display next song message
 
                 _songRequestMenu.Dismiss();
             }
@@ -537,7 +536,7 @@ namespace EnhancedTwitchChat.Bot
 
             #if UNRELEASED
             // If the queue is empty, Execute a custom command, the could be a chat message, a deck request, or nothing
-            if (QueueOpen && updateUI==true && RequestQueue.Songs.Count == 0 && CommandOnEmptyQueue != "") RequestBot.listcollection.runscript("emptyqueue.script"); 
+            if (Config.Instance.QueueOpen && updateUI==true && RequestQueue.Songs.Count == 0 && CommandOnEmptyQueue != "") RequestBot.listcollection.runscript("emptyqueue.script"); 
             #endif
 
 
@@ -611,7 +610,7 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-                if (QueueOpen == false && isNotModerator(requestor)) // BUG: Complex permission, Queue state message needs to be handled higher up
+                if (Config.Instance.QueueOpen == false && isNotModerator(requestor)) // BUG: Complex permission, Queue state message needs to be handled higher up
                 {
                     QueueChatMessage($"Queue is currently closed.");
                     return;
