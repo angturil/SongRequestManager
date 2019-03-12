@@ -74,6 +74,7 @@ namespace EnhancedTwitchChat.Bot
             public void Header(string text)
             {
                 msgBuilder.Append(text);
+            
             }
 
             // BUG: Only works form string < MaximumTwitchMessageLength
@@ -293,10 +294,11 @@ namespace EnhancedTwitchChat.Bot
                             JSONObject song = entry;
 
                             if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
-                            if (filtersong(song)) continue;
-                            ProcessSongRequest(requestor, song["version"].Value);
+                            //if (filtersong(song)) continue;
+                            //ProcessSongRequest(requestor, song["version"].Value);
+                            listcollection.add("latest.deck",song["version"].Value);
                             totalSongs++;
-                            if (totalSongs > Config.Instance.maxaddnewresults) yield break;  // We're done once the maximum resuts are produced
+                            //if (totalSongs > Config.Instance.maxaddnewresults) yield break;  // We're done once the maximum resuts are produced
 
                         }
                     }
@@ -310,11 +312,12 @@ namespace EnhancedTwitchChat.Bot
             }
             else
             {
-                //QueueChatMessage($"Added {totalSongs} to latest deck");  
+                QueueChatMessage($"Added {totalSongs} to latest-songs.deck");
+                ExecuteCommand("deck", ref TwitchWebSocketClient.OurTwitchUser, "latest");
+
             }
             yield return null;
         }
-
 
         private IEnumerator addsongsBymapper(TwitchUser requestor, string request)
         {
@@ -628,7 +631,7 @@ namespace EnhancedTwitchChat.Bot
         private void MapperAllowList(TwitchUser requestor, string request)
         {
             string key = request.ToLower();
-            mapperwhitelist = listcollection.OpenList(key);
+            mapperwhitelist = listcollection.OpenList(key); // BUG: this is still not the final interface
             QueueChatMessage($"Mapper whitelist set to {request}.");
 
         }
@@ -741,7 +744,6 @@ namespace EnhancedTwitchChat.Bot
                 if (HasRights(ref botcmd, ref requestor)) msg.Add($"!{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
-
         }
 
         private IEnumerator LookupSongs(TwitchUser requestor, string request)
@@ -1250,38 +1252,6 @@ namespace EnhancedTwitchChat.Bot
                 if (outputlength > 0) output.Append(text, regularstart, outputlength);
                 return output.ToString();
 
-            }
-
-                public string Parse2(ref string text, bool parselong = false)
-            {
-                StringBuilder msgtext = new StringBuilder();
-                string[] parts = text.Split(new char[] { '%' }); // Split entire help message by % boundaries
-
-
-                if (parts.Length == 0) return "";
-                for (int i = 0; i < parts.Length; i++)
-                {
-
-                    bool found = false;
-                    foreach (var entry in dynamicvariables)
-                    {
-                        if (parts[i].StartsWith(entry.Key))
-                        {
-                            if (entry.Key == "endusage" && !parselong) return msgtext.ToString(); // BUG: This works, but isn't the most elegant solution. Look into this later.
-
-                            msgtext.Append(entry.Value);
-                            msgtext.Append(parts[i].Substring(entry.Key.Length));
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found) continue;
-
-                    if (i != 0) msgtext.Append('%'); // Basically, we need to put the %'s back that were removed by split. The first % though is always fake.
-                    msgtext.Append(parts[i]);
-                }
-
-                return msgtext.ToString();
             }
 
             public DynamicText QueueMessage(string text, bool parselong = false)

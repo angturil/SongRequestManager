@@ -27,6 +27,8 @@ namespace EnhancedTwitchChat.Bot
         // .command = command lists = linear scripting
         // .dict = list contains key value pairs
 
+        // This code is currently in an extreme state of flux. Underlying implementation will change.
+
 
         #region UNRELEASED
 #if UNRELEASED
@@ -246,8 +248,9 @@ namespace EnhancedTwitchChat.Bot
                 StringListManager list = OpenList(listname);
 
                 list.Add(key);        
+
         
-                if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname);
+                if (!(flags.HasFlag(ListFlags.InMemory)  |flags.HasFlag( ListFlags.ReadOnly))) list.Writefile(listname);
                 return true;
 
             }
@@ -268,7 +271,7 @@ namespace EnhancedTwitchChat.Bot
 
                 list.Removeentry(key);
 
-                if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname);
+                if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname); // BUG: ? I'm not sure if the logic in this line is quite correct, please double check.
                 return false;
 
             }
@@ -430,7 +433,7 @@ namespace EnhancedTwitchChat.Bot
         {
             for (int i = 0; i < list.Count; i++)
             {
-                list[i] = list[i].ToLower();
+                list[i] = list[i].ToLower(); 
             }
         }
         public void Outputlist(ref QueueLongMessage msg, string separator = ", ")

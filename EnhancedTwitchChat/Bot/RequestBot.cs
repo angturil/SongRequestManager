@@ -746,12 +746,9 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("allowmappers", MapperAllowList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
             AddCommand("blockmappers", MapperBanList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex);
 
-            AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs, Mod, "usage: %alias%%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing); // BUG: Note, need something to get the one of the true commands referenced, incases its renamed
-            AddCommand("addsongs", addSongs, Broadcasteronly); // Basically search all, need to decide if its useful
+ 
             AddCommand("chatmessage", ChatMessage, Broadcasteronly, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
-
             AddCommand("runscript", RunScript, Broadcasteronly, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
-
             AddCommand("history", ShowHistory, Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
 
             AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 2.0.0:", _fail); // BUG: Still not quite working. Sample help command template, User Everyone/Help to determine if the command is registered
@@ -760,6 +757,9 @@ namespace EnhancedTwitchChat.Bot
 #if UNRELEASED
 
             // Temporary commands for testing, most of these will be unified in a general list/parameter interface
+
+            AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs, Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing); // BUG: Note, need something to get the one of the true commands referenced, incases its renamed
+            AddCommand("addsongs", addSongs, Broadcasteronly); // Basically search all, need to decide if its useful
 
             AddCommand("openlist", OpenList);
             AddCommand("unload", UnloadList);
@@ -909,7 +909,7 @@ namespace EnhancedTwitchChat.Bot
         // BUG: This is actually part of botcmd, please move
         public static void ShowHelpMessage(ref BOTCOMMAND botcmd,ref TwitchUser user, string param,bool showlong) 
             {
-            if (botcmd.rights.HasFlag(CmdFlags.QuietFail)) return; // Make sure we're allowed to show help
+            if (botcmd.rights.HasFlag(CmdFlags.QuietFail) || botcmd.rights.HasFlag(CmdFlags.Disabled)) return; // Make sure we're allowed to show help
 
             new DynamicText().AddUser(ref user).AddBotCmd(ref botcmd).QueueMessage(ref botcmd.ShortHelp, showlong);
             
@@ -952,6 +952,7 @@ namespace EnhancedTwitchChat.Bot
 
         public static bool HasRights(ref BOTCOMMAND botcmd,ref TwitchUser user)
         {
+            if (botcmd.rights.HasFlag(CmdFlags.Disabled)) return false;
             if (botcmd.rights.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
             if (user.isBroadcaster & botcmd.rights.HasFlag(CmdFlags.Broadcaster)) return true;
             if (user.isMod & botcmd.rights.HasFlag(CmdFlags.Mod)) return true;
@@ -994,6 +995,24 @@ namespace EnhancedTwitchChat.Bot
 
                     return;
                 }
+
+                if (param.StartsWith("/disable")) // 
+                {
+                    Instance?.QueueChatMessage($"{command} Disabled.");
+                    botcmd.rights |= CmdFlags.Disabled;
+                    NewCommands[command] = botcmd;
+                    return;    
+                }
+
+                if (param.StartsWith("/enable")) // 
+                    {
+                
+                    Instance?.QueueChatMessage($"{command} Enabled.");
+                    botcmd.rights &= ~CmdFlags.Disabled;
+                    NewCommands[command] = botcmd;
+                    return;
+                    }
+
 
                 if (param.StartsWith("/sethelp")) // 
                 {
@@ -1039,6 +1058,8 @@ namespace EnhancedTwitchChat.Bot
 
             }
 
+            if (botcmd.rights.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
+ 
             // Check permissions first
 
             bool allow = HasRights(ref botcmd,ref user);
@@ -1092,6 +1113,8 @@ namespace EnhancedTwitchChat.Bot
 
             int commandstart = 1; // This is technically 0, right now we're setting it to 1 to maintain the ! behaviour
             int parameterstart = 1;
+
+
 
             // This is a replacement for the much simpler Split code. It was changed to support /fakerest parameters, and sloppy users ... ie: !add4334-333 should now work, so should !command/flags
             while (parameterstart<request.Length && ((request[parameterstart]>='a' && request[parameterstart]<='z') || request[parameterstart] >= 'A' && request[parameterstart] <= 'Z' || request[parameterstart]=='_')) parameterstart++;  // I'll replace this with a bit lookup, or more appropriate method later            

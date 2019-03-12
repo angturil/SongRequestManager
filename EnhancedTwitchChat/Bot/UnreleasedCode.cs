@@ -22,11 +22,11 @@ using UnityEngine.Networking;
 
 namespace EnhancedTwitchChat.Bot
 {
+
+    // https://tmi.twitch.tv/group/user/sehria_k/chatters
     public partial class RequestBot : MonoBehaviour
     {
 
-
-
-
+  
     }
 }
