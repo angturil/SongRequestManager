@@ -26,6 +26,5 @@ namespace EnhancedTwitchChat.Bot
     {
 
 
-
     }
 }
