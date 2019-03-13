@@ -126,6 +126,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Bot\ChatCommands.cs" />
+    <Compile Include="Bot\commands.cs" />
     <Compile Include="Bot\ListManager.cs" />
     <Compile Include="Bot\RequestBot.cs" />
     <Compile Include="Bot\RequestBotListViewController.cs" />
