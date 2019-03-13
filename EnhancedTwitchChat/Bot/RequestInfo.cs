@@ -13,7 +13,7 @@ namespace EnhancedTwitchChat.Bot
         public string request;
         public bool isBeatSaverId;
         public DateTime requestTime;
-        int flags; // Flags for the song request, include things like silence, bypass checks, etc.
+        public int flags; // Flags for the song request, include things like silence, bypass checks, etc.
         public string requestInfo; // This field contains additional information about a request. This could include the source of the request ( deck, Subscription bonus request) , comments about why a song was banned, etc.
 
         public RequestInfo(TwitchUser requestor, string request, DateTime requestTime, bool isBeatSaverId,int flags=0,string userstring="")

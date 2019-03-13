@@ -40,6 +40,58 @@ namespace EnhancedTwitchChat.Bot
             Played
         }
 
+        [Flags]
+        public enum CmdFlags
+        {
+            None = 0,
+            Everyone = 1, // Im
+            Sub = 2,
+            Mod = 4,
+            Broadcaster = 8,
+            VIP = 16,
+            UserList = 32,  // If this is enabled, users on a list are allowed to use a command (this is an OR, so leave restrictions to Broadcaster if you want ONLY users on a list)
+            TwitchLevel = 63, // This is used to show ONLY the twitch user flags when showing permissions
+
+            ShowRestrictions = 64, // Using the command without the right access level will show permissions error. Mostly used for commands that can be unlocked at different tiers.
+
+            BypassRights = 128, // Bypass right check on command, allowing error messages, and a later code based check. Often used for help only commands. 
+            QuietFail = 256, // Return no results on failed preflight checks.
+
+            HelpLink = 512, // Enable link to web documentation
+
+            WhisperReply = 1024, // Reply in a whisper to the user (future feature?). Allow commands to send the results to the user, avoiding channel spam
+
+            Timeout = 2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
+            TimeoutSub = 4096, // Applies a timeout to Subs
+            TimeoutVIP = 8192, // Applies a timeout to VIP's
+            TimeoutMod = 16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
+
+            NoLinks = 32768, // Turn off any links that the command may normally generate
+            Silent = 65536, // Command produces no output at all - but still executes
+            Verbose = 131072, // Turn off command output limits, This can result in excessive channel spam
+            Log = 262144, // Log every use of the command to a file
+            RegEx = 524288, // Enable regex check
+            UserFlag1 = 1048576, // Use it for whatever bit makes you happy 
+            UserFlag2 = 2097152, // Use it for whatever bit makes you happy 
+            UserFlag3 = 4194304, // Use it for whatever bit makes you happy 
+            UserFlag4 = 8388608, // Use it for whatever bit makes you happy 
+
+            SilentPreflight = 16277216, //  
+
+            MoveToTop = 1 << 25, // Private, used by ATT command. Its possible to have multiple aliases for the same flag
+
+            Disabled = 1 << 30, // If ON, the command will not be added to the alias list at all.
+        }
+
+        const CmdFlags Default = 0;
+        const CmdFlags Everyone = Default | CmdFlags.Everyone;
+        const CmdFlags Broadcasteronly = Default | CmdFlags.Broadcaster;
+        const CmdFlags Mod = Default | CmdFlags.Broadcaster | CmdFlags.Mod;
+        const CmdFlags Sub = Default | CmdFlags.Sub;
+        const CmdFlags VIP = Default | CmdFlags.VIP;
+        const CmdFlags Help = CmdFlags.BypassRights;
+
+
         #region common Regex expressions
 
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
@@ -381,9 +433,11 @@ namespace EnhancedTwitchChat.Bot
                 RequestTracker[requestor.id].numRequests++;
 
                 listcollection.add(duplicatelist, song["id"].Value);
+                if ((requestInfo.flags & 1048576) !=0)
+                    RequestQueue.Songs.Insert(0,new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
+                else
+                    RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued,requestInfo.requestInfo));
 
-
-                RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued,requestInfo.requestInfo));
                 RequestQueue.Write();
 
                 Writedeck(requestor, "savedqueue"); // This can be used as a backup if persistent Queue is turned off.
@@ -611,6 +665,12 @@ namespace EnhancedTwitchChat.Bot
             return "";
         }
 
+
+        private void AddToTop(TwitchUser requestor, string request, int flags = 0, string info = "")
+            {
+            ProcessSongRequest(requestor, request, flags | 1048576, "ATT"); 
+            }
+
         private void ProcessSongRequest(TwitchUser requestor, string request, int flags = 0, string info = "")
         {
             try
@@ -752,6 +812,8 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("runscript", RunScript, Broadcasteronly, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
             AddCommand("history", ShowHistory, Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
 
+            AddCommand("att",AddToTop,Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the top of the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
+
             AddCommand("about", nop, Broadcasteronly, "EnhancedTwitchChat Bot version 2.0.0. Developed by brian91292 and angturil. Find us on github.", _fail);
 
 #if UNRELEASED
@@ -791,54 +853,6 @@ namespace EnhancedTwitchChat.Bot
 
         // This code probably needs its own file
         // Some of these are just ideas, putting them all down, can filter them out later
-        [Flags]
-        public enum CmdFlags
-        {
-            None = 0,
-            Everyone = 1, // Im
-            Sub = 2,
-            Mod = 4,
-            Broadcaster = 8,
-            VIP = 16,
-            UserList = 32,  // If this is enabled, users on a list are allowed to use a command (this is an OR, so leave restrictions to Broadcaster if you want ONLY users on a list)
-            TwitchLevel = 63, // This is used to show ONLY the twitch user flags when showing permissions
-
-            ShowRestrictions = 64, // Using the command without the right access level will show permissions error. Mostly used for commands that can be unlocked at different tiers.
-
-            BypassRights = 128, // Bypass right check on command, allowing error messages, and a later code based check. Often used for help only commands. 
-            QuietFail = 256, // Return no results on failed preflight checks.
-
-            HelpLink = 512, // Enable link to web documentation
-
-            WhisperReply = 1024, // Reply in a whisper to the user (future feature?). Allow commands to send the results to the user, avoiding channel spam
-
-            Timeout = 2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
-            TimeoutSub = 4096, // Applies a timeout to Subs
-            TimeoutVIP = 8192, // Applies a timeout to VIP's
-            TimeoutMod = 16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
-
-            NoLinks = 32768, // Turn off any links that the command may normally generate
-            Silent = 65536, // Command produces no output at all - but still executes
-            Verbose = 131072, // Turn off command output limits, This can result in excessive channel spam
-            Log = 262144, // Log every use of the command to a file
-            RegEx = 524288, // Enable regex check
-            UserFlag1 = 1048576, // Use it for whatever bit makes you happy 
-            UserFlag2 = 2097152, // Use it for whatever bit makes you happy 
-            UserFlag3 = 4194304, // Use it for whatever bit makes you happy 
-            UserFlag4 = 8388608, // Use it for whatever bit makes you happy 
-
-            SilentPreflight = 16277216, //  
-
-            Disabled = 1 << 30, // If ON, the command will not be added to the alias list at all.
-        }
-
-        const CmdFlags Default = 0;
-        const CmdFlags Everyone = Default | CmdFlags.Everyone;
-        const CmdFlags Broadcasteronly = Default | CmdFlags.Broadcaster;
-        const CmdFlags Mod = Default | CmdFlags.Broadcaster | CmdFlags.Mod;
-        const CmdFlags Sub = Default | CmdFlags.Sub;
-        const CmdFlags VIP = Default | CmdFlags.VIP;
-        const CmdFlags Help = CmdFlags.BypassRights;
 
         // Prototype code only
         public struct BOTCOMMAND
