@@ -30,139 +30,6 @@ namespace EnhancedTwitchChat.Bot
         // This code is currently in an extreme state of flux. Underlying implementation will change.
 
 
-        #region UNRELEASED
-#if UNRELEASED
-
-    private void writelist(TwitchUser requestor, string request)
-    {
-
-    }
-
-    // Add list to queue, filtered by InQueue and duplicatelist
-    private void queuelist(TwitchUser requestor, string request)
-    {
-            try
-            {
-                StringListManager list = listcollection.OpenList(request);
-                foreach (var entry in list.list) ProcessSongRequest(requestor, entry);
-
-            }
-            catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
-
-        }
-
-        // Remove entire list from queue
-        private void unqueuelist(TwitchUser requestor, string request)
-    {
-
-    }
-
-
-    private void Addtolist(TwitchUser requestor, string request)
-    {
-        string[] parts = request.Split(new char[] { ' ', ',' }, 2);
-        if (parts.Length < 2)
-        {
-            QueueChatMessage("Usage text... use the official help method");
-            return;
-        }
-
-        try
-        {
-
-            listcollection.add(ref parts[0], ref parts[1]);
-            QueueChatMessage($"Added {parts[1]} to {parts[0]}");
-
-        }
-        catch
-        {
-            QueueChatMessage($"list {parts[0]} not found.");
-        }
-    }
-
-
-    private void RemoveFromlist(TwitchUser requestor, string request)
-    {
-        string[] parts = request.Split(new char[] { ' ', ',' }, 2);
-        if (parts.Length < 2)
-        {
-            //     NewCommands[Addtolist].ShortHelp();
-            QueueChatMessage("Usage text... use the official help method");
-            return;
-        }
-
-        try
-        {
-
-            listcollection.remove(ref parts[0], ref parts[1]);
-            QueueChatMessage($"Removed {parts[1]} from {parts[0]}");
-
-        }
-        catch
-        {
-            QueueChatMessage($"list {parts[0]} not found.");
-        }
-    }
-
-
-
-    private void ClearList(TwitchUser requestor, string request)
-    {
-
-        try
-        {
-            listcollection.ClearList(ref request);
-            QueueChatMessage($"{request} is cleared.");
-        }
-        catch
-        {
-            QueueChatMessage($"Unable to clear {request}");
-        }
-    }
-
-    private void UnloadList(TwitchUser requestor, string request)
-    {
-
-        try
-        {
-            listcollection.ListCollection.Remove(request.ToLower());
-            QueueChatMessage($"{request} unloaded.");
-        }
-        catch
-        {
-            QueueChatMessage($"Unable to unload {request}");
-        }
-    }
-
-
-    private void ListList(TwitchUser requestor, string request)
-    {
-
-        try
-        {
-            var list = listcollection.OpenList(request);
-
-            var msg = new QueueLongMessage();
-            foreach (var entry in list.list) msg.Add(entry, ", ");
-            msg.end("...", $"{request} is empty");
-        }
-        catch
-        {
-            QueueChatMessage($"{request} not found.");
-        }
-    }
-
-    private void showlists(TwitchUser requestor, string request)
-    {
-
-        var msg = new QueueLongMessage();
-        msg.Header("Loaded lists: ");
-        foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})", ", ");
-        msg.end("...", "No lists loaded.");
-    }
-
-#endif
-#endregion
 
         private void OpenList(TwitchUser requestor, string request)
         {
@@ -181,6 +48,7 @@ namespace EnhancedTwitchChat.Bot
     {
 
         // BUG: DoNotCreate flags currently do nothing
+        // BUG: List name case normalization is inconsistent. I'll probably fix it by changing the list interface (its currently just the filename)
 
         public Dictionary<string, StringListManager> ListCollection = new Dictionary<string, StringListManager>();
 
@@ -203,9 +71,11 @@ namespace EnhancedTwitchChat.Bot
                     {
                     RequestBot.Instance.QueueChatMessage($"Clearing old session {request}");
                     list.Clear();
-                    }
+                    if (!(flags.HasFlag(ListFlags.InMemory) | flags.HasFlag(ListFlags.ReadOnly))) list.Writefile(request); 
 
-            return list;
+                }
+
+                return list;
             }
 
         public StringListManager OpenList(string request, ListFlags flags = ListFlags.Unchanged) // All lists are accessed through here, flags determine mode
@@ -271,7 +141,8 @@ namespace EnhancedTwitchChat.Bot
 
                 list.Removeentry(key);
 
-                if (!flags.HasFlag(ListFlags.InMemory | ListFlags.ReadOnly)) list.Writefile(listname); // BUG: ? I'm not sure if the logic in this line is quite correct, please double check.
+                if (!(flags.HasFlag(ListFlags.InMemory) | flags.HasFlag(ListFlags.ReadOnly))) list.Writefile(listname);
+
                 return false;
 
             }

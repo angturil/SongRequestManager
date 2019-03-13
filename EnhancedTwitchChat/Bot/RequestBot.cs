@@ -82,7 +82,8 @@ namespace EnhancedTwitchChat.Bot
         private static StringListManager mapperwhitelist = new StringListManager(); // BUG: This needs to switch to list manager interface
         private static StringListManager mapperBanlist = new StringListManager(); // BUG: This needs to switch to list manager interface
 
-        private static string duplicatelist ="duplicate.list";
+        private static string duplicatelist ="duplicate.list"; // BUG: Name of the list, to be with a cleaner interface
+
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         private static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
 
@@ -99,7 +100,7 @@ namespace EnhancedTwitchChat.Bot
             if (!Directory.Exists(datapath))
                 Directory.CreateDirectory(datapath);
 
-            playedfilename = Path.Combine(datapath, "played.json");
+            playedfilename = Path.Combine(datapath, "played.json"); // Record of all the songs played in the current session
 
             _levelSelectionFlowCoordinator = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
             if (_levelSelectionFlowCoordinator)
@@ -654,7 +655,6 @@ namespace EnhancedTwitchChat.Bot
                     {
                         QueueChatMessage($"You already have {RequestTracker[requestor.id].numRequests} on the queue. You can add another once one is played. Subscribers are limited to {Config.Instance.SubRequestLimit}.");
 
-                        // Custom text example. This one of the messages users likely want to be able to change.
                         // new DynamicText().Add("requests", RequestTracker[requestor.id].numRequests.ToString()).Add("RequestLimit", Config.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests on the queue.You can add another once one is played.Subscribers are limited to %RequestLimit.)");
  
 
@@ -724,8 +724,6 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong, Everyone, "usage: %alias%%|%... Removes your last requested song form the queue. It can be requested again later.", _nothing);
 
-            AddCommand("blist", ShowBanList, Broadcasteronly, "usage: Don't use, it will spam chat.", _nothing);
-
             AddCommand("open", OpenQueue, Mod, "usage: %alias%%|%... Opens the queue allowing song requests.", _nothing);
 
             AddCommand("close", CloseQueue, Mod, "usage: %alias%%|%... Closes the request queue.", _nothing);
@@ -735,6 +733,9 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("commandlist", showCommandlist, Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
             AddCommand("played", ShowSongsplayed, Mod, "usage: %alias%%|%... Displays all the songs already played this session.", _nothing);
+
+            AddCommand("blist", ShowBanList, Broadcasteronly, "usage: Don't use, it will spam chat!", _atleast1); // Purposely annoying to use, add a character after the command to make it happen 
+
 
             AddCommand("readdeck", Readdeck,Broadcasteronly,"usage: %alias",_alphaNumericRegex);
             AddCommand("writedeck", Writedeck,Broadcasteronly,"usage: %alias",_alphaNumericRegex);
@@ -746,9 +747,7 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("link", ShowSongLink, Everyone, "usage: %alias%|%... Shows details, and a link to the current song", _nothing);
 
             AddCommand("allowmappers", MapperAllowList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
-            AddCommand("blockmappers", MapperBanList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex);
 
- 
             AddCommand("chatmessage", ChatMessage, Broadcasteronly, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
             AddCommand("runscript", RunScript, Broadcasteronly, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
             AddCommand("history", ShowHistory, Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
@@ -757,6 +756,9 @@ namespace EnhancedTwitchChat.Bot
 
 
 #if UNRELEASED
+
+            AddCommand("blockmappers", MapperBanList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
+
 
             // Temporary commands for testing, most of these will be unified in a general list/parameter interface
 
@@ -1132,8 +1134,8 @@ namespace EnhancedTwitchChat.Bot
             int parameterstart = 1;
 
 
-            var match = Regex.Match(request, "^!(?<command>[^ ^/]*?<parameter>.*)");
-            string username = match.Success ? match.Groups["command"].Value : null;
+            //var match = Regex.Match(request, "^!(?<command>[^ ^/]*?<parameter>.*)");
+            //string username = match.Success ? match.Groups["command"].Value : null;
 
             // This is a replacement for the much simpler Split code. It was changed to support /fakerest parameters, and sloppy users ... ie: !add4334-333 should now work, so should !command/flags
             while (parameterstart<request.Length && ((request[parameterstart]<'0' || request[parameterstart]>'9') && request[parameterstart] != '/' && request[parameterstart]!=' ')) parameterstart++;  // Command name ends with #... for now, I'll clean up some more later           

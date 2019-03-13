@@ -17,7 +17,12 @@ namespace EnhancedTwitchChat.Bot
         // BUG: This one needs to be cleaned up a lot imo
         // BUG: This file needs to be split up a little, but not just yet... Its easier for me to move around in one massive file, since I can see the whole thing at once. 
 
-        // These are here for this release, since we're not yet ready to support users customizing this.
+        // *** WARNING ***
+        // These are here for this release, since we're not yet ready to support users customizing this. 
+        // The final location and naming of these variables is not yet decided. I've moved them out of config to avoid
+        // Filling the configuration file with variables that will no longer work in the future, and confuse the end user trying
+        // to edit things that are located elsewhere. If you already have these in your .ini, and run this build, you should
+        // Probably remove them to avoid future confusion.
 
         public static string AddSongToQueueText = "Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.";
 
@@ -244,254 +249,6 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
 
-        #region AddSongs/AddSongsByMapper Commands
-
-        /*
-        Route::get('/songs/top/{start?}','ApiController@topDownloads');
-        Route::get('/songs/plays/{start?}','ApiController@topPlayed');
-        Route::get('/songs/new/{start?}','ApiController@newest');
-        Route::get('/songs/rated/{start?}','ApiController@topRated');
-        Route::get('/songs/byuser/{id}/{start?}','ApiController@byUser');
-        Route::get('/songs/detail/{key}','ApiController@detail');
-        Route::get('/songs/vote/{key}/{type}/{accessToken}', 'ApiController@vote');
-        Route::get('/songs/search/{type}/{key}','ApiController@search');
-        */
-
-
-
-        private void addNewSongs(TwitchUser requestor, string request)
-        {
-            StartCoroutine(addsongsFromnewest(requestor, request));
-        }
-
-        private IEnumerator addsongsFromnewest(TwitchUser requestor, string request)
-        {
-            int totalSongs = 0;
-
-            string requestUrl = "https://beatsaver.com/api/songs/new";
-
-            int offset = 0;
-
-            bool found = true;
-
-            while (found && offset < Config.Instance.MaxiumAddScanRange)
-            {
-                found = false;
-
-                using (var web = UnityWebRequest.Get($"{requestUrl}/{offset}"))
-                {
-                    yield return web.SendWebRequest();
-                    if (web.isNetworkError || web.isHttpError)
-                    {
-                        Plugin.Log($"Error {web.error} occured when trying to request song {requestUrl}!");
-                        QueueChatMessage($"Invalid BeatSaver ID \"{requestUrl}\" specified.");
-
-                        yield break;
-                    }
-
-                    JSONNode result = JSON.Parse(web.downloadHandler.text);
-                    if (result["songs"].IsArray && result["total"].AsInt == 0)
-                    {
-                        QueueChatMessage($"No results found for request \"{requestUrl}\"");
-
-                        yield break;
-                    }
-  
-                    if (result["songs"].IsArray)
-                    {
-                        foreach (JSONObject entry in result["songs"])
-                        {
-                            found = true;
-                            JSONObject song = entry;
-
-                            if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
-
-                            // Since we're outputting this to a deck, we only filter by mapper.
-                            //if (filtersong(song)) continue;
-                            //ProcessSongRequest(requestor, song["version"].Value);
-                            listcollection.add("latest.deck",song["version"].Value);
-                            totalSongs++;
-
-                        }
-                    }
-                }
-                offset += 20; // Magic beatsaver.com skip constant.
-            }
-
-            if (totalSongs == 0)
-            {
-                QueueChatMessage($"No new songs found.");
-            }
-            else
-            {
-                QueueChatMessage($"Added {totalSongs} to latest-songs.deck");
-                ExecuteCommand("deck", ref TwitchWebSocketClient.OurTwitchUser, "latest");
-
-            }
-            yield return null;
-        }
-
-        private IEnumerator addsongsBymapper(TwitchUser requestor, string request)
-        {
-            int totalSongs = 0;
-
-            string mapperid = "";
-
-            using (var web = UnityWebRequest.Get($"https://beatsaver.com/api/songs/search/user/{request}"))
-            {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                    Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
-                    QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
-
-                    yield break;
-                }
-
-                JSONNode result = JSON.Parse(web.downloadHandler.text);
-                if (result["songs"].IsArray && result["total"].AsInt == 0)
-                {
-                    QueueChatMessage($"No results found for request \"{request}\"");
-                    yield break;
-                }
-
-                foreach (JSONObject song in result["songs"].AsArray)
-                {
-                    mapperid = song["uploaderId"].Value;
-                    break;
-                }
-
-
-                if (mapperid == "")
-                {
-                    QueueChatMessage($"Unable to find mapper {request}");
-                    yield break;
-                }
-
-            }
-            int offset = 0;
-
-            string requestUrl = "https://beatsaver.com/api/songs/byuser";
-
-            bool found = true;
-
-            while (found)
-            {
-                found = false;
-
-                using (var web = UnityWebRequest.Get($"{requestUrl}/{mapperid}/{offset}"))
-                {
-                    yield return web.SendWebRequest();
-                    if (web.isNetworkError || web.isHttpError)
-                    {
-                        Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
-                        QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
-
-                        yield break;
-                    }
-
-                    JSONNode result = JSON.Parse(web.downloadHandler.text);
-                    if (result["songs"].IsArray && result["total"].AsInt == 0)
-                    {
-                        QueueChatMessage($"No results found for request \"{request}\"");
-
-                        yield break;
-                    }
-                    JSONObject song;
-
-                    foreach (JSONObject entry in result["songs"])
-                    {
-                        song = entry;
-
-                        // We ignore the duplicate filter for this
-
-                        if (IsInQueue(song["id"].Value)) continue;
-                        if (SongBlacklist.Songs.ContainsKey(song["id"].Value)) continue;
-
-                        ProcessSongRequest(requestor, song["version"].Value);
-                        found = true;
-                        totalSongs++; ;
-                    }
-
-                }
-                offset += 20;
-            }
-
-            yield return null;
-        }
-
-        // General search version
-        private IEnumerator addsongs(TwitchUser requestor, string request)
-        {
-            int totalSongs = 0;
-
-            bool isBeatSaverId = _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request);
-
-            string requestUrl = isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
-
-
-            using (var web = UnityWebRequest.Get($"{requestUrl}/{request}"))
-            {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                    Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
-                    QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
-
-                    yield break;
-                }
-
-                JSONNode result = JSON.Parse(web.downloadHandler.text);
-                if (result["songs"].IsArray && result["total"].AsInt == 0)
-                {
-                    QueueChatMessage($"No results found for request \"{request}\"");
-
-                    yield break;
-                }
-                JSONObject song;
-
-                if (result["songs"].IsArray)
-                {
-                    int count = 0;
-                    foreach (JSONObject entry in result["songs"])
-                    {
-                        song = entry;
-
-                        if (filtersong(song)) continue;
-                        ProcessSongRequest(requestor, song["version"].Value);
-                        count++;
-                        totalSongs++; ;
-                    }
-                }
-                else
-                {
-                    song = result["song"].AsObject;
-                    // $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
-
-                    ProcessSongRequest(requestor, song["version"].Value);
-                    totalSongs++;
-                }
-                yield return null;
-            }
-            //QueueChatMessage($"Added {totalSongs} songs.");
-        }
-
-
-        private void addsongsbymapper(TwitchUser requestor, string request)
-        {
-            if (isNotBroadcaster(requestor, "mapper")) return;
-
-            StartCoroutine(addsongsBymapper(requestor, request));
-        }
-
-        private void addSongs(TwitchUser requestor, string request)
-        {
-
-            if (isNotBroadcaster(requestor, "addsongs")) return;
-
-            StartCoroutine(addsongs(requestor, request));
-        }
-        #endregion
 
         #region Ban/Unban Song
         public void Ban(TwitchUser requestor, string request)
@@ -1071,10 +828,10 @@ namespace EnhancedTwitchChat.Bot
         // BUG: This requires a switch, or should be disabled for those who don't allow links
         private void ShowSongLink(TwitchUser requestor, string request)
         {
-            if (RequestBotListViewController.currentsong.song.IsNull) return;
 
             try  // We're accessing an element across threads, this is only 99.99% safe
             {
+                if (RequestBotListViewController.currentsong.song.IsNull) return; // Is this needed?
                 var song = RequestBotListViewController.currentsong.song;
                 if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(LinkSonglink);
 
@@ -1129,8 +886,8 @@ namespace EnhancedTwitchChat.Bot
 
                 // BUG: Note -- Its my intent to allow sections to be used as a form of conditional. If a result failure occurs within a section, we should be able to rollback the entire section, and continue to the next. Its a better way of handline missing dynamic fields without excessive scripting
                 // This isn't implemented yet.
-                AddLinks();
 
+                AddLinks();
 
                 DateTime Now = DateTime.Now; //"MM/dd/yyyy hh:mm:ss.fffffff";         
                 Add("Time", Now.ToString("hh:mm"));
