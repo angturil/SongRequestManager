@@ -17,7 +17,7 @@ namespace EnhancedTwitchChat
     public class Plugin : IPlugin
     {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "1.1.4";
+        public string Version => "1.1.4"; // BUG: This version number needs to be updated
 
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
@@ -29,7 +29,7 @@ namespace EnhancedTwitchChat
                         [CallerMemberName] string member = "",
                         [CallerLineNumber] int line = 0)
         {
-            Debug.Log($"[EnhancedTwitchChat] {Path.GetFileName(file)}->{member}({line}): {text}");
+            Debug.Log($"[EnhancedTwitchChat] {DateTime.UtcNow} {Path.GetFileName(file)}->{member}({line}): {text}"); // Added time stamp. Might be too verbose
         }
         
         public void OnApplicationStart()

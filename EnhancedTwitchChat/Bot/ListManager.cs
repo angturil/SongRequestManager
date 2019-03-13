@@ -254,7 +254,7 @@ namespace EnhancedTwitchChat.Bot
                 return true;
 
             }
-            catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
+            catch (Exception ex) { Plugin.Log(ex.ToString()); }               
 
             return false;
         }

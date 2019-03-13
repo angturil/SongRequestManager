@@ -70,7 +70,6 @@ namespace EnhancedTwitchChat.Bot
         private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // BUG: Still not the final form
 
         #if UNRELEASED
-        static private string CommandOnEmptyQueue = "!fun"; // Experimental feature. Execute this command when the queue gets empty.
         //static private string CommandEveryXminutes ="!add waterbreak song";   // BUG: Not yet iplemented
         #endif
 
@@ -534,10 +533,14 @@ namespace EnhancedTwitchChat.Bot
             if (request != null)
                 DequeueRequest(request,updateUI);
 
-            #if UNRELEASED
+        #if UNRELEASED
             // If the queue is empty, Execute a custom command, the could be a chat message, a deck request, or nothing
-            if (Config.Instance.QueueOpen && updateUI==true && RequestQueue.Songs.Count == 0 && CommandOnEmptyQueue != "") RequestBot.listcollection.runscript("emptyqueue.script"); 
-            #endif
+            try
+                {
+                if (Config.Instance.QueueOpen && updateUI == true && RequestQueue.Songs.Count == 0) RequestBot.listcollection.runscript("emptyqueue.script");
+                }
+            catch (Exception ex) { Plugin.Log(ex.ToString()); }
+        #endif
 
 
             return request;
@@ -778,6 +781,8 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("decklist", decklist,Mod,"usage: %alias",_deck);
             AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _anything);
             AddCommand("mapper", addsongsbymapper,Broadcasteronly,"usage: %alias%<mapperlist>" ); // This is actually most useful if we send it straight to list
+
+            //AddCommand("test", LookupSongs);
 #endif
         }
 
@@ -838,6 +843,8 @@ namespace EnhancedTwitchChat.Bot
         public struct BOTCOMMAND
         {
             public Action<TwitchUser, string> Method;  // Method to call
+
+ 
             public CmdFlags rights;                  // flags
             public string ShortHelp;                   // short help text (on failing preliminary check
             public List<string> aliases;               // list of command aliases
@@ -848,6 +855,7 @@ namespace EnhancedTwitchChat.Bot
             public string permittedusers; // Name of list of permitted users.
             public string userParameter; // This is here incase I need it for some specific purpose
             public int userNumber;
+            public int UseCount;  // Number of times command has been used, sadly without references, updating this is costly.
       
             public void SetPermittedUsers(string listname)
                 {
@@ -858,7 +866,8 @@ namespace EnhancedTwitchChat.Bot
                 permittedusers = fixedname;
                 }
 
-            public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
+
+            public BOTCOMMAND( Action <TwitchUser,string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
             {
                 Method = method;
                 this.rights = flags;
@@ -866,25 +875,29 @@ namespace EnhancedTwitchChat.Bot
                 aliases = alias.ToList();
                 LongHelp = "";
                 HelpLink = "";
-                permittedusers = "" ;
+                permittedusers = "";
                 if (regex == null)
                     regexfilter = _anything;
                 else
                     regexfilter = regex;
+
+                UseCount = 0;
 
                 userParameter = "";
                 userNumber = 0;
 
                 foreach (var entry in aliases)
                 {
-                if (!NewCommands.ContainsKey(entry))
-                    NewCommands.Add(entry, this);
-                else
+                    if (!NewCommands.ContainsKey(entry)) // BUG: The moment this is called, we're committing this. Probably want to set more things before this happens. I'm not fixing it right now
+                        NewCommands.Add(entry, this);
+                    else
                     {
-                    // BUG: Command alias is a duplicate
+                        // BUG: Command alias is a duplicate
                     }
                 }
+
             }
+
         }
 
         public static List<BOTCOMMAND> cmdlist = new List<BOTCOMMAND>();
@@ -900,6 +913,7 @@ namespace EnhancedTwitchChat.Bot
             cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex,list));
         }
 
+  
         // A much more general solution for extracting dymatic values into a text string. If we need to convert a text message to one containing local values, but the availability of those values varies by calling location
         // We thus build a table with only those values we have. 
 
@@ -972,30 +986,31 @@ namespace EnhancedTwitchChat.Bot
 
             // Permissions for these sub commands will always be by Broadcaster,or the (BUG: Future feature) user list of the EnhancedTwitchBot command. Note command behaviour that alters with permission should treat userlist as an escalation to Broadcaster.
             // Since these are never meant for an end user, they are not going to be configurable.
-            
+
             // Example: !challenge/allow myfriends
             //          !decklist/setflags SUB
             //          !lookup/sethelp usage: %alias%<song name or id>
-
+                        
             if (user.isBroadcaster && param.StartsWith("/"))
             {
-                string[] parts = param.Split(new char[] { ' ', ',' }, 2);
+                string[] parts = param.Split(new char[] {' ', ',' }, 2);
 
-                if (param.StartsWith("/allow")) // 
+                string subcommand = parts[0].ToLower();
+
+                if (subcommand.StartsWith("/allow")) // 
                 {
                     if (parts.Length > 1)
                     {
                         string key = parts[1].ToLower();
                         botcmd.permittedusers = key;
                         NewCommands[command] = botcmd; 
-
                         Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
                     }
 
                     return;
                 }
 
-                if (param.StartsWith("/disable")) // 
+                if (subcommand.StartsWith("/disable")) // 
                 {
                     Instance?.QueueChatMessage($"{command} Disabled.");
                     botcmd.rights |= CmdFlags.Disabled;
@@ -1003,7 +1018,7 @@ namespace EnhancedTwitchChat.Bot
                     return;    
                 }
 
-                if (param.StartsWith("/enable")) // 
+                if (subcommand.StartsWith("/enable")) // 
                     {
                 
                     Instance?.QueueChatMessage($"{command} Enabled.");
@@ -1013,12 +1028,12 @@ namespace EnhancedTwitchChat.Bot
                     }
 
 
-                if (param.StartsWith("/sethelp")) // 
+                if (subcommand.StartsWith("/sethelp")) // 
                 {
                     if (parts.Length > 1)
                     {
                         botcmd.ShortHelp = parts[1];
-                        NewCommands[command] = botcmd; 
+                        NewCommands[command] = botcmd;  
 
                         Instance?.QueueChatMessage($"{command} help: {parts[1]}");
                     }
@@ -1026,16 +1041,13 @@ namespace EnhancedTwitchChat.Bot
                     return;
                 }
 
-
-                if (param.StartsWith("/flags")) // 
+                if (subcommand.StartsWith("/flags")) // 
                 {
                     Instance?.QueueChatMessage($"{command} flags: {botcmd.rights.ToString()}");
-
                     return;
                 }
 
-
-                if (param.StartsWith("/setflags")) // 
+                if (subcommand.StartsWith("/setflags")) // 
                 {
                     if (parts.Length > 1)
                     {
@@ -1050,10 +1062,16 @@ namespace EnhancedTwitchChat.Bot
 
                         Instance?.QueueChatMessage($"Not implemented");
                     }
-
                     return;
 
                 }
+
+                if (subcommand.StartsWith("/silent")) 
+                    {
+                    // BUG: Making the output silent doesn't work yet.
+
+                    param = parts[1]; // Eat the switch, allowing the command to continue
+                    }
 
             }
 
@@ -1087,10 +1105,10 @@ namespace EnhancedTwitchChat.Bot
                 }
 
 
-            try
+        try
             {
-            botcmd.Method(user, param); // Call the command
-            }
+               botcmd.Method(user, param); // Call the command
+                          }
         catch (Exception ex)
             {
             // Display failure message, and lock out command for a time period. Not yet.
@@ -1114,9 +1132,11 @@ namespace EnhancedTwitchChat.Bot
             int parameterstart = 1;
 
 
+            var match = Regex.Match(request, "^!(?<command>[^ ^/]*?<parameter>.*)");
+            string username = match.Success ? match.Groups["command"].Value : null;
 
             // This is a replacement for the much simpler Split code. It was changed to support /fakerest parameters, and sloppy users ... ie: !add4334-333 should now work, so should !command/flags
-            while (parameterstart<request.Length && ((request[parameterstart]>='a' && request[parameterstart]<='z') || request[parameterstart] >= 'A' && request[parameterstart] <= 'Z' || request[parameterstart]=='_')) parameterstart++;  // I'll replace this with a bit lookup, or more appropriate method later            
+            while (parameterstart<request.Length && ((request[parameterstart]<'0' || request[parameterstart]>'9') && request[parameterstart] != '/' && request[parameterstart]!=' ')) parameterstart++;  // Command name ends with #... for now, I'll clean up some more later           
             int commandlength = parameterstart - commandstart;
             while (parameterstart < request.Length && request[parameterstart] == ' ') parameterstart++; // Eat the space(s) if that's the separator after the command
 

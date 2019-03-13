@@ -43,22 +43,20 @@ namespace EnhancedTwitchChat.Bot
             var dt = new DynamicText().AddUser(ref requestor);
             try
             {
-                dt.AddSong(RequestBotListViewController.currentsong.song);
+                dt.AddSong(RequestBotListViewController.currentsong.song); // Exposing the current song 
             }
-            catch
+            catch (Exception ex)
             {
-
+                  Plugin.Log(ex.ToString());
             }
+
             dt.QueueMessage(request);
 
         }
 
         public void RunScript(TwitchUser requestor, string request)
         {
-            // Do nothing for now.
-
             listcollection.runscript(request);
-
         }
 
         public static TimeSpan GetFileAgeDifference(string filename)
@@ -260,9 +258,9 @@ namespace EnhancedTwitchChat.Bot
         */
 
 
+
         private void addNewSongs(TwitchUser requestor, string request)
         {
-
             StartCoroutine(addsongsFromnewest(requestor, request));
         }
 
@@ -298,11 +296,7 @@ namespace EnhancedTwitchChat.Bot
 
                         yield break;
                     }
-
-                    // BUG: (Pre-merge) Non reproducible bug occured one time, resulting in unusual list - duplicate and incorrect entries. Not sure if its local, or beastaver db inconsistency?
-
-                     
-
+  
                     if (result["songs"].IsArray)
                     {
                         foreach (JSONObject entry in result["songs"])
@@ -311,11 +305,12 @@ namespace EnhancedTwitchChat.Bot
                             JSONObject song = entry;
 
                             if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
+
+                            // Since we're outputting this to a deck, we only filter by mapper.
                             //if (filtersong(song)) continue;
                             //ProcessSongRequest(requestor, song["version"].Value);
                             listcollection.add("latest.deck",song["version"].Value);
                             totalSongs++;
-                            //if (totalSongs > Config.Instance.maxaddnewresults) yield break;  // We're done once the maximum resuts are produced
 
                         }
                     }
@@ -833,9 +828,9 @@ namespace EnhancedTwitchChat.Bot
 
             var msg = new QueueLongMessage(1);
 
-            for (int i=RequestHistory.Songs.Count-1;i>=0;i--)
+            foreach (var entry in RequestHistory.Songs)
             {
-                var song = RequestHistory.Songs[i].song;
+                var song = entry.song;
                 if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
             }
             msg.end($" ... and {RequestHistory.Songs.Count - msg.Count} more songs.", "History is empty.");
