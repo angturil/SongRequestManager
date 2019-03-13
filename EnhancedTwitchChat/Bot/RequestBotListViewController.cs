@@ -378,6 +378,7 @@ namespace EnhancedTwitchChat.Bot
        
             var dt = new RequestBot.DynamicText().AddSong(ref song).AddUser(ref request.requestor); // Get basic fields
             dt.Add("Status", request.status.ToString());
+            dt.Add("Info", (request.requestInfo!="") ? " / "+request.requestInfo : "");
             dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString());
 
             BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));

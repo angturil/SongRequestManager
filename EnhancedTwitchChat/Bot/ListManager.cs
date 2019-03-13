@@ -23,9 +23,10 @@ namespace EnhancedTwitchChat.Bot
 
         // .deck = lists of songs
         // .mapper = mapper lists
-        // .user = twitch user lists
+        // .users = twitch user lists
         // .command = command lists = linear scripting
         // .dict = list contains key value pairs
+        // .json = (not part of list manager.. yet)
 
         // This code is currently in an extreme state of flux. Underlying implementation will change.
 
@@ -52,6 +53,7 @@ namespace EnhancedTwitchChat.Bot
 
         public Dictionary<string, StringListManager> ListCollection = new Dictionary<string, StringListManager>();
 
+            
             public ListCollectionManager()
         {
             // Add an empty list so we can set various lists to empty
@@ -77,6 +79,8 @@ namespace EnhancedTwitchChat.Bot
 
                 return list;
             }
+
+
 
         public StringListManager OpenList(string request, ListFlags flags = ListFlags.Unchanged) // All lists are accessed through here, flags determine mode
         {
@@ -225,6 +229,9 @@ namespace EnhancedTwitchChat.Bot
 
             try
                 {
+
+                // BUG: A DynamicText context needs to be applied to each command to allow use of dynamic variables
+
                 foreach (var line in list) Parse(TwitchWebSocketClient.OurTwitchUser, line);
                 }
             catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.            
@@ -232,7 +239,7 @@ namespace EnhancedTwitchChat.Bot
             }
 
 
-            public bool Writefile(string filename)
+        public bool Writefile(string filename)
         {
 
             string separator = filename.EndsWith(".script") ? "\n" : ",";

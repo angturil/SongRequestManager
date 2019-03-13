@@ -46,7 +46,7 @@ namespace EnhancedTwitchChat.Bot
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);
         private static readonly Regex _RemapRegex = new Regex("^[0-9]+,[0-9]+$", RegexOptions.Compiled);
-        private static readonly Regex _beatsaversong=new Regex("^[0-9]+$|^[0-9]+-[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex _beatsaversong = new Regex("^[0-9]+$|^[0-9]+-[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _nothing = new Regex("$^", RegexOptions.Compiled);
         private static readonly Regex _anything = new Regex(".*", RegexOptions.Compiled); // Is this the most efficient way?
         private static readonly Regex _atleast1 = new Regex("..*", RegexOptions.Compiled); // Allow usage message to kick in for blank 
@@ -69,9 +69,9 @@ namespace EnhancedTwitchChat.Bot
 
         private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // BUG: Still not the final form
 
-        #if UNRELEASED
+#if UNRELEASED
         //static private string CommandEveryXminutes ="!add waterbreak song";   // BUG: Not yet iplemented
-        #endif
+#endif
 
         bool mapperwhiteliston = false; // BUG: Need to clean these up a bit.
 
@@ -82,7 +82,7 @@ namespace EnhancedTwitchChat.Bot
         private static StringListManager mapperwhitelist = new StringListManager(); // BUG: This needs to switch to list manager interface
         private static StringListManager mapperBanlist = new StringListManager(); // BUG: This needs to switch to list manager interface
 
-        private static string duplicatelist ="duplicate.list"; // BUG: Name of the list, to be with a cleaner interface
+        private static string duplicatelist = "duplicate.list"; // BUG: Name of the list, needs to use a different interface for this.
 
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         private static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
@@ -92,7 +92,7 @@ namespace EnhancedTwitchChat.Bot
         private static CustomMenu _songRequestMenu = null;
         private static RequestBotListViewController _songRequestListViewController = null;
 
-        public static string playedfilename="";
+        public static string playedfilename = "";
 
         public static void OnLoad()
         {
@@ -146,40 +146,44 @@ namespace EnhancedTwitchChat.Bot
 
 
             TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
-            if (PlayedAge < TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)) played=ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
+            if (PlayedAge < TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
 
             RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
 
             RequestHistory.Read();
             SongBlacklist.Read();
 
-            listcollection.ClearOldList("duplicate.list",TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)); 
+            listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours));
 
             UpdateRequestButton();
             InitializeCommands();
-            RunStartupScripts(); 
+
+            RunStartupScripts();
 
             StartCoroutine(ProcessRequestQueue());
             StartCoroutine(ProcessBlacklistRequests());
 
-            
+
         }
 
 
         private void RunStartupScripts()
-            {                      
+        {
             ReadRemapList(); // BUG: This should use list manager
- 
+
+#if UNRELEASED
+
             OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
             MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
-
-            #if UNRELEASED
             loaddecks(TwitchWebSocketClient.OurTwitchUser, ""); // Load our default deck collection
-            #endif
+            // BUG: Command failure observed once, no permission to use /chatcommand. Possible cause: Ourtwitchuser isn't authenticated yet.
 
             RunScript(TwitchWebSocketClient.OurTwitchUser, "startup.script"); // Run startup script. This can include any bot commands.
 
-            }
+#endif
+
+
+        }
 
 
 
@@ -212,7 +216,7 @@ namespace EnhancedTwitchChat.Bot
                         yield return web.SendWebRequest();
                         if (web.isNetworkError || web.isHttpError)
                         {
-                            if (!silence) QueueChatMessage($"Invalid BeatSaver ID \"{songId}\" specified."); 
+                            if (!silence) QueueChatMessage($"Invalid BeatSaver ID \"{songId}\" specified.");
                             continue;
                         }
 
@@ -256,7 +260,7 @@ namespace EnhancedTwitchChat.Bot
             _botMessageQueue.Enqueue(message);
         }
 
-  
+
 
         private IEnumerator ProcessRequestQueue()
         {
@@ -273,6 +277,8 @@ namespace EnhancedTwitchChat.Bot
         private IEnumerator CheckRequest(RequestInfo requestInfo)
         {
             TwitchUser requestor = requestInfo.requestor;
+
+            //QueueChatMessage($"request={requestInfo.requestInfo}");
 
             string request = requestInfo.request;
 
@@ -329,7 +335,7 @@ namespace EnhancedTwitchChat.Bot
                     // Might consider sorting the list by rating to improve quality of results            
                     foreach (JSONObject currentSong in result["songs"].AsArray)
                     {
-                
+
                         errormessage = SongSearchFilter(currentSong, false);
                         if (errormessage == "")
                             songs.Add(currentSong);
@@ -350,13 +356,13 @@ namespace EnhancedTwitchChat.Bot
                     errormessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
                 else if (!Config.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
                 {
-                    var msg =new QueueLongMessage(1,5);
+                    var msg = new QueueLongMessage(1, 5);
 
                     msg.Header($"@{requestor.displayName}, please choose: ");
                     foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(ref BsrSongDetail), ", ");
                     msg.end("...", $"No matching songs for for {request}");
                     yield break;
-        
+
                 }
                 else
                 {
@@ -373,19 +379,14 @@ namespace EnhancedTwitchChat.Bot
                 var song = songs[0];
 
                 RequestTracker[requestor.id].numRequests++;
-                
-                //
-                //duplicatelist.Add(song["id"].Value);
+
                 listcollection.add(duplicatelist, song["id"].Value);
 
-                RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued));
+
+                RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued,requestInfo.requestInfo));
                 RequestQueue.Write();
 
-                Writedeck(requestor, "savedqueue"); // Might not be needed.. logic around saving and loading deck state needs to be reworked
-
-                //QueueChatMessage($"Request {song["songName"].Value} by {song["authorName"].Value} {GetStarRating(ref song, Config.Instance.ShowStarRating)} ({song["version"].Value}) added to queue.");
-
-                // We want to allow the end user to customize some of the bot messages to their own preferences. You can read the message text from a file.
+                Writedeck(requestor, "savedqueue"); // This can be used as a backup if persistent Queue is turned off.
 
                 new DynamicText().AddSong(ref song).QueueMessage(AddSongToQueueText);
 
@@ -424,34 +425,34 @@ namespace EnhancedTwitchChat.Bot
                 string currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
                 string songHash = request.song["hashMd5"].Value.ToUpper();
 
-                retry:
-                    CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
-                    if (levels.Length == 0)
+            retry:
+                CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
+                if (levels.Length == 0)
+                {
+                    Utilities.EmptyDirectory(".requestcache", false);
+
+                    if (Directory.Exists(currentSongDirectory))
                     {
-                        Utilities.EmptyDirectory(".requestcache", false);
-
-                        if (Directory.Exists(currentSongDirectory))
-                        {
-                            Utilities.EmptyDirectory(currentSongDirectory, true);
-                            Plugin.Log($"Deleting {currentSongDirectory}");
-                        }
-
-                        string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
-                        yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
-                        yield return Utilities.ExtractZip(localPath, currentSongDirectory);
-                        yield return SongListUtils.RefreshSongs(false, false, true);
-
-
-                        Utilities.EmptyDirectory(".requestcache", true);
-                        levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
-                    }
-                    else
-                    {
-                        Plugin.Log($"Song {songName} already exists!");
+                        Utilities.EmptyDirectory(currentSongDirectory, true);
+                        Plugin.Log($"Deleting {currentSongDirectory}");
                     }
 
-                    if (levels.Length > 0)
-                    {
+                    string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
+                    yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
+                    yield return Utilities.ExtractZip(localPath, currentSongDirectory);
+                    yield return SongListUtils.RefreshSongs(false, false, true);
+
+
+                    Utilities.EmptyDirectory(".requestcache", true);
+                    levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
+                }
+                else
+                {
+                    Plugin.Log($"Song {songName} already exists!");
+                }
+
+                if (levels.Length > 0)
+                {
 
 
                     try
@@ -473,10 +474,10 @@ namespace EnhancedTwitchChat.Bot
 
                 }
                 else
-                    {
-                        Plugin.Log("Failed to find new level!");
-                    }
- 
+                {
+                    Plugin.Log("Failed to find new level!");
+                }
+
                 if (!request.song.IsNull) new DynamicText().AddSong(request.song).QueueMessage(NextSonglink); // Display next song message
 
                 _songRequestMenu.Dismiss();
@@ -527,21 +528,21 @@ namespace EnhancedTwitchChat.Bot
             _refreshQueue = true;
         }
 
-        public static SongRequest DequeueRequest(int index,bool updateUI=true)
+        public static SongRequest DequeueRequest(int index, bool updateUI = true)
         {
             SongRequest request = RequestQueue.Songs.ElementAt(index);
 
             if (request != null)
-                DequeueRequest(request,updateUI);
+                DequeueRequest(request, updateUI);
 
-        #if UNRELEASED
+#if UNRELEASED
             // If the queue is empty, Execute a custom command, the could be a chat message, a deck request, or nothing
             try
-                {
+            {
                 if (Config.Instance.QueueOpen && updateUI == true && RequestQueue.Songs.Count == 0) RequestBot.listcollection.runscript("emptyqueue.script");
-                }
+            }
             catch (Exception ex) { Plugin.Log(ex.ToString()); }
-        #endif
+#endif
 
 
             return request;
@@ -598,7 +599,7 @@ namespace EnhancedTwitchChat.Bot
         {
             StartCoroutine(LookupSongs(requestor, request));
         }
-        
+
         private string GetBeatSaverId(string request)
         {
             if (_digitRegex.IsMatch(request)) return request;
@@ -610,7 +611,7 @@ namespace EnhancedTwitchChat.Bot
             return "";
         }
 
-        private void ProcessSongRequest(TwitchUser requestor, string request)
+        private void ProcessSongRequest(TwitchUser requestor, string request, int flags = 0, string info = "")
         {
             try
             {
@@ -620,7 +621,6 @@ namespace EnhancedTwitchChat.Bot
                     return;
                 }
 
-                // The help text is part of help now, and will be configurable
 
                 if (!RequestTracker.ContainsKey(requestor.id))
                     RequestTracker.Add(requestor.id, new RequestUserTracker());
@@ -653,16 +653,15 @@ namespace EnhancedTwitchChat.Bot
                 {
                     if (RequestTracker[requestor.id].numRequests >= limit)
                     {
-                        QueueChatMessage($"You already have {RequestTracker[requestor.id].numRequests} on the queue. You can add another once one is played. Subscribers are limited to {Config.Instance.SubRequestLimit}.");
 
-                        // new DynamicText().Add("requests", RequestTracker[requestor.id].numRequests.ToString()).Add("RequestLimit", Config.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests on the queue.You can add another once one is played.Subscribers are limited to %RequestLimit.)");
- 
+                        new DynamicText().Add("Requests", RequestTracker[requestor.id].numRequests.ToString()).Add("RequestLimit", Config.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
 
                         return;
                     }
                 }
 
-                RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request));
+                RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request),flags,info);
+
                 if (!newRequest.isBeatSaverId && request.Length < 3)
                     QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
                 else if (!UnverifiedRequestQueue.Contains(newRequest))
@@ -701,7 +700,8 @@ namespace EnhancedTwitchChat.Bot
             // BUG / or is it a feature? Currently, commands are incorrectly(?) Being added as separate copies per alias, instead of referring to a single shared object. This means each subcommand actually only modifies its own settings. Will fix at a later date. This only affects commands with aliases. 
             // Since the only user modifiable fields atm are flags and help message, we can hack a fix though the appropriate functions to set those, to replicate those changes across alias copies.. ugh. 
 
-            // Testing prototype code now
+
+
             AddCommand("queue", ListQueue, Everyone, "usage: %alias%%|% ... Displays a list of the currently requested songs.", _nothing);
 
             AddCommand("unblock", Unban, Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversong);
@@ -718,7 +718,7 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("unmap", Unmap, Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversong);
 
-            AddCommand(new string[] { "lookup", "find" }, lookup, Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.",_atleast1);
+            AddCommand(new string[] { "lookup", "find" }, lookup, Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the bottom of the request queue.", _atleast1);
 
@@ -737,8 +737,8 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("blist", ShowBanList, Broadcasteronly, "usage: Don't use, it will spam chat!", _atleast1); // Purposely annoying to use, add a character after the command to make it happen 
 
 
-            AddCommand("readdeck", Readdeck,Broadcasteronly,"usage: %alias",_alphaNumericRegex);
-            AddCommand("writedeck", Writedeck,Broadcasteronly,"usage: %alias",_alphaNumericRegex);
+            AddCommand("readdeck", Readdeck, Broadcasteronly, "usage: %alias", _alphaNumericRegex);
+            AddCommand("writedeck", Writedeck, Broadcasteronly, "usage: %alias", _alphaNumericRegex);
 
             AddCommand("clearalreadyplayed", ClearDuplicateList, Broadcasteronly, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
 
@@ -752,8 +752,7 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("runscript", RunScript, Broadcasteronly, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
             AddCommand("history", ShowHistory, Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
 
-            AddCommand("About", nop, Everyone, "EnhancedTwitchChat Bot version 2.0.0:", _fail); // BUG: Still not quite working. Sample help command template, User Everyone/Help to determine if the command is registered
-
+            AddCommand("about", nop, Broadcasteronly, "EnhancedTwitchChat Bot version 2.0.0. Developed by brian91292 and angturil. Find us on github.", _fail);
 
 #if UNRELEASED
 
@@ -771,7 +770,7 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("write", writelist);
             AddCommand("list", ListList);
             AddCommand("lists", showlists);
-            AddCommand("addtolist", Addtolist,Broadcasteronly,"usage: %alias%<list> <value to add>",_atleast1);
+            AddCommand("addtolist", Addtolist, Broadcasteronly, "usage: %alias%<list> <value to add>", _atleast1);
             AddCommand("addtoqueue", queuelist, Broadcasteronly, "usage: %alias%<list>", _atleast1);
 
             AddCommand("removefromlist", RemoveFromlist, Broadcasteronly, "usage: %alias%<list> <value to add>", _atleast1);
@@ -780,9 +779,9 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("deck", createdeck);
             AddCommand("unloaddeck", unloaddeck);
             AddCommand("loaddecks", loaddecks);
-            AddCommand("decklist", decklist,Mod,"usage: %alias",_deck);
+            AddCommand("decklist", decklist, Mod, "usage: %alias", _deck);
             AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _anything);
-            AddCommand("mapper", addsongsbymapper,Broadcasteronly,"usage: %alias%<mapperlist>" ); // This is actually most useful if we send it straight to list
+            AddCommand("mapper", addsongsbymapper, Broadcasteronly, "usage: %alias%<mapperlist>"); // This is actually most useful if we send it straight to list
 
             //AddCommand("test", LookupSongs);
 #endif
@@ -845,8 +844,8 @@ namespace EnhancedTwitchChat.Bot
         public struct BOTCOMMAND
         {
             public Action<TwitchUser, string> Method;  // Method to call
+            public Action<TwitchUser, string, int, string> Method2; // Alternate method
 
- 
             public CmdFlags rights;                  // flags
             public string ShortHelp;                   // short help text (on failing preliminary check
             public List<string> aliases;               // list of command aliases
@@ -858,20 +857,29 @@ namespace EnhancedTwitchChat.Bot
             public string userParameter; // This is here incase I need it for some specific purpose
             public int userNumber;
             public int UseCount;  // Number of times command has been used, sadly without references, updating this is costly.
-      
+
             public void SetPermittedUsers(string listname)
-                {
+            {
                 // BUG: Needs additional checking
 
-                string fixedname=listname.ToLower();
+                string fixedname = listname.ToLower();
                 if (!fixedname.EndsWith(".users")) fixedname += ".users";
                 permittedusers = fixedname;
-                }
+            }
 
+            public void Execute(ref TwitchUser user, ref string request, int flags, ref string Info)
+            {
+                if (Method2 != null) Method2(user, request, flags, Info);
+                else if (Method != null) Method(user, request);
 
-            public BOTCOMMAND( Action <TwitchUser,string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
+            }
+
+            public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
             {
                 Method = method;
+                Method2 = null;
+
+
                 this.rights = flags;
                 ShortHelp = shorthelptext;
                 aliases = alias.ToList();
@@ -897,8 +905,42 @@ namespace EnhancedTwitchChat.Bot
                         // BUG: Command alias is a duplicate
                     }
                 }
-
             }
+
+
+            // BUG: These are currently copies of each other (except the function prototype),I'm not 100% sure how to refactor. My previous attempt was not able to change the contents of the constructed object.
+            public BOTCOMMAND(Action<TwitchUser, string,int ,string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
+            {
+                Method = null;
+                Method2 = method;
+                this.rights = flags;
+                ShortHelp = shorthelptext;
+                aliases = alias.ToList();
+                LongHelp = "";
+                HelpLink = "";
+                permittedusers = "";
+                if (regex == null)
+                    regexfilter = _anything;
+                else
+                    regexfilter = regex;
+
+                UseCount = 0;
+
+                userParameter = "";
+                userNumber = 0;
+
+                foreach (var entry in aliases)
+                {
+                    if (!NewCommands.ContainsKey(entry)) // BUG: The moment this is called, we're committing this. Probably want to set more things before this happens. I'm not fixing it right now
+                        NewCommands.Add(entry, this);
+                    else
+                    {
+                        // BUG: Command alias is a duplicate
+                    }
+                }
+            }
+
+
 
         }
 
@@ -911,11 +953,25 @@ namespace EnhancedTwitchChat.Bot
 
         public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights",Regex regex=null)
         {
-            string[] list = new string[] { alias };
+            string[] list = new string[] { alias.ToLower() };
             cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex,list));
         }
 
-  
+        public void AddCommand(string alias, Action<TwitchUser, string, int, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
+        {
+
+            string[] list = new string[] { alias.ToLower() };
+            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, list));
+
+        }
+        public void AddCommand(string[] alias, Action<TwitchUser, string, int, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
+           {
+            cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, alias));
+
+           }
+
+
+
         // A much more general solution for extracting dymatic values into a text string. If we need to convert a text message to one containing local values, but the availability of those values varies by calling location
         // We thus build a table with only those values we have. 
 
@@ -978,7 +1034,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
         // You can modify commands using !allow !setflags !clearflags and !sethelp
-        public static void ExecuteCommand(string command, ref TwitchUser user, string param)
+        public static void ExecuteCommand(string command, ref TwitchUser user, string param, int commandflags=0, string info="")
         {
             BOTCOMMAND botcmd;
 
@@ -1108,9 +1164,9 @@ namespace EnhancedTwitchChat.Bot
 
 
         try
-            {
-               botcmd.Method(user, param); // Call the command
-                          }
+            {           
+            botcmd.Execute(ref user, ref param,(int) commandflags ,ref info); // Call the command
+           }
         catch (Exception ex)
             {
             // Display failure message, and lock out command for a time period. Not yet.
@@ -1122,17 +1178,16 @@ namespace EnhancedTwitchChat.Bot
         }
         #endregion
 
-        public static void Parse(TwitchUser user, string request)
+        public static void Parse(TwitchUser user, string request,int flags=0,string info="")
         {
             if (!Instance) return;
 
             if (request.Length == 0) return; // Since we allow user configurable commands, blanks are a possibility
 
-            if (request[0]!='!') return;
+            if (request[0]!='!') return; // This won't always be here
 
             int commandstart = 1; // This is technically 0, right now we're setting it to 1 to maintain the ! behaviour
             int parameterstart = 1;
-
 
             //var match = Regex.Match(request, "^!(?<command>[^ ^/]*?<parameter>.*)");
             //string username = match.Success ? match.Groups["command"].Value : null;
@@ -1160,7 +1215,7 @@ namespace EnhancedTwitchChat.Bot
 
                 try
                     {
-                    ExecuteCommand(command, ref user, param);
+                    ExecuteCommand(command, ref user, param,flags,info);
                     }
                 catch (Exception ex)
                     {

@@ -34,7 +34,7 @@ namespace EnhancedTwitchChat.Bot
 
         public static string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
 
-        public static string SongHintText = "Requested by %user%%LF%Status: %Status%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
+        public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
 
         public static string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
 
@@ -972,55 +972,46 @@ namespace EnhancedTwitchChat.Bot
             public string Parse(ref string text, bool parselong = false)
             {
 
-            StringBuilder output = new StringBuilder(text.Length); // We assume a starting capacity at LEAST = to length of original string;
+                StringBuilder output = new StringBuilder(text.Length); // We assume a starting capacity at LEAST = to length of original string;
 
-             int regularstart = 0; // Start of regular region
-             int outputlength = 0; // Length
-
-
-                for (int p=0;p<text.Length;p++) // P is pointer, that's good enough for me
+                for (int p = 0; p < text.Length; p++) // P is pointer, that's good enough for me
                 {
-                char c = text[p];
+                    char c = text[p];
 
-                if (c=='%')
+                    if (c == '%')
                     {
-                    int keywordstart = p + 1;
-                    int keywordlength = 0;
+                        int keywordstart = p + 1;
+                        int keywordlength = 0;
 
-                    int end = Math.Max(p + 32, text.Length); // Limit the scan for the 2nd % to 32 characters, or the end of the string
-                    for (int k=keywordstart;k<end;k++) // Pretty sure there's a function for this, I'll look it up later
+                        int end = Math.Min(p + 32, text.Length); // Limit the scan for the 2nd % to 32 characters, or the end of the string
+                        for (int k = keywordstart; k < end; k++) // Pretty sure there's a function for this, I'll look it up later
                         {
-                        if (text[k]=='%') 
+                            if (text[k] == '%')
                             {
-                            keywordlength = k-keywordstart;
-                            break;
+                                keywordlength = k - keywordstart;
+                                break;
                             }
                         }
 
+                        string substitutetext;
 
-                    string substitutetext;
-
-                    if (keywordlength > 0 &&  dynamicvariables.TryGetValue(text.Substring(keywordstart,keywordlength),out substitutetext))
+                        if (keywordlength > 0 && keywordlength != 0 && dynamicvariables.TryGetValue(text.Substring(keywordstart, keywordlength), out substitutetext))
                         {
-                        if (outputlength > 0) output.Append(text, regularstart, outputlength); // Output any text so far
 
-                        if (keywordlength == 1 && !parselong) return output.ToString(); // Return at first sepearator on first 1 character code. 
+                            if (keywordlength == 1 && !parselong) return output.ToString(); // Return at first sepearator on first 1 character code. 
 
-                        output.Append(substitutetext);                        
+                            output.Append(substitutetext);
 
-                        p += keywordlength+1; // Reset regular text
-                        regularstart = p+1; // Reset regular text
-                        outputlength = 0;
-                        continue;
+                            p += keywordlength + 1; // Reset regular text
+                            continue;
                         }
 
-                    outputlength++;
                     }
 
-                output.Append(c);
+                    output.Append(c);
                 }
 
-                if (outputlength > 0) output.Append(text, regularstart, outputlength);
+
                 return output.ToString();
 
             }
