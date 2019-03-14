@@ -131,25 +131,43 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _anything);
             AddCommand("mapper", addsongsbymapper, Broadcasteronly, "usage: %alias%<mapperlist>"); // This is actually most useful if we send it straight to list
 
+            AddCommand("testlist", TestList);
             //AddCommand("test", LookupSongs);
 #endif
         }
 
         public void Test (ref BOTCOMMAND cmd,ref TwitchUser user,ref string request, int flags, ref string info)
                {
-              
-               }
 
+        }
+
+        public void TestList(BOTCOMMAND cmd, TwitchUser requestor, string request,int flags,string info)
+        {
+            cmd.ShortHelp = "test";
+            RequestBot.Instance.QueueChatMessage(cmd.ShortHelp);
+            var msg = new QueueLongMessage();
+            msg.Header("Loaded lists: ");
+            foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})", ", ");
+            msg.end("...", "No lists loaded.");
+        }
+
+
+
+        //    BOTCOMMAND botcommand = new BOTCOMMAND();
         // Prototype code only
         public partial class BOTCOMMAND
         {
+
+            public Action<TwitchUser, string> NamedActionDelegate { get; set; }
+
 
             public static List<BOTCOMMAND> cmdlist = new List<BOTCOMMAND>(); // Collection of our command objects
             public static Dictionary<string, int> aliaslist = new Dictionary<string, int>();
 
             private Action<TwitchUser, string> Method = null;  // Method to call
             private Action<TwitchUser, string, int, string> Method2 = null; // Alternate method
-            
+            private Action<BOTCOMMAND,TwitchUser, string, int, string> Method3 = null; // Alternate method
+
 
             public CmdFlags rights;                  // flags
             public string ShortHelp;                   // short help text (on failing preliminary check
@@ -176,23 +194,15 @@ namespace EnhancedTwitchChat.Bot
             {
                 if (Method2 != null) Method2(user, request, flags, Info);
                 else if (Method != null) Method(user, request);
-
+                else if (Method3 != null) Method3(this, user, request, flags, Info);
             }
-
+ 
 
             public static void InitializeCommands()
-            {
-            }
+                {
 
+                }
 
-            public void TestList(TwitchUser requestor, string request)
-            {
-                RequestBot.Instance.QueueChatMessage(ShortHelp);
-                var msg = new QueueLongMessage();
-                msg.Header("Loaded lists: ");
-                foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})", ", ");
-                msg.end("...", "No lists loaded.");
-            }
 
             private void StoreAction(Action <TwitchUser,string> TestList)
                 {
@@ -201,6 +211,8 @@ namespace EnhancedTwitchChat.Bot
 
             public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
             {
+
+ 
                 Method = method;
                 this.rights = flags;
                 ShortHelp = shorthelptext;
@@ -225,6 +237,41 @@ namespace EnhancedTwitchChat.Bot
                         if (!aliaslist.ContainsKey(entry)) aliaslist.Add(entry, cmdlist.Count);
                         //NewCommands.Add(entry, this);
                         //}
+                    else
+                    {
+                        // BUG: Command alias is a duplicate
+                    }
+                }
+            }
+
+            public BOTCOMMAND(Action<BOTCOMMAND,TwitchUser, string,int ,string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
+            {
+
+ 
+                Method3 = method;
+                this.rights = flags;
+                ShortHelp = shorthelptext;
+                aliases = alias.ToList();
+                LongHelp = "";
+                HelpLink = "";
+                permittedusers = "";
+                if (regex == null)
+                    regexfilter = _anything;
+                else
+                    regexfilter = regex;
+
+                UseCount = 0;
+
+                userParameter = "";
+                userNumber = 0;
+
+                foreach (var entry in aliases)
+                {
+                    //if (!NewCommands.ContainsKey(entry)) // BUG: The moment this is called, we're committing this. Probably want to set more things before this happens. I'm not fixing it right now
+                    //{
+                    if (!aliaslist.ContainsKey(entry)) aliaslist.Add(entry, cmdlist.Count);
+                    //NewCommands.Add(entry, this);
+                    //}
                     else
                     {
                         // BUG: Command alias is a duplicate
@@ -380,7 +427,7 @@ namespace EnhancedTwitchChat.Bot
                     {
                         // BUG: Making the output silent doesn't work yet.
 
-                        cmdlist[botindex].Method = cmdlist[botindex].TestList;
+                        //cmdlist[botindex].Method = cmdlist[botindex].TestList;
                         param = parts[1]; // Eat the switch, allowing the command to continue
                     }
 
@@ -519,6 +566,18 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
+        public void AddCommand(string alias, Action<BOTCOMMAND,TwitchUser, string, int, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
+        {
+
+            string[] list = new string[] { alias.ToLower() };
+            BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, list));
+
+        }
+        public void AddCommand(string[] alias, Action<BOTCOMMAND,TwitchUser, string, int, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
+        {
+            BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, alias));
+
+        }
 
 
         // A much more general solution for extracting dymatic values into a text string. If we need to convert a text message to one containing local values, but the availability of those values varies by calling location
