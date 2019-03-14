@@ -67,6 +67,8 @@ namespace EnhancedTwitchChat
 
         public string RequestCommandAliases = "request,bsr,add,sr";
 
+        public bool QueueOpen = true; 
+
         public int RequestHistoryLimit = 20;
         public int RequestLimit = 5;
         public int SubRequestLimit = 5;
@@ -97,24 +99,12 @@ namespace EnhancedTwitchChat
 
         public static Config Instance = null;
 
-        // These settings let you configure the text of various bot commands. I might just use a list for this.
+        // These settings let you configure the text of various bot commands.  BUG:I'd like to remove it from here for this release
 
-        public string AddSongToQueueText="Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.";
-        public string LookupSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
-
-        public string BsrSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
-
-        public string LinkSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%";
-
-        public string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
-
-        public string SongHintText="Requested by %user%%LF%Status: %Status%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
-
-        public string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
 
         public int MaximumQueueTextEntries = 8;
 
-        public int SessionResetAfterXHours = 8; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
+        public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
 
         public Color TextColor
         {

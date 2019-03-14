@@ -17,6 +17,28 @@ namespace EnhancedTwitchChat.Bot
         // BUG: This one needs to be cleaned up a lot imo
         // BUG: This file needs to be split up a little, but not just yet... Its easier for me to move around in one massive file, since I can see the whole thing at once. 
 
+        // *** WARNING ***
+        // These are here for this release, since we're not yet ready to support users customizing this. 
+        // The final location and naming of these variables is not yet decided. I've moved them out of config to avoid
+        // Filling the configuration file with variables that will no longer work in the future, and confuse the end user trying
+        // to edit things that are located elsewhere. If you already have these in your .ini, and run this build, you should
+        // Probably remove them to avoid future confusion.
+
+        public static string AddSongToQueueText = "Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.";
+
+        public static string LookupSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
+
+        public static string BsrSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
+
+        public static string LinkSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%";
+
+        public static string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
+
+        public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
+
+        public static string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
+
+
         #region Utility functions
 
         const int MaximumTwitchMessageLength = 498;
@@ -26,22 +48,20 @@ namespace EnhancedTwitchChat.Bot
             var dt = new DynamicText().AddUser(ref requestor);
             try
             {
-                dt.AddSong(RequestBotListViewController.currentsong.song);
+                dt.AddSong(RequestBotListViewController.currentsong.song); // Exposing the current song 
             }
-            catch
+            catch (Exception ex)
             {
-
+                  Plugin.Log(ex.ToString());
             }
+
             dt.QueueMessage(request);
 
         }
 
         public void RunScript(TwitchUser requestor, string request)
         {
-            // Do nothing for now.
-
             listcollection.runscript(request);
-
         }
 
         public static TimeSpan GetFileAgeDifference(string filename)
@@ -74,6 +94,7 @@ namespace EnhancedTwitchChat.Bot
             public void Header(string text)
             {
                 msgBuilder.Append(text);
+            
             }
 
             // BUG: Only works form string < MaximumTwitchMessageLength
@@ -228,255 +249,6 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
 
-        #region AddSongs/AddSongsByMapper Commands
-
-        /*
-        Route::get('/songs/top/{start?}','ApiController@topDownloads');
-        Route::get('/songs/plays/{start?}','ApiController@topPlayed');
-        Route::get('/songs/new/{start?}','ApiController@newest');
-        Route::get('/songs/rated/{start?}','ApiController@topRated');
-        Route::get('/songs/byuser/{id}/{start?}','ApiController@byUser');
-        Route::get('/songs/detail/{key}','ApiController@detail');
-        Route::get('/songs/vote/{key}/{type}/{accessToken}', 'ApiController@vote');
-        Route::get('/songs/search/{type}/{key}','ApiController@search');
-        */
-
-
-        private void addNewSongs(TwitchUser requestor, string request)
-        {
-
-            StartCoroutine(addsongsFromnewest(requestor, request));
-        }
-
-        private IEnumerator addsongsFromnewest(TwitchUser requestor, string request)
-        {
-            int totalSongs = 0;
-
-            string requestUrl = "https://beatsaver.com/api/songs/new";
-
-            int offset = 0;
-
-            bool found = true;
-
-            while (found && offset < Config.Instance.MaxiumAddScanRange)
-            {
-                found = false;
-
-                using (var web = UnityWebRequest.Get($"{requestUrl}/{offset}"))
-                {
-                    yield return web.SendWebRequest();
-                    if (web.isNetworkError || web.isHttpError)
-                    {
-                        Plugin.Log($"Error {web.error} occured when trying to request song {requestUrl}!");
-                        QueueChatMessage($"Invalid BeatSaver ID \"{requestUrl}\" specified.");
-
-                        yield break;
-                    }
-
-                    JSONNode result = JSON.Parse(web.downloadHandler.text);
-                    if (result["songs"].IsArray && result["total"].AsInt == 0)
-                    {
-                        QueueChatMessage($"No results found for request \"{requestUrl}\"");
-
-                        yield break;
-                    }
-
-                    // BUG: (Pre-merge) Non reproducible bug occured one time, resulting in unusual list - duplicate and incorrect entries. Not sure if its local, or beastaver db inconsistency?
-
-                     
-
-                    if (result["songs"].IsArray)
-                    {
-                        foreach (JSONObject entry in result["songs"])
-                        {
-                            found = true;
-                            JSONObject song = entry;
-
-                            if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
-                            if (filtersong(song)) continue;
-                            ProcessSongRequest(requestor, song["version"].Value);
-                            totalSongs++;
-                            if (totalSongs > Config.Instance.maxaddnewresults) yield break;  // We're done once the maximum resuts are produced
-
-                        }
-                    }
-                }
-                offset += 20; // Magic beatsaver.com skip constant.
-            }
-
-            if (totalSongs == 0)
-            {
-                QueueChatMessage($"No new songs found.");
-            }
-            else
-            {
-                //QueueChatMessage($"Added {totalSongs} to latest deck");  
-            }
-            yield return null;
-        }
-
-
-        private IEnumerator addsongsBymapper(TwitchUser requestor, string request)
-        {
-            int totalSongs = 0;
-
-            string mapperid = "";
-
-            using (var web = UnityWebRequest.Get($"https://beatsaver.com/api/songs/search/user/{request}"))
-            {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                    Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
-                    QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
-
-                    yield break;
-                }
-
-                JSONNode result = JSON.Parse(web.downloadHandler.text);
-                if (result["songs"].IsArray && result["total"].AsInt == 0)
-                {
-                    QueueChatMessage($"No results found for request \"{request}\"");
-                    yield break;
-                }
-
-                foreach (JSONObject song in result["songs"].AsArray)
-                {
-                    mapperid = song["uploaderId"].Value;
-                    break;
-                }
-
-
-                if (mapperid == "")
-                {
-                    QueueChatMessage($"Unable to find mapper {request}");
-                    yield break;
-                }
-
-            }
-            int offset = 0;
-
-            string requestUrl = "https://beatsaver.com/api/songs/byuser";
-
-            bool found = true;
-
-            while (found)
-            {
-                found = false;
-
-                using (var web = UnityWebRequest.Get($"{requestUrl}/{mapperid}/{offset}"))
-                {
-                    yield return web.SendWebRequest();
-                    if (web.isNetworkError || web.isHttpError)
-                    {
-                        Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
-                        QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
-
-                        yield break;
-                    }
-
-                    JSONNode result = JSON.Parse(web.downloadHandler.text);
-                    if (result["songs"].IsArray && result["total"].AsInt == 0)
-                    {
-                        QueueChatMessage($"No results found for request \"{request}\"");
-
-                        yield break;
-                    }
-                    JSONObject song;
-
-                    foreach (JSONObject entry in result["songs"])
-                    {
-                        song = entry;
-
-                        // We ignore the duplicate filter for this
-
-                        if (IsInQueue(song["id"].Value)) continue;
-                        if (SongBlacklist.Songs.ContainsKey(song["id"].Value)) continue;
-
-                        ProcessSongRequest(requestor, song["version"].Value);
-                        found = true;
-                        totalSongs++; ;
-                    }
-
-                }
-                offset += 20;
-            }
-
-            yield return null;
-        }
-
-        // General search version
-        private IEnumerator addsongs(TwitchUser requestor, string request)
-        {
-            int totalSongs = 0;
-
-            bool isBeatSaverId = _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request);
-
-            string requestUrl = isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
-
-
-            using (var web = UnityWebRequest.Get($"{requestUrl}/{request}"))
-            {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                    Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
-                    QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
-
-                    yield break;
-                }
-
-                JSONNode result = JSON.Parse(web.downloadHandler.text);
-                if (result["songs"].IsArray && result["total"].AsInt == 0)
-                {
-                    QueueChatMessage($"No results found for request \"{request}\"");
-
-                    yield break;
-                }
-                JSONObject song;
-
-                if (result["songs"].IsArray)
-                {
-                    int count = 0;
-                    foreach (JSONObject entry in result["songs"])
-                    {
-                        song = entry;
-
-                        if (filtersong(song)) continue;
-                        ProcessSongRequest(requestor, song["version"].Value);
-                        count++;
-                        totalSongs++; ;
-                    }
-                }
-                else
-                {
-                    song = result["song"].AsObject;
-                    // $"{song["songName"].Value}-{song["songSubName"].Value}-{song["authorName"].Value} ({song["version"].Value})";
-
-                    ProcessSongRequest(requestor, song["version"].Value);
-                    totalSongs++;
-                }
-                yield return null;
-            }
-            //QueueChatMessage($"Added {totalSongs} songs.");
-        }
-
-
-        private void addsongsbymapper(TwitchUser requestor, string request)
-        {
-            if (isNotBroadcaster(requestor, "mapper")) return;
-
-            StartCoroutine(addsongsBymapper(requestor, request));
-        }
-
-        private void addSongs(TwitchUser requestor, string request)
-        {
-
-            if (isNotBroadcaster(requestor, "addsongs")) return;
-
-            StartCoroutine(addsongs(requestor, request));
-        }
-        #endregion
 
         #region Ban/Unban Song
         public void Ban(TwitchUser requestor, string request)
@@ -628,7 +400,7 @@ namespace EnhancedTwitchChat.Bot
         private void MapperAllowList(TwitchUser requestor, string request)
         {
             string key = request.ToLower();
-            mapperwhitelist = listcollection.OpenList(key);
+            mapperwhitelist = listcollection.OpenList(key); // BUG: this is still not the final interface
             QueueChatMessage($"Mapper whitelist set to {request}.");
 
         }
@@ -735,13 +507,12 @@ namespace EnhancedTwitchChat.Bot
 
             var msg = new QueueLongMessage();
 
-            foreach (var entry in NewCommands)
+            foreach (var entry in COMMAND.aliaslist)
             {
-                var botcmd = entry.Value;
+                var botcmd = COMMAND.cmdlist[entry.Value];
                 if (HasRights(ref botcmd, ref requestor)) msg.Add($"!{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
-
         }
 
         private IEnumerator LookupSongs(TwitchUser requestor, string request)
@@ -776,14 +547,14 @@ namespace EnhancedTwitchChat.Bot
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-                        msg.Add(new DynamicText().AddSong(ref song).Parse(ref Config.Instance.LookupSongDetail),", ");
+                        msg.Add(new DynamicText().AddSong(ref song).Parse(ref LookupSongDetail),", ");
                     }
 
                 }
                 else
                 {
                     song = result["song"].AsObject;
-                    msg.Add(new DynamicText().AddSong(ref song).Parse(ref Config.Instance.LookupSongDetail));
+                    msg.Add(new DynamicText().AddSong(ref song).Parse(ref LookupSongDetail));
                 }
 
                 msg.end("...","No results for for request <request>");
@@ -814,9 +585,9 @@ namespace EnhancedTwitchChat.Bot
 
             var msg = new QueueLongMessage(1);
 
-            for (int i=RequestHistory.Songs.Count-1;i>=0;i--)
+            foreach (var entry in RequestHistory.Songs)
             {
-                var song = RequestHistory.Songs[i].song;
+                var song = entry.song;
                 if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
             }
             msg.end($" ... and {RequestHistory.Songs.Count - msg.Count} more songs.", "History is empty.");
@@ -876,7 +647,9 @@ namespace EnhancedTwitchChat.Bot
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
         {
-            QueueOpen = state;
+            Config.Instance.QueueOpen = state;
+            Config.Instance.Save();
+
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
             WriteQueueStatusToFile(QueueMessage(state));
             _refreshQueue = true;
@@ -892,12 +665,12 @@ namespace EnhancedTwitchChat.Bot
                 StreamWriter fileWriter = new StreamWriter(statusfile);
 
                 string queuesummary = "";
-
                 int count = 0;
+
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
                 {
                     var song = req.song;
-                    queuesummary += new DynamicText().AddSong(song).Parse(Config.Instance.QueueTextFileFormat);  // Format of Queue is now user configurable
+                    queuesummary += new DynamicText().AddSong(song).Parse(ref QueueTextFileFormat);  // Format of Queue is now user configurable
 
                     if (++count > Config.Instance.MaximumQueueTextEntries)
                     {
@@ -1055,12 +828,12 @@ namespace EnhancedTwitchChat.Bot
         // BUG: This requires a switch, or should be disabled for those who don't allow links
         private void ShowSongLink(TwitchUser requestor, string request)
         {
-            if (RequestBotListViewController.currentsong.song.IsNull) return;
 
             try  // We're accessing an element across threads, this is only 99.99% safe
             {
+                if (RequestBotListViewController.currentsong.song.IsNull) return; // Is this needed?
                 var song = RequestBotListViewController.currentsong.song;
-                if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(Config.Instance.LinkSonglink);
+                if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(LinkSonglink);
 
             }
             catch (Exception ex)
@@ -1113,8 +886,8 @@ namespace EnhancedTwitchChat.Bot
 
                 // BUG: Note -- Its my intent to allow sections to be used as a form of conditional. If a result failure occurs within a section, we should be able to rollback the entire section, and continue to the next. Its a better way of handline missing dynamic fields without excessive scripting
                 // This isn't implemented yet.
-                AddLinks();
 
+                AddLinks();
 
                 DateTime Now = DateTime.Now; //"MM/dd/yyyy hh:mm:ss.fffffff";         
                 Add("Time", Now.ToString("hh:mm"));
@@ -1149,7 +922,7 @@ namespace EnhancedTwitchChat.Bot
             }
 
 
-            public DynamicText AddBotCmd(ref BOTCOMMAND botcmd)
+            public DynamicText AddBotCmd(ref COMMAND botcmd)
             {
 
                 StringBuilder aliastext = new StringBuilder();
@@ -1158,7 +931,7 @@ namespace EnhancedTwitchChat.Bot
 
                 aliastext.Clear();
                 aliastext.Append('[');
-                aliastext.Append(botcmd.rights & CmdFlags.TwitchLevel).ToString();
+                aliastext.Append(botcmd.Flags & CmdFlags.TwitchLevel).ToString();
                 aliastext.Append(']');
                 Add("rights", aliastext.ToString());
                 return this;
@@ -1199,89 +972,48 @@ namespace EnhancedTwitchChat.Bot
             public string Parse(ref string text, bool parselong = false)
             {
 
-            StringBuilder output = new StringBuilder(text.Length); // We assume a starting capacity at LEAST = to length of original string;
+                StringBuilder output = new StringBuilder(text.Length); // We assume a starting capacity at LEAST = to length of original string;
 
-             int regularstart = 0; // Start of regular region
-             int outputlength = 0; // Length
-
-
-                for (int p=0;p<text.Length;p++) // P is pointer, that's good enough for me
+                for (int p = 0; p < text.Length; p++) // P is pointer, that's good enough for me
                 {
-                char c = text[p];
+                    char c = text[p];
 
-                if (c=='%')
+                    if (c == '%')
                     {
-                    int keywordstart = p + 1;
-                    int keywordlength = 0;
+                        int keywordstart = p + 1;
+                        int keywordlength = 0;
 
-                    int end = Math.Max(p + 32, text.Length); // Limit the scan for the 2nd % to 32 characters, or the end of the string
-                    for (int k=keywordstart;k<end;k++) // Pretty sure there's a function for this, I'll look it up later
+                        int end = Math.Min(p + 32, text.Length); // Limit the scan for the 2nd % to 32 characters, or the end of the string
+                        for (int k = keywordstart; k < end; k++) // Pretty sure there's a function for this, I'll look it up later
                         {
-                        if (text[k]=='%') 
+                            if (text[k] == '%')
                             {
-                            keywordlength = k-keywordstart;
-                            break;
+                                keywordlength = k - keywordstart;
+                                break;
                             }
                         }
 
+                        string substitutetext;
 
-                    string substitutetext;
-
-                    if (keywordlength > 0 &&  dynamicvariables.TryGetValue(text.Substring(keywordstart,keywordlength),out substitutetext))
+                        if (keywordlength > 0 && keywordlength != 0 && dynamicvariables.TryGetValue(text.Substring(keywordstart, keywordlength), out substitutetext))
                         {
-                        if (outputlength > 0) output.Append(text, regularstart, outputlength); // Output any text so far
 
-                        if (keywordlength == 1 && !parselong) return output.ToString(); // Return at first sepearator on first 1 character code. 
+                            if (keywordlength == 1 && !parselong) return output.ToString(); // Return at first sepearator on first 1 character code. 
 
-                        output.Append(substitutetext);                        
+                            output.Append(substitutetext);
 
-                        p += keywordlength+1; // Reset regular text
-                        regularstart = p+1; // Reset regular text
-                        outputlength = 0;
-                        continue;
+                            p += keywordlength + 1; // Reset regular text
+                            continue;
                         }
 
-                    outputlength++;
                     }
 
-                output.Append(c);
+                    output.Append(c);
                 }
 
-                if (outputlength > 0) output.Append(text, regularstart, outputlength);
+
                 return output.ToString();
 
-            }
-
-                public string Parse2(ref string text, bool parselong = false)
-            {
-                StringBuilder msgtext = new StringBuilder();
-                string[] parts = text.Split(new char[] { '%' }); // Split entire help message by % boundaries
-
-
-                if (parts.Length == 0) return "";
-                for (int i = 0; i < parts.Length; i++)
-                {
-
-                    bool found = false;
-                    foreach (var entry in dynamicvariables)
-                    {
-                        if (parts[i].StartsWith(entry.Key))
-                        {
-                            if (entry.Key == "endusage" && !parselong) return msgtext.ToString(); // BUG: This works, but isn't the most elegant solution. Look into this later.
-
-                            msgtext.Append(entry.Value);
-                            msgtext.Append(parts[i].Substring(entry.Key.Length));
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found) continue;
-
-                    if (i != 0) msgtext.Append('%'); // Basically, we need to put the %'s back that were removed by split. The first % though is always fake.
-                    msgtext.Append(parts[i]);
-                }
-
-                return msgtext.ToString();
             }
 
             public DynamicText QueueMessage(string text, bool parselong = false)
