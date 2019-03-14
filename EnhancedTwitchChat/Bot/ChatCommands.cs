@@ -507,9 +507,9 @@ namespace EnhancedTwitchChat.Bot
 
             var msg = new QueueLongMessage();
 
-            foreach (var entry in NewCommands)
+            foreach (var entry in BOTCOMMAND.aliaslist)
             {
-                var botcmd = entry.Value;
+                var botcmd = BOTCOMMAND.cmdlist[entry.Value];
                 if (HasRights(ref botcmd, ref requestor)) msg.Add($"!{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");

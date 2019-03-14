@@ -26,12 +26,9 @@ namespace EnhancedTwitchChat.Bot
             // Note: Default permissions are broadcaster only, so don't need to set them
             // These settings need to be able to reconstruct  
 
-            // Note, this really should pass the alias list instead of adding 3 commmands.
-            foreach (string c in Config.Instance.RequestCommandAliases.Split(',').Distinct())
-            {
-                AddCommand(c, ProcessSongRequest, Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
-                Plugin.Log($"Added command alias \"{c}\" for song requests.");
-            }
+            List <string> list= Config.Instance.RequestCommandAliases.Split(',').Distinct().ToList();
+            string[] array = list.ToArray();
+                AddCommand(array, ProcessSongRequest, Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
 
             // BUG / or is it a feature? Currently, commands are incorrectly(?) Being added as separate copies per alias, instead of referring to a single shared object. This means each subcommand actually only modifies its own settings. Will fix at a later date. This only affects commands with aliases. 
             // Since the only user modifiable fields atm are flags and help message, we can hack a fix though the appropriate functions to set those, to replicate those changes across alias copies.. ugh. 
@@ -97,12 +94,14 @@ namespace EnhancedTwitchChat.Bot
 #if UNRELEASED
 
 
-        // These are future features
+            // These are future features
 
-        //AddCommand("who"); // Who requested a song (both in queue and in history)
-        //AddCommand("alias"); // Create a command alias)
-        //AddCommand("/at"); // Scehdule at a certain time (command property)
-        //user history
+            //AddCommand("who"); // Who requested a song (both in queue and in history)
+            //AddCommand("alias"); // Create a command alias)
+            //AddCommand("/at"); // Scehdule at a certain time (command property)
+            //user history
+
+            BOTCOMMAND.InitializeCommands();
 
 
         AddCommand("blockmappers", MapperBanList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
@@ -136,23 +135,21 @@ namespace EnhancedTwitchChat.Bot
 #endif
         }
 
-
-
-        // This code probably needs its own file
-        // Some of these are just ideas, putting them all down, can filter them out later
+        public void Test (ref BOTCOMMAND cmd,ref TwitchUser user,ref string request, int flags, ref string info)
+               {
+              
+               }
 
         // Prototype code only
         public partial class BOTCOMMAND
         {
 
             public static List<BOTCOMMAND> cmdlist = new List<BOTCOMMAND>(); // Collection of our command objects
-            static private Dictionary<string, int> aliaslist = new Dictionary<string, int>();
+            public static Dictionary<string, int> aliaslist = new Dictionary<string, int>();
 
-            public Action<TwitchUser, string> Method = null;  // Method to call
-            public Action<TwitchUser, string, int, string> Method2 = null; // Alternate method
-
-            public Action function = null;
-
+            private Action<TwitchUser, string> Method = null;  // Method to call
+            private Action<TwitchUser, string, int, string> Method2 = null; // Alternate method
+            
 
             public CmdFlags rights;                  // flags
             public string ShortHelp;                   // short help text (on failing preliminary check
@@ -183,25 +180,28 @@ namespace EnhancedTwitchChat.Bot
             }
 
 
-
-            public void testcommand()
+            public static void InitializeCommands()
             {
-                RequestBot.Instance.QueueChatMessage("hello world");
             }
+
 
             public void TestList(TwitchUser requestor, string request)
             {
-
+                RequestBot.Instance.QueueChatMessage(ShortHelp);
                 var msg = new QueueLongMessage();
                 msg.Header("Loaded lists: ");
                 foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})", ", ");
                 msg.end("...", "No lists loaded.");
             }
 
+            private void StoreAction(Action <TwitchUser,string> TestList)
+                {
+                Method = TestList;
+                }
+
             public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
             {
                 Method = method;
-
                 this.rights = flags;
                 ShortHelp = shorthelptext;
                 aliases = alias.ToList();
@@ -220,11 +220,11 @@ namespace EnhancedTwitchChat.Bot
 
                 foreach (var entry in aliases)
                 {
-                    if (!NewCommands.ContainsKey(entry)) // BUG: The moment this is called, we're committing this. Probably want to set more things before this happens. I'm not fixing it right now
-                        {
+                    //if (!NewCommands.ContainsKey(entry)) // BUG: The moment this is called, we're committing this. Probably want to set more things before this happens. I'm not fixing it right now
+                        //{
                         if (!aliaslist.ContainsKey(entry)) aliaslist.Add(entry, cmdlist.Count);
-                        NewCommands.Add(entry, this);
-                        }
+                        //NewCommands.Add(entry, this);
+                        //}
                     else
                     {
                         // BUG: Command alias is a duplicate
@@ -256,11 +256,11 @@ namespace EnhancedTwitchChat.Bot
 
                 foreach (var entry in aliases)
                 {
-                    if (!NewCommands.ContainsKey(entry)) // BUG: The moment this is called, we're committing this. Probably want to set more things before this happens. I'm not fixing it right now
-                        {
+                    //if (!NewCommands.ContainsKey(entry)) // BUG: The moment this is called, we're committing this. Probably want to set more things before this happens. I'm not fixing it right now
+                      //  {
                         if (!aliaslist.ContainsKey(entry)) aliaslist.Add(entry, cmdlist.Count);
-                        NewCommands.Add(entry, this);
-                        }
+                        //NewCommands.Add(entry, this);
+                       // }
                     else
                     {
                         // BUG: Command alias is a duplicate
@@ -268,6 +268,170 @@ namespace EnhancedTwitchChat.Bot
                 }
 
             }
+
+            public static void ExecuteCommand(string command, ref TwitchUser user, string param, int commandflags = 0, string info = "")
+            {
+                BOTCOMMAND botcmd;
+
+                int botindex;
+
+                //if (!NewCommands.TryGetValue(command, out botcmd)) return; // Unknown command
+
+                if (!aliaslist.TryGetValue(command, out botindex)) return; // Unknown command
+
+                botcmd = cmdlist[botindex];
+
+                // BUG: This is prototype code, it will of course be replaced. This message will be removed when its no longer prototype code
+
+                // Permissions for these sub commands will always be by Broadcaster,or the (BUG: Future feature) user list of the EnhancedTwitchBot command. Note command behaviour that alters with permission should treat userlist as an escalation to Broadcaster.
+                // Since these are never meant for an end user, they are not going to be configurable.
+
+                // Example: !challenge/allow myfriends
+                //          !decklist/setflags SUB
+                //          !lookup/sethelp usage: %alias%<song name or id>
+
+                if (user.isBroadcaster && param.StartsWith("/"))
+                {
+                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
+
+                    string subcommand = parts[0].ToLower();
+
+                    if (subcommand.StartsWith("/allow")) // 
+                    {
+                        if (parts.Length > 1)
+                        {
+                            string key = parts[1].ToLower();
+                            cmdlist[botindex].permittedusers = key;
+                            Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
+                        }
+
+                        return;
+                    }
+
+                    if (subcommand.StartsWith("/disable")) // 
+                    {
+                        Instance?.QueueChatMessage($"{command} Disabled.");
+
+                        cmdlist[botindex].rights |= CmdFlags.Disabled;
+
+                        //botcmd.rights |= CmdFlags.Disabled;
+                        //NewCommands[command] = botcmd;
+                        return;
+                    }
+
+                    if (subcommand.StartsWith("/enable")) // 
+                    {
+
+                        Instance?.QueueChatMessage($"{command} Enabled.");
+                        //botcmd.rights &= ~CmdFlags.Disabled;
+                        //NewCommands[command] = botcmd;
+
+                        cmdlist[botindex].rights &= ~CmdFlags.Disabled;
+
+                        return;
+                    }
+
+
+                    if (subcommand.StartsWith("/sethelp")) // 
+                    {
+                        if (parts.Length > 1)
+                        {
+                            cmdlist[botindex].ShortHelp = parts[1];
+
+                            Instance?.QueueChatMessage($"{command} help: {parts[1]}");
+                        }
+
+                        return;
+                    }
+
+                    if (subcommand.StartsWith("/flags")) // 
+                    {
+                        Instance?.QueueChatMessage($"{command} flags: {botcmd.rights.ToString()}");
+                        return;
+                    }
+
+                    if (subcommand.StartsWith("/setflags")) // 
+                    {
+                        if (parts.Length > 1)
+                        {
+                            string[] flags = parts[1].Split(new char[] { ' ', ',' });
+
+
+                            CmdFlags flag;
+
+                            //NewCommands[command].rights ;
+
+                            // BUG: Not working yet
+
+                            Instance?.QueueChatMessage($"Not implemented");
+                        }
+                        return;
+
+                    }
+
+                    if (subcommand.StartsWith("/silent"))
+                    {
+                        // BUG: Making the output silent doesn't work yet.
+
+                        param = parts[1]; // Eat the switch, allowing the command to continue
+                    }
+
+                if (subcommand.StartsWith("/test"))
+                    {
+                        // BUG: Making the output silent doesn't work yet.
+
+                        cmdlist[botindex].Method = cmdlist[botindex].TestList;
+                        param = parts[1]; // Eat the switch, allowing the command to continue
+                    }
+
+
+
+                }
+
+                if (botcmd.rights.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
+
+                // Check permissions first
+
+                bool allow = HasRights(ref botcmd, ref user);
+
+                if (!allow && !botcmd.rights.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.displayName.ToLower()))
+                {
+                    CmdFlags twitchpermission = botcmd.rights & CmdFlags.TwitchLevel;
+                    if (!botcmd.rights.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
+                    return;
+                }
+
+                if (param == "?") // Handle per command help requests - If permitted.
+                {
+                    ShowHelpMessage(ref botcmd, ref user, param, true);
+                    return;
+                }
+
+
+
+                // Check regex
+
+                if (!botcmd.regexfilter.IsMatch(param))
+                {
+                    ShowHelpMessage(ref botcmd, ref user, param, false);
+                    return;
+                }
+
+
+                try
+                {
+                    botcmd.Execute(ref user, ref param, (int)commandflags, ref info); // Call the command
+                }
+                catch (Exception ex)
+                {
+                    // Display failure message, and lock out command for a time period. Not yet.
+
+                    Plugin.Log(ex.ToString());
+
+                }
+
+            }
+
 
             public static void Parse(TwitchUser user, string request, int flags = 0, string info = "")
             {
@@ -291,7 +455,7 @@ namespace EnhancedTwitchChat.Bot
                 if (commandlength == 0) return;
 
                 string command = request.Substring(commandstart, commandlength).ToLower();
-                if (NewCommands.ContainsKey(command))
+                if (aliaslist.ContainsKey(command))
                 {
                     string param = request.Substring(parameterstart);
 
@@ -333,6 +497,14 @@ namespace EnhancedTwitchChat.Bot
             string[] list = new string[] { alias.ToLower() };
             BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, list));
         }
+
+
+        public void AddCommand2(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
+        {
+            string[] list = new string[] { alias.ToLower() };
+            BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(nop, flags, shorthelptext, regex, list));
+        }
+
 
         public void AddCommand(string alias, Action<TwitchUser, string, int, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
         {
@@ -377,9 +549,9 @@ namespace EnhancedTwitchChat.Bot
             {
                 var msg = new QueueLongMessage();
                 msg.Header("Usage: help < ");
-                foreach (var entry in NewCommands)
+                foreach (var entry in BOTCOMMAND.aliaslist)
                 {
-                    var botcmd = entry.Value;
+                    var botcmd = BOTCOMMAND.cmdlist[entry.Value];
                     if (HasRights(ref botcmd, ref requestor))
                         msg.Add($"{entry.Key}", " ");
                 }
@@ -387,9 +559,9 @@ namespace EnhancedTwitchChat.Bot
                 msg.end("...", $"No commands available >");
                 return;
             }
-            if (NewCommands.ContainsKey(request.ToLower()))
+            if (BOTCOMMAND.aliaslist.ContainsKey(request.ToLower()))
             {
-                var BotCmd = NewCommands[request.ToLower()];
+                var BotCmd = BOTCOMMAND.cmdlist[BOTCOMMAND.aliaslist[request.ToLower()]];
                 ShowHelpMessage(ref BotCmd, ref requestor, request, true);
             }
             else
@@ -411,153 +583,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
         // You can modify commands using !allow !setflags !clearflags and !sethelp
-        public static void ExecuteCommand(string command, ref TwitchUser user, string param, int commandflags = 0, string info = "")
-        {
-            BOTCOMMAND botcmd;
-
-            if (!NewCommands.TryGetValue(command, out botcmd)) return; // Unknown command
-
-            // BUG: This is prototype code, it will of course be replaced. This message will be removed when its no longer prototype code
-
-            // Permissions for these sub commands will always be by Broadcaster,or the (BUG: Future feature) user list of the EnhancedTwitchBot command. Note command behaviour that alters with permission should treat userlist as an escalation to Broadcaster.
-            // Since these are never meant for an end user, they are not going to be configurable.
-
-            // Example: !challenge/allow myfriends
-            //          !decklist/setflags SUB
-            //          !lookup/sethelp usage: %alias%<song name or id>
-
-            if (user.isBroadcaster && param.StartsWith("/"))
-            {
-                string[] parts = param.Split(new char[] { ' ', ',' }, 2);
-
-                string subcommand = parts[0].ToLower();
-
-                if (subcommand.StartsWith("/allow")) // 
-                {
-                    if (parts.Length > 1)
-                    {
-                        string key = parts[1].ToLower();
-                        NewCommands[command].permittedusers = key;
-                        Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
-                    }
-
-                    return;
-                }
-
-                if (subcommand.StartsWith("/disable")) // 
-                {
-                    Instance?.QueueChatMessage($"{command} Disabled.");
-
-                    NewCommands[command].rights |= CmdFlags.Disabled;
-
-                    //botcmd.rights |= CmdFlags.Disabled;
-                    //NewCommands[command] = botcmd;
-                    return;
-                }
-
-                if (subcommand.StartsWith("/enable")) // 
-                {
-
-                    Instance?.QueueChatMessage($"{command} Enabled.");
-                    //botcmd.rights &= ~CmdFlags.Disabled;
-                    //NewCommands[command] = botcmd;
-
-                    NewCommands[command].rights &= ~CmdFlags.Disabled; 
-
-                    return;
-                }
-
-
-                if (subcommand.StartsWith("/sethelp")) // 
-                {
-                    if (parts.Length > 1)
-                    {
-                        NewCommands[command].ShortHelp = parts[1];
-
-                        Instance?.QueueChatMessage($"{command} help: {parts[1]}");
-                    }
-
-                    return;
-                }
-
-                if (subcommand.StartsWith("/flags")) // 
-                {
-                    Instance?.QueueChatMessage($"{command} flags: {botcmd.rights.ToString()}");
-                    return;
-                }
-
-                if (subcommand.StartsWith("/setflags")) // 
-                {
-                    if (parts.Length > 1)
-                    {
-                        string[] flags = parts[1].Split(new char[] { ' ', ',' });
-
-
-                        CmdFlags flag;
-
-                        //NewCommands[command].rights ;
-
-                        // BUG: Not working yet
-
-                        Instance?.QueueChatMessage($"Not implemented");
-                    }
-                    return;
-
-                }
-
-                if (subcommand.StartsWith("/silent"))
-                {
-                    // BUG: Making the output silent doesn't work yet.
-
-                    param = parts[1]; // Eat the switch, allowing the command to continue
-                }
-
-
-            }
-
-            if (botcmd.rights.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
-
-            // Check permissions first
-
-            bool allow = HasRights(ref botcmd, ref user);
-
-            if (!allow && !botcmd.rights.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.displayName.ToLower()))
-            {
-                CmdFlags twitchpermission = botcmd.rights & CmdFlags.TwitchLevel;
-                if (!botcmd.rights.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
-                return;
-            }
-
-            if (param == "?") // Handle per command help requests - If permitted.
-            {
-                ShowHelpMessage(ref botcmd, ref user, param, true);
-                return;
-            }
-
-
-
-            // Check regex
-
-            if (!botcmd.regexfilter.IsMatch(param))
-            {
-                ShowHelpMessage(ref botcmd, ref user, param, false);
-                return;
-            }
-
-
-            try
-            {
-                botcmd.Execute(ref user, ref param, (int)commandflags, ref info); // Call the command
-            }
-            catch (Exception ex)
-            {
-                // Display failure message, and lock out command for a time period. Not yet.
-
-                Plugin.Log(ex.ToString());
-
-            }
-
-        }
         #endregion
 
   

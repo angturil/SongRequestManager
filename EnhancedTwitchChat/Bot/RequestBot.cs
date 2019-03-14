@@ -119,7 +119,7 @@ namespace EnhancedTwitchChat.Bot
         private static DismissableNavigationController _levelSelectionNavigationController;
         private static Queue<string> _botMessageQueue = new Queue<string>();
 
-        private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // BUG: Still not the final form
+        //private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // BUG: Still not the final form
 
 #if UNRELEASED
         //static private string CommandEveryXminutes ="!add waterbreak song";   // BUG: Not yet iplemented
