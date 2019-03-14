@@ -18,10 +18,11 @@ namespace EnhancedTwitchChat.Bot
     public partial class RequestBot : MonoBehaviour
     {
 
-        #region NEW Command Processor
+        #region Command Registration 
 
         private void InitializeCommands()
         {
+
         /*
            Prototype of new calling convention for adding new commands.
           
@@ -97,15 +98,17 @@ namespace EnhancedTwitchChat.Bot
 
             // These are future features
 
-            //AddCommand("who"); // Who requested a song (both in queue and in history)
+            //AddCommand("who"); 
             //AddCommand("alias"); // Create a command alias)
             //AddCommand("/at"); // Scehdule at a certain time (command property)
-            //user history
 
+            new COMMAND("who"); // Who requested a song (both in queue and in history)
+            new COMMAND("alias"); // Create a command alias)
+            new COMMAND("songmsg"); // Set a local message on a song , this is session persistent and viewable in the VR UI hover
+ 
             COMMAND.InitializeCommands();
 
-
-        AddCommand("blockmappers", MapperBanList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
+            AddCommand("blockmappers", MapperBanList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
 
 
             // Temporary commands for testing, most of these will be unified in a general list/parameter interface
@@ -132,51 +135,14 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
             AddCommand("mapper", addsongsbymapper, Broadcasteronly, "usage: %alias%<mapperlist>"); // This is actually most useful if we send it straight to list
 
-
-
             new COMMAND("testlist").Action(TestList);
 
 
             //AddCommand("test", LookupSongs);
 #endif
         }
-
-        /*
-
-                public class StaticClass
-                {
-                    public static Dictionary<string, DynamicClass> dict = new Dictionary<string, DynamicClass>();
-
-                    public static void add(string functionname, DynamicClass d)
-                    {
-                        dict.Add(functionname, d);
-                    }
-                }
-
-                public class DynamicClass
-                {
-                    public virtual void test(string value)
-                    {
-                        Plugin.Log("This is the base class function call, it does nothing!");
-                    }
-                }
-
-                public class YourClass : DynamicClass
-                {
-                    public override void test(string value)
-                    {
-                        Plugin.Log("This is the override function");
-                    }
-                }
-
-        */
-
-        public void Test (ref COMMAND cmd,ref TwitchUser user,ref string request, int flags, ref string info)
-               {
-
-        }
-
-        public void TestList(COMMAND cmd, TwitchUser requestor, string request,int flags,string info)
+    
+        public void TestList(COMMAND cmd, TwitchUser requestor, string request,CmdFlags flags,string info)
         {
             var msg = new QueueLongMessage();
             msg.Header("Loaded lists: ");
@@ -185,22 +151,14 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-
-        //    BOTCOMMAND botcommand = new BOTCOMMAND();
-        // Prototype code only
         public partial class COMMAND
         {
-
-            public Action<TwitchUser, string> NamedActionDelegate { get; set; }
-
-
             public static List<COMMAND> cmdlist = new List<COMMAND>(); // Collection of our command objects
             public static Dictionary<string, int> aliaslist = new Dictionary<string, int>();
 
             private Action<TwitchUser, string> Method = null;  // Method to call
-            private Action<TwitchUser, string, int, string> Method2 = null; // Alternate method
-            private Action<COMMAND, TwitchUser, string, int, string> Method3 = null; // Alternate method
-
+            private Action<TwitchUser, string, CmdFlags, string> Method2 = null; // Alternate method
+            private Action<COMMAND, TwitchUser, string, CmdFlags, string> Method3 = null; // Prefered method
 
             public CmdFlags Flags = Broadcasteronly;          // flags
             public string ShortHelp = "";                   // short help text (on failing preliminary check
@@ -223,7 +181,7 @@ namespace EnhancedTwitchChat.Bot
                 permittedusers = fixedname;
             }
 
-            public void Execute(ref TwitchUser user, ref string request, int flags, ref string Info)
+            public void Execute(ref TwitchUser user, ref string request, CmdFlags flags, ref string Info)
             {
                 if (Method2 != null) Method2(user, request, flags, Info);
                 else if (Method != null) Method(user, request);
@@ -234,14 +192,8 @@ namespace EnhancedTwitchChat.Bot
             public static void InitializeCommands()
             {
 
-                //cmdlist.Add(new BOTCOMMAND(Broadcasteronly, "usage: %alias%<list> <value to add>", _atleast1, "addtolist").Action(addtolist));       
             }
 
-
-            private void StoreAction(Action<TwitchUser, string> TestList)
-            {
-                Method = TestList;
-            }
 
             COMMAND AddAliases()
                 {
@@ -280,32 +232,33 @@ namespace EnhancedTwitchChat.Bot
                 COMMAND.cmdlist.Add(this);
 
                 return this;
-
             }
 
-            public COMMAND Action(Action<COMMAND, TwitchUser, string, int, string> action)
+            public COMMAND User(string userstring)
+                {
+                userParameter = userstring;
+                return this;
+                }
+
+            public COMMAND Action(Action<COMMAND, TwitchUser, string, CmdFlags, string> action)
                 {
                 Method3 = action;       
                 return this;
                 }
 
-            public COMMAND Action(Action<TwitchUser, string, int, string> action)
-            {
+            public COMMAND Action(Action<TwitchUser, string, CmdFlags, string> action)
+                {
                 Method2 = action;
                 return this;
-            }
-
+                }
 
             public COMMAND Action(Action<TwitchUser, string> action)
-            {
+                {
                 Method = action;
                 return this;
-            }
-            
+                }         
 
-
-
-            public static void ExecuteCommand(string command, ref TwitchUser user, string param, int commandflags = 0, string info = "")
+            public static void ExecuteCommand(string command, ref TwitchUser user, string param, CmdFlags commandflags = 0, string info = "")
             {
                 COMMAND botcmd;
 
@@ -326,12 +279,19 @@ namespace EnhancedTwitchChat.Bot
                 //          !decklist/setflags SUB
                 //          !lookup/sethelp usage: %alias%<song name or id>
 
-                if (user.isBroadcaster && param.StartsWith("/"))
+                string[] parts= { };
+                string subcommand = "";
+
+                if (param.StartsWith("/"))
+                    {
+                    parts = param.Split(new char[] { ' ', ',' }, 2);
+                    subcommand = parts[0].ToLower();
+                    }
+
+
+                if (user.isBroadcaster && subcommand.Length>0)
                 {
-                    string[] parts = param.Split(new char[] { ' ', ',' }, 2);
-
-                    string subcommand = parts[0].ToLower();
-
+ 
                     if (subcommand.StartsWith("/allow")) // 
                     {
                         if (parts.Length > 1)
@@ -348,7 +308,7 @@ namespace EnhancedTwitchChat.Bot
                     {
                         Instance?.QueueChatMessage($"{command} Disabled.");
 
-                        cmdlist[botindex].Flags |= CmdFlags.Disabled;
+                        botcmd.Flags |= CmdFlags.Disabled;
 
                         //botcmd.rights |= CmdFlags.Disabled;
                         //NewCommands[command] = botcmd;
@@ -362,7 +322,7 @@ namespace EnhancedTwitchChat.Bot
                         //botcmd.rights &= ~CmdFlags.Disabled;
                         //NewCommands[command] = botcmd;
 
-                        cmdlist[botindex].Flags &= ~CmdFlags.Disabled;
+                        botcmd.Flags &= ~CmdFlags.Disabled;
 
                         return;
                     }
@@ -372,7 +332,7 @@ namespace EnhancedTwitchChat.Bot
                     {
                         if (parts.Length > 1)
                         {
-                            cmdlist[botindex].ShortHelp = parts[1];
+                            botcmd.ShortHelp = parts[1];
 
                             Instance?.QueueChatMessage($"{command} help: {parts[1]}");
                         }
@@ -421,7 +381,6 @@ namespace EnhancedTwitchChat.Bot
                     }
 
 
-
                 }
 
                 if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
@@ -444,6 +403,24 @@ namespace EnhancedTwitchChat.Bot
                 }
 
 
+                // Command local switches. These must be run before regex to avoid having to check for all of them.
+                try
+                {
+                    if (subcommand.StartsWith("/current"))
+                    {
+                        param = RequestHistory.Songs[0].song["version"];
+                    }
+                    else if (subcommand.StartsWith("/prev"))
+                    {
+                        param = RequestHistory.Songs[1].song["version"];
+                    }
+                }
+                catch       
+                {
+                    RequestBot.Instance.QueueChatMessage($"There is no {subcommand} song available.");
+                    return;
+
+                }
 
                 // Check regex
 
@@ -456,7 +433,7 @@ namespace EnhancedTwitchChat.Bot
 
                 try
                 {
-                    botcmd.Execute(ref user, ref param, (int)commandflags, ref info); // Call the command
+                    botcmd.Execute(ref user, ref param, commandflags, ref info); // Call the command
                 }
                 catch (Exception ex)
                 {
@@ -469,7 +446,7 @@ namespace EnhancedTwitchChat.Bot
             }
 
 
-            public static void Parse(TwitchUser user, string request, int flags = 0, string info = "")
+            public static void Parse(TwitchUser user, string request, CmdFlags flags = 0, string info = "")
             {
                 if (!Instance) return;
 
@@ -495,14 +472,6 @@ namespace EnhancedTwitchChat.Bot
                 {
                     string param = request.Substring(parameterstart);
 
-                    if (deck.ContainsKey(command))
-                    {
-                        if (param == "") param = command;
-                        else
-                        {
-                            param = command + " " + param;
-                        }
-                    }
 
                     try
                     {

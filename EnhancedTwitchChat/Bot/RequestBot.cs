@@ -105,6 +105,8 @@ namespace EnhancedTwitchChat.Bot
         private static readonly Regex _fail = new Regex("(?!x)x", RegexOptions.Compiled); // Not sure what the official fastest way to auto-fail a match is, so this will do
         private static readonly Regex _deck = new Regex("^(current|draw|first|last|random|unload)$|$^", RegexOptions.Compiled); // Checks deck command parameters
 
+        private static readonly Regex _drawcard = new Regex("($^)|(^[0-9]+$|^[0-9]+-[0-9]+$)", RegexOptions.Compiled);
+
         #endregion
 
         public static RequestBot Instance;
@@ -433,7 +435,7 @@ namespace EnhancedTwitchChat.Bot
                 RequestTracker[requestor.id].numRequests++;
 
                 listcollection.add(duplicatelist, song["id"].Value);
-                if ((requestInfo.flags & 1048576) !=0)
+                if ((requestInfo.flags.HasFlag(CmdFlags.MoveToTop)))
                     RequestQueue.Songs.Insert(0,new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
                 else
                     RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued,requestInfo.requestInfo));
@@ -666,12 +668,12 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void AddToTop(TwitchUser requestor, string request, int flags = 0, string info = "")
+        private void AddToTop(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
             {
-            ProcessSongRequest(requestor, request, flags | 1048576, "ATT"); 
+            ProcessSongRequest(requestor, request, CmdFlags.MoveToTop, "ATT"); 
             }
 
-        private void ProcessSongRequest(TwitchUser requestor, string request, int flags = 0, string info = "")
+        private void ProcessSongRequest(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
         {
             try
             {
@@ -720,7 +722,7 @@ namespace EnhancedTwitchChat.Bot
                     }
                 }
 
-                RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request),flags,info);
+                RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request), flags,info);
 
                 if (!newRequest.isBeatSaverId && request.Length < 3)
                     QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
