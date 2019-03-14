@@ -72,6 +72,10 @@
     <Reference Include="TextMeshPro-1.0.55.2017.1.0b12, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\TextMeshPro-1.0.55.2017.1.0b12.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
@@ -231,6 +235,7 @@
     <Compile Include="UI\SongListUtils.cs" />
     <Compile Include="Utilities\ObjectPool.cs" />
     <Compile Include="Utilities\ReflectionUtil.cs" />
+    <Compile Include="Utilities\SimpleJSON.cs" />
     <Compile Include="Utilities\Utilities.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -3095,10 +3100,9 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Beat Saber\Plugins"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
+    <PreBuildEvent>"$(ProjectDir)..\..\PluginVersionSetter.exe" "$(ProjectDir)Properties\AssemblyInfo.cs" "$(ProjectDir)Plugin.cs"</PreBuildEvent>
   </PropertyGroup>
 </Project>

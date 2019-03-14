@@ -1,5 +1,7 @@
+#if REQUEST_BOT
+
 using EnhancedTwitchChat.Chat;
-using SimpleJSON;
+using EnhancedTwitchChat.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,7 +20,7 @@ namespace EnhancedTwitchChat.Bot
     public partial class RequestBot : MonoBehaviour
     {
 
-        #region Command Registration 
+#region Command Registration 
 
         private void InitializeCommands()
         {
@@ -567,9 +569,10 @@ namespace EnhancedTwitchChat.Bot
         }
 
         // You can modify commands using !allow !setflags !clearflags and !sethelp
-        #endregion
+#endregion
 
   
 
     }
 }
+#endif

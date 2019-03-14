@@ -1,5 +1,7 @@
-﻿using EnhancedTwitchChat.Chat;
-using SimpleJSON;
+﻿#if REQUEST_BOT
+
+using EnhancedTwitchChat.Chat;
+using EnhancedTwitchChat.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -39,7 +41,7 @@ namespace EnhancedTwitchChat.Bot
         public static string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
 
 
-        #region Utility functions
+#region Utility functions
 
         const int MaximumTwitchMessageLength = 498;
 
@@ -152,9 +154,9 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-        #endregion
+#endregion
 
-        #region Filter support functions
+#region Filter support functions
 
         private bool DoesContainTerms(string request, ref string[] terms)
         {
@@ -246,11 +248,11 @@ namespace EnhancedTwitchChat.Bot
             listcollection.ClearList(ref duplicatelist);
         }
 
-        #endregion
+#endregion
 
 
 
-        #region Ban/Unban Song
+#region Ban/Unban Song
         public void Ban(TwitchUser requestor, string request)
         {
             Ban(requestor, request, false);
@@ -294,9 +296,9 @@ namespace EnhancedTwitchChat.Bot
                 QueueChatMessage($"{request} is not on the ban list.");
             }
         }
-        #endregion
+#endregion
 
-        #region Deck Commands
+#region Deck Commands
         private void restoredeck(TwitchUser requestor, string request)
         {
             Readdeck(requestor, "savedqueue");
@@ -359,9 +361,9 @@ namespace EnhancedTwitchChat.Bot
                 QueueChatMessage("Unable to read deck {request}.");
             }
         }
-        #endregion
+#endregion
 
-        #region Dequeue Song
+#region Dequeue Song
         private void DequeueSong(TwitchUser requestor, string request)
         {
 
@@ -393,7 +395,7 @@ namespace EnhancedTwitchChat.Bot
             }
             QueueChatMessage($"{request} was not found in the queue.");
         }
-        #endregion
+#endregion
 
  
         // BUG: This actually needs to store the name of the list. Period.
@@ -437,7 +439,7 @@ namespace EnhancedTwitchChat.Bot
 
 
 
-        #region Move Request To Top/Bottom
+#region Move Request To Top/Bottom
 
         private void MoveRequestToTop(TwitchUser requestor, string request)
         {
@@ -497,9 +499,9 @@ namespace EnhancedTwitchChat.Bot
             }
             QueueChatMessage($"{request} was not found in the queue.");
         }
-        #endregion
+#endregion
 
-        #region List Commands
+#region List Commands
     
         // BUG: once we have aliases and command permissions, we can filter the results, so users do not see commands they have no access to    
     private void showCommandlist(TwitchUser requestor, string request)
@@ -626,9 +628,9 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
-        #endregion
+#endregion
 
-        #region Queue Related
+#region Queue Related
 
         // This function existing to unify the queue message strings, and to allow user configurable QueueMessages in the future
         public static string QueueMessage(bool QueueState) 
@@ -727,9 +729,9 @@ namespace EnhancedTwitchChat.Bot
             _refreshQueue = true;
         }
 
-        #endregion
+#endregion
 
-        #region Unmap/Remap Commands
+#region Unmap/Remap Commands
         private void Remap(TwitchUser requestor, string request)
         {
             string[] parts = request.Split(',', ' ');
@@ -802,9 +804,9 @@ namespace EnhancedTwitchChat.Bot
                 Plugin.Log(ex.ToString());
             }
         }
-        #endregion
+#endregion
 
-        #region Wrong Song
+#region Wrong Song
         private void WrongSong(TwitchUser requestor, string request)
         {
             // Note: Scanning backwards to remove LastIn, for loop is best known way.
@@ -822,7 +824,7 @@ namespace EnhancedTwitchChat.Bot
             }
             QueueChatMessage($"You have no requests in the queue.");
         }
-        #endregion
+#endregion
 
 
         // BUG: This requires a switch, or should be disabled for those who don't allow links
@@ -865,7 +867,7 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        #region DynamicText class and support functions.
+#region DynamicText class and support functions.
 
         public class DynamicText
         {
@@ -1031,8 +1033,9 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
-    #endregion
+#endregion
 
 
     }
 }
+#endif

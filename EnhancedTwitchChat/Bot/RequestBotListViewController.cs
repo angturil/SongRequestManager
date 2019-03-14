@@ -1,5 +1,7 @@
 ﻿//#define PRIVATE
 
+#if REQUEST_BOT
+
 using CustomUI.BeatSaber;
 using CustomUI.Utilities;
 using EnhancedTwitchChat.UI;
@@ -30,9 +32,9 @@ namespace EnhancedTwitchChat.Bot
         private LevelListTableCell _songListTableCellInstance;
         private SongPreviewPlayer _songPreviewPlayer;
         private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton,_queueButton;
-        #if UNRELEASED
+#if UNRELEASED
         private Button _BlacklistLastButton;
-        #endif
+#endif
 
         private TextMeshProUGUI _warningTitle, _warningMessage;
         private HoverHint _historyHintText;
@@ -92,7 +94,7 @@ namespace EnhancedTwitchChat.Bot
                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
 
 
-                #if UNRELEASED
+#if UNRELEASED
          
                  // Blacklist previous button, Since this is the 2nd most used option after play. It does make things a little crowded though
 
@@ -118,7 +120,7 @@ namespace EnhancedTwitchChat.Bot
                 });
                 BeatSaberUI.AddHintText(_BlacklistLastButton.transform as RectTransform, "Block the selected request from being queued in the future.");
 
-                #endif
+#endif
 
 
                 // Blacklist button
@@ -400,3 +402,5 @@ namespace EnhancedTwitchChat.Bot
         }
     }
 }
+
+#endif

@@ -1,5 +1,5 @@
 using EnhancedTwitchChat.Chat;
-using SimpleJSON;
+using EnhancedTwitchChat.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;

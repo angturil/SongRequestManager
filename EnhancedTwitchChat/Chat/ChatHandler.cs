@@ -45,7 +45,7 @@ namespace EnhancedTwitchChat
         private string _lastFontName;
         private CustomText _testMessage = null;
         private readonly WaitUntil _delay = new WaitUntil(() => { return Instance._waitForFrames == 0; });
-        
+
         public static void OnLoad()
         {
             if (Instance) return;
@@ -73,7 +73,7 @@ namespace EnhancedTwitchChat
             initialized = true;
             Plugin.Log("EnhancedTwitchChat initialized");
         }
-        
+
         public void SceneManager_activeSceneChanged(Scene from, Scene to)
         {
             var _vrPointer = to.name == "GameCore" ? Resources.FindObjectsOfTypeAll<VRPointer>().Last() : Resources.FindObjectsOfTypeAll<VRPointer>().First();
@@ -90,7 +90,7 @@ namespace EnhancedTwitchChat
             _lockPointer.Init(lockButtonImage, _lockButtonSphere);
             Plugin.Log($"{from.name} -> {to.name}");
         }
-        
+
         private void PluginOnConfigChangedEvent(Config config)
         {
             _configChanged = true;
@@ -195,13 +195,13 @@ namespace EnhancedTwitchChat
                             return;
 
                         if (Config.Instance.FilterUserlistMessages)
-                            {
+                        {
                             string excludefilename = "chatexclude.users";
+
+                        #if REQUEST_BOT
                             if (RequestBot.Instance &&   RequestBot.listcollection.contains(ref excludefilename, messageToSend.twitchMessage.user.displayName.ToLower(), RequestBot.ListFlags.Uncached)) return;
-                             
-                            }
-
-
+                        #endif
+                        }
                         StartCoroutine(AddNewChatMessage(messageToSend.msg, messageToSend));
                     }
 
@@ -209,7 +209,7 @@ namespace EnhancedTwitchChat
 
                 // Save images to file when we're at the main menu
                 else if (Plugin.Instance.IsAtMainMenu && ImageDownloader.ImageSaveQueue.Count > 0 && ImageDownloader.ImageSaveQueue.TryDequeue(out var saveInfo))
-                    File.WriteAllBytes(saveInfo.path,  saveInfo.data);
+                    File.WriteAllBytes(saveInfo.path, saveInfo.data);
             }
         }
 
@@ -230,7 +230,7 @@ namespace EnhancedTwitchChat
                 _lockButtonSphere.eulerAngles = Config.Instance.ChatRotation;
                 lockButtonImage.rectTransform.eulerAngles = Config.Instance.ChatRotation;
                 lockButtonImage.rectTransform.position = background.rectTransform.TransformPoint((Config.Instance.ReverseChatOrder ? LocalCorners[2] : LocalCorners[3]) - new Vector3(lockButtonImage.rectTransform.sizeDelta.x / 2, lockButtonImage.rectTransform.sizeDelta.y / 2));
-                _lockButtonSphere.position = lockButtonImage.rectTransform.TransformPoint(new Vector3(lockButtonImage.preferredWidth/Drawing.pixelsPerUnit, lockButtonImage.preferredHeight/Drawing.pixelsPerUnit, 0));
+                _lockButtonSphere.position = lockButtonImage.rectTransform.TransformPoint(new Vector3(lockButtonImage.preferredWidth / Drawing.pixelsPerUnit, lockButtonImage.preferredHeight / Drawing.pixelsPerUnit, 0));
             }
         }
 
@@ -268,7 +268,7 @@ namespace EnhancedTwitchChat
             scaler.dynamicPixelsPerUnit = Drawing.pixelsPerUnit;
             _canvasRectTransform = _twitchChatCanvas.GetComponent<RectTransform>();
             _canvasRectTransform.localScale = new Vector3(0.012f * Config.Instance.ChatScale, 0.012f * Config.Instance.ChatScale, 0.012f * Config.Instance.ChatScale);
-            
+
             background = new GameObject("EnhancedTwitchChatBackground").AddComponent<Image>();
             background.rectTransform.SetParent(gameObject.transform, false);
             background.color = Config.Instance.BackgroundColor;
@@ -285,7 +285,7 @@ namespace EnhancedTwitchChat
             lockButtonImage.color = Color.white.ColorWithAlpha(0.05f);
             lockButtonImage.sprite = Config.Instance.LockChatPosition ? _lockedSprite : _unlockedSprite;
             lockButtonGameObj.AddComponent<Shadow>();
-            
+
             chatMoverPrimitive = GameObject.CreatePrimitive(PrimitiveType.Cube);
             UnityEngine.Object.DontDestroyOnLoad(chatMoverPrimitive);
             _chatMoverCube = chatMoverPrimitive.transform;
@@ -303,23 +303,23 @@ namespace EnhancedTwitchChat
             _testMessage = Drawing.InitText("", Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, 0, 0), new Quaternion(0, 0, 0, 0), go.transform, TextAnchor.UpperLeft, true);
             _testMessage.enabled = false;
         }
-        
+
         private IEnumerator AddNewChatMessage(string msg, ChatMessage messageInfo)
         {
             _messageRendering = true;
             CustomText currentMessage = null;
-            
+
             _testMessage.text = msg;
             _testMessage.cachedTextGenerator.Populate(msg, _testMessage.GetGenerationSettings(_testMessage.rectTransform.rect.size));
             yield return null;
 
-            for(int i=0; i<_testMessage.cachedTextGenerator.lineCount; i++)
+            for (int i = 0; i < _testMessage.cachedTextGenerator.lineCount; i++)
             {
                 int index = Config.Instance.ReverseChatOrder ? _testMessage.cachedTextGenerator.lineCount - 1 - i : i;
                 msg = _testMessage.text.Substring(_testMessage.cachedTextGenerator.lines[index].startCharIdx);
-                if(index < _testMessage.cachedTextGenerator.lineCount-1)
+                if (index < _testMessage.cachedTextGenerator.lineCount - 1)
                     msg = msg.Substring(0, _testMessage.cachedTextGenerator.lines[index + 1].startCharIdx - _testMessage.cachedTextGenerator.lines[index].startCharIdx);
-                
+
                 // Italicize action messages and make the whole message the color of the users name
                 if (messageInfo.isActionMessage)
                     msg = $"<i><color={messageInfo.twitchMessage.user.color}>{msg}</color></i>";
@@ -335,13 +335,13 @@ namespace EnhancedTwitchChat
                 FreeImages(currentMessage);
                 UpdateChatUI();
                 yield return null;
-                
+
                 foreach (BadgeInfo b in messageInfo.parsedBadges)
                     Drawing.OverlayImage(currentMessage, b);
 
                 foreach (EmoteInfo e in messageInfo.parsedEmotes)
                     Drawing.OverlayImage(currentMessage, e);
-                
+
                 currentMessage.hasRendered = true;
 
                 _waitForFrames = 5;
@@ -382,7 +382,7 @@ namespace EnhancedTwitchChat
                 Plugin.Log($"Exception when overlaying emote! {e.ToString()}");
             }
         }
-        
+
         public void OverlayAnimatedImage(Texture2D texture, Rect[] uvs, float delay, TextureDownloadInfo imageDownloadInfo)
         {
             try
@@ -432,7 +432,7 @@ namespace EnhancedTwitchChat
                 foreach (CustomText currentMessage in _chatMessages)
                 {
                     if (currentMessage.messageInfo == null || !currentMessage.hasRendered) continue;
-                    
+
                     foreach (EmoteInfo e in currentMessage.messageInfo.parsedEmotes)
                     {
                         if (e.textureIndex == spriteIndex)
@@ -481,7 +481,7 @@ namespace EnhancedTwitchChat
                     purged = true;
                 }
             }
-            if(purged)
+            if (purged)
                 UpdateChatUI();
         }
 
