@@ -34,7 +34,9 @@ namespace EnhancedTwitchChat.Bot
 
         public static string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
 
-        public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
+        public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>";
+
+        //public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
 
         public static string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
 

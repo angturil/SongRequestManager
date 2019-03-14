@@ -53,7 +53,9 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("unmap", Unmap, Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversongversion);
 
-            AddCommand(new string[] { "lookup", "find" }, lookup, Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
+            //AddCommand(new string[] { "lookup", "find" }, lookup, Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
+
+            new COMMAND (new string[] { "lookup", "find" }).Func(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the bottom of the request queue.", _atleast1);
 
@@ -105,7 +107,12 @@ namespace EnhancedTwitchChat.Bot
             new COMMAND("who"); // Who requested a song (both in queue and in history)
             new COMMAND("alias"); // Create a command alias)
             new COMMAND("songmsg"); // Set a local message on a song , this is session persistent and viewable in the VR UI hover
- 
+            new COMMAND("detail"); // Get song details
+
+
+
+            new COMMAND("couroutine").Func(addsongsFromnewest);
+
             COMMAND.InitializeCommands();
 
             AddCommand("blockmappers", MapperBanList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
@@ -159,6 +166,7 @@ namespace EnhancedTwitchChat.Bot
             private Action<TwitchUser, string> Method = null;  // Method to call
             private Action<TwitchUser, string, CmdFlags, string> Method2 = null; // Alternate method
             private Action<COMMAND, TwitchUser, string, CmdFlags, string> Method3 = null; // Prefered method
+            private Func<TwitchUser,string,IEnumerator> func1=null;
 
             public CmdFlags Flags = Broadcasteronly;          // flags
             public string ShortHelp = "";                   // short help text (on failing preliminary check
@@ -186,6 +194,7 @@ namespace EnhancedTwitchChat.Bot
                 if (Method2 != null) Method2(user, request, flags, Info);
                 else if (Method != null) Method(user, request);
                 else if (Method3 != null) Method3(this, user, request, flags, Info);
+                else if (func1 != null) Instance.StartCoroutine(func1(user, request));
             }
 
 
@@ -256,7 +265,14 @@ namespace EnhancedTwitchChat.Bot
                 {
                 Method = action;
                 return this;
-                }         
+                }
+
+            public COMMAND Func( Func <TwitchUser,string,IEnumerator> action)
+            {
+                func1 = action;
+                return this;
+            }
+
 
             public static void ExecuteCommand(string command, ref TwitchUser user, string param, CmdFlags commandflags = 0, string info = "")
             {
