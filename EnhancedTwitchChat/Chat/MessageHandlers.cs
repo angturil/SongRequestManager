@@ -92,7 +92,7 @@ namespace EnhancedTwitchChat.Chat
 
             MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMsg.message), twitchMsg));
             if (Config.Instance.SongRequestBot)
-                RequestBot.BOTCOMMAND.Parse(twitchMsg.user, twitchMsg.message);
+                RequestBot.COMMAND.Parse(twitchMsg.user, twitchMsg.message);
         }
 
         public static void JOIN(TwitchMessage twitchMsg, MatchCollection tags)

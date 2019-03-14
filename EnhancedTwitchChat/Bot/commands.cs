@@ -22,24 +22,25 @@ namespace EnhancedTwitchChat.Bot
 
         private void InitializeCommands()
         {
+        /*
+           Prototype of new calling convention for adding new commands.
+          
+            new COMMAND("command").Action(Routine).Help(Broadcasteronly, "usage: %alias", _anything);
+            new COMMAND("command").Action(Routine);
 
-            // Note: Default permissions are broadcaster only, so don't need to set them
-            // These settings need to be able to reconstruct  
+            Note: Default permissions are broadcaster only, so don't need to set them
 
-            List <string> list= Config.Instance.RequestCommandAliases.Split(',').Distinct().ToList();
-            string[] array = list.ToArray();
-                AddCommand(array, ProcessSongRequest, Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
+        */
 
-            // BUG / or is it a feature? Currently, commands are incorrectly(?) Being added as separate copies per alias, instead of referring to a single shared object. This means each subcommand actually only modifies its own settings. Will fix at a later date. This only affects commands with aliases. 
-            // Since the only user modifiable fields atm are flags and help message, we can hack a fix though the appropriate functions to set those, to replicate those changes across alias copies.. ugh. 
+            string [] array= Config.Instance.RequestCommandAliases.Split(',');
 
-
+            new COMMAND(Config.Instance.RequestCommandAliases.Split(',')).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
 
             AddCommand("queue", ListQueue, Everyone, "usage: %alias%%|% ... Displays a list of the currently requested songs.", _nothing);
 
-            AddCommand("unblock", Unban, Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversong);
+            AddCommand("unblock", Unban, Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
 
-            AddCommand("block", Ban, Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversong);
+            AddCommand("block", Ban, Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
 
             AddCommand("remove", DequeueSong, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Removes a song from the queue.", _atleast1);
 
@@ -49,7 +50,7 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("remap", Remap, Mod, "usage: %alias%<songid1> , <songid2>%|%... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.", _RemapRegex);
 
-            AddCommand("unmap", Unmap, Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversong);
+            AddCommand("unmap", Unmap, Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversongversion);
 
             AddCommand(new string[] { "lookup", "find" }, lookup, Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
@@ -85,7 +86,7 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("runscript", RunScript, Broadcasteronly, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
             AddCommand("history", ShowHistory, Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
 
-            AddCommand("att", AddToTop, Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the top of the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
+            new COMMAND("att").Action(AddToTop).Help(Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the top of the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
 
             AddCommand("about", nop, Broadcasteronly, $"EnhancedTwitchChat Bot version 2.0.0. Developed by brian91292 and angturil. Find us on github.", _fail);
 
@@ -101,7 +102,7 @@ namespace EnhancedTwitchChat.Bot
             //AddCommand("/at"); // Scehdule at a certain time (command property)
             //user history
 
-            BOTCOMMAND.InitializeCommands();
+            COMMAND.InitializeCommands();
 
 
         AddCommand("blockmappers", MapperBanList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
@@ -128,23 +129,55 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("unloaddeck", unloaddeck);
             AddCommand("loaddecks", loaddecks);
             AddCommand("decklist", decklist, Mod, "usage: %alias", _deck);
-            AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _anything);
+            AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
             AddCommand("mapper", addsongsbymapper, Broadcasteronly, "usage: %alias%<mapperlist>"); // This is actually most useful if we send it straight to list
 
-            AddCommand("testlist", TestList);
+
+
+            new COMMAND("testlist").Action(TestList);
+
+
             //AddCommand("test", LookupSongs);
 #endif
         }
 
-        public void Test (ref BOTCOMMAND cmd,ref TwitchUser user,ref string request, int flags, ref string info)
+        /*
+
+                public class StaticClass
+                {
+                    public static Dictionary<string, DynamicClass> dict = new Dictionary<string, DynamicClass>();
+
+                    public static void add(string functionname, DynamicClass d)
+                    {
+                        dict.Add(functionname, d);
+                    }
+                }
+
+                public class DynamicClass
+                {
+                    public virtual void test(string value)
+                    {
+                        Plugin.Log("This is the base class function call, it does nothing!");
+                    }
+                }
+
+                public class YourClass : DynamicClass
+                {
+                    public override void test(string value)
+                    {
+                        Plugin.Log("This is the override function");
+                    }
+                }
+
+        */
+
+        public void Test (ref COMMAND cmd,ref TwitchUser user,ref string request, int flags, ref string info)
                {
 
         }
 
-        public void TestList(BOTCOMMAND cmd, TwitchUser requestor, string request,int flags,string info)
+        public void TestList(COMMAND cmd, TwitchUser requestor, string request,int flags,string info)
         {
-            cmd.ShortHelp = "test";
-            RequestBot.Instance.QueueChatMessage(cmd.ShortHelp);
             var msg = new QueueLongMessage();
             msg.Header("Loaded lists: ");
             foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})", ", ");
@@ -155,31 +188,31 @@ namespace EnhancedTwitchChat.Bot
 
         //    BOTCOMMAND botcommand = new BOTCOMMAND();
         // Prototype code only
-        public partial class BOTCOMMAND
+        public partial class COMMAND
         {
 
             public Action<TwitchUser, string> NamedActionDelegate { get; set; }
 
 
-            public static List<BOTCOMMAND> cmdlist = new List<BOTCOMMAND>(); // Collection of our command objects
+            public static List<COMMAND> cmdlist = new List<COMMAND>(); // Collection of our command objects
             public static Dictionary<string, int> aliaslist = new Dictionary<string, int>();
 
             private Action<TwitchUser, string> Method = null;  // Method to call
             private Action<TwitchUser, string, int, string> Method2 = null; // Alternate method
-            private Action<BOTCOMMAND,TwitchUser, string, int, string> Method3 = null; // Alternate method
+            private Action<COMMAND, TwitchUser, string, int, string> Method3 = null; // Alternate method
 
 
-            public CmdFlags rights;                  // flags
-            public string ShortHelp;                   // short help text (on failing preliminary check
-            public List<string> aliases;               // list of command aliases
-            public Regex regexfilter;                 // reg ex filter to apply. For now, we're going to use a single string
+            public CmdFlags Flags = Broadcasteronly;          // flags
+            public string ShortHelp = "";                   // short help text (on failing preliminary check
+            public List<string> aliases = null;               // list of command aliases
+            public Regex regexfilter = _anything;                 // reg ex filter to apply. For now, we're going to use a single string
 
-            public string LongHelp; // Long help text
-            public string HelpLink; // Help website link, Using a wikia might be the way to go
-            public string permittedusers; // Name of list of permitted users.
-            public string userParameter; // This is here incase I need it for some specific purpose
-            public int userNumber;
-            public int UseCount;  // Number of times command has been used, sadly without references, updating this is costly.
+            public string LongHelp = null; // Long help text
+            public string HelpLink = null; // Help website link, Using a wikia might be the way to go
+            public string permittedusers = ""; // Name of list of permitted users.
+            public string userParameter = ""; // This is here incase I need it for some specific purpose
+            public int userNumber = 0;
+            public int UseCount = 0;  // Number of times command has been used, sadly without references, updating this is costly.
 
             public void SetPermittedUsers(string listname)
             {
@@ -196,129 +229,85 @@ namespace EnhancedTwitchChat.Bot
                 else if (Method != null) Method(user, request);
                 else if (Method3 != null) Method3(this, user, request, flags, Info);
             }
- 
+
 
             public static void InitializeCommands()
-                {
+            {
 
-                }
+                //cmdlist.Add(new BOTCOMMAND(Broadcasteronly, "usage: %alias%<list> <value to add>", _atleast1, "addtolist").Action(addtolist));       
+            }
 
 
-            private void StoreAction(Action <TwitchUser,string> TestList)
-                {
+            private void StoreAction(Action<TwitchUser, string> TestList)
+            {
                 Method = TestList;
-                }
-
-            public BOTCOMMAND(Action<TwitchUser, string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
-            {
-
- 
-                Method = method;
-                this.rights = flags;
-                ShortHelp = shorthelptext;
-                aliases = alias.ToList();
-                LongHelp = "";
-                HelpLink = "";
-                permittedusers = "";
-                if (regex == null)
-                    regexfilter = _anything;
-                else
-                    regexfilter = regex;
-
-                UseCount = 0;
-
-                userParameter = "";
-                userNumber = 0;
-
-                foreach (var entry in aliases)
-                {
-                    //if (!NewCommands.ContainsKey(entry)) // BUG: The moment this is called, we're committing this. Probably want to set more things before this happens. I'm not fixing it right now
-                        //{
-                        if (!aliaslist.ContainsKey(entry)) aliaslist.Add(entry, cmdlist.Count);
-                        //NewCommands.Add(entry, this);
-                        //}
-                    else
-                    {
-                        // BUG: Command alias is a duplicate
-                    }
-                }
             }
 
-            public BOTCOMMAND(Action<BOTCOMMAND,TwitchUser, string,int ,string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
-            {
-
- 
-                Method3 = method;
-                this.rights = flags;
-                ShortHelp = shorthelptext;
-                aliases = alias.ToList();
-                LongHelp = "";
-                HelpLink = "";
-                permittedusers = "";
-                if (regex == null)
-                    regexfilter = _anything;
-                else
-                    regexfilter = regex;
-
-                UseCount = 0;
-
-                userParameter = "";
-                userNumber = 0;
+            COMMAND AddAliases()
+                {
 
                 foreach (var entry in aliases)
                 {
-                    //if (!NewCommands.ContainsKey(entry)) // BUG: The moment this is called, we're committing this. Probably want to set more things before this happens. I'm not fixing it right now
-                    //{
                     if (!aliaslist.ContainsKey(entry)) aliaslist.Add(entry, cmdlist.Count);
-                    //NewCommands.Add(entry, this);
-                    //}
-                    else
-                    {
-                        // BUG: Command alias is a duplicate
-                    }
                 }
-            }
+                cmdlist.Add(this);
+                return this;
+                }
 
-
-
-            // BUG: These are currently copies of each other (except the function prototype),I'm not 100% sure how to refactor. My previous attempt was not able to change the contents of the constructed object.
-            public BOTCOMMAND(Action<TwitchUser, string, int, string> method, CmdFlags flags, string shorthelptext, Regex regex, string[] alias)
-            {
-                Method2 = method;
-                this.rights = flags;
-                ShortHelp = shorthelptext;
-                aliases = alias.ToList();
-                LongHelp = "";
-                HelpLink = "";
-                permittedusers = "";
-                if (regex == null)
-                    regexfilter = _anything;
-                else
-                    regexfilter = regex;
-
-                UseCount = 0;
-
-                userParameter = "";
-                userNumber = 0;
-
-                foreach (var entry in aliases)
+            public COMMAND(string alias)
                 {
-                    //if (!NewCommands.ContainsKey(entry)) // BUG: The moment this is called, we're committing this. Probably want to set more things before this happens. I'm not fixing it right now
-                      //  {
-                        if (!aliaslist.ContainsKey(entry)) aliaslist.Add(entry, cmdlist.Count);
-                        //NewCommands.Add(entry, this);
-                       // }
-                    else
-                    {
-                        // BUG: Command alias is a duplicate
-                    }
+                aliases = new List<string>();
+                aliases.Add(alias.ToLower());
+                AddAliases();
                 }
 
+            public COMMAND (string [] alias)
+            {
+                aliases = new List<string>();
+                foreach (var element in alias)
+                {
+                    aliases.Add(element.ToLower());
+                }
+                AddAliases();
             }
+
+            public COMMAND Help(CmdFlags flags=Broadcasteronly, string ShortHelp="", Regex regexfilter=null)
+            {
+                this.Flags = flags;
+                this.ShortHelp = ShortHelp;
+                this.regexfilter = regexfilter!=null ? regexfilter : _anything ;
+                
+                COMMAND.cmdlist.Add(this);
+
+                return this;
+
+            }
+
+            public COMMAND Action(Action<COMMAND, TwitchUser, string, int, string> action)
+                {
+                Method3 = action;       
+                return this;
+                }
+
+            public COMMAND Action(Action<TwitchUser, string, int, string> action)
+            {
+                Method2 = action;
+                return this;
+            }
+
+
+            public COMMAND Action(Action<TwitchUser, string> action)
+            {
+                Method = action;
+                return this;
+            }
+            
+
+
 
             public static void ExecuteCommand(string command, ref TwitchUser user, string param, int commandflags = 0, string info = "")
             {
-                BOTCOMMAND botcmd;
+                COMMAND botcmd;
 
                 int botindex;
 
@@ -359,7 +348,7 @@ namespace EnhancedTwitchChat.Bot
                     {
                         Instance?.QueueChatMessage($"{command} Disabled.");
 
-                        cmdlist[botindex].rights |= CmdFlags.Disabled;
+                        cmdlist[botindex].Flags |= CmdFlags.Disabled;
 
                         //botcmd.rights |= CmdFlags.Disabled;
                         //NewCommands[command] = botcmd;
@@ -373,7 +362,7 @@ namespace EnhancedTwitchChat.Bot
                         //botcmd.rights &= ~CmdFlags.Disabled;
                         //NewCommands[command] = botcmd;
 
-                        cmdlist[botindex].rights &= ~CmdFlags.Disabled;
+                        cmdlist[botindex].Flags &= ~CmdFlags.Disabled;
 
                         return;
                     }
@@ -393,7 +382,7 @@ namespace EnhancedTwitchChat.Bot
 
                     if (subcommand.StartsWith("/flags")) // 
                     {
-                        Instance?.QueueChatMessage($"{command} flags: {botcmd.rights.ToString()}");
+                        Instance?.QueueChatMessage($"{command} flags: {botcmd.Flags.ToString()}");
                         return;
                     }
 
@@ -435,16 +424,16 @@ namespace EnhancedTwitchChat.Bot
 
                 }
 
-                if (botcmd.rights.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
+                if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
 
                 // Check permissions first
 
                 bool allow = HasRights(ref botcmd, ref user);
 
-                if (!allow && !botcmd.rights.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.displayName.ToLower()))
+                if (!allow && !botcmd.Flags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.displayName.ToLower()))
                 {
-                    CmdFlags twitchpermission = botcmd.rights & CmdFlags.TwitchLevel;
-                    if (!botcmd.rights.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
+                    CmdFlags twitchpermission = botcmd.Flags & CmdFlags.TwitchLevel;
+                    if (!botcmd.Flags.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
                     return;
                 }
 
@@ -530,54 +519,21 @@ namespace EnhancedTwitchChat.Bot
             }
 
 
-
         }
 
+        // BUG: These are all the same. This interface needs more cleanup.
 
         public void AddCommand(string[] alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
         {
-            BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, alias));
+            new COMMAND(alias).Action(method).Help(flags, shorthelptext, regex);
+
         }
 
         public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
         {
-            string[] list = new string[] { alias.ToLower() };
-            BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, list));
+            new COMMAND(alias).Action(method).Help(flags, shorthelptext, regex);
         }
 
-
-        public void AddCommand2(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
-        {
-            string[] list = new string[] { alias.ToLower() };
-            BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(nop, flags, shorthelptext, regex, list));
-        }
-
-
-        public void AddCommand(string alias, Action<TwitchUser, string, int, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
-        {
-
-            string[] list = new string[] { alias.ToLower() };
-            BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, list));
-
-        }
-        public void AddCommand(string[] alias, Action<TwitchUser, string, int, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
-        {
-            BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, alias));
-
-        }
-
-        public void AddCommand(string alias, Action<BOTCOMMAND,TwitchUser, string, int, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
-        {
-
-            string[] list = new string[] { alias.ToLower() };
-            BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, list));
-
-        }
-        public void AddCommand(string[] alias, Action<BOTCOMMAND,TwitchUser, string, int, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
-        {
-            BOTCOMMAND.cmdlist.Add(new BOTCOMMAND(method, flags, shorthelptext, regex, alias));
-
-        }
 
 
         // A much more general solution for extracting dymatic values into a text string. If we need to convert a text message to one containing local values, but the availability of those values varies by calling location
@@ -586,9 +542,9 @@ namespace EnhancedTwitchChat.Bot
 
 
         // BUG: This is actually part of botcmd, please move
-        public static void ShowHelpMessage(ref BOTCOMMAND botcmd, ref TwitchUser user, string param, bool showlong)
+        public static void ShowHelpMessage(ref COMMAND botcmd, ref TwitchUser user, string param, bool showlong)
         {
-            if (botcmd.rights.HasFlag(CmdFlags.QuietFail) || botcmd.rights.HasFlag(CmdFlags.Disabled)) return; // Make sure we're allowed to show help
+            if (botcmd.Flags.HasFlag(CmdFlags.QuietFail) || botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Make sure we're allowed to show help
 
             new DynamicText().AddUser(ref user).AddBotCmd(ref botcmd).QueueMessage(ref botcmd.ShortHelp, showlong);
 
@@ -608,9 +564,9 @@ namespace EnhancedTwitchChat.Bot
             {
                 var msg = new QueueLongMessage();
                 msg.Header("Usage: help < ");
-                foreach (var entry in BOTCOMMAND.aliaslist)
+                foreach (var entry in COMMAND.aliaslist)
                 {
-                    var botcmd = BOTCOMMAND.cmdlist[entry.Value];
+                    var botcmd = COMMAND.cmdlist[entry.Value];
                     if (HasRights(ref botcmd, ref requestor))
                         msg.Add($"{entry.Key}", " ");
                 }
@@ -618,9 +574,9 @@ namespace EnhancedTwitchChat.Bot
                 msg.end("...", $"No commands available >");
                 return;
             }
-            if (BOTCOMMAND.aliaslist.ContainsKey(request.ToLower()))
+            if (COMMAND.aliaslist.ContainsKey(request.ToLower()))
             {
-                var BotCmd = BOTCOMMAND.cmdlist[BOTCOMMAND.aliaslist[request.ToLower()]];
+                var BotCmd = COMMAND.cmdlist[COMMAND.aliaslist[request.ToLower()]];
                 ShowHelpMessage(ref BotCmd, ref requestor, request, true);
             }
             else
@@ -629,14 +585,14 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-        public static bool HasRights(ref BOTCOMMAND botcmd, ref TwitchUser user)
+        public static bool HasRights(ref COMMAND botcmd, ref TwitchUser user)
         {
-            if (botcmd.rights.HasFlag(CmdFlags.Disabled)) return false;
-            if (botcmd.rights.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
-            if (user.isBroadcaster & botcmd.rights.HasFlag(CmdFlags.Broadcaster)) return true;
-            if (user.isMod & botcmd.rights.HasFlag(CmdFlags.Mod)) return true;
-            if (user.isSub & botcmd.rights.HasFlag(CmdFlags.Sub)) return true;
-            if (user.isVip & botcmd.rights.HasFlag(CmdFlags.VIP)) return true;
+            if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return false;
+            if (botcmd.Flags.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
+            if (user.isBroadcaster & botcmd.Flags.HasFlag(CmdFlags.Broadcaster)) return true;
+            if (user.isMod & botcmd.Flags.HasFlag(CmdFlags.Mod)) return true;
+            if (user.isSub & botcmd.Flags.HasFlag(CmdFlags.Sub)) return true;
+            if (user.isVip & botcmd.Flags.HasFlag(CmdFlags.VIP)) return true;
             return false;
 
         }

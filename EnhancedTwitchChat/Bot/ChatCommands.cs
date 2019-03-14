@@ -507,9 +507,9 @@ namespace EnhancedTwitchChat.Bot
 
             var msg = new QueueLongMessage();
 
-            foreach (var entry in BOTCOMMAND.aliaslist)
+            foreach (var entry in COMMAND.aliaslist)
             {
-                var botcmd = BOTCOMMAND.cmdlist[entry.Value];
+                var botcmd = COMMAND.cmdlist[entry.Value];
                 if (HasRights(ref botcmd, ref requestor)) msg.Add($"!{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
@@ -922,7 +922,7 @@ namespace EnhancedTwitchChat.Bot
             }
 
 
-            public DynamicText AddBotCmd(ref BOTCOMMAND botcmd)
+            public DynamicText AddBotCmd(ref COMMAND botcmd)
             {
 
                 StringBuilder aliastext = new StringBuilder();
@@ -931,7 +931,7 @@ namespace EnhancedTwitchChat.Bot
 
                 aliastext.Clear();
                 aliastext.Append('[');
-                aliastext.Append(botcmd.rights & CmdFlags.TwitchLevel).ToString();
+                aliastext.Append(botcmd.Flags & CmdFlags.TwitchLevel).ToString();
                 aliastext.Append(']');
                 Add("rights", aliastext.ToString());
                 return this;

@@ -104,7 +104,7 @@ namespace EnhancedTwitchChat
 
         public int MaximumQueueTextEntries = 8;
 
-        public int SessionResetAfterXHours = 8; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
+        public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
 
         public Color TextColor
         {

@@ -232,7 +232,7 @@ namespace EnhancedTwitchChat.Bot
 
                 // BUG: A DynamicText context needs to be applied to each command to allow use of dynamic variables
 
-                foreach (var line in list) BOTCOMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, line);
+                foreach (var line in list) COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, line);
                 }
             catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.            
   
