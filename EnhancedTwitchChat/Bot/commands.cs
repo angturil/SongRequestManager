@@ -19,8 +19,94 @@ namespace EnhancedTwitchChat.Bot
 {
     public partial class RequestBot : MonoBehaviour
     {
+        #region COMMANDFLAGS
+        [Flags]
+        public enum CmdFlags
+        {
+            None = 0,
+            Everyone = 1, // Im
+            Sub = 2,
+            Mod = 4,
+            Broadcaster = 8,
+            VIP = 16,
+            UserList = 32,  // If this is enabled, users on a list are allowed to use a command (this is an OR, so leave restrictions to Broadcaster if you want ONLY users on a list)
+            TwitchLevel = 63, // This is used to show ONLY the twitch user flags when showing permissions
 
-#region Command Registration 
+            ShowRestrictions = 64, // Using the command without the right access level will show permissions error. Mostly used for commands that can be unlocked at different tiers.
+
+            BypassRights = 128, // Bypass right check on command, allowing error messages, and a later code based check. Often used for help only commands. 
+            xxxQuietFail = 256, // Return no results on failed preflight checks.
+
+            HelpLink = 512, // Enable link to web documentation
+
+            WhisperReply = 1024, // Reply in a whisper to the user (future feature?). Allow commands to send the results to the user, avoiding channel spam
+
+            Timeout = 2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
+            TimeoutSub = 4096, // Applies a timeout to Subs
+            TimeoutVIP = 8192, // Applies a timeout to VIP's
+            TimeoutMod = 16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
+
+            NoLinks = 32768, // Turn off any links that the command may normally generate
+
+            //Silent = 65536, // Command produces no output at all - but still executes
+            Verbose = 131072, // Turn off command output limits, This can result in excessive channel spam
+            Log = 262144, // Log every use of the command to a file
+            RegEx = 524288, // Enable regex check
+            UserFlag1 = 1048576, // Use it for whatever bit makes you happy 
+            UserFlag2 = 2097152, // Use it for whatever bit makes you happy 
+            UserFlag3 = 4194304, // Use it for whatever bit makes you happy 
+            UserFlag4 = 8388608, // Use it for whatever bit makes you happy 
+
+            SilentPreflight = 16277216, //  
+
+            MoveToTop = 1 << 25, // Private, used by ATT command. Its possible to have multiple aliases for the same flag
+
+            SilentCheck = 1 << 26, // Initial command check failure returns no message
+            SilentError = 1 << 27, // Command failure returns no message
+            SilentResult = 1 << 28, // Command returns no visible results
+
+            Silent = SilentCheck | SilentError | SilentResult,
+
+            Subcommand=1<<29,
+
+            Disabled = 1 << 30, // If ON, the command will not be added to the alias list at all.
+
+        }
+
+
+
+
+        const CmdFlags Default = 0;
+        const CmdFlags Everyone = Default | CmdFlags.Everyone;
+        const CmdFlags Broadcasteronly = Default | CmdFlags.Broadcaster;
+        const CmdFlags Mod = Default | CmdFlags.Broadcaster | CmdFlags.Mod;
+        const CmdFlags Sub = Default | CmdFlags.Sub;
+        const CmdFlags VIP = Default | CmdFlags.VIP;
+        const CmdFlags Help = CmdFlags.BypassRights;
+        const CmdFlags Silent = CmdFlags.Silent;
+        const CmdFlags Subcmd = CmdFlags.Subcommand;
+
+        #endregion
+
+        #region common Regex expressions
+
+        private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);
+        private static readonly Regex _RemapRegex = new Regex("^[0-9]+,[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex _beatsaversongversion = new Regex("^[0-9]+$|^[0-9]+-[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex _nothing = new Regex("$^", RegexOptions.Compiled);
+        private static readonly Regex _anything = new Regex(".*", RegexOptions.Compiled); // Is this the most efficient way?
+        private static readonly Regex _atleast1 = new Regex("..*", RegexOptions.Compiled); // Allow usage message to kick in for blank 
+        private static readonly Regex _fail = new Regex("(?!x)x", RegexOptions.Compiled); // Not sure what the official fastest way to auto-fail a match is, so this will do
+        private static readonly Regex _deck = new Regex("^(current|draw|first|last|random|unload)$|$^", RegexOptions.Compiled); // Checks deck command parameters
+
+        private static readonly Regex _drawcard = new Regex("($^)|(^[0-9]+$|^[0-9]+-[0-9]+$)", RegexOptions.Compiled);
+
+        #endregion
+
+
+        #region Command Registration 
 
         private void InitializeCommands()
         {
@@ -212,6 +298,19 @@ namespace EnhancedTwitchChat.Bot
             
             }
 
+        // Subcommand prototype
+        public string Subcommand(COMMAND cmd, TwitchUser requestor,string request, CmdFlags flags,string info)
+           {
+           Instance?.QueueChatMessage($"{request} Enabled.");
+           //botcmd.rights &= ~CmdFlags.Disabled;
+           //NewCommands[command] = botcmd;
+
+           cmd.Flags &= ~CmdFlags.Disabled;
+
+            return request;
+           }
+
+
 
         public partial class COMMAND
         {
@@ -257,7 +356,6 @@ namespace EnhancedTwitchChat.Bot
             {
 
             }
-
 
             COMMAND AddAliases()
                 {
@@ -349,6 +447,9 @@ namespace EnhancedTwitchChat.Bot
                 // Example: !challenge/allow myfriends
                 //          !decklist/setflags SUB
                 //          !lookup/sethelp usage: %alias%<song name or id>
+                //
+                // Coming soon: Subcommands are commands too.
+                
 
                 string[] parts= { };
                 string subcommand = "";
@@ -417,24 +518,36 @@ namespace EnhancedTwitchChat.Bot
                         return;
                     }
 
-                    if (subcommand.StartsWith("/setflags")) // 
+                    if (subcommand.StartsWith("/set")) // 
                     {
                         if (parts.Length > 1)
                         {
                             string[] flags = parts[1].Split(new char[] { ' ', ',' });
 
+                            CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), parts[1]);
 
-                            CmdFlags flag;
+                            botcmd.Flags |= flag;
 
-                            //NewCommands[command].rights ;
-
-                            // BUG: Not working yet
-
-                            Instance?.QueueChatMessage($"Not implemented");
+                            Instance?.QueueChatMessage($"{command} flags: {botcmd.Flags.ToString()}");
                         }
                         return;
-
                     }
+
+                    if (subcommand.StartsWith("/clear")) // 
+                    {
+                        if (parts.Length > 1)
+                        {
+                            string[] flags = parts[1].Split(new char[] { ' ', ',' });
+
+                            CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), parts[1]);
+
+                            botcmd.Flags &= ~flag;
+
+                            Instance?.QueueChatMessage($"{command} flags: {botcmd.Flags.ToString()}");
+                        }
+                        return;
+                    }
+
 
                     if (subcommand.StartsWith("/silent"))
                     {
@@ -584,7 +697,7 @@ namespace EnhancedTwitchChat.Bot
         // BUG: This is actually part of botcmd, please move
         public static void ShowHelpMessage(ref COMMAND botcmd, ref TwitchUser user, string param, bool showlong)
         {
-            if (botcmd.Flags.HasFlag(CmdFlags.QuietFail) || botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Make sure we're allowed to show help
+            if (botcmd.Flags.HasFlag(CmdFlags.SilentCheck) || botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Make sure we're allowed to show help
 
             new DynamicText().AddUser(ref user).AddBotCmd(ref botcmd).QueueMessage(ref botcmd.ShortHelp, showlong);
 
