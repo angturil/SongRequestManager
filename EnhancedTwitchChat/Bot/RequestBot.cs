@@ -651,11 +651,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void lookup(TwitchUser requestor, string request)
-        {
-            StartCoroutine(LookupSongs(requestor, request));
-        }
-
         private string GetBeatSaverId(string request)
         {
             if (_digitRegex.IsMatch(request)) return request;

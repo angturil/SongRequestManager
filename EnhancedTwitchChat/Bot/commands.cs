@@ -106,7 +106,7 @@ namespace EnhancedTwitchChat.Bot
 
             new COMMAND("who"); // Who requested a song (both in queue and in history)
             new COMMAND("alias"); // Create a command alias)
-            new COMMAND("songmsg"); // Set a local message on a song , this is session persistent and viewable in the VR UI hover
+            new COMMAND("songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|%Assign a message to the song",_atleast1); 
             new COMMAND("detail"); // Get song details
 
 
@@ -142,19 +142,40 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
             AddCommand("mapper", addsongsbymapper, Broadcasteronly, "usage: %alias%<mapperlist>"); // This is actually most useful if we send it straight to list
 
-            new COMMAND("testlist").Action(TestList);
 
 
             //AddCommand("test", LookupSongs);
 #endif
         }
     
-        public void TestList(COMMAND cmd, TwitchUser requestor, string request,CmdFlags flags,string info)
+        public void SongMsg(COMMAND cmd, TwitchUser requestor, string request,CmdFlags flags,string info)
         {
-            var msg = new QueueLongMessage();
-            msg.Header("Loaded lists: ");
-            foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})", ", ");
-            msg.end("...", "No lists loaded.");
+            try
+            {
+                string[] parts  =request.Split(new char[] { ' ', ',' }, 2);
+                var songId = GetBeatSaverId(parts[0]);
+                for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
+                {
+                    int dequeueSong = -1;
+                    var song = RequestQueue.Songs[i].song;
+
+                    if (song["id"].Value == songId) dequeueSong = i;
+          
+                    if (dequeueSong>=0)
+                    {
+                        RequestQueue.Songs[i].requestInfo = parts[1];   
+                        QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
+                        return;
+                    }
+                }
+                QueueChatMessage($"Unable to find {songId}");
+
+
+            }
+            catch   
+            {
+
+            }
         }
 
 
