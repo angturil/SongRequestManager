@@ -1,6 +1,6 @@
 ﻿using EnhancedTwitchChat.Bot;
 using IllusionPlugin;
-using SimpleJSON;
+using EnhancedTwitchChat.SimpleJSON;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -63,11 +63,15 @@ namespace EnhancedTwitchChat
         public bool PersistentRequestQueue = true;
         public bool FilterCommandMessages = false;
         public bool FilterBroadcasterMessages = false;
-        public bool FilterUserlistMessages= true; // Filter messages in chatexclude.users ( pick a better name ) 
+        public bool FilterUserlistMessages = true; // Filter messages in chatexclude.users ( pick a better name ) 
 
         public string RequestCommandAliases = "request,bsr,add,sr";
 
-        public bool QueueOpen = true; 
+    #if !REQUEST_BOT
+        public string SongBlacklist = "";
+    #endif
+
+        public bool QueueOpen = true;
 
         public int RequestHistoryLimit = 20;
         public int RequestLimit = 5;
@@ -75,9 +79,9 @@ namespace EnhancedTwitchChat
         public int ModRequestLimit = 10;
         public int VipBonus = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
         public int RequestCooldownMinutes = 0; // BUG: Currently inactive
-        
-        public string DeckList = "fun hard challenge dance"; 
- 
+
+        public string DeckList = "fun hard challenge dance";
+
         public float lowestallowedrating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
 
         public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI
@@ -166,7 +170,7 @@ namespace EnhancedTwitchChat
             Instance = this;
             FilePath = filePath;
 
-            if(!Directory.Exists(Path.GetDirectoryName(FilePath)))
+            if (!Directory.Exists(Path.GetDirectoryName(FilePath)))
                 Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
 
             if (File.Exists(FilePath))
@@ -182,13 +186,16 @@ namespace EnhancedTwitchChat
                     TwitchChannelName = oldConfig.TwitchChannel;
                 }
 
-                if (text.Contains("SongBlacklist=")) {
+#if REQUEST_BOT
+                if (text.Contains("SongBlacklist=")) 
+                {
                     var oldConfig = new OldBlacklistOption();
                     ConfigSerializer.LoadConfig(oldConfig, FilePath);
 
                     SongBlacklist.ConvertFromList(oldConfig.SongBlacklist.Split(','));
                     
-                 }
+                }
+#endif
             }
             CorrectConfigSettings();
             Save();

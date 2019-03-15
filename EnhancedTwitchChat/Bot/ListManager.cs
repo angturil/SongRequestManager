@@ -1,5 +1,7 @@
+#if REQUEST_BOT
+
 using EnhancedTwitchChat.Chat;
-using SimpleJSON;
+using EnhancedTwitchChat.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -15,7 +17,7 @@ namespace EnhancedTwitchChat.Bot
     public partial class RequestBot : MonoBehaviour
     {
 
-        #region List Manager Related functions ...
+#region List Manager Related functions ...
 
         // List types:
 
@@ -349,8 +351,10 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        #endregion
+#endregion
 
 
     }
 }
+
+#endif

@@ -1,4 +1,6 @@
-﻿using EnhancedTwitchChat.Chat;
+﻿#if REQUEST_BOT
+
+using EnhancedTwitchChat.Chat;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,3 +29,5 @@ namespace EnhancedTwitchChat.Bot
         }
     }
 }
+
+#endif

@@ -1,4 +1,6 @@
-﻿using BeatSaverDownloader.UI;
+﻿#if REQUEST_BOT
+
+using BeatSaverDownloader.UI;
 using EnhancedTwitchChat.Utils;
 using HMUI;
 using SongBrowserPlugin;
@@ -139,3 +141,5 @@ namespace EnhancedTwitchChat.UI
         }
     }
 }
+
+#endif

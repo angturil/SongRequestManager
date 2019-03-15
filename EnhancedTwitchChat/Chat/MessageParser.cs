@@ -202,7 +202,7 @@ namespace EnhancedTwitchChat.Textures
                 {
                     Match cheermote = Utilities.cheermoteRegex.Match(e.swapString);
                     string numBits = cheermote.Groups["Value"].Value;
-                    extraInfo = $"\u200A<color={ImageDownloader.TwitchCheermoteIDs[cheermote.Groups["Prefix"].Value].GetColor(Convert.ToInt32(numBits))}><size=3><b>{numBits}</b></size></color>\u200A";
+                    extraInfo = $"\u200A<color={ImageDownloader.TwitchCheermoteIDs[cheermote.Groups["Prefix"].Value].GetColor(Convert.ToInt32(numBits))}>\u200A<size=3><b>{numBits}</b></size></color>\u200A";
                 }
                 string replaceString = $"\u00A0{Drawing.imageSpacing}{Char.ConvertFromUtf32(e.swapChar)}{extraInfo}";
                 for (int i = 0; i < parts.Length; i++)
@@ -247,16 +247,18 @@ namespace EnhancedTwitchChat.Textures
             newChatMessage.msg = $"<color={newChatMessage.twitchMessage.user.color}><b>{newChatMessage.twitchMessage.user.displayName}</b></color>{(isActionMessage ? String.Empty : ":")} {newChatMessage.msg}";
 
             // Prepend the users badges to the front of the message
-            string badgeStr = String.Empty;
+            StringBuilder badgeStr = new StringBuilder();
             if (parsedBadges.Count > 0)
             {
                 parsedBadges.Reverse();
                 for (int i = 0; i < parsedBadges.Count; i++)
-                    badgeStr = $"\u200A{Drawing.imageSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}\u2004{badgeStr}";
+                    badgeStr.Insert(0, $"\u200A{Drawing.imageSpacing}{Char.ConvertFromUtf32(parsedBadges[i].swapChar)}\u2004");
             }
-            newChatMessage.msg = $"{badgeStr}\u200A{newChatMessage.msg}";
+            badgeStr.Append("\u200A");
+            badgeStr.Append(newChatMessage.msg);
 
-            // Finally, store our parsedEmotes and parsedBadges lists and render the message
+            // Finally, store our final message, parsedEmotes and parsedBadges; then render the message
+            newChatMessage.msg = badgeStr.ToString();
             newChatMessage.parsedEmotes = parsedEmotes;
             newChatMessage.parsedBadges = parsedBadges;
             newChatMessage.isActionMessage = isActionMessage;

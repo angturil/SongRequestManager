@@ -12,7 +12,7 @@ using EnhancedTwitchChat.Utils;
 using EnhancedTwitchChat.Chat;
 using UnityEngine.XR;
 using EnhancedTwitchChat.UI;
-using SimpleJSON;
+using EnhancedTwitchChat.SimpleJSON;
 using System.Text.RegularExpressions;
 using CustomUI.Utilities;
 

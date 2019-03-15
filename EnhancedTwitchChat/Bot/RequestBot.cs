@@ -1,10 +1,12 @@
-﻿using CustomUI.BeatSaber;
+﻿#if REQUEST_BOT
+
+using CustomUI.BeatSaber;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.UI;
 using EnhancedTwitchChat.Utils;
 using HMUI;
-using SimpleJSON;
+using EnhancedTwitchChat.SimpleJSON;
 using SongBrowserPlugin;
 using SongLoaderPlugin;
 using SongLoaderPlugin.OverrideClasses;
@@ -17,7 +19,6 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
@@ -92,7 +93,7 @@ namespace EnhancedTwitchChat.Bot
         const CmdFlags Help = CmdFlags.BypassRights;
 
 
-        #region common Regex expressions
+#region common Regex expressions
 
         private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
@@ -107,7 +108,7 @@ namespace EnhancedTwitchChat.Bot
 
         private static readonly Regex _drawcard = new Regex("($^)|(^[0-9]+$|^[0-9]+-[0-9]+$)", RegexOptions.Compiled);
 
-        #endregion
+#endregion
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
@@ -740,5 +741,4 @@ namespace EnhancedTwitchChat.Bot
     }
 }
 
-
-
+#endif
