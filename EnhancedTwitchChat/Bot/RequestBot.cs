@@ -19,6 +19,11 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+
+#if OLDVERSION
+using TMPro;
+#endif
+
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
@@ -161,16 +166,18 @@ namespace EnhancedTwitchChat.Bot
             if (_levelSelectionFlowCoordinator)
                 _levelSelectionNavigationController = _levelSelectionFlowCoordinator.GetPrivateField<DismissableNavigationController>("_navigationController");
 
-            if (_levelSelectionNavigationController)
-            {
-                _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f),
-                    new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
+            
 
-                _requestButton.gameObject.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
-                _requestButton.SetButtonTextSize(2.0f);
-                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
-                Plugin.Log("Created request button!");
-            }
+         if (_levelSelectionNavigationController)
+         {
+             _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f),
+                 new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
+
+             _requestButton.gameObject.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
+             _requestButton.SetButtonTextSize(2.0f);
+             BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
+             Plugin.Log("Created request button!");
+        }
 
             if (_songRequestListViewController == null)
                 _songRequestListViewController = BeatSaberUI.CreateViewController<RequestBotListViewController>();
@@ -180,6 +187,9 @@ namespace EnhancedTwitchChat.Bot
                 _songRequestMenu = BeatSaberUI.CreateCustomMenu<CustomMenu>("Song Request Queue");
                 _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
             }
+
+            
+
 
             SongListUtils.Initialize();
 
@@ -200,25 +210,34 @@ namespace EnhancedTwitchChat.Bot
                 Utilities.EmptyDirectory(filesToDelete);
 
 
-            TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
-            if (PlayedAge < TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
+            try
+            {
 
-            RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
+                TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
+                if (PlayedAge < TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
 
-            RequestHistory.Read();
-            SongBlacklist.Read();
+                RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
 
-            listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours));
+                RequestHistory.Read();
+                SongBlacklist.Read();
 
-            UpdateRequestButton();
-            InitializeCommands();
+                listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours));
 
-            RunStartupScripts();
+                UpdateRequestButton();
+                InitializeCommands();
 
-            StartCoroutine(ProcessRequestQueue());
-            StartCoroutine(ProcessBlacklistRequests());
+                RunStartupScripts();
 
+                StartCoroutine(ProcessRequestQueue());
+                StartCoroutine(ProcessBlacklistRequests());
 
+            }
+             catch (Exception ex)
+            {
+                // Display failure message, and lock out command for a time period. Not yet.
+
+                Plugin.Log("XXX"+ex.ToString());
+            }
         }
 
 
@@ -669,7 +688,7 @@ namespace EnhancedTwitchChat.Bot
             ProcessSongRequest(requestor, request, CmdFlags.MoveToTop, "ATT"); 
             }
 
-        private void ProcessSongRequest(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
+        private  void ProcessSongRequest(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
         {
             try
             {

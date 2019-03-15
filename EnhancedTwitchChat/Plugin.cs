@@ -41,6 +41,12 @@ namespace EnhancedTwitchChat
             SharedCoroutineStarter.instance.StartCoroutine(DelayedStartup());
         }
 
+        #if OLDVERSION
+        static string menucore = "Menu";
+        #else
+        static string menucore = "MenuCore";
+        #endif
+
         private IEnumerator DelayedStartup()
         {
             yield return new WaitForSeconds(0.5f);
@@ -51,19 +57,19 @@ namespace EnhancedTwitchChat
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
 
-            yield return new WaitUntil(() => SceneManager.GetActiveScene().name == "MenuCore");
+            yield return new WaitUntil(() => SceneManager.GetActiveScene().name == menucore);
             if(Config.Instance.TwitchChannelName == String.Empty)
                 yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { Config.Instance.TwitchChannelName = channelName; Config.Instance.Save(true); }));
         }
         
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
-            if (arg0.name == "MenuCore")
+            if (arg0.name == menucore)
             {
                 Settings.OnLoad();
-            #if REQUEST_BOT
+#if REQUEST_BOT
                 RequestBot.OnLoad();
-            #endif
+#endif
             }
         }
 
@@ -77,9 +83,9 @@ namespace EnhancedTwitchChat
         {
 
             Resources.FindObjectsOfTypeAll<TMP_FontAsset>().ToList().ForEach(a => Log($"Font: {a.name}"));
-            if (from.name == "EmptyTransition" && to.name == "MenuCore")
+            if (from.name == "EmptyTransition"  && to.name == menucore)
                 Config.Save(true);
-            if (to.name == "MenuCore")
+            if (to.name == menucore)
                 IsAtMainMenu = true;
             else if (to.name == "GameCore")
                 IsAtMainMenu = false;

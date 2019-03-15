@@ -55,9 +55,8 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("unmap", Unmap, Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversongversion);
 
-            //AddCommand(new string[] { "lookup", "find" }, lookup, Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
-
-            new COMMAND (new string[] { "lookup", "find" }).Func(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
+        
+            new COMMAND (new string[] { "lookup", "find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the bottom of the request queue.", _atleast1);
 
@@ -102,18 +101,17 @@ namespace EnhancedTwitchChat.Bot
 
             // These are future features
 
-            //AddCommand("who"); 
-            //AddCommand("alias"); // Create a command alias)
             //AddCommand("/at"); // Scehdule at a certain time (command property)
 
-            new COMMAND("who"); // Who requested a song (both in queue and in history)
-            new COMMAND("alias"); // Create a command alias)
+            new COMMAND("every").Help(Broadcasteronly, "Run a command at a certain time", _atleast1); // BUG: No action
+            new COMMAND("at").Help(Broadcasteronly, "Run a command at a certain time.", _atleast1); // BUG: No action
+            new COMMAND("in").Help(Broadcasteronly, "Run a command at a certain time.", _atleast1); // BUG: No action
+            new COMMAND("alias").Help(Broadcasteronly, "usage: %alias %|% Create a command alias, short cuts version a commands. Single line only. Supports %variables% (processed at execution time), parameters are appended.", _atleast1); // BUG: No action
+
+
+            new COMMAND("who").Action(Who).Help(Mod, "usage: %alias% <songid or name>%|%Find out who requested the song in the currently queue or recent history.",_atleast1) ; 
             new COMMAND("songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|%Assign a message to the song",_atleast1); 
             new COMMAND("detail"); // Get song details
-
-
-
-            new COMMAND("couroutine").Func(addsongsFromnewest);
 
             COMMAND.InitializeCommands();
 
@@ -122,8 +120,9 @@ namespace EnhancedTwitchChat.Bot
 
             // Temporary commands for testing, most of these will be unified in a general list/parameter interface
 
-            AddCommand(new string[] { "addnew", "addlatest" }, addNewSongs, Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing); // BUG: Note, need something to get the one of the true commands referenced, incases its renamed
-            AddCommand("addsongs", addSongs, Broadcasteronly); // Basically search all, need to decide if its useful
+            new COMMAND(new string[] { "addnew", "addlatest" }).Coroutine(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
+
+            new COMMAND("addsongs").Coroutine(addsongs).Help(Broadcasteronly, "usage: %alias%%|% Add all songs matching a criteria (up to 40) to the queue", _atleast1);
 
             AddCommand("openlist", OpenList);
             AddCommand("unload", UnloadList);
@@ -142,43 +141,76 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("loaddecks", loaddecks);
             AddCommand("decklist", decklist, Mod, "usage: %alias", _deck);
             AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
-            AddCommand("mapper", addsongsbymapper, Broadcasteronly, "usage: %alias%<mapperlist>"); // This is actually most useful if we send it straight to list
 
-
-
-            //AddCommand("test", LookupSongs);
+            new COMMAND("mapper").Coroutine(addsongsBymapper).Help(Broadcasteronly, "usage: %alias%<mapperlist>");
 #endif
         }
+
     
-        public void SongMsg(COMMAND cmd, TwitchUser requestor, string request,CmdFlags flags,string info)
-        {
-            try
+       // return a songrequest match in a SongRequest list. Good for scanning Queue or History
+       SongRequest FindMatch(List <SongRequest> queue,string request)
             {
-                string[] parts  =request.Split(new char[] { ' ', ',' }, 2);
-                var songId = GetBeatSaverId(parts[0]);
-                for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
+            var songId = GetBeatSaverId(request);
+            foreach (var entry in queue)
+            {
+                var song = entry.song;
+
+                if (songId == "")
                 {
-                    int dequeueSong = -1;
-                    var song = RequestQueue.Songs[i].song;
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, entry.requestor.displayName };
 
-                    if (song["id"].Value == songId) dequeueSong = i;
-          
-                    if (dequeueSong>=0)
-                    {
-                        RequestQueue.Songs[i].requestInfo = parts[1];   
-                        QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
-                        return;
-                    }
+                    if (DoesContainTerms(request, ref terms)) return entry;
                 }
-                QueueChatMessage($"Unable to find {songId}");
-
-
+                else
+                {
+                    if (song["id"].Value == songId) return entry;
+                }
             }
-            catch   
+
+            return null;
+        }
+
+        public string Who(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
             {
 
-            }
+            SongRequest result = null;
+            result = FindMatch(RequestQueue.Songs, request);
+            if (result == null) result=FindMatch(RequestHistory.Songs, request);
+
+            if (result!=null) QueueChatMessage($"{result.song["songName"].Value} requested by {result.requestor.displayName}.");
+            return empty;
         }
+    
+        public string SongMsg(COMMAND cmd, TwitchUser requestor, string request,CmdFlags flags,string info)
+        {
+            string[] parts  =request.Split(new char[] { ' ', ',' }, 2);
+            var songId = GetBeatSaverId(parts[0]);
+            if (songId=="")
+                {
+                QueueChatMessage($"Usage: ... <songid>");
+                return empty;  
+                }
+            foreach (var entry in RequestQueue.Songs)
+            {
+                var song = entry.song;
+
+                if (song["id"].Value == songId)
+                    {
+                    entry.requestInfo = parts[1];   
+                    //QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
+                    return empty;
+                    }
+            }
+            QueueChatMessage($"Unable to find {songId}");
+
+            return empty;
+        }
+
+
+        public void Alias(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
+            {
+            
+            }
 
 
         public partial class COMMAND
@@ -188,7 +220,7 @@ namespace EnhancedTwitchChat.Bot
 
             private Action<TwitchUser, string> Method = null;  // Method to call
             private Action<TwitchUser, string, CmdFlags, string> Method2 = null; // Alternate method
-            private Action<COMMAND, TwitchUser, string, CmdFlags, string> Method3 = null; // Prefered method
+            private Func<COMMAND, TwitchUser, string, CmdFlags, string,string> Method3 = null; // Prefered method, returns the error msg as a string.
             private Func<TwitchUser,string,IEnumerator> func1=null;
 
             public CmdFlags Flags = Broadcasteronly;          // flags
@@ -272,7 +304,7 @@ namespace EnhancedTwitchChat.Bot
                 return this;
                 }
 
-            public COMMAND Action(Action<COMMAND, TwitchUser, string, CmdFlags, string> action)
+            public COMMAND Action(Func<COMMAND, TwitchUser, string, CmdFlags, string,string> action)
                 {
                 Method3 = action;       
                 return this;
@@ -290,7 +322,7 @@ namespace EnhancedTwitchChat.Bot
                 return this;
                 }
 
-            public COMMAND Func( Func <TwitchUser,string,IEnumerator> action)
+            public COMMAND Coroutine( Func <TwitchUser,string,IEnumerator> action)
             {
                 func1 = action;
                 return this;
