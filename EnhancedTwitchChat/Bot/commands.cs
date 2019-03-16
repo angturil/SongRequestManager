@@ -84,7 +84,7 @@ namespace EnhancedTwitchChat.Bot
         const CmdFlags VIP = Default | CmdFlags.VIP;
         const CmdFlags Help = CmdFlags.BypassRights;
         const CmdFlags Silent = CmdFlags.Silent;
-        const CmdFlags Subcmd = CmdFlags.Subcommand;
+        const CmdFlags Subcmd = CmdFlags.Subcommand | Broadcasteronly;
 
         #endregion
 
@@ -227,100 +227,170 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
 
             new COMMAND("mapper").Coroutine(addsongsBymapper).Help(Broadcasteronly, "usage: %alias%<mapperlist>");
+
 #endif
-        }
 
-    
-       // return a songrequest match in a SongRequest list. Good for scanning Queue or History
-       SongRequest FindMatch(List <SongRequest> queue,string request)
-            {
-            var songId = GetBeatSaverId(request);
-            foreach (var entry in queue)
-            {
-                var song = entry.song;
 
-                if (songId == "")
-                {
-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, entry.requestor.displayName };
+            // BEGIN SUBCOMMANDS - these modify the Properties of a command, or the current parse state. 
 
-                    if (DoesContainTerms(request, ref terms)) return entry;
-                }
-                else
-                {
-                    if (song["id"].Value == songId) return entry;
-                }
-            }
+            new COMMAND("/enable").Action(SubcmdEnable).Help(Subcmd, "usage: <command>/enable");
+            new COMMAND("/disable").Action(SubcmdDisable).Help(Subcmd, "usage: <command>/disable");
+            new COMMAND("/current").Action(SubcmdCurrentSong).Help(Subcmd | Everyone, "usage: <command>/current");
+            new COMMAND("/last").Action(SubcmdPreviousSong).Help(Subcmd | Everyone, "usage: <command>/last");
+            new COMMAND("/next").Action(SubcmdNextSong).Help(Subcmd | Everyone, "usage: <command>/next");
 
-            return null;
-        }
+            new COMMAND("/flags").Action(SubcmdShowflags).Help(Subcmd, "usage: <command>/next");
+            new COMMAND("/set").Action(SubcmdSetflags).Help(Subcmd, "usage: <command>/set");
+            new COMMAND("/clear").Action(SubcmdClearflags).Help(Subcmd, "usage: <command>/clear");
 
-        public string Who(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
-            {
+            new COMMAND("/allow").Action(SubcmdAllow).Help(Subcmd, "usage: <command>/allow");
+            new COMMAND("/helpmsg").Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/helpmsg");
+            new COMMAND("/silent").Action(SubcmdSilent).Help(Subcmd | Everyone, "usage: <command>/silent");
 
-            SongRequest result = null;
-            result = FindMatch(RequestQueue.Songs, request);
-            if (result == null) result=FindMatch(RequestHistory.Songs, request);
 
-            if (result!=null) QueueChatMessage($"{result.song["songName"].Value} requested by {result.requestor.displayName}.");
-            return empty;
-        }
-    
-        public string SongMsg(COMMAND cmd, TwitchUser requestor, string request,CmdFlags flags,string info)
-        {
-            string[] parts  =request.Split(new char[] { ' ', ',' }, 2);
-            var songId = GetBeatSaverId(parts[0]);
-            if (songId=="")
-                {
-                QueueChatMessage($"Usage: ... <songid>");
-                return empty;  
-                }
-            foreach (var entry in RequestQueue.Songs)
-            {
-                var song = entry.song;
-
-                if (song["id"].Value == songId)
-                    {
-                    entry.requestInfo = parts[1];   
-                    //QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
-                    return empty;
-                    }
-            }
-            QueueChatMessage($"Unable to find {songId}");
-
-            return empty;
         }
 
 
         public void Alias(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
+        {
+
+        }
+
+        #region Subcommands
+        public string SubcmdEnable(ParseState state)
+        {
+            state.botcmd.Flags &= ~CmdFlags.Disabled;
+            Instance?.QueueChatMessage($"{state.command} Enabled.");
+            return "X";
+        }
+
+        public string SubcmdDisable(ParseState state)
+        {
+            state.botcmd.Flags |= CmdFlags.Disabled;
+            Instance?.QueueChatMessage($"{state.command} Disabled.");
+            return "X";
+        }
+
+        public string SubcmdCurrentSong(ParseState state)
             {
-            
+            try
+            {
+            state.parameter += RequestHistory.Songs[0].song["version"];
+            return empty;
+            }
+            catch
+            {
+            // Being lazy, incase RequestHistory access failure.
             }
 
-        // Subcommand prototype
-        public string Subcommand(ParseState state) 
-           {
-            //Instance?.QueueChatMessage($"{request} Enabled.");
-            //botcmd.rights &= ~CmdFlags.Disabled;
-            //NewCommands[command] = botcmd;
+        return state.error($"Theree is no current song available");
+        }
 
-            //cmd.Flags &= ~CmdFlags.Disabled;
+        public string SubcmdPreviousSong(ParseState state)
+        {
+            try
+            {
+                state.parameter += RequestHistory.Songs[1].song["version"];
+                return empty;
+            }
+            catch
+            {
+                // Being lazy, incase RequestHistory access failure.
+            }
 
-            //return request;
+            return state.error($"Theree is no previous song available");
+        }
+
+        public string SubcmdNextSong(ParseState state)
+        {
+            try
+            {
+                state.parameter += RequestQueue.Songs[0].song["version"];
+                return empty;
+            }
+            catch
+            {
+                // Being lazy, incase RequestHistory access failure.
+            }
+
+            return state.error($"There are no songs in the queue.");
+        }
+
+
+        public string SubcmdShowflags(ParseState state)
+            {
+            Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
+            return "X";
+            }
+
+        public string SubcmdSetflags(ParseState state)
+            {
+            string[] flags = state.parameter.Split(new char[] { ' ', ',' });
+
+            CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), state.parameter);
+
+            state.botcmd.Flags |= flag;
+
+            Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
+
+            return "X";
+            }
+
+        public string SubcmdClearflags(ParseState state)
+        {
+            string[] flags = state.parameter.Split(new char[] { ' ', ',' });
+
+            CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), state.parameter);
+
+            state.botcmd.Flags &= ~flag;
+
+            Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
+
+            return "X";
+        }
+
+
+        public string SubcmdAllow(ParseState state)
+            { 
+            // BUG: No parameter checking
+            string key = state.parameter.ToLower();
+            state.botcmd.permittedusers = key;
+            Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
+            return "X";
+            }
+
+        public string SubcmdSethelp(ParseState state)
+            {
+            state.botcmd.ShortHelp = state.parameter;
+            Instance?.QueueChatMessage($"{state.command} help: {state.parameter}");
+            return "X";
+            }
+
+
+        public string SubcmdSilent(ParseState state)
+            {
+            state.flags |= CmdFlags.Silent;
             return "";
-           }
+            }
 
 
 
+        #endregion
+
+
+        #region COMMAND Class
         public partial class COMMAND
         {
             //public static List<COMMAND> cmdlist = new List<COMMAND>(); // Collection of our command objects
             public static Dictionary<string, COMMAND> aliaslist = new Dictionary<string, COMMAND>();
-            public static Dictionary<string, COMMAND> subcommands = new Dictionary<string, COMMAND>();
+            //public static Dictionary<string, COMMAND> subcommands = new Dictionary<string, COMMAND>();
 
             private Action<TwitchUser, string> Method = null;  // Method to call
             private Action<TwitchUser, string, CmdFlags, string> Method2 = null; // Alternate method
-            private Func<COMMAND, TwitchUser, string, CmdFlags, string,string> Method3 = null; // Prefered method, returns the error msg as a string.
-            private Func<TwitchUser,string,IEnumerator> func1=null;
+            private Func<COMMAND, TwitchUser, string, CmdFlags, string, string> Method3 = null; // Prefered method, returns the error msg as a string.
+            private Func<TwitchUser, string, IEnumerator> func1 = null;
+
+            public Func<ParseState,string> subcommand = null;
 
             public CmdFlags Flags = Broadcasteronly;          // flags
             public string ShortHelp = "";                   // short help text (on failing preliminary check
@@ -358,18 +428,20 @@ namespace EnhancedTwitchChat.Bot
             }
 
             COMMAND AddAliases()
-                {
+            {
 
                 foreach (var entry in aliases)
                 {
                     var cmdname = entry;
                     if (entry.Length == 0) continue; // Make sure we don't get a blank command
-                    cmdname = (entry[0] =='.') ? entry.Substring(1) : '!' + entry;
+                    cmdname = (entry[0] == '.') ? entry.Substring(1) : '!' + entry;
+                    if (entry[0] == '/') cmdname = entry;
                     if (!aliaslist.ContainsKey(cmdname)) aliaslist.Add(cmdname, this);
                 }
                 return this;
-                }
+            }
 
+            
             public COMMAND(string alias)
                 {
                 aliases = new List<string>();
@@ -386,6 +458,13 @@ namespace EnhancedTwitchChat.Bot
                 }
                 AddAliases();
             }
+
+            public COMMAND Action(Func<ParseState,string> action)
+            {
+                subcommand = action;
+                return this;
+            }
+
 
             public COMMAND Help(CmdFlags flags=Broadcasteronly, string ShortHelp="", Regex regexfilter=null)
             {
@@ -433,13 +512,12 @@ namespace EnhancedTwitchChat.Bot
                 if (!Instance || request.Length==0) return;
 
                 // This will be used for all parsing type operations, allowing subcommands efficient access to parse state logic
-                ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();
-            
+                ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();            
 
             }
 
-
         }
+        #endregion
 
 
         public class ParseState
@@ -452,7 +530,7 @@ namespace EnhancedTwitchChat.Bot
             public string command =null;
             public string parameter = "";
 
-            public COMMAND cmd =null;
+            public COMMAND botcmd =null;
 
             public ParseState(ref TwitchUser user, ref string request, CmdFlags flags, ref string info)
                 {
@@ -462,16 +540,62 @@ namespace EnhancedTwitchChat.Bot
                 this.info=info;
                 }
 
-            public static void ExecuteCommand(string command, ref TwitchUser user, string param, CmdFlags commandflags = 0, string info = "")
+            public string ExecuteSubcommand() // BUG: Only one supported for now (till I finalize the parse logic) ,we'll make it all work eventually
+                {
+                int commandstart = 0;
+                int parameterstart = 0;
+
+
+                while (parameterstart < parameter.Length && ((parameter[parameterstart] < '0' || parameter[parameterstart] > '9')  && parameter[parameterstart] != ' ')) parameterstart++;  // Command name ends with #... for now, I'll clean up some more later           
+                int commandlength = parameterstart - commandstart;
+                while (parameterstart < parameter.Length && parameter[parameterstart] == ' ') parameterstart++; // Eat the space(s) if that's the separator after the command
+                if (commandlength == 0) return "";
+
+                string subcommand = parameter.Substring(commandstart, commandlength).ToLower();
+
+
+                COMMAND subcmd;
+                if (!COMMAND.aliaslist.TryGetValue(subcommand, out subcmd)) return "";
+
+                // BUG: Need to check subcmd permissions here.     
+
+                if (!HasRights(ref subcmd, ref user)) return error($"No permission to use {subcommand}");
+
+                parameter = parameter.Substring(parameterstart);
+
+                try
+                {
+                    return subcmd.subcommand(this);                        
+                }
+                catch (Exception ex)
+                {
+                    // Display failure message, and lock out command for a time period. Not yet.
+
+                    Plugin.Log(ex.ToString());
+
+                }
+
+
+                return "";
+                }
+
+            
+           public string msg(string Message)
+                {
+                Instance.QueueChatMessage(Message);
+                return "";
+                }
+
+            public string error(string Error)
+                {
+                return Error;
+                }
+
+
+            static string done = "X";
+            public void ExecuteCommand()
             {
-                COMMAND botcmd;
-
-
-                //if (!NewCommands.TryGetValue(command, out botcmd)) return; // Unknown command
-
                 if (!COMMAND.aliaslist.TryGetValue(command, out botcmd)) return; // Unknown command
-
-                // BUG: This is prototype code, it will of course be replaced. This message will be removed when its no longer prototype code
 
                 // Permissions for these sub commands will always be by Broadcaster,or the (BUG: Future feature) user list of the EnhancedTwitchBot command. Note command behaviour that alters with permission should treat userlist as an escalation to Broadcaster.
                 // Since these are never meant for an end user, they are not going to be configurable.
@@ -480,126 +604,15 @@ namespace EnhancedTwitchChat.Bot
                 //          !decklist/setflags SUB
                 //          !lookup/sethelp usage: %alias%<song name or id>
                 //
-                // Coming soon: Subcommands are commands too.
 
-
-                string[] parts = { };
-                string subcommand = "";
-
-                if (param.StartsWith("/"))
-                {
-                    parts = param.Split(new char[] { ' ', ',' }, 2);
-                    subcommand = parts[0].ToLower();
-                }
-
-                // CLEAN SUBCOMMANDS ARE COMING, they'll work with the general command processor, user rights and help
-
-                if (user.isBroadcaster && subcommand.Length > 0)
-                {
-
-                    if (subcommand.StartsWith("/allow")) // 
+                string errormsg=ExecuteSubcommand();
+                if (errormsg != empty)
                     {
-                        if (parts.Length > 1)
-                        {
-                            string key = parts[1].ToLower();
+                    if (errormsg==done) return;
 
-                            botcmd.permittedusers = key;
-                            Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
-                        }
-
-                        return;
+                    ShowHelpMessage(ref botcmd, ref user, parameter, false);
+                    return;
                     }
-
-                    if (subcommand.StartsWith("/disable")) // 
-                    {
-                        Instance?.QueueChatMessage($"{command} Disabled.");
-
-                        botcmd.Flags |= CmdFlags.Disabled;
-
-                        //botcmd.rights |= CmdFlags.Disabled;
-                        //NewCommands[command] = botcmd;
-                        return;
-                    }
-
-                    if (subcommand.StartsWith("/enable")) // 
-                    {
-
-                        Instance?.QueueChatMessage($"{command} Enabled.");
-                        //botcmd.rights &= ~CmdFlags.Disabled;
-                        //NewCommands[command] = botcmd;
-
-                        botcmd.Flags &= ~CmdFlags.Disabled;
-
-                        return;
-                    }
-
-
-                    if (subcommand.StartsWith("/sethelp")) // 
-                    {
-                        if (parts.Length > 1)
-                        {
-                            botcmd.ShortHelp = parts[1];
-
-                            Instance?.QueueChatMessage($"{command} help: {parts[1]}");
-                        }
-
-                        return;
-                    }
-
-                    if (subcommand.StartsWith("/flags")) // 
-                    {
-                        Instance?.QueueChatMessage($"{command} flags: {botcmd.Flags.ToString()}");
-                        return;
-                    }
-
-                    if (subcommand.StartsWith("/set")) // 
-                    {
-                        if (parts.Length > 1)
-                        {
-                            string[] flags = parts[1].Split(new char[] { ' ', ',' });
-
-                            CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), parts[1]);
-
-                            botcmd.Flags |= flag;
-
-                            Instance?.QueueChatMessage($"{command} flags: {botcmd.Flags.ToString()}");
-                        }
-                        return;
-                    }
-
-                    if (subcommand.StartsWith("/clear")) // 
-                    {
-                        if (parts.Length > 1)
-                        {
-                            string[] flags = parts[1].Split(new char[] { ' ', ',' });
-
-                            CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), parts[1]);
-
-                            botcmd.Flags &= ~flag;
-
-                            Instance?.QueueChatMessage($"{command} flags: {botcmd.Flags.ToString()}");
-                        }
-                        return;
-                    }
-
-
-                    if (subcommand.StartsWith("/silent"))
-                    {
-                        // BUG: Making the output silent doesn't work yet.
-
-                        param = parts[1]; // Eat the switch, allowing the command to continue
-                    }
-
-                    if (subcommand.StartsWith("/test"))
-                    {
-                        // BUG: Making the output silent doesn't work yet.
-
-                        //cmdlist[botindex].Method = cmdlist[botindex].TestList;
-                        param = parts[1]; // Eat the switch, allowing the command to continue
-                    }
-
-
-                }
 
                 if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
 
@@ -614,53 +627,29 @@ namespace EnhancedTwitchChat.Bot
                     return;
                 }
 
-                if (param == "?") // Handle per command help requests - If permitted.
+                if (parameter == "?") // Handle per command help requests - If permitted.
                 {
-                    ShowHelpMessage(ref botcmd, ref user, param, true);
+                    ShowHelpMessage(ref botcmd, ref user, parameter, true);
                     return;
-                }
-
-
-                // Command local switches. These must be run before regex to avoid having to check for all of them.
-                try
-                {
-                    if (subcommand.StartsWith("/current"))
-                    {
-                        param = RequestHistory.Songs[0].song["version"];
-                    }
-                    else if (subcommand.StartsWith("/prev"))
-                    {
-                        param = RequestHistory.Songs[1].song["version"];
-                    }
-                }
-                catch
-                {
-                    RequestBot.Instance.QueueChatMessage($"There is no {subcommand} song available.");
-                    return;
-
                 }
 
                 // Check regex
 
-                if (!botcmd.regexfilter.IsMatch(param))
+                if (!botcmd.regexfilter.IsMatch(parameter))
                 {
-                    ShowHelpMessage(ref botcmd, ref user, param, false);
+                    ShowHelpMessage(ref botcmd, ref user, parameter, false);
                     return;
                 }
 
-
                 try
                 {
-                    botcmd.Execute(ref user, ref param, commandflags, ref info); // Call the command
+                    botcmd.Execute(ref user, ref parameter, flags, ref info); // Call the command
                 }
                 catch (Exception ex)
                 {
                     // Display failure message, and lock out command for a time period. Not yet.
-
                     Plugin.Log(ex.ToString());
-
                 }
-
             }
 
 
@@ -688,7 +677,7 @@ namespace EnhancedTwitchChat.Bot
 
                     try
                     {
-                        ExecuteCommand(command, ref user, parameter, flags, info);
+                        ExecuteCommand();
                     }
                     catch (Exception ex)
                     {
@@ -709,13 +698,13 @@ namespace EnhancedTwitchChat.Bot
 
         // BUG: These are all the same. This interface needs more cleanup.
 
-        public void AddCommand(string[] alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
+        public void AddCommand(string[] alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias%] ... Rights: %rights%", Regex regex = null)
         {
             new COMMAND(alias).Action(method).Help(flags, shorthelptext, regex);
 
         }
 
-        public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias] ... Rights: %rights", Regex regex = null)
+        public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias%] ... Rights: %rights%", Regex regex = null)
         {
             new COMMAND(alias).Action(method).Help(flags, shorthelptext, regex);
         }
@@ -743,7 +732,7 @@ namespace EnhancedTwitchChat.Bot
                 foreach (var entry in COMMAND.aliaslist)
                 {
                     var botcmd = entry.Value;
-                    if (HasRights(ref botcmd, ref requestor))
+                    if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Subcmd))
                         msg.Add($"{entry.Key.Substring(1)}", " "); // BUG: Removes the built in ! in the commands. 
                 }
                 msg.Add(">");

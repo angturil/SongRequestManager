@@ -93,7 +93,7 @@ namespace EnhancedTwitchChat
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
         public bool ShowStarRating = true; // Show star rating (quality, not difficulty) on songs being requested *IMPLEMENTED*, needs UI
 
-        public int MaxiumAddScanRange = 80; // How far down the list to scan , currently in use by unpublished commands
+        public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
         public int maxaddnewresults = 5;  // Max results per command,mainly to avoid overwhelming the queue *needs UI*
 
         public event Action<Config> ConfigChangedEvent;
