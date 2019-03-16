@@ -513,8 +513,8 @@ namespace EnhancedTwitchChat.Bot
 
             foreach (var entry in COMMAND.aliaslist)
             {
-                var botcmd = COMMAND.cmdlist[entry.Value];
-                if (HasRights(ref botcmd, ref requestor)) msg.Add($"!{entry.Key}", " "); // Only show commands you're allowed to use
+                var botcmd = entry.Value;
+                if (HasRights(ref botcmd, ref requestor)) msg.Add($"{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
         }
