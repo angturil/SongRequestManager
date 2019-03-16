@@ -145,10 +145,11 @@ namespace EnhancedTwitchChat.Bot
             TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
             if (PlayedAge < TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
 
-            RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
 
+            RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
             RequestHistory.Read();
             SongBlacklist.Read();
+
 
             listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours));
 

@@ -49,7 +49,15 @@ namespace EnhancedTwitchChat.Bot
         private static string requestsPath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "SongRequestQueue.json");
         public static void Read()
         {
+            try
+            {
             Songs = RequestManager.Read(requestsPath);
+            }
+        catch       
+            {
+            RequestBot.Instance.QueueChatMessage("There was an error reading the request queue.");
+            }
+
         }
 
         public static void Write()
@@ -64,7 +72,15 @@ namespace EnhancedTwitchChat.Bot
         private static string historyPath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "SongRequestHistory.json");
         public static void Read()
         {
+            try
+            {
             Songs = RequestManager.Read(historyPath);
+            }
+            catch
+            {
+                RequestBot.Instance.QueueChatMessage("There was an error reading the request history.");
+            }
+
         }
 
         public static void Write()
@@ -79,7 +95,17 @@ namespace EnhancedTwitchChat.Bot
         private static string blacklistPath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "SongBlacklist.json");
         public static void Read()
         {
+        try
+            {
+
             Songs = RequestManager.Read(blacklistPath).ToDictionary(e => e.song["id"].Value);
+            }
+         catch
+            {
+                RequestBot.Instance.QueueChatMessage("There was an error reading the ban list. You may need to restore this file from a backup." );
+                throw;
+            }
+
         }
 
         public static void Write()
