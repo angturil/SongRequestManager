@@ -36,7 +36,9 @@ namespace EnhancedTwitchChat.Bot
 
         public static string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
 
-        public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
+        public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>";
+
+        //public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
 
         public static string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
 
@@ -437,9 +439,68 @@ namespace EnhancedTwitchChat.Bot
             return false;
         }
 
+        // return a songrequest match in a SongRequest list. Good for scanning Queue or History
+        SongRequest FindMatch(List<SongRequest> queue, string request)
+        {
+            var songId = GetBeatSaverId(request);
+            foreach (var entry in queue)
+            {
+                var song = entry.song;
+
+                if (songId == "")
+                {
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, entry.requestor.displayName };
+
+                    if (DoesContainTerms(request, ref terms)) return entry;
+                }
+                else
+                {
+                    if (song["id"].Value == songId) return entry;
+                }
+            }
+
+            return null;
+        }
+
+        public string Who(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
+        {
+
+            SongRequest result = null;
+            result = FindMatch(RequestQueue.Songs, request);
+            if (result == null) result = FindMatch(RequestHistory.Songs, request);
+
+            if (result != null) QueueChatMessage($"{result.song["songName"].Value} requested by {result.requestor.displayName}.");
+            return empty;
+        }
+
+        public string SongMsg(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
+        {
+            string[] parts = request.Split(new char[] { ' ', ',' }, 2);
+            var songId = GetBeatSaverId(parts[0]);
+            if (songId == "")
+            {
+                QueueChatMessage($"Usage: ... <songid>");
+                return empty;
+            }
+            foreach (var entry in RequestQueue.Songs)
+            {
+                var song = entry.song;
+
+                if (song["id"].Value == songId)
+                {
+                    entry.requestInfo = parts[1];
+                    //QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
+                    return empty;
+                }
+            }
+            QueueChatMessage($"Unable to find {songId}");
+
+            return empty;
+        }
 
 
-#region Move Request To Top/Bottom
+
+        #region Move Request To Top/Bottom
 
         private void MoveRequestToTop(TwitchUser requestor, string request)
         {
@@ -511,8 +572,8 @@ namespace EnhancedTwitchChat.Bot
 
             foreach (var entry in COMMAND.aliaslist)
             {
-                var botcmd = COMMAND.cmdlist[entry.Value];
-                if (HasRights(ref botcmd, ref requestor)) msg.Add($"!{entry.Key}", " "); // Only show commands you're allowed to use
+                var botcmd = entry.Value;
+                if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Subcmd)) msg.Add($"{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
         }

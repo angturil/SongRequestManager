@@ -19,6 +19,11 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+
+#if OLDVERSION
+using TMPro;
+#endif
+
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
@@ -41,74 +46,6 @@ namespace EnhancedTwitchChat.Bot
             Played
         }
 
-        [Flags]
-        public enum CmdFlags
-        {
-            None = 0,
-            Everyone = 1, // Im
-            Sub = 2,
-            Mod = 4,
-            Broadcaster = 8,
-            VIP = 16,
-            UserList = 32,  // If this is enabled, users on a list are allowed to use a command (this is an OR, so leave restrictions to Broadcaster if you want ONLY users on a list)
-            TwitchLevel = 63, // This is used to show ONLY the twitch user flags when showing permissions
-
-            ShowRestrictions = 64, // Using the command without the right access level will show permissions error. Mostly used for commands that can be unlocked at different tiers.
-
-            BypassRights = 128, // Bypass right check on command, allowing error messages, and a later code based check. Often used for help only commands. 
-            QuietFail = 256, // Return no results on failed preflight checks.
-
-            HelpLink = 512, // Enable link to web documentation
-
-            WhisperReply = 1024, // Reply in a whisper to the user (future feature?). Allow commands to send the results to the user, avoiding channel spam
-
-            Timeout = 2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
-            TimeoutSub = 4096, // Applies a timeout to Subs
-            TimeoutVIP = 8192, // Applies a timeout to VIP's
-            TimeoutMod = 16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
-
-            NoLinks = 32768, // Turn off any links that the command may normally generate
-            Silent = 65536, // Command produces no output at all - but still executes
-            Verbose = 131072, // Turn off command output limits, This can result in excessive channel spam
-            Log = 262144, // Log every use of the command to a file
-            RegEx = 524288, // Enable regex check
-            UserFlag1 = 1048576, // Use it for whatever bit makes you happy 
-            UserFlag2 = 2097152, // Use it for whatever bit makes you happy 
-            UserFlag3 = 4194304, // Use it for whatever bit makes you happy 
-            UserFlag4 = 8388608, // Use it for whatever bit makes you happy 
-
-            SilentPreflight = 16277216, //  
-
-            MoveToTop = 1 << 25, // Private, used by ATT command. Its possible to have multiple aliases for the same flag
-
-            Disabled = 1 << 30, // If ON, the command will not be added to the alias list at all.
-        }
-
-        const CmdFlags Default = 0;
-        const CmdFlags Everyone = Default | CmdFlags.Everyone;
-        const CmdFlags Broadcasteronly = Default | CmdFlags.Broadcaster;
-        const CmdFlags Mod = Default | CmdFlags.Broadcaster | CmdFlags.Mod;
-        const CmdFlags Sub = Default | CmdFlags.Sub;
-        const CmdFlags VIP = Default | CmdFlags.VIP;
-        const CmdFlags Help = CmdFlags.BypassRights;
-
-
-#region common Regex expressions
-
-        private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
-        private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
-        private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);
-        private static readonly Regex _RemapRegex = new Regex("^[0-9]+,[0-9]+$", RegexOptions.Compiled);
-        private static readonly Regex _beatsaversongversion = new Regex("^[0-9]+$|^[0-9]+-[0-9]+$", RegexOptions.Compiled);
-        private static readonly Regex _nothing = new Regex("$^", RegexOptions.Compiled);
-        private static readonly Regex _anything = new Regex(".*", RegexOptions.Compiled); // Is this the most efficient way?
-        private static readonly Regex _atleast1 = new Regex("..*", RegexOptions.Compiled); // Allow usage message to kick in for blank 
-        private static readonly Regex _fail = new Regex("(?!x)x", RegexOptions.Compiled); // Not sure what the official fastest way to auto-fail a match is, so this will do
-        private static readonly Regex _deck = new Regex("^(current|draw|first|last|random|unload)$|$^", RegexOptions.Compiled); // Checks deck command parameters
-
-        private static readonly Regex _drawcard = new Regex("($^)|(^[0-9]+$|^[0-9]+-[0-9]+$)", RegexOptions.Compiled);
-
-#endregion
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
@@ -161,16 +98,18 @@ namespace EnhancedTwitchChat.Bot
             if (_levelSelectionFlowCoordinator)
                 _levelSelectionNavigationController = _levelSelectionFlowCoordinator.GetPrivateField<DismissableNavigationController>("_navigationController");
 
-            if (_levelSelectionNavigationController)
-            {
-                _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f),
-                    new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
+            
 
-                _requestButton.gameObject.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
-                _requestButton.SetButtonTextSize(2.0f);
-                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
-                Plugin.Log("Created request button!");
-            }
+         if (_levelSelectionNavigationController)
+         {
+             _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f),
+                 new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
+
+             _requestButton.gameObject.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
+             _requestButton.SetButtonTextSize(2.0f);
+             BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
+             Plugin.Log("Created request button!");
+        }
 
             if (_songRequestListViewController == null)
                 _songRequestListViewController = BeatSaberUI.CreateViewController<RequestBotListViewController>();
@@ -180,6 +119,9 @@ namespace EnhancedTwitchChat.Bot
                 _songRequestMenu = BeatSaberUI.CreateCustomMenu<CustomMenu>("Song Request Queue");
                 _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
             }
+
+            
+
 
             SongListUtils.Initialize();
 
@@ -203,10 +145,11 @@ namespace EnhancedTwitchChat.Bot
             TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
             if (PlayedAge < TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
 
-            RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
 
+            RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
             RequestHistory.Read();
             SongBlacklist.Read();
+
 
             listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours));
 
@@ -217,7 +160,6 @@ namespace EnhancedTwitchChat.Bot
 
             StartCoroutine(ProcessRequestQueue());
             StartCoroutine(ProcessBlacklistRequests());
-
 
         }
 
@@ -652,11 +594,6 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private void lookup(TwitchUser requestor, string request)
-        {
-            StartCoroutine(LookupSongs(requestor, request));
-        }
-
         private string GetBeatSaverId(string request)
         {
             if (_digitRegex.IsMatch(request)) return request;
@@ -674,7 +611,7 @@ namespace EnhancedTwitchChat.Bot
             ProcessSongRequest(requestor, request, CmdFlags.MoveToTop, "ATT"); 
             }
 
-        private void ProcessSongRequest(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
+        private  void ProcessSongRequest(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
         {
             try
             {
