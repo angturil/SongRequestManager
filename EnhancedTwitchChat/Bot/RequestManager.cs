@@ -17,7 +17,7 @@ namespace EnhancedTwitchChat.Bot
     {
         public static List<SongRequest> Read(string path)
         {
-             List<SongRequest> songs = new List<SongRequest>();
+            List<SongRequest> songs = new List<SongRequest>();
             if (File.Exists(path))
             {
                 JSONNode json = JSON.Parse(File.ReadAllText(path));
@@ -36,7 +36,7 @@ namespace EnhancedTwitchChat.Bot
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
 
             JSONArray arr = new JSONArray();
-            foreach(SongRequest song in songs)
+            foreach (SongRequest song in songs)
                 arr.Add(song.ToJson());
 
             File.WriteAllText(path, arr.ToString());
@@ -51,11 +51,11 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-            Songs = RequestManager.Read(requestsPath);
+                Songs = RequestManager.Read(requestsPath);
             }
-        catch       
+            catch
             {
-            RequestBot.Instance.QueueChatMessage("There was an error reading the request queue.");
+                RequestBot.Instance.QueueChatMessage("There was an error reading the request queue.");
             }
 
         }
@@ -74,7 +74,7 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-            Songs = RequestManager.Read(historyPath);
+                Songs = RequestManager.Read(historyPath);
             }
             catch
             {
@@ -88,21 +88,21 @@ namespace EnhancedTwitchChat.Bot
             RequestManager.Write(historyPath, ref Songs);
         }
     }
-    
+
     public class SongBlacklist
     {
         public static Dictionary<string, SongRequest> Songs = new Dictionary<string, SongRequest>();
         private static string blacklistPath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "SongBlacklist.json");
         public static void Read()
         {
-        try
+            try
             {
 
-            Songs = RequestManager.Read(blacklistPath).ToDictionary(e => e.song["id"].Value);
+                Songs = RequestManager.Read(blacklistPath).ToDictionary(e => e.song["id"].Value);
             }
-         catch
+            catch
             {
-                RequestBot.Instance.QueueChatMessage("There was an error reading the ban list. You may need to restore this file from a backup." );
+                RequestBot.Instance.QueueChatMessage("There was an error reading the ban list. You may need to restore this file from a backup.");
                 throw;
             }
 

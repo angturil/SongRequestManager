@@ -173,6 +173,12 @@ namespace EnhancedTwitchChat
             if (!Directory.Exists(Path.GetDirectoryName(FilePath)))
                 Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
 
+            string oldFilePath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat.ini");
+            if(File.Exists(oldFilePath) && !File.Exists(filePath))
+            {
+                File.Move(oldFilePath, filePath);
+            }
+
             if (File.Exists(FilePath))
             {
                 Load();
@@ -192,15 +198,15 @@ namespace EnhancedTwitchChat
                     var oldConfig = new OldBlacklistOption();
                     ConfigSerializer.LoadConfig(oldConfig, FilePath);
 
-                    SongBlacklist.ConvertFromList(oldConfig.SongBlacklist.Split(','));
-                    
+                    if(oldConfig.SongBlacklist.Length > 0)
+                        SongBlacklist.ConvertFromList(oldConfig.SongBlacklist.Split(','));
                 }
 #endif
             }
             CorrectConfigSettings();
             Save();
 
-            _configWatcher = new FileSystemWatcher(Path.Combine(Environment.CurrentDirectory, "UserData"))
+            _configWatcher = new FileSystemWatcher(Path.GetDirectoryName(filePath))
             {
                 NotifyFilter = NotifyFilters.LastWrite,
                 Filter = "EnhancedTwitchChat.ini",

@@ -67,7 +67,7 @@ namespace EnhancedTwitchChat.Bot
 
             Silent = SilentCheck | SilentError | SilentResult,
 
-            Subcommand=1<<29, // This is a subcommand, it may only be invoked within a command
+            Subcommand = 1 << 29, // This is a subcommand, it may only be invoked within a command
 
             Disabled = 1 << 30, // If ON, the command will not be added to the alias list at all.
 
@@ -111,17 +111,17 @@ namespace EnhancedTwitchChat.Bot
         private void InitializeCommands()
         {
 
-        /*
-           Prototype of new calling convention for adding new commands.
-          
-            new COMMAND("command").Action(Routine).Help(Broadcasteronly, "usage: %alias", _anything);
-            new COMMAND("command").Action(Routine);
+            /*
+               Prototype of new calling convention for adding new commands.
 
-            Note: Default permissions are broadcaster only, so don't need to set them
+                new COMMAND("command").Action(Routine).Help(Broadcasteronly, "usage: %alias", _anything);
+                new COMMAND("command").Action(Routine);
 
-        */
+                Note: Default permissions are broadcaster only, so don't need to set them
 
-            string [] array= Config.Instance.RequestCommandAliases.Split(',');
+            */
+
+            string[] array = Config.Instance.RequestCommandAliases.Split(',');
 
             new COMMAND(Config.Instance.RequestCommandAliases.Split(',')).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
 
@@ -141,8 +141,8 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("unmap", Unmap, Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversongversion);
 
-        
-            new COMMAND (new string[] { "lookup", "find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
+
+            new COMMAND(new string[] { "lookup", "find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
             AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the bottom of the request queue.", _atleast1);
 
@@ -166,7 +166,7 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("clearalreadyplayed", ClearDuplicateList, Broadcasteronly, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
 
-            AddCommand(new string[] { "help",".help" }, help, Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
+            AddCommand(new string[] { "help", ".help" }, help, Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
 
             AddCommand("link", ShowSongLink, Everyone, "usage: %alias%|%... Shows details, and a link to the current song", _nothing);
 
@@ -272,18 +272,18 @@ namespace EnhancedTwitchChat.Bot
         }
 
         public string SubcmdCurrentSong(ParseState state)
-            {
+        {
             try
             {
-            state.parameter += RequestHistory.Songs[0].song["version"];
-            return empty;
+                state.parameter += RequestHistory.Songs[0].song["version"];
+                return "";
             }
             catch
             {
-            // Being lazy, incase RequestHistory access failure.
+                // Being lazy, incase RequestHistory access failure.
             }
 
-        return state.error($"Theree is no current song available");
+            return state.error($"Theree is no current song available");
         }
 
         public string SubcmdPreviousSong(ParseState state)
@@ -291,7 +291,7 @@ namespace EnhancedTwitchChat.Bot
             try
             {
                 state.parameter += RequestHistory.Songs[1].song["version"];
-                return empty;
+                return "";
             }
             catch
             {
@@ -306,7 +306,7 @@ namespace EnhancedTwitchChat.Bot
             try
             {
                 state.parameter += RequestQueue.Songs[0].song["version"];
-                return empty;
+                return "";
             }
             catch
             {
@@ -318,13 +318,13 @@ namespace EnhancedTwitchChat.Bot
 
 
         public string SubcmdShowflags(ParseState state)
-            {
+        {
             Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
             return "X";
-            }
+        }
 
         public string SubcmdSetflags(ParseState state)
-            {
+        {
             string[] flags = state.parameter.Split(new char[] { ' ', ',' });
 
             CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), state.parameter);
@@ -334,7 +334,7 @@ namespace EnhancedTwitchChat.Bot
             Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
 
             return "X";
-            }
+        }
 
         public string SubcmdClearflags(ParseState state)
         {
@@ -351,27 +351,27 @@ namespace EnhancedTwitchChat.Bot
 
 
         public string SubcmdAllow(ParseState state)
-            { 
+        {
             // BUG: No parameter checking
             string key = state.parameter.ToLower();
             state.botcmd.permittedusers = key;
             Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
             return "X";
-            }
+        }
 
         public string SubcmdSethelp(ParseState state)
-            {
+        {
             state.botcmd.ShortHelp = state.parameter;
             Instance?.QueueChatMessage($"{state.command} help: {state.parameter}");
             return "X";
-            }
+        }
 
 
         public string SubcmdSilent(ParseState state)
-            {
+        {
             state.flags |= CmdFlags.Silent;
             return "";
-            }
+        }
 
 
 
@@ -390,7 +390,7 @@ namespace EnhancedTwitchChat.Bot
             private Func<COMMAND, TwitchUser, string, CmdFlags, string, string> Method3 = null; // Prefered method, returns the error msg as a string.
             private Func<TwitchUser, string, IEnumerator> func1 = null;
 
-            public Func<ParseState,string> subcommand = null;
+            public Func<ParseState, string> subcommand = null;
 
             public CmdFlags Flags = Broadcasteronly;          // flags
             public string ShortHelp = "";                   // short help text (on failing preliminary check
@@ -441,15 +441,15 @@ namespace EnhancedTwitchChat.Bot
                 return this;
             }
 
-            
+
             public COMMAND(string alias)
-                {
+            {
                 aliases = new List<string>();
                 aliases.Add(alias.ToLower());
                 AddAliases();
-                }
+            }
 
-            public COMMAND (string [] alias)
+            public COMMAND(string[] alias)
             {
                 aliases = new List<string>();
                 foreach (var element in alias)
@@ -459,47 +459,47 @@ namespace EnhancedTwitchChat.Bot
                 AddAliases();
             }
 
-            public COMMAND Action(Func<ParseState,string> action)
+            public COMMAND Action(Func<ParseState, string> action)
             {
                 subcommand = action;
                 return this;
             }
 
 
-            public COMMAND Help(CmdFlags flags=Broadcasteronly, string ShortHelp="", Regex regexfilter=null)
+            public COMMAND Help(CmdFlags flags = Broadcasteronly, string ShortHelp = "", Regex regexfilter = null)
             {
                 this.Flags = flags;
                 this.ShortHelp = ShortHelp;
-                this.regexfilter = regexfilter!=null ? regexfilter : _anything ;
-                
+                this.regexfilter = regexfilter != null ? regexfilter : _anything;
+
                 return this;
             }
 
             public COMMAND User(string userstring)
-                {
+            {
                 userParameter = userstring;
                 return this;
-                }
+            }
 
-            public COMMAND Action(Func<COMMAND, TwitchUser, string, CmdFlags, string,string> action)
-                {
-                Method3 = action;       
+            public COMMAND Action(Func<COMMAND, TwitchUser, string, CmdFlags, string, string> action)
+            {
+                Method3 = action;
                 return this;
-                }
+            }
 
             public COMMAND Action(Action<TwitchUser, string, CmdFlags, string> action)
-                {
+            {
                 Method2 = action;
                 return this;
-                }
+            }
 
             public COMMAND Action(Action<TwitchUser, string> action)
-                {
+            {
                 Method = action;
                 return this;
-                }
+            }
 
-            public COMMAND Coroutine( Func <TwitchUser,string,IEnumerator> action)
+            public COMMAND Coroutine(Func<TwitchUser, string, IEnumerator> action)
             {
                 func1 = action;
                 return this;
@@ -509,10 +509,10 @@ namespace EnhancedTwitchChat.Bot
 
             public static void Parse(TwitchUser user, string request, CmdFlags flags = 0, string info = "")
             {
-                if (!Instance || request.Length==0) return;
+                if (!Instance || request.Length == 0) return;
 
                 // This will be used for all parsing type operations, allowing subcommands efficient access to parse state logic
-                ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();            
+                ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();
 
             }
 
@@ -521,32 +521,32 @@ namespace EnhancedTwitchChat.Bot
 
 
         public class ParseState
-            {
+        {
             public TwitchUser user;
             public String request;
             public CmdFlags flags;
             public string info;
 
-            public string command =null;
+            public string command = null;
             public string parameter = "";
 
-            public COMMAND botcmd =null;
+            public COMMAND botcmd = null;
 
             public ParseState(ref TwitchUser user, ref string request, CmdFlags flags, ref string info)
-                {
-                this.user = user ;
-                this.request=request;
-                this.flags=flags;
-                this.info=info;
-                }
+            {
+                this.user = user;
+                this.request = request;
+                this.flags = flags;
+                this.info = info;
+            }
 
             public string ExecuteSubcommand() // BUG: Only one supported for now (till I finalize the parse logic) ,we'll make it all work eventually
-                {
+            {
                 int commandstart = 0;
                 int parameterstart = 0;
 
 
-                while (parameterstart < parameter.Length && ((parameter[parameterstart] < '0' || parameter[parameterstart] > '9')  && parameter[parameterstart] != ' ')) parameterstart++;  // Command name ends with #... for now, I'll clean up some more later           
+                while (parameterstart < parameter.Length && ((parameter[parameterstart] < '0' || parameter[parameterstart] > '9') && parameter[parameterstart] != ' ')) parameterstart++;  // Command name ends with #... for now, I'll clean up some more later           
                 int commandlength = parameterstart - commandstart;
                 while (parameterstart < parameter.Length && parameter[parameterstart] == ' ') parameterstart++; // Eat the space(s) if that's the separator after the command
                 if (commandlength == 0) return "";
@@ -565,7 +565,7 @@ namespace EnhancedTwitchChat.Bot
 
                 try
                 {
-                    return subcmd.subcommand(this);                        
+                    return subcmd.subcommand(this);
                 }
                 catch (Exception ex)
                 {
@@ -577,19 +577,19 @@ namespace EnhancedTwitchChat.Bot
 
 
                 return "";
-                }
+            }
 
-            
-           public string msg(string Message)
-                {
+
+            public string msg(string Message)
+            {
                 Instance.QueueChatMessage(Message);
                 return "";
-                }
+            }
 
             public string error(string Error)
-                {
+            {
                 return Error;
-                }
+            }
 
 
             static string done = "X";
@@ -605,14 +605,14 @@ namespace EnhancedTwitchChat.Bot
                 //          !lookup/sethelp usage: %alias%<song name or id>
                 //
 
-                string errormsg=ExecuteSubcommand();
-                if (errormsg != empty)
-                    {
-                    if (errormsg==done) return;
+                string errormsg = ExecuteSubcommand();
+                if (errormsg != "")
+                {
+                    if (errormsg == done) return;
 
                     ShowHelpMessage(ref botcmd, ref user, parameter, false);
                     return;
-                    }
+                }
 
                 if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
 
@@ -655,7 +655,7 @@ namespace EnhancedTwitchChat.Bot
 
 
             public ParseState ParseCommand()
-                {
+            {
 
                 // Notes for later.
                 //var match = Regex.Match(request, "^!(?<command>[^ ^/]*?<parameter>.*)");
@@ -689,7 +689,7 @@ namespace EnhancedTwitchChat.Bot
 
                 }
 
-            return this;
+                return this;
 
             }
 
@@ -744,9 +744,9 @@ namespace EnhancedTwitchChat.Bot
                 var BotCmd = COMMAND.aliaslist[request.ToLower()];
                 ShowHelpMessage(ref BotCmd, ref requestor, request, true);
             }
-            else if (COMMAND.aliaslist.ContainsKey("!"+request.ToLower())) // BUG: Ugly code, gets help on ! version of command
+            else if (COMMAND.aliaslist.ContainsKey("!" + request.ToLower())) // BUG: Ugly code, gets help on ! version of command
             {
-                var BotCmd = COMMAND.aliaslist["!"+request.ToLower()];
+                var BotCmd = COMMAND.aliaslist["!" + request.ToLower()];
                 ShowHelpMessage(ref BotCmd, ref requestor, request, true);
             }
             else
@@ -768,9 +768,9 @@ namespace EnhancedTwitchChat.Bot
         }
 
         // You can modify commands using !allow !setflags !clearflags and !sethelp
-#endregion
+        #endregion
 
-  
+
 
     }
 }

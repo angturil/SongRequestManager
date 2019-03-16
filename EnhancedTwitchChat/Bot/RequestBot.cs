@@ -7,7 +7,7 @@ using EnhancedTwitchChat.UI;
 using EnhancedTwitchChat.Utils;
 using HMUI;
 using EnhancedTwitchChat.SimpleJSON;
-using SongBrowserPlugin;
+//using SongBrowserPlugin;
 using SongLoaderPlugin;
 using SongLoaderPlugin.OverrideClasses;
 using System;
@@ -31,6 +31,7 @@ using UnityEngine.UI;
 using VRUI;
 using Image = UnityEngine.UI.Image;
 using Toggle = UnityEngine.UI.Toggle;
+using TMPro;
 
 namespace EnhancedTwitchChat.Bot
 {
@@ -98,18 +99,18 @@ namespace EnhancedTwitchChat.Bot
             if (_levelSelectionFlowCoordinator)
                 _levelSelectionNavigationController = _levelSelectionFlowCoordinator.GetPrivateField<DismissableNavigationController>("_navigationController");
 
-            
 
-         if (_levelSelectionNavigationController)
-         {
-             _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f),
-                 new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
 
-             _requestButton.gameObject.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
-             _requestButton.SetButtonTextSize(2.0f);
-             BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
-             Plugin.Log("Created request button!");
-        }
+            if (_levelSelectionNavigationController)
+            {
+                _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f),
+                    new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
+
+                _requestButton.ToggleWordWrapping(false);
+                _requestButton.SetButtonTextSize(2.0f);
+                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
+                Plugin.Log("Created request button!");
+            }
 
             if (_songRequestListViewController == null)
                 _songRequestListViewController = BeatSaberUI.CreateViewController<RequestBotListViewController>();
@@ -120,7 +121,7 @@ namespace EnhancedTwitchChat.Bot
                 _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
             }
 
-            
+
 
 
             SongListUtils.Initialize();
@@ -379,9 +380,9 @@ namespace EnhancedTwitchChat.Bot
 
                 listcollection.add(duplicatelist, song["id"].Value);
                 if ((requestInfo.flags.HasFlag(CmdFlags.MoveToTop)))
-                    RequestQueue.Songs.Insert(0,new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
+                    RequestQueue.Songs.Insert(0, new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
                 else
-                    RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued,requestInfo.requestInfo));
+                    RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
 
                 RequestQueue.Write();
 
@@ -424,7 +425,7 @@ namespace EnhancedTwitchChat.Bot
                 string currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
                 string songHash = request.song["hashMd5"].Value.ToUpper();
 
-            retry:
+                retry:
                 CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
                 if (levels.Length == 0)
                 {
@@ -607,11 +608,11 @@ namespace EnhancedTwitchChat.Bot
 
 
         private void AddToTop(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
-            {
-            ProcessSongRequest(requestor, request, CmdFlags.MoveToTop, "ATT"); 
-            }
+        {
+            ProcessSongRequest(requestor, request, CmdFlags.MoveToTop, "ATT");
+        }
 
-        private  void ProcessSongRequest(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
+        private void ProcessSongRequest(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
         {
             try
             {
@@ -660,7 +661,7 @@ namespace EnhancedTwitchChat.Bot
                     }
                 }
 
-                RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request), flags,info);
+                RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request), flags, info);
 
                 if (!newRequest.isBeatSaverId && request.Length < 3)
                     QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");

@@ -75,12 +75,12 @@ namespace EnhancedTwitchChat.Chat
                 case "bits":
                     twitchMsg.bits = int.Parse(t.Groups["Value"].Value);
                     break;
-                //case "flags":
-                //    twitchMsg.user.flags = t.Groups["Value"].Value;
-                //    break;
-                //case "emotes-only":
-                //    twitchMsg.emotesOnly = t.Groups["Value"].Value == "1";
-                //    break;
+                    //case "flags":
+                    //    twitchMsg.user.flags = t.Groups["Value"].Value;
+                    //    break;
+                    //case "emotes-only":
+                    //    twitchMsg.emotesOnly = t.Groups["Value"].Value == "1";
+                    //    break;
             }
         }
 
@@ -91,10 +91,10 @@ namespace EnhancedTwitchChat.Chat
                 ParseMessageTag(t, ref twitchMsg);
 
             MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMsg.message), twitchMsg));
-        #if REQUEST_BOT
+#if REQUEST_BOT
             if (Config.Instance.SongRequestBot)
                 RequestBot.COMMAND.Parse(twitchMsg.user, twitchMsg.message);
-        #endif
+#endif
         }
 
         public static void JOIN(TwitchMessage twitchMsg, MatchCollection tags)
@@ -131,14 +131,14 @@ namespace EnhancedTwitchChat.Chat
                         break;
                 }
             }
-            switch(msgId)
+            switch (msgId)
             {
                 case "sub":
                 case "resub":
                 case "subgift":
                 case "anonsubgift":
                     MessageParser.Parse(new ChatMessage($"{systemMsg.Substring(systemMsg.IndexOf(" ") + 1).Split(new char[] { '\n' }, 2)[0]}", twitchMsg));
-                    if(twitchMsg.message != String.Empty)
+                    if (twitchMsg.message != String.Empty)
                         MessageParser.Parse(new ChatMessage(twitchMsg.message, twitchMsg));
                     break;
                 case "raid":

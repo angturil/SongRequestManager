@@ -20,7 +20,7 @@ namespace EnhancedTwitchChat.Bot
         public string requestInfo; // Contains extra song info, Like : Sub/Donation request, Deck pick, Empty Queue pick,Mapper request, etc.
 
         public SongRequest() { }
-        public SongRequest(JSONObject song, TwitchUser requestor, DateTime requestTime, RequestStatus status = RequestStatus.Invalid,string requestInfo="")
+        public SongRequest(JSONObject song, TwitchUser requestor, DateTime requestTime, RequestStatus status = RequestStatus.Invalid, string requestInfo = "")
         {
             this.song = song;
             this.requestor = requestor;

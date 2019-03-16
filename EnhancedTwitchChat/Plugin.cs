@@ -23,14 +23,14 @@ namespace EnhancedTwitchChat
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
         public static Plugin Instance { get; private set; }
-        private readonly Config Config = new Config(Path.Combine(Environment.CurrentDirectory, "UserData\\EnhancedTwitchChat.ini"));
+        private readonly Config Config = new Config(Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "EnhancedTwitchChat.ini"));
 
         public static void Log(string text,
                         [CallerFilePath] string file = "",
                         [CallerMemberName] string member = "",
                         [CallerLineNumber] int line = 0)
         {
-            Debug.Log($"[EnhancedTwitchChat] {DateTime.UtcNow} {Path.GetFileName(file)}->{member}({line}): {text}"); // Added time stamp. Might be too verbose
+            Console.WriteLine($"[EnhancedTwitchChat] {DateTime.UtcNow} {Path.GetFileName(file)}->{member}({line}): {text}");
         }
         
         public void OnApplicationStart()
@@ -42,9 +42,9 @@ namespace EnhancedTwitchChat
         }
 
         #if OLDVERSION
-        static string menucore = "Menu";
+        static string MenuSceneName = "Menu";
         #else
-        static string menucore = "MenuCore";
+        static string MenuSceneName = "MenuCore";
         #endif
 
         private IEnumerator DelayedStartup()
@@ -57,14 +57,14 @@ namespace EnhancedTwitchChat
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
 
-            yield return new WaitUntil(() => SceneManager.GetActiveScene().name == menucore);
+            yield return new WaitUntil(() => SceneManager.GetActiveScene().name == MenuSceneName);
             if(Config.Instance.TwitchChannelName == String.Empty)
                 yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { Config.Instance.TwitchChannelName = channelName; Config.Instance.Save(true); }));
         }
         
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
-            if (arg0.name == menucore)
+            if (arg0.name == MenuSceneName)
             {
                 Settings.OnLoad();
 #if REQUEST_BOT
@@ -83,9 +83,9 @@ namespace EnhancedTwitchChat
         {
 
             Resources.FindObjectsOfTypeAll<TMP_FontAsset>().ToList().ForEach(a => Log($"Font: {a.name}"));
-            if (from.name == "EmptyTransition"  && to.name == menucore)
+            if (from.name == "EmptyTransition"  && to.name == MenuSceneName)
                 Config.Save(true);
-            if (to.name == menucore)
+            if (to.name == MenuSceneName)
                 IsAtMainMenu = true;
             else if (to.name == "GameCore")
                 IsAtMainMenu = false;
