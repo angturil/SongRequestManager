@@ -592,7 +592,7 @@ namespace EnhancedTwitchChat.Bot
                 }
 
 
-            //static string done = "X";
+            static string done = "X";
             public void ExecuteCommand()
             {
                 if (!COMMAND.aliaslist.TryGetValue(command, out botcmd)) return; // Unknown command
@@ -608,7 +608,7 @@ namespace EnhancedTwitchChat.Bot
                 string errormsg=ExecuteSubcommand();
                 if (errormsg != empty)
                     {
-                    //if (errormsg==done) return;
+                    if (errormsg==done) return;
 
                     ShowHelpMessage(ref botcmd, ref user, parameter, false);
                     return;
