@@ -91,6 +91,23 @@ namespace EnhancedTwitchChat
         //   _standardLevelListViewController.SetLevels(CurrentLevels.Distinct().ToArray());
         //}
 
+        public static IEnumerator RetrieveNewSong(string songFolderName, bool resetFilterMode = false)
+        {
+            if (!SongLoader.AreSongsLoaded) yield break;
+
+            if (!_standardLevelListViewController) yield break;
+            
+            SongLoader.Instance.RetrieveNewSong(songFolderName);
+            
+            // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+            if (resetFilterMode && _songDownloaderInstalled)
+                ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
+
+            //// Set the row index to the previously selected song
+            //if (selectOldLevel)
+            //    ScrollToLevel(selectedLevelId);
+        }
+
         public static IEnumerator RefreshSongs(bool fullRefresh = false, bool selectOldLevel = true, bool resetFilterMode = false)
         {
             if (!SongLoader.AreSongsLoaded) yield break;

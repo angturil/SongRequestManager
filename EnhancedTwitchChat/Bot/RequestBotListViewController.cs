@@ -96,35 +96,6 @@ namespace EnhancedTwitchChat.Bot
                 });
                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
                 
-#if UNRELEASED
-         
-                 // Blacklist previous button, Since this is the 2nd most used option after play. It does make things a little crowded though
-
-                _BlacklistLastButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
-                _BlacklistLastButton.ToggleWordWrapping(false);
-                (_BlacklistLastButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 20f);
-                _BlacklistLastButton.SetButtonText("BL Last");
-                //_blacklistButton.GetComponentInChildren<Image>().color = Color.red;
-                _BlacklistLastButton.onClick.RemoveAllListeners();
-                _BlacklistLastButton.onClick.AddListener(delegate ()
-                {
-                    _onConfirm = () => {
-                        RequestBot.Blacklist(0,true,false); 
-                    };
-
-                    if (RequestHistory.Songs.Count > 0)
-                    {
-                        var song = RequestHistory.Songs[0].song;
-                        _warningTitle.text = "Blacklist Song Warning";
-                        _warningMessage.text = $"Blacklisting {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?";
-                        _confirmationDialog.Present();
-                    }
-                });
-                BeatSaberUI.AddHintText(_BlacklistLastButton.transform as RectTransform, "Block the selected request from being queued in the future.");
-
-#endif
-
-
                 // Blacklist button
                 _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
                 _blacklistButton.ToggleWordWrapping(false);
@@ -134,17 +105,20 @@ namespace EnhancedTwitchChat.Bot
                 _blacklistButton.onClick.RemoveAllListeners();
                 _blacklistButton.onClick.AddListener(delegate ()
                 {
-                    _onConfirm = () =>
+                    if (NumberOfCells() > 0)
                     {
-                        RequestBot.Blacklist(_selectedRow, isShowingHistory, true);
-                        if (_selectedRow > 0)
-                            _selectedRow--;
-                    };
-                    var song = SongInfoForRow(_selectedRow).song;
-                    _warningTitle.text = "Blacklist Song Warning";
-                    _warningMessage.text = $"Blacklisting {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?";
-                    confirmDialogActive = true;
-                    _confirmationDialog.Present();
+                        _onConfirm = () =>
+                        {
+                            RequestBot.Blacklist(_selectedRow, isShowingHistory, true);
+                            if (_selectedRow > 0)
+                                _selectedRow--;
+                        };
+                        var song = SongInfoForRow(_selectedRow).song;
+                        _warningTitle.text = "Blacklist Song Warning";
+                        _warningMessage.text = $"Blacklisting {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?";
+                        confirmDialogActive = true;
+                        _confirmationDialog.Present();
+                    }
                 });
                 BeatSaberUI.AddHintText(_blacklistButton.transform as RectTransform, "Block the selected request from being queued in the future.");
 
@@ -157,18 +131,21 @@ namespace EnhancedTwitchChat.Bot
                 _skipButton.onClick.RemoveAllListeners();
                 _skipButton.onClick.AddListener(delegate ()
                 {
-                    _onConfirm = () =>
+                    if (NumberOfCells() > 0)
                     {
-                        currentsong = SongInfoForRow(_selectedRow);
-                        RequestBot.Skip(_selectedRow);
-                        if (_selectedRow > 0)
-                            _selectedRow--;
-                    };
-                    var song = SongInfoForRow(_selectedRow).song;
-                    _warningTitle.text = "Skip Song Warning";
-                    _warningMessage.text = $"Skipping {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?";
-                    confirmDialogActive = true;
-                    _confirmationDialog.Present();
+                        _onConfirm = () =>
+                        {
+                            currentsong = SongInfoForRow(_selectedRow);
+                            RequestBot.Skip(_selectedRow);
+                            if (_selectedRow > 0)
+                                _selectedRow--;
+                        };
+                        var song = SongInfoForRow(_selectedRow).song;
+                        _warningTitle.text = "Skip Song Warning";
+                        _warningMessage.text = $"Skipping {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?";
+                        confirmDialogActive = true;
+                        _confirmationDialog.Present();
+                    }
                 });
                 BeatSaberUI.AddHintText(_skipButton.transform as RectTransform, "Remove the selected request from the queue.");
 
@@ -253,17 +230,15 @@ namespace EnhancedTwitchChat.Bot
             confirmContainer.SetParent(_confirmationViewController.rectTransform, false);
             confirmContainer.sizeDelta = new Vector2(60f, 0f);
 
-            _warningTitle = new GameObject("WarningTitle").AddComponent<TextMeshProUGUI>();
-            _warningTitle.rectTransform.SetParent(confirmContainer, false);
-            _warningTitle.rectTransform.anchoredPosition = new Vector2(0, 30f);
+            // Title text
+            _warningTitle = BeatSaberUI.CreateText(confirmContainer, "", new Vector2(0, 30f));
             _warningTitle.fontSize = 9f;
             _warningTitle.color = Color.red;
             _warningTitle.alignment = TextAlignmentOptions.Center;
-            _warningTitle.enableWordWrapping = true;
+            _warningTitle.enableWordWrapping = false;
 
-            _warningMessage = new GameObject("WarningText").AddComponent<TextMeshProUGUI>();
-            _warningMessage.rectTransform.SetParent(confirmContainer, false);
-            _warningMessage.rectTransform.anchoredPosition = new Vector2(0, 0f);
+            // Warning text
+            _warningMessage = BeatSaberUI.CreateText(confirmContainer, "", new Vector2(0, 0));
             _warningMessage.rectTransform.sizeDelta = new Vector2(120, 1);
             _warningMessage.fontSize = 5f;
             _warningMessage.color = Color.white;

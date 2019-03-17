@@ -19,7 +19,7 @@ namespace EnhancedTwitchChat
     public class Plugin : IPlugin
     {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "1.2.0-beta2";
+        public string Version => "1.2.0-beta3";
 
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;

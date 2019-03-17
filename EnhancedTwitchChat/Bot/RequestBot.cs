@@ -447,7 +447,7 @@ namespace EnhancedTwitchChat.Bot
                     string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
                     yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
                     yield return Utilities.ExtractZip(localPath, currentSongDirectory);
-                    yield return SongListUtils.RefreshSongs(false, false, true);
+                    yield return SongListUtils.RetrieveNewSong(songIndex, true);
 
 
                     Utilities.EmptyDirectory(".requestcache", true);
