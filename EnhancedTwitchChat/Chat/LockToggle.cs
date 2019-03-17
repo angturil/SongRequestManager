@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using VRUIControls;
 using UnityEngine.UI;
+using EnhancedTwitchChat.Config;
 
 namespace EnhancedTwitchChat.Chat
 {
@@ -44,8 +45,8 @@ namespace EnhancedTwitchChat.Chat
                         {
                             _vrController = _vrPointer.vrController;
 
-                            Config.Instance.LockChatPosition = !Config.Instance.LockChatPosition;
-                            Config.Instance.Save();
+                            ChatConfig.Instance.LockChatPosition = !ChatConfig.Instance.LockChatPosition;
+                            ChatConfig.Instance.Save();
                             ChatHandler.Instance.UpdateLockButton();
                         }
                     }

@@ -14,6 +14,7 @@ using static POCs.Sanjay.SharpSnippets.Drawing.ColorExtensions;
 using Random = System.Random;
 using CustomUI.Utilities;
 using System.Reflection;
+using EnhancedTwitchChat.Config;
 
 namespace EnhancedTwitchChat.UI
 {
@@ -51,10 +52,10 @@ namespace EnhancedTwitchChat.UI
 
         private void FixedUpdate()
         {
-            if (Config.Instance.ChatWidth != _width)
+            if (ChatConfig.Instance.ChatWidth != _width)
             {
-                _thisElement.preferredWidth = Config.Instance.ChatWidth;
-                _width = Config.Instance.ChatWidth;
+                _thisElement.preferredWidth = ChatConfig.Instance.ChatWidth;
+                _width = ChatConfig.Instance.ChatWidth;
             }
         }
     };
@@ -127,7 +128,7 @@ namespace EnhancedTwitchChat.UI
         public static IEnumerator Initialize(Transform parent)
         {
             var tmpImageSpacing = "\u200A";
-            CustomText tmpText = InitText(tmpImageSpacing, Color.clear, Config.Instance.ChatScale, new Vector2(Config.Instance.ChatWidth, 1), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.UpperLeft, false);
+            CustomText tmpText = InitText(tmpImageSpacing, Color.clear, ChatConfig.Instance.ChatScale, new Vector2(ChatConfig.Instance.ChatWidth, 1), new Vector3(0, -100, 0), new Quaternion(0, 0, 0, 0), parent, TextAnchor.UpperLeft, false);
             yield return null;
             while (tmpText.preferredWidth < 5.3f)
             {
@@ -157,8 +158,8 @@ namespace EnhancedTwitchChat.UI
             if (useFallback)
             {
                 font = "Segoe UI";
-                Config.Instance.FontName = font;
-                Config.Instance.Save();
+                ChatConfig.Instance.FontName = font;
+                ChatConfig.Instance.Save();
                 Plugin.Log($"Invalid font name specified! Falling back to Segoe UI");
             }
             return Font.CreateDynamicFontFromOSFont(font, 230);
@@ -186,7 +187,7 @@ namespace EnhancedTwitchChat.UI
             tmpText.rectTransform.pivot = new Vector2(0, 0);
             tmpText.rectTransform.sizeDelta = sizeDelta;
             tmpText.supportRichText = true;
-            tmpText.font = LoadSystemFont(Config.Instance.FontName);
+            tmpText.font = LoadSystemFont(ChatConfig.Instance.FontName);
             tmpText.text = text;
             tmpText.fontSize = 230;
             tmpText.verticalOverflow = VerticalWrapMode.Overflow;
@@ -244,7 +245,7 @@ namespace EnhancedTwitchChat.UI
                         {
                             image.material = cachedTextureData.animInfo.imageMaterial;
                             //image.shadow.enabled = false;
-                            if (Config.Instance.DrawShadows)
+                            if (ChatConfig.Instance.DrawShadows)
                             {
                                 // Add a shadow to our animated image (the regular unity shadows won't work with this material)
                                 shadow = ChatHandler.Instance.imagePool.Alloc();
@@ -265,7 +266,7 @@ namespace EnhancedTwitchChat.UI
                         else
                         {
                             image.material = Drawing.noGlowMaterialUI;
-                            if (Config.Instance.DrawShadows)
+                            if (ChatConfig.Instance.DrawShadows)
                                 image.shadow.enabled = true;
                         }
                         image.enabled = true;

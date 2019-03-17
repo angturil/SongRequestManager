@@ -8,7 +8,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EnhancedTwitchChat
+namespace EnhancedTwitchChat.Config
 {
     public class OldConfigOptions
     {
@@ -20,13 +20,18 @@ namespace EnhancedTwitchChat
         public string SongBlacklist;
     }
 
-    public class Config
+    public class TwitchInfoMigration
     {
-        public string FilePath { get; }
-
         public string TwitchChannelName = "";
         public string TwitchUsername = "";
         public string TwitchOAuthToken = "";
+    }
+
+    public class ChatConfig
+    {
+        private string FilePath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "EnhancedTwitchChat.ini");
+
+
         public string FontName = "Segoe UI";
         //public int BombBitValue;
         //public int TwitchBitBalance;
@@ -55,61 +60,35 @@ namespace EnhancedTwitchChat
         public float BackgroundColorA = 0.6f;
         public float BackgroundPadding = 4;
 
-        public bool LockChatPosition = false;
-        public bool ReverseChatOrder = false;
         public bool AnimatedEmotes = true;
         public bool DrawShadows = false;
-        public bool SongRequestBot = false;
-        public bool PersistentRequestQueue = true;
+        public bool LockChatPosition = false;
+        public bool ReverseChatOrder = false;
         public bool FilterCommandMessages = false;
         public bool FilterBroadcasterMessages = false;
         public bool FilterUserlistMessages = true; // Filter messages in chatexclude.users ( pick a better name ) 
 
-        public string RequestCommandAliases = "request,bsr,add,sr";
-
-    #if !REQUEST_BOT
-        public string SongBlacklist = "";
-    #endif
-
-        public bool QueueOpen = true;
-
-        public int RequestHistoryLimit = 20;
-        public int RequestLimit = 5;
-        public int SubRequestLimit = 5;
-        public int ModRequestLimit = 10;
-        public int VipBonus = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
-        public int RequestCooldownMinutes = 0; // BUG: Currently inactive
-
-        public string DeckList = "fun hard challenge dance";
-
-        public float lowestallowedrating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
-
-        public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI
-
-        public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
-
-        public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
-
-        public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
-        public bool ShowStarRating = true; // Show star rating (quality, not difficulty) on songs being requested *IMPLEMENTED*, needs UI
-
-        public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
-        public int maxaddnewresults = 5;  // Max results per command,mainly to avoid overwhelming the queue *needs UI*
-
-        public event Action<Config> ConfigChangedEvent;
+      
+        public event Action<ChatConfig> ConfigChangedEvent;
 
         private readonly FileSystemWatcher _configWatcher;
         private bool _saving;
 
-        public static Config Instance = null;
+        private static ChatConfig _instance = null;
+        public static ChatConfig Instance {
+            get
+            {
+                if (_instance == null)
+                    _instance = new ChatConfig();
+                return _instance;
+            }
 
-        // These settings let you configure the text of various bot commands.  BUG:I'd like to remove it from here for this release
-
-
-        public int MaximumQueueTextEntries = 8;
-
-        public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
-
+            private set
+            {
+                _instance = value;
+            }
+        }
+        
         public Color TextColor
         {
             get
@@ -165,25 +144,33 @@ namespace EnhancedTwitchChat
             }
         }
 
-        public Config(string filePath)
+        public ChatConfig()
         {
             Instance = this;
-            FilePath = filePath;
 
             if (!Directory.Exists(Path.GetDirectoryName(FilePath)))
                 Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
+
+            string oldFilePath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat.ini");
+            if(File.Exists(oldFilePath) && !File.Exists(FilePath))
+            {
+                File.Move(oldFilePath, FilePath);
+            }
 
             if (File.Exists(FilePath))
             {
                 Load();
 
                 var text = File.ReadAllText(FilePath);
-                if (text.Contains("TwitchChannel="))
+                if (text.Contains("TwitchUsername="))
                 {
-                    var oldConfig = new OldConfigOptions();
-                    ConfigSerializer.LoadConfig(oldConfig, FilePath);
+                    TwitchInfoMigration twitchLoginInfo = new TwitchInfoMigration();
+                    ConfigSerializer.LoadConfig(twitchLoginInfo, FilePath);
 
-                    TwitchChannelName = oldConfig.TwitchChannel;
+                    TwitchLoginConfig.Instance.TwitchChannelName = twitchLoginInfo.TwitchChannelName;
+                    TwitchLoginConfig.Instance.TwitchUsername = twitchLoginInfo.TwitchUsername;
+                    TwitchLoginConfig.Instance.TwitchOAuthToken = twitchLoginInfo.TwitchOAuthToken;
+                    TwitchLoginConfig.Instance.Save(true);
                 }
 
 #if REQUEST_BOT
@@ -192,15 +179,15 @@ namespace EnhancedTwitchChat
                     var oldConfig = new OldBlacklistOption();
                     ConfigSerializer.LoadConfig(oldConfig, FilePath);
 
-                    SongBlacklist.ConvertFromList(oldConfig.SongBlacklist.Split(','));
-                    
+                    if(oldConfig.SongBlacklist.Length > 0)
+                        SongBlacklist.ConvertFromList(oldConfig.SongBlacklist.Split(','));
                 }
 #endif
             }
             CorrectConfigSettings();
             Save();
 
-            _configWatcher = new FileSystemWatcher(Path.Combine(Environment.CurrentDirectory, "UserData"))
+            _configWatcher = new FileSystemWatcher(Path.GetDirectoryName(FilePath))
             {
                 NotifyFilter = NotifyFilters.LastWrite,
                 Filter = "EnhancedTwitchChat.ini",
@@ -209,7 +196,7 @@ namespace EnhancedTwitchChat
             _configWatcher.Changed += ConfigWatcherOnChanged;
         }
 
-        ~Config()
+        ~ChatConfig()
         {
             _configWatcher.Changed -= ConfigWatcherOnChanged;
         }
@@ -227,55 +214,13 @@ namespace EnhancedTwitchChat
                 _saving = true;
             ConfigSerializer.SaveConfig(this, FilePath);
         }
-
-        private void ImportAsyncTwitchConfig()
-        {
-            try
-            {
-                string asyncTwitchConfig = Path.Combine(Environment.CurrentDirectory, "UserData", "AsyncTwitchConfig.json");
-                if (File.Exists(asyncTwitchConfig))
-                {
-                    JSONNode node = JSON.Parse(File.ReadAllText(asyncTwitchConfig));
-                    if (!node.IsNull)
-                    {
-                        if (node["Username"].IsString && TwitchUsername == String.Empty)
-                            TwitchUsername = node["Username"].Value;
-                        if (node["ChannelName"].IsString && TwitchChannelName == String.Empty)
-                            TwitchChannelName = node["ChannelName"].Value;
-                        if (node["OauthKey"].IsString && TwitchOAuthToken == String.Empty)
-                            TwitchOAuthToken = node["OauthKey"].Value;
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Plugin.Log($"Error when trying to parse AsyncTwitchConfig! {e}");
-            }
-        }
-
+        
         private void CorrectConfigSettings()
         {
             if (BackgroundPadding < 0)
                 BackgroundPadding = 0;
             if (MaxChatLines < 1)
                 MaxChatLines = 1;
-
-            ImportAsyncTwitchConfig();
-
-            if (TwitchOAuthToken != String.Empty && !TwitchOAuthToken.StartsWith("oauth:"))
-                TwitchOAuthToken = "oauth:" + TwitchOAuthToken;
-
-            if (TwitchChannelName.Length > 0)
-            {
-                if (TwitchChannelName.Contains("/"))
-                {
-                    var tmpChannelName = TwitchChannelName.TrimEnd('/').Split('/').Last();
-                    Plugin.Log($"Changing twitch channel to {tmpChannelName}");
-                    TwitchChannelName = tmpChannelName;
-                    Save();
-                }
-                TwitchChannelName = TwitchChannelName.ToLower().Replace(" ", "");
-            }
         }
 
         private void ConfigWatcherOnChanged(object sender, FileSystemEventArgs fileSystemEventArgs)
