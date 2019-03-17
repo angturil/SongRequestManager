@@ -1,4 +1,5 @@
 ﻿using EnhancedTwitchChat.Bot;
+using EnhancedTwitchChat.Config;
 using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.Utils;
 using System;
@@ -43,12 +44,14 @@ namespace EnhancedTwitchChat.Chat
         public static Dictionary<string, TwitchRoom> ChannelInfo = new Dictionary<string, TwitchRoom>();
         public static DateTime ConnectionTime;
         public static TwitchUser OurTwitchUser = new TwitchUser("Request Bot");
+        public static bool LoggedIn = true;
         
         private static DateTime _sendLimitResetTime = DateTime.Now;
         private static Queue<string> _sendQueue = new Queue<string>();
         
         private static int _reconnectCooldown = 500;
         private static int _fullReconnects = -1;
+        private static string _lastChannel = "";
 
         private static int _messagesSent = 0;
         private static int _sendResetInterval = 30;
@@ -61,7 +64,7 @@ namespace EnhancedTwitchChat.Chat
         {
             get
             {
-                return ChannelInfo.ContainsKey(ChatConfig.Instance.TwitchChannelName) && ChannelInfo[ChatConfig.Instance.TwitchChannelName].roomId != String.Empty;
+                return ChannelInfo.ContainsKey(TwitchLoginConfig.Instance.TwitchChannelName) && ChannelInfo[TwitchLoginConfig.Instance.TwitchChannelName].roomId != String.Empty;
             }
         }
         
@@ -77,7 +80,31 @@ namespace EnhancedTwitchChat.Chat
             _messageHandlers.Add("MODE", MessageHandlers.MODE);
             _messageHandlers.Add("JOIN", MessageHandlers.JOIN);
 
+            // Stop config updated callback when we haven't switched channels
+            _lastChannel = TwitchLoginConfig.Instance.TwitchChannelName;
+
+            TwitchLoginConfig.Instance.ConfigChangedEvent += Instance_ConfigChangedEvent;
+
             Connect();
+        }
+
+        private static void Instance_ConfigChangedEvent(TwitchLoginConfig obj)
+        {
+            LoggedIn = true;
+
+            if (Initialized)
+            {
+                if (TwitchLoginConfig.Instance.TwitchChannelName != _lastChannel)
+                {
+                    if (_lastChannel != String.Empty)
+                        TwitchWebSocketClient.PartChannel(_lastChannel);
+                    if (TwitchLoginConfig.Instance.TwitchChannelName != String.Empty)
+                        TwitchWebSocketClient.JoinChannel(TwitchLoginConfig.Instance.TwitchChannelName);
+                    TwitchWebSocketClient.ConnectionTime = DateTime.Now;
+                    ChatHandler.Instance.displayStatusMessage = true;
+                }
+                _lastChannel = TwitchLoginConfig.Instance.TwitchChannelName;
+            }
         }
 
         public static void Shutdown()
@@ -92,8 +119,14 @@ namespace EnhancedTwitchChat.Chat
 
         public static void Connect()
         {
+            // If they entered invalid login info before, wait here indefinitely until they edit the config manually
+            while (!LoggedIn && !Plugin.Instance.IsApplicationExiting)
+                Thread.Sleep(500);
+
             if (Plugin.Instance.IsApplicationExiting)
                 return;
+
+            Plugin.Log("Reconnecting!");
 
             try
             {
@@ -122,15 +155,15 @@ namespace EnhancedTwitchChat.Chat
                         Plugin.Log("Connected to Twitch!");
                         _ws.Send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
 
-                        string username = ChatConfig.Instance.TwitchUsername;
-                        if (username == String.Empty || ChatConfig.Instance.TwitchOAuthToken == String.Empty)
+                        string username = TwitchLoginConfig.Instance.TwitchUsername;
+                        if (username == String.Empty || TwitchLoginConfig.Instance.TwitchOAuthToken == String.Empty)
                             username = "justinfan" + _rand.Next(10000, 1000000);
                         else
-                            _ws.Send($"PASS {ChatConfig.Instance.TwitchOAuthToken}");
+                            _ws.Send($"PASS {TwitchLoginConfig.Instance.TwitchOAuthToken}");
                         _ws.Send($"NICK {username}");
 
-                        if (ChatConfig.Instance.TwitchChannelName != String.Empty)
-                            _ws.Send($"JOIN #{ChatConfig.Instance.TwitchChannelName}");
+                        if (TwitchLoginConfig.Instance.TwitchChannelName != String.Empty)
+                            _ws.Send($"JOIN #{TwitchLoginConfig.Instance.TwitchChannelName}");
 
                         // Display a message in the chat informing the user whether or not the connection to the channel was successful
                         ConnectionTime = DateTime.Now;
@@ -176,7 +209,6 @@ namespace EnhancedTwitchChat.Chat
                         }
                         
                         Thread.Sleep(_reconnectCooldown *= 2);
-                        Plugin.Log("Reconnecting!");
                         Connect();
                     });
                     ProcessSendQueue(_fullReconnects);
@@ -198,7 +230,7 @@ namespace EnhancedTwitchChat.Chat
         {
             while(!Plugin.Instance.IsApplicationExiting && _fullReconnects == fullReconnects)
             {
-                if (_ws.IsConnected && _ws.ReadyState == WebSocketState.Open)
+                if (LoggedIn && _ws.ReadyState == WebSocketState.Open)
                 {
                     if (_sendLimitResetTime < DateTime.Now)
                     {
@@ -224,18 +256,20 @@ namespace EnhancedTwitchChat.Chat
 
         public static void SendMessage(string msg)
         {
-            if (_ws.IsConnected)
+            if (LoggedIn && _ws.ReadyState == WebSocketState.Open)
                 _sendQueue.Enqueue(msg);
         }
 
         public static void JoinChannel(string channel)
         {
-            SendMessage($"JOIN #{channel}");
+            if (LoggedIn && _ws.ReadyState == WebSocketState.Open)
+                SendMessage($"JOIN #{channel}");
         }
 
         public static void PartChannel(string channel)
         {
-            SendMessage($"PART #{channel}");
+            if (LoggedIn && _ws.ReadyState == WebSocketState.Open)
+                SendMessage($"PART #{channel}");
         }
         
         private static void Ws_OnMessage(object sender, MessageEventArgs ev)
@@ -244,7 +278,7 @@ namespace EnhancedTwitchChat.Chat
             {
                 if (!ev.IsText) return;
                 
-                Plugin.Log($"RawMsg: {ev.Data}");
+                //Plugin.Log($"RawMsg: {ev.Data}");
                 string rawMessage = ev.Data.TrimEnd();
                 if (rawMessage.StartsWith("PING"))
                 {
@@ -256,12 +290,20 @@ namespace EnhancedTwitchChat.Chat
                 var messageType = _twitchMessageRegex.Match(rawMessage);
                 if (messageType.Length == 0)
                 {
+                    if(rawMessage.Contains("NOTICE * :Login authentication failed"))
+                    {
+                        Plugin.Log($"Invalid Twitch login info! Closing connection!");
+                        LoggedIn = false;
+                        _ws.Close();
+                        return;
+                    }
+
                     Plugin.Log($"Unhandled message: {rawMessage}");
                     return;
                 }
 
                 string channelName = messageType.Groups["ChannelName"].Value;
-                if (channelName != ChatConfig.Instance.TwitchChannelName)
+                if (channelName != TwitchLoginConfig.Instance.TwitchChannelName)
                     return;
 
                 // Instantiate our twitch message

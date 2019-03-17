@@ -4,6 +4,7 @@
 
 using CustomUI.BeatSaber;
 using CustomUI.Utilities;
+using EnhancedTwitchChat.Config;
 using EnhancedTwitchChat.UI;
 using EnhancedTwitchChat.Utils;
 using HMUI;
@@ -18,6 +19,7 @@ using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using VRUI;
 using Image = UnityEngine.UI.Image;
 
 
@@ -75,7 +77,7 @@ namespace EnhancedTwitchChat.Bot
                 _songPreviewPlayer = Resources.FindObjectsOfTypeAll<SongPreviewPlayer>().FirstOrDefault();
                 DidSelectRowEvent += DidSelectRow;
 
-                RectTransform container = new GameObject("CustomListContainer", typeof(RectTransform)).transform as RectTransform;
+                RectTransform container = new GameObject("RequestBotContainer", typeof(RectTransform)).transform as RectTransform;
                 container.SetParent(rectTransform, false);
                 container.sizeDelta = new Vector2(60f, 0f);
 
@@ -88,12 +90,12 @@ namespace EnhancedTwitchChat.Bot
                 _historyButton.onClick.AddListener(delegate ()
                 {
                     isShowingHistory = !isShowingHistory;
+                    Resources.FindObjectsOfTypeAll<VRUIScreenSystem>().First().title = isShowingHistory ? "Song Request History" : "Song Request Queue";
                     UpdateRequestUI(true);
                     _lastSelection = -1;
                 });
                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
-
-
+                
 #if UNRELEASED
          
                  // Blacklist previous button, Since this is the 2nd most used option after play. It does make things a little crowded though
@@ -232,7 +234,7 @@ namespace EnhancedTwitchChat.Bot
             _historyHintText.text = isShowingHistory ? "Go back to your current song request queue." : "View the history of song requests from the current session.";
             _historyButton.SetButtonText(isShowingHistory ? "Requests" : "History");
             _playButton.SetButtonText(isShowingHistory ? "Replay" : "Play");
-
+            
             _customListTableView.ReloadData();
 
             if (NumberOfCells() > _selectedRow)

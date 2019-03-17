@@ -13,6 +13,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using VRUIControls;
+using EnhancedTwitchChat.Config;
 
 namespace EnhancedTwitchChat
 {
@@ -61,14 +62,11 @@ namespace EnhancedTwitchChat
             ImageDownloader.OnLoad();
             AnimationController.OnLoad();
 
-            // Stop config updated callback when we haven't switched channels
-            lastChannel = ChatConfig.Instance.TwitchChannelName;
-
             // Initialize the chats UI
             InitializeChatUI();
 
             // Subscribe to events
-            ChatConfig.Instance.ConfigChangedEvent += PluginOnConfigChangedEvent;
+            ChatConfig.Instance.ConfigChangedEvent += ChatConfigChanged;
 
             initialized = true;
             Plugin.Log("EnhancedTwitchChat initialized");
@@ -91,28 +89,14 @@ namespace EnhancedTwitchChat
             Plugin.Log($"{from.name} -> {to.name}");
         }
 
-        private void PluginOnConfigChangedEvent(ChatConfig config)
+        private void ChatConfigChanged(ChatConfig config)
         {
             _configChanged = true;
         }
 
-        string lastChannel = "";
         private void OnConfigChanged()
         {
-            Plugin.Log("OnConfigChanged");
-            if (TwitchWebSocketClient.Initialized)
-            {
-                if (ChatConfig.Instance.TwitchChannelName != lastChannel)
-                {
-                    if (lastChannel != String.Empty)
-                        TwitchWebSocketClient.PartChannel(lastChannel);
-                    if (ChatConfig.Instance.TwitchChannelName != String.Empty)
-                        TwitchWebSocketClient.JoinChannel(ChatConfig.Instance.TwitchChannelName);
-                    TwitchWebSocketClient.ConnectionTime = DateTime.Now;
-                    displayStatusMessage = true;
-                }
-                lastChannel = ChatConfig.Instance.TwitchChannelName;
-            }
+            _configChanged = false;
             if (ChatConfig.Instance.FontName != _lastFontName)
             {
                 StartCoroutine(Drawing.Initialize(gameObject.transform));
@@ -130,9 +114,6 @@ namespace EnhancedTwitchChat
             _canvasRectTransform.localScale = new Vector3(0.012f * ChatConfig.Instance.ChatScale, 0.012f * ChatConfig.Instance.ChatScale, 0.012f * ChatConfig.Instance.ChatScale);
             _lockButtonSphere.localScale = new Vector3(0.15f * ChatConfig.Instance.ChatScale, 0.15f * ChatConfig.Instance.ChatScale, 0.001f * ChatConfig.Instance.ChatScale);
             background.color = ChatConfig.Instance.BackgroundColor;
-
-            Plugin.Log($"Config updated!");
-            _configChanged = false;
         }
 
         public void FixedUpdate()
@@ -143,25 +124,21 @@ namespace EnhancedTwitchChat
                 if (displayStatusMessage && (TwitchWebSocketClient.IsChannelValid || (DateTime.Now - TwitchWebSocketClient.ConnectionTime).TotalSeconds >= 5))
                 {
                     string msg;
-                    if (TwitchWebSocketClient.Initialized)
+                    if (TwitchWebSocketClient.Initialized && TwitchWebSocketClient.LoggedIn)
                     {
                         ImageDownloader.Instance.Init();
 
-                        if (ChatConfig.Instance.TwitchChannelName == String.Empty)
-                            msg = $"Welcome to Enhanced Twitch Chat! To continue, enter your Twitch channel name in the Enhanced Twitch Chat settings submenu, or manually in UserData\\EnhancedTwitchChat.ini, which is located in your Beat Saber directory.";
+                        if (TwitchLoginConfig.Instance.TwitchChannelName == String.Empty)
+                            msg = $"Welcome to Enhanced Twitch Chat! To continue, enter your Twitch channel name in the Enhanced Twitch Chat settings submenu, or manually in TwitchLoginInfo.ini, which is located in your Beat Saber directory.";
                         else if (TwitchWebSocketClient.IsChannelValid)
-                            msg = $"Success joining channel \"{ChatConfig.Instance.TwitchChannelName}\"";
+                            msg = $"Success joining channel \"{TwitchLoginConfig.Instance.TwitchChannelName}\"";
                         else
-                            msg = $"Failed to join channel \"{ChatConfig.Instance.TwitchChannelName}\". Please enter a valid Twitch channel name in the Enhanced Twitch Chat settings submenu, or manually in EnhancedTwitchChat.ini, then try again.";
+                            msg = $"Failed to join channel \"{TwitchLoginConfig.Instance.TwitchChannelName}\". Please enter a valid Twitch channel name in the Enhanced Twitch Chat settings submenu, or manually in TwitchLoginInfo.ini, then try again.";
                     }
                     else
-                        msg = "Failed to login to Twitch! Please check your login info in UserData\\EnhancedTwitchChat.ini, then try again.";
-
-                    TwitchMessage tmpMessage = new TwitchMessage();
-                    tmpMessage.user.color = "#00000000";
-                    tmpMessage.user.displayName = String.Empty;
-
-                    TwitchWebSocketClient.RenderQueue.Enqueue(new ChatMessage(msg, tmpMessage));
+                        msg = "Failed to login to Twitch! Please check your login info in UserData\\EnhancedTwitchChat\\TwitchLoginInfo.ini, then try again.";
+                    
+                    TwitchWebSocketClient.RenderQueue.Enqueue(new ChatMessage(msg, new TwitchMessage()));
 
                     displayStatusMessage = false;
                 }

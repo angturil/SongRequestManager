@@ -14,6 +14,7 @@ using static POCs.Sanjay.SharpSnippets.Drawing.ColorExtensions;
 using Random = System.Random;
 using CustomUI.Utilities;
 using System.Reflection;
+using EnhancedTwitchChat.Config;
 
 namespace EnhancedTwitchChat.UI
 {

@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Threading.Tasks;
 using EnhancedTwitchChat.Chat;
+using EnhancedTwitchChat.Config;
 
 namespace EnhancedTwitchChat.UI
 {
@@ -42,8 +43,8 @@ namespace EnhancedTwitchChat.UI
 
             var menu = SettingsUI.CreateSubMenu("Enhanced Twitch Chat");
             var channelName = menu.AddString("Twitch Channel Name", "The name of the channel you want Enhanced Twitch Chat to monitor");
-            channelName.SetValue += (channel) => { ChatConfig.Instance.TwitchChannelName = channel; };
-            channelName.GetValue += () => { return ChatConfig.Instance.TwitchChannelName; };
+            channelName.SetValue += (channel) => { TwitchLoginConfig.Instance.TwitchChannelName = channel; };
+            channelName.GetValue += () => { return TwitchLoginConfig.Instance.TwitchChannelName; };
 
             var fontName = menu.AddString("Menu Font Name", "The name of the system font you want to use for the chat. This can be any font you've installed on your computer!");
             fontName.SetValue += (font) => { ChatConfig.Instance.FontName = font; };

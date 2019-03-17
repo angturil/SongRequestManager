@@ -216,8 +216,10 @@
     <Compile Include="Chat\websocket-sharp\WebSocketException.cs" />
     <Compile Include="Chat\websocket-sharp\WebSocketFrame.cs" />
     <Compile Include="Chat\websocket-sharp\WebSocketState.cs" />
+    <Compile Include="Config\RequestBotConfig.cs" />
+    <Compile Include="Config\TwitchLoginConfig.cs" />
     <Compile Include="UI\ColorExtensions.cs" />
-    <Compile Include="Config.cs" />
+    <Compile Include="Config\ChatConfig.cs" />
     <Compile Include="Chat\ChatMover.cs" />
     <Compile Include="Chat\LockToggle.cs" />
     <Compile Include="Images\AnimationController.cs" />

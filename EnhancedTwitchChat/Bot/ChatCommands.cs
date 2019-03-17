@@ -1,6 +1,7 @@
 ﻿#if REQUEST_BOT
 
 using EnhancedTwitchChat.Chat;
+using EnhancedTwitchChat.Config;
 using EnhancedTwitchChat.SimpleJSON;
 using System;
 using System.Collections;

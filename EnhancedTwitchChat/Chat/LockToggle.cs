@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using VRUIControls;
 using UnityEngine.UI;
+using EnhancedTwitchChat.Config;
 
 namespace EnhancedTwitchChat.Chat
 {

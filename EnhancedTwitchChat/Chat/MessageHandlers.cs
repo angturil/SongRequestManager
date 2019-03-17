@@ -1,4 +1,5 @@
 ﻿using EnhancedTwitchChat.Bot;
+using EnhancedTwitchChat.Config;
 using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.Utils;
 using System;
@@ -191,7 +192,7 @@ namespace EnhancedTwitchChat.Chat
             }
             ChatHandler.Instance.PurgeChatMessageById(msgId);
         }
-
+        
         public static void MODE(TwitchMessage twitchMsg, MatchCollection tags)
         {
             //Plugin.Log("MODE message received!");

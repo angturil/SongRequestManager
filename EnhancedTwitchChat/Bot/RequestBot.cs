@@ -32,6 +32,7 @@ using VRUI;
 using Image = UnityEngine.UI.Image;
 using Toggle = UnityEngine.UI.Toggle;
 using TMPro;
+using EnhancedTwitchChat.Config;
 
 namespace EnhancedTwitchChat.Bot
 {
@@ -152,7 +153,7 @@ namespace EnhancedTwitchChat.Bot
             UpdateRequestUI();
             InitializeCommands();
 
-            RunStartupScripts();
+            //RunStartupScripts();
 
             StartCoroutine(ProcessRequestQueue());
             StartCoroutine(ProcessBlacklistRequests());
@@ -250,7 +251,7 @@ namespace EnhancedTwitchChat.Bot
             try
             {
                 Plugin.Log($"Sending message: \"{message}\"");
-                TwitchWebSocketClient.SendMessage($"PRIVMSG #{ChatConfig.Instance.TwitchChannelName} :{message}");
+                TwitchWebSocketClient.SendMessage($"PRIVMSG #{TwitchLoginConfig.Instance.TwitchChannelName} :{message}");
                 TwitchMessage tmpMessage = new TwitchMessage();
                 tmpMessage.user = TwitchWebSocketClient.OurTwitchUser;
                 MessageParser.Parse(new ChatMessage(message, tmpMessage));
