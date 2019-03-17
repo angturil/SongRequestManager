@@ -153,7 +153,7 @@ namespace EnhancedTwitchChat.Bot
             UpdateRequestUI();
             InitializeCommands();
 
-            //RunStartupScripts();
+            RunStartupScripts();
 
             StartCoroutine(ProcessRequestQueue());
             StartCoroutine(ProcessBlacklistRequests());
