@@ -20,11 +20,13 @@ namespace EnhancedTwitchChat.Config
         public string SongBlacklist;
     }
 
-    public class TwitchInfoMigration
+    public class SemiOldConfigOptions
     {
         public string TwitchChannelName = "";
         public string TwitchUsername = "";
         public string TwitchOAuthToken = "";
+        public bool SongRequestBot = false;
+        public bool PersistentRequestQueue = true;
     }
 
     public class ChatConfig
@@ -164,13 +166,17 @@ namespace EnhancedTwitchChat.Config
                 var text = File.ReadAllText(FilePath);
                 if (text.Contains("TwitchUsername="))
                 {
-                    TwitchInfoMigration twitchLoginInfo = new TwitchInfoMigration();
-                    ConfigSerializer.LoadConfig(twitchLoginInfo, FilePath);
+                    SemiOldConfigOptions semiOldConfigInfo = new SemiOldConfigOptions();
+                    ConfigSerializer.LoadConfig(semiOldConfigInfo, FilePath);
 
-                    TwitchLoginConfig.Instance.TwitchChannelName = twitchLoginInfo.TwitchChannelName;
-                    TwitchLoginConfig.Instance.TwitchUsername = twitchLoginInfo.TwitchUsername;
-                    TwitchLoginConfig.Instance.TwitchOAuthToken = twitchLoginInfo.TwitchOAuthToken;
+                    TwitchLoginConfig.Instance.TwitchChannelName = semiOldConfigInfo.TwitchChannelName;
+                    TwitchLoginConfig.Instance.TwitchUsername = semiOldConfigInfo.TwitchUsername;
+                    TwitchLoginConfig.Instance.TwitchOAuthToken = semiOldConfigInfo.TwitchOAuthToken;
                     TwitchLoginConfig.Instance.Save(true);
+                    
+                    RequestBotConfig.Instance.RequestBotEnabled = semiOldConfigInfo.SongRequestBot;
+                    RequestBotConfig.Instance.PersistentRequestQueue = semiOldConfigInfo.PersistentRequestQueue;
+                    RequestBotConfig.Instance.Save(true);
                 }
 
 #if REQUEST_BOT
