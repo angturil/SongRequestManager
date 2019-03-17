@@ -253,17 +253,15 @@ namespace EnhancedTwitchChat.Bot
             confirmContainer.SetParent(_confirmationViewController.rectTransform, false);
             confirmContainer.sizeDelta = new Vector2(60f, 0f);
 
-            _warningTitle = new GameObject("WarningTitle").AddComponent<TextMeshProUGUI>();
-            _warningTitle.rectTransform.SetParent(confirmContainer, false);
-            _warningTitle.rectTransform.anchoredPosition = new Vector2(0, 30f);
+            // Title text
+            _warningTitle = BeatSaberUI.CreateText(confirmContainer, "", new Vector2(0, 30f));
             _warningTitle.fontSize = 9f;
             _warningTitle.color = Color.red;
             _warningTitle.alignment = TextAlignmentOptions.Center;
-            _warningTitle.enableWordWrapping = true;
+            _warningTitle.enableWordWrapping = false;
 
-            _warningMessage = new GameObject("WarningText").AddComponent<TextMeshProUGUI>();
-            _warningMessage.rectTransform.SetParent(confirmContainer, false);
-            _warningMessage.rectTransform.anchoredPosition = new Vector2(0, 0f);
+            // Warning text
+            _warningMessage = BeatSaberUI.CreateText(confirmContainer, "", new Vector2(0, 0));
             _warningMessage.rectTransform.sizeDelta = new Vector2(120, 1);
             _warningMessage.fontSize = 5f;
             _warningMessage.color = Color.white;
