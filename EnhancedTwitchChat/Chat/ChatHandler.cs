@@ -74,8 +74,14 @@ namespace EnhancedTwitchChat
 
         public void SceneManager_activeSceneChanged(Scene from, Scene to)
         {
-            var _vrPointer = to.name == "GameCore" ? Resources.FindObjectsOfTypeAll<VRPointer>().Last() : Resources.FindObjectsOfTypeAll<VRPointer>().First();
-            if (_vrPointer == null) return;
+            var vrPointers = to.name == "GameCore" ? Resources.FindObjectsOfTypeAll<VRPointer>() : Resources.FindObjectsOfTypeAll<VRPointer>();
+            if (vrPointers.Count() == 0)
+            {
+                Plugin.Log("Failed to get VRPointer!");
+                return;
+            }
+
+            var _vrPointer = vrPointers[0];
 
             if (_movePointer)
                 Destroy(_movePointer);
