@@ -134,6 +134,7 @@ namespace EnhancedTwitchChat.Bot
             if (!Directory.Exists(datapath))
                 Directory.CreateDirectory(datapath);
 
+
             playedfilename = Path.Combine(datapath, "played.json"); // Record of all the songs played in the current session
 
             string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
@@ -152,6 +153,8 @@ namespace EnhancedTwitchChat.Bot
 
             UpdateRequestUI();
             InitializeCommands();
+
+            COMMAND.CommandConfiguration();
 
             RunStartupScripts();
 

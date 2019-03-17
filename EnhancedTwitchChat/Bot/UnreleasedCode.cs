@@ -24,9 +24,5 @@ namespace EnhancedTwitchChat.Bot
     // https://tmi.twitch.tv/group/user/sehria_k/chatters // User list for channel 
     public partial class RequestBot : MonoBehaviour
     {
-
-
-
-
     }
 }
