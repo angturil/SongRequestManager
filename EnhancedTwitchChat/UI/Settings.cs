@@ -37,7 +37,7 @@ namespace EnhancedTwitchChat.UI
         {
             var reconnectButton = MenuButtonUI.AddButton("Reconnect to Twitch", "Click this button if your twitch chat stops working, and hopefully with some luck it will fix it.", () =>
             {
-                Task.Run(() => TwitchWebSocketClient.Connect());
+                Task.Run(() => TwitchWebSocketClient.Connect(true));
             });
 
 

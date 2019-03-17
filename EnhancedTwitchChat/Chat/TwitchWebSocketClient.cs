@@ -117,7 +117,7 @@ namespace EnhancedTwitchChat.Chat
             }
         }
 
-        public static void Connect()
+        public static void Connect(bool isManualReconnect = false)
         {
             // If they entered invalid login info before, wait here indefinitely until they edit the config manually
             while (!LoggedIn && !Plugin.Instance.IsApplicationExiting)
@@ -207,9 +207,12 @@ namespace EnhancedTwitchChat.Chat
                         {
                             Plugin.Log(ex.ToString());
                         }
-                        
-                        Thread.Sleep(_reconnectCooldown *= 2);
-                        Connect();
+
+                        if (!isManualReconnect)
+                        {
+                            Thread.Sleep(_reconnectCooldown *= 2);
+                            Connect();
+                        }
                     });
                     ProcessSendQueue(_fullReconnects);
                 }
