@@ -63,7 +63,7 @@ namespace EnhancedTwitchChat
 
             yield return new WaitUntil(() => SceneManager.GetActiveScene().name == MenuSceneName);
             if (TwitchLoginConfig.Instance.TwitchChannelName == String.Empty)
-                yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { TwitchLoginConfig.Instance.TwitchChannelName = channelName; ChatConfig.Instance.Save(true); }));
+                yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { TwitchLoginConfig.Instance.TwitchChannelName = channelName; TwitchLoginConfig.Instance.Save(true); }));
         }
         
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)

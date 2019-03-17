@@ -40,14 +40,14 @@ namespace EnhancedTwitchChat.Config
         public float ChatWidth = 160;
         public float MessageSpacing = 2.0f;
         public int MaxChatLines = 30;
+        
+        public float PositionX = 0;
+        public float PositionY = 2.6f;
+        public float PositionZ = 2.3f;
 
-        public float PositionX = 2.0244143f;
-        public float PositionY = 0.373768f;
-        public float PositionZ = 0.08235432f;
-
-        public float RotationX = 2.026023f;
-        public float RotationY = 97.58616f;
-        public float RotationZ = 1.190764f;
+        public float RotationX = -30;
+        public float RotationY = 0;
+        public float RotationZ = 0;
 
         public float TextColorR = 1;
         public float TextColorG = 1;
