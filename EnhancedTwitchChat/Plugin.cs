@@ -18,12 +18,13 @@ namespace EnhancedTwitchChat
     public class Plugin : IPlugin
     {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "1.1.5";
+        public string Version => "1.2.0";
 
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
         public static Plugin Instance { get; private set; }
-        private readonly Config Config = new Config(Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "EnhancedTwitchChat.ini"));
+        private readonly ChatConfig Config = new ChatConfig(Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "EnhancedTwitchChat.ini"));
+        private readonly RequestBotConfig RequestBotConfig = new RequestBotConfig(Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "RequestBotSettings.ini"));
 
         public static void Log(string text,
                         [CallerFilePath] string file = "",
@@ -58,8 +59,8 @@ namespace EnhancedTwitchChat
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
 
             yield return new WaitUntil(() => SceneManager.GetActiveScene().name == MenuSceneName);
-            if(Config.Instance.TwitchChannelName == String.Empty)
-                yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { Config.Instance.TwitchChannelName = channelName; Config.Instance.Save(true); }));
+            if(ChatConfig.Instance.TwitchChannelName == String.Empty)
+                yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { ChatConfig.Instance.TwitchChannelName = channelName; ChatConfig.Instance.Save(true); }));
         }
         
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
@@ -83,8 +84,11 @@ namespace EnhancedTwitchChat
         {
 
             Resources.FindObjectsOfTypeAll<TMP_FontAsset>().ToList().ForEach(a => Log($"Font: {a.name}"));
-            if (from.name == "EmptyTransition"  && to.name == MenuSceneName)
+            if (from.name == "EmptyTransition" && to.name == MenuSceneName)
+            {
                 Config.Save(true);
+                RequestBotConfig.Save(true);
+            }
             if (to.name == MenuSceneName)
                 IsAtMainMenu = true;
             else if (to.name == "GameCore")

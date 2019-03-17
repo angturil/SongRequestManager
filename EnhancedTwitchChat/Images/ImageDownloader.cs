@@ -352,7 +352,7 @@ namespace EnhancedTwitchChat.Textures
             using (UnityWebRequest web = UnityWebRequest.Get("https://api.twitch.tv/kraken/bits/actions"))
             {
                 web.SetRequestHeader("Accept", "application/vnd.twitchtv.v5+json");
-                web.SetRequestHeader("Channel-ID", Config.Instance.TwitchChannelName);
+                web.SetRequestHeader("Channel-ID", ChatConfig.Instance.TwitchChannelName);
                 web.SetRequestHeader("Client-ID", "jg6ij5z8mf8jr8si22i5uq8tobnmde");
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)
@@ -430,7 +430,7 @@ namespace EnhancedTwitchChat.Textures
 
             Plugin.Log($"Downloading twitch channel badge listing");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get($"https://badges.twitch.tv/v1/badges/channels/{TwitchWebSocketClient.ChannelInfo[Config.Instance.TwitchChannelName].roomId}/display"))
+            using (var web = UnityWebRequest.Get($"https://badges.twitch.tv/v1/badges/channels/{TwitchWebSocketClient.ChannelInfo[ChatConfig.Instance.TwitchChannelName].roomId}/display"))
             {
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)
@@ -503,9 +503,9 @@ namespace EnhancedTwitchChat.Textures
 
         public static IEnumerator GetBTTVChannelEmotes()
         {
-            Plugin.Log($"Downloading BTTV emotes for channel {Config.Instance.TwitchChannelName}");
+            Plugin.Log($"Downloading BTTV emotes for channel {ChatConfig.Instance.TwitchChannelName}");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get($"https://api.betterttv.net/2/channels/{Config.Instance.TwitchChannelName}"))
+            using (var web = UnityWebRequest.Get($"https://api.betterttv.net/2/channels/{ChatConfig.Instance.TwitchChannelName}"))
             {
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)
@@ -563,9 +563,9 @@ namespace EnhancedTwitchChat.Textures
         }
         public static IEnumerator GetFFZChannelEmotes()
         {
-            Plugin.Log($"Downloading FFZ emotes for channel {Config.Instance.TwitchChannelName}");
+            Plugin.Log($"Downloading FFZ emotes for channel {ChatConfig.Instance.TwitchChannelName}");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get($"https://api.frankerfacez.com/v1/room/{Config.Instance.TwitchChannelName}"))
+            using (var web = UnityWebRequest.Get($"https://api.frankerfacez.com/v1/room/{ChatConfig.Instance.TwitchChannelName}"))
             {
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)

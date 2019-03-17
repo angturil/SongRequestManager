@@ -61,7 +61,7 @@ namespace EnhancedTwitchChat.Chat
         {
             get
             {
-                return ChannelInfo.ContainsKey(Config.Instance.TwitchChannelName) && ChannelInfo[Config.Instance.TwitchChannelName].roomId != String.Empty;
+                return ChannelInfo.ContainsKey(ChatConfig.Instance.TwitchChannelName) && ChannelInfo[ChatConfig.Instance.TwitchChannelName].roomId != String.Empty;
             }
         }
         
@@ -122,15 +122,15 @@ namespace EnhancedTwitchChat.Chat
                         Plugin.Log("Connected to Twitch!");
                         _ws.Send("CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership");
 
-                        string username = Config.Instance.TwitchUsername;
-                        if (username == String.Empty || Config.Instance.TwitchOAuthToken == String.Empty)
+                        string username = ChatConfig.Instance.TwitchUsername;
+                        if (username == String.Empty || ChatConfig.Instance.TwitchOAuthToken == String.Empty)
                             username = "justinfan" + _rand.Next(10000, 1000000);
                         else
-                            _ws.Send($"PASS {Config.Instance.TwitchOAuthToken}");
+                            _ws.Send($"PASS {ChatConfig.Instance.TwitchOAuthToken}");
                         _ws.Send($"NICK {username}");
 
-                        if (Config.Instance.TwitchChannelName != String.Empty)
-                            _ws.Send($"JOIN #{Config.Instance.TwitchChannelName}");
+                        if (ChatConfig.Instance.TwitchChannelName != String.Empty)
+                            _ws.Send($"JOIN #{ChatConfig.Instance.TwitchChannelName}");
 
                         // Display a message in the chat informing the user whether or not the connection to the channel was successful
                         ConnectionTime = DateTime.Now;
@@ -261,7 +261,7 @@ namespace EnhancedTwitchChat.Chat
                 }
 
                 string channelName = messageType.Groups["ChannelName"].Value;
-                if (channelName != Config.Instance.TwitchChannelName)
+                if (channelName != ChatConfig.Instance.TwitchChannelName)
                     return;
 
                 // Instantiate our twitch message

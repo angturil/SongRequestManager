@@ -56,8 +56,6 @@ namespace EnhancedTwitchChat.Bot
         private static Button _requestButton;
         private static bool _refreshQueue = false;
 
-        private static FlowCoordinator _levelSelectionFlowCoordinator;
-        private static DismissableNavigationController _levelSelectionNavigationController;
         private static Queue<string> _botMessageQueue = new Queue<string>();
 
         //private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // BUG: Still not the final form
@@ -66,7 +64,8 @@ namespace EnhancedTwitchChat.Bot
         //static private string CommandEveryXminutes ="!add waterbreak song";   // BUG: Not yet iplemented
 #endif
 
-        bool mapperwhiteliston = false; // BUG: Need to clean these up a bit.
+        bool _mapperWhitelist = false; // BUG: Need to clean these up a bit.
+        bool _configChanged = false;
 
         private static System.Random generator = new System.Random(); // BUG: Should at least seed from unity?
 
@@ -89,26 +88,20 @@ namespace EnhancedTwitchChat.Bot
 
         public static void OnLoad()
         {
-            datapath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
-            if (!Directory.Exists(datapath))
-                Directory.CreateDirectory(datapath);
-
-            playedfilename = Path.Combine(datapath, "played.json"); // Record of all the songs played in the current session
-
-            _levelSelectionFlowCoordinator = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
-            if (_levelSelectionFlowCoordinator)
-                _levelSelectionNavigationController = _levelSelectionFlowCoordinator.GetPrivateField<DismissableNavigationController>("_navigationController");
-
-
-
-            if (_levelSelectionNavigationController)
+            var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelPackLevelsViewController>().First();
+            if (_levelListViewController)
             {
-                _requestButton = BeatSaberUI.CreateUIButton(_levelSelectionNavigationController.rectTransform, "QuitButton", new Vector2(60f, 36.8f),
+                _requestButton = BeatSaberUI.CreateUIButton(_levelListViewController.rectTransform, "QuitButton", new Vector2(63, -3.5f),
                     new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
+
+                (_requestButton.transform as RectTransform).anchorMin = new Vector2(1, 1);
+                (_requestButton.transform as RectTransform).anchorMax = new Vector2(1, 1);
 
                 _requestButton.ToggleWordWrapping(false);
                 _requestButton.SetButtonTextSize(2.0f);
-                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!Config.Instance.SongRequestBot ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
+                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!RequestBotConfig.Instance.RequestBotEnabled ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
+
+                UpdateRequestUI();
                 Plugin.Log("Created request button!");
             }
 
@@ -121,22 +114,26 @@ namespace EnhancedTwitchChat.Bot
                 _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
             }
 
-
-
-
             SongListUtils.Initialize();
 
             WriteQueueSummaryToFile();
-            WriteQueueStatusToFile(QueueMessage(Config.Instance.QueueOpen));
+            WriteQueueStatusToFile(QueueMessage(RequestBotConfig.Instance.RequestQueueOpen));
 
 
             if (Instance) return;
             new GameObject("EnhancedTwitchChatRequestBot").AddComponent<RequestBot>();
         }
+
         private void Awake()
         {
             DontDestroyOnLoad(gameObject);
             Instance = this;
+
+            datapath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
+            if (!Directory.Exists(datapath))
+                Directory.CreateDirectory(datapath);
+
+            playedfilename = Path.Combine(datapath, "played.json"); // Record of all the songs played in the current session
 
             string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
             if (Directory.Exists(filesToDelete))
@@ -144,17 +141,15 @@ namespace EnhancedTwitchChat.Bot
 
 
             TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
-            if (PlayedAge < TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
-
+            if (PlayedAge < TimeSpan.FromHours(ChatConfig.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
 
             RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
             RequestHistory.Read();
             SongBlacklist.Read();
 
+            listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(ChatConfig.Instance.SessionResetAfterXHours));
 
-            listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(Config.Instance.SessionResetAfterXHours));
-
-            UpdateRequestButton();
+            UpdateRequestUI();
             InitializeCommands();
 
             RunStartupScripts();
@@ -162,31 +157,44 @@ namespace EnhancedTwitchChat.Bot
             StartCoroutine(ProcessRequestQueue());
             StartCoroutine(ProcessBlacklistRequests());
 
+            RequestBotConfig.Instance.ConfigChangedEvent += OnConfigChangedEvent;
         }
 
+        private void OnConfigChangedEvent(RequestBotConfig config)
+        {
+            _configChanged = true;
+        }
+
+
+        private void OnConfigChanged()
+        {
+            UpdateRequestUI();
+
+            if (RequestBotListViewController.Instance.isActivated)
+                RequestBotListViewController.Instance.UpdateRequestUI(true);
+
+            _configChanged = false;
+        }
 
         private void RunStartupScripts()
         {
             ReadRemapList(); // BUG: This should use list manager
 
 #if UNRELEASED
-
             OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
             MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
             loaddecks(TwitchWebSocketClient.OurTwitchUser, ""); // Load our default deck collection
             // BUG: Command failure observed once, no permission to use /chatcommand. Possible cause: Ourtwitchuser isn't authenticated yet.
 
             RunScript(TwitchWebSocketClient.OurTwitchUser, "startup.script"); // Run startup script. This can include any bot commands.
-
 #endif
-
-
         }
-
-
 
         private void FixedUpdate()
         {
+            if (_configChanged) 
+                OnConfigChanged();
+
             if (_botMessageQueue.Count > 0)
                 SendChatMessage(_botMessageQueue.Dequeue());
 
@@ -242,7 +250,7 @@ namespace EnhancedTwitchChat.Bot
             try
             {
                 Plugin.Log($"Sending message: \"{message}\"");
-                TwitchWebSocketClient.SendMessage($"PRIVMSG #{Config.Instance.TwitchChannelName} :{message}");
+                TwitchWebSocketClient.SendMessage($"PRIVMSG #{ChatConfig.Instance.TwitchChannelName} :{message}");
                 TwitchMessage tmpMessage = new TwitchMessage();
                 tmpMessage.user = TwitchWebSocketClient.OurTwitchUser;
                 MessageParser.Parse(new ChatMessage(message, tmpMessage));
@@ -314,7 +322,6 @@ namespace EnhancedTwitchChat.Bot
                 }
 
                 JSONNode result = JSON.Parse(web.downloadHandler.text);
-
                 if (result["songs"].IsArray && result["total"].AsInt == 0)
                 {
                     QueueChatMessage($"No results found for request \"{request}\"");
@@ -323,17 +330,12 @@ namespace EnhancedTwitchChat.Bot
                 yield return null;
 
                 List<JSONObject> songs = new List<JSONObject>();                 // Load resulting songs into a list 
-
                 string errormessage = "";
-
-
                 if (result["songs"].IsArray)
                 {
-
                     // Might consider sorting the list by rating to improve quality of results            
                     foreach (JSONObject currentSong in result["songs"].AsArray)
                     {
-
                         errormessage = SongSearchFilter(currentSong, false);
                         if (errormessage == "")
                             songs.Add(currentSong);
@@ -344,15 +346,14 @@ namespace EnhancedTwitchChat.Bot
                     songs.Add(result["song"].AsObject);
                 }
 
-
                 // Filter out too many or too few results
                 if (songs.Count == 0)
                 {
                     if (errormessage == "") errormessage = $"No results found for request \"{request}\"";
                 }
-                else if (!Config.Instance.AutopickFirstSong && songs.Count >= 4)
+                else if (!RequestBotConfig.Instance.AutopickFirstSong && songs.Count >= 4)
                     errormessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
-                else if (!Config.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
+                else if (!RequestBotConfig.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
                 {
                     var msg = new QueueLongMessage(1, 5);
 
@@ -390,7 +391,7 @@ namespace EnhancedTwitchChat.Bot
 
                 new DynamicText().AddSong(ref song).QueueMessage(AddSongToQueueText);
 
-                UpdateRequestButton();
+                UpdateRequestUI();
                 _refreshQueue = true;
             }
         }
@@ -437,6 +438,8 @@ namespace EnhancedTwitchChat.Bot
                         Plugin.Log($"Deleting {currentSongDirectory}");
                     }
 
+                    Plugin.Log("Downloading");
+
                     string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
                     yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
                     yield return Utilities.ExtractZip(localPath, currentSongDirectory);
@@ -451,27 +454,19 @@ namespace EnhancedTwitchChat.Bot
                     Plugin.Log($"Song {songName} already exists!");
                 }
 
+
                 if (levels.Length > 0)
                 {
+                    Plugin.Log($"Scrolling to level {levels[0].levelID}");
 
+                    bool success = false;
+                    yield return SongListUtils.ScrollToLevel(levels[0].levelID, (s) => success = s);
 
-                    try
+                    if (!success && !retried)
                     {
-                        Plugin.Log($"Scrolling to level {levels[0].levelID}");
-                        if (!SongListUtils.ScrollToLevel(levels[0].levelID) && !retried)
-                        {
-                            retried = true;
-                            goto retry;
-                        }
+                        retried = true;
+                        goto retry;
                     }
-                    catch (Exception ex)
-                    {
-                        // Display failure message, and lock out command for a time period. Not yet.
-
-                        Plugin.Log(ex.ToString());
-
-                    }
-
                 }
                 else
                 {
@@ -485,13 +480,16 @@ namespace EnhancedTwitchChat.Bot
         }
 
 
-        private static void UpdateRequestButton()
+        private static void UpdateRequestUI(bool writeSummary = true)
         {
             try
             {
-                RequestBot.WriteQueueSummaryToFile(); // Write out queue status to file, do it first
+                if(writeSummary)
+                    WriteQueueSummaryToFile(); // Write out queue status to file, do it first
 
-                if (RequestQueue.Songs.Count == 0)
+                _requestButton.interactable = RequestBotConfig.Instance.RequestBotEnabled;
+
+                if (RequestQueue.Songs.Count == 0 || !RequestBotConfig.Instance.RequestBotEnabled)
                 {
                     _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
                 }
@@ -499,20 +497,19 @@ namespace EnhancedTwitchChat.Bot
                 {
                     _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
                 }
-
             }
-            catch
+            catch(Exception ex)
             {
-
+                Plugin.Log(ex.ToString());
             }
         }
 
         public static void DequeueRequest(SongRequest request, bool updateUI = true)
         {
             RequestHistory.Songs.Insert(0, request);
-            if (RequestHistory.Songs.Count > Config.Instance.RequestHistoryLimit)
+            if (RequestHistory.Songs.Count > RequestBotConfig.Instance.RequestHistoryLimit)
             {
-                int diff = RequestHistory.Songs.Count - Config.Instance.RequestHistoryLimit;
+                int diff = RequestHistory.Songs.Count - RequestBotConfig.Instance.RequestHistoryLimit;
                 RequestHistory.Songs.RemoveRange(RequestHistory.Songs.Count - diff - 1, diff);
             }
             RequestQueue.Songs.Remove(request);
@@ -524,7 +521,7 @@ namespace EnhancedTwitchChat.Bot
 
             if (updateUI == false) return;
 
-            UpdateRequestButton();
+            UpdateRequestUI();
             _refreshQueue = true;
         }
 
@@ -616,7 +613,7 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-                if (Config.Instance.QueueOpen == false && isNotModerator(requestor)) // BUG: Complex permission, Queue state message needs to be handled higher up
+                if (RequestBotConfig.Instance.RequestQueueOpen == false && isNotModerator(requestor)) // BUG: Complex permission, Queue state message needs to be handled higher up
                 {
                     QueueChatMessage($"Queue is currently closed.");
                     return;
@@ -626,10 +623,10 @@ namespace EnhancedTwitchChat.Bot
                 if (!RequestTracker.ContainsKey(requestor.id))
                     RequestTracker.Add(requestor.id, new RequestUserTracker());
 
-                int limit = Config.Instance.RequestLimit;
-                if (requestor.isSub) limit = Math.Max(limit, Config.Instance.SubRequestLimit);
-                if (requestor.isMod) limit = Math.Max(limit, Config.Instance.ModRequestLimit);
-                if (requestor.isVip) limit += Config.Instance.VipBonus; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
+                int limit = RequestBotConfig.Instance.UserRequestLimit;
+                if (requestor.isSub) limit = Math.Max(limit, RequestBotConfig.Instance.SubRequestLimit);
+                if (requestor.isMod) limit = Math.Max(limit, RequestBotConfig.Instance.ModRequestLimit);
+                if (requestor.isVip) limit += RequestBotConfig.Instance.VipBonusRequests; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
 
                 /*
                 // Currently using simultaneous request limits, will be introduced later / or activated if time mode is on.
@@ -655,7 +652,7 @@ namespace EnhancedTwitchChat.Bot
                     if (RequestTracker[requestor.id].numRequests >= limit)
                     {
 
-                        new DynamicText().Add("Requests", RequestTracker[requestor.id].numRequests.ToString()).Add("RequestLimit", Config.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
+                        new DynamicText().Add("Requests", RequestTracker[requestor.id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
 
                         return;
                     }

@@ -1,4 +1,6 @@
-﻿//using BeatSaverDownloader.UI;
+﻿using BeatSaverDownloader.UI;
+using CustomUI.BeatSaber;
+using CustomUI.Utilities;
 using EnhancedTwitchChat.Utils;
 using HMUI;
 //using SongBrowserPlugin;
@@ -18,6 +20,7 @@ namespace EnhancedTwitchChat
     class SongListUtils
     {
         private static LevelPackLevelsViewController _standardLevelListViewController = null;
+        private static LevelPackDetailViewController _standardLevelDetailViewController = null;
         private static bool _initialized = false;
         private static bool _songBrowserInstalled = false;
         private static bool _songDownloaderInstalled = false;
@@ -37,6 +40,7 @@ namespace EnhancedTwitchChat
         public static void Initialize()
         {
             _standardLevelListViewController = Resources.FindObjectsOfTypeAll<LevelPackLevelsViewController>().FirstOrDefault();
+            _standardLevelDetailViewController = Resources.FindObjectsOfTypeAll<LevelPackDetailViewController>().FirstOrDefault();
 
             if (!_initialized)
             {
@@ -73,14 +77,14 @@ namespace EnhancedTwitchChat
         //    }
         //}
 
-        //private enum SongDownloaderAction { ResetFilter = 1 }
-        //private static void ExecuteSongDownloaderAction(SongDownloaderAction action)
-        //{
-        //    if(action.HasFlag(SongDownloaderAction.ResetFilter))
-        //    {
-        //        SongListTweaks.Instance.SetLevels(SongListTweaks.Instance.GetPrivateField<BeatmapCharacteristicSO>("_lastCharacteristic"), SongListTweaks.lastSortMode, "");
-        //    }
-        //}
+        private enum SongDownloaderAction { ResetFilter = 1 }
+        private static void ExecuteSongDownloaderAction(SongDownloaderAction action)
+        {
+            if (action.HasFlag(SongDownloaderAction.ResetFilter))
+            {
+                SongListTweaks.Instance.SetLevels(SortMode.Newest, "");
+            }
+        }
 
         //public static void RemoveDuplicates()
         //{
@@ -101,12 +105,14 @@ namespace EnhancedTwitchChat
             SongLoader.Instance.RefreshSongs(fullRefresh);
             while (SongLoader.AreSongsLoading) yield return null;
 
-            //// If song browser is installed, update/refresh it
+            // If song browser is installed, update/refresh it
             //if (_songBrowserInstalled)
             //    ExecuteSongBrowserAction(resetFilterMode ? SongBrowserAction.ResetFilter : SongBrowserAction.Refresh);
-            //// If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
-            //else if (resetFilterMode && _songDownloaderInstalled)
-            //    ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
+            //else 
+
+            // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+            if (resetFilterMode && _songDownloaderInstalled)
+                ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
 
             //// Set the row index to the previously selected song
             //if (selectOldLevel)
@@ -118,39 +124,61 @@ namespace EnhancedTwitchChat
             for (int i = 0; i < table.levelPack.beatmapLevelCollection.beatmapLevels.Length; i++)
             {
                 if (table.levelPack.beatmapLevelCollection.beatmapLevels[i].levelID == levelID)
-                    return i;
+                {
+                    return i + 1;
+                }
             }
             return -1;
         }
 
-        public static bool ScrollToLevel(string levelID)
+        public static IBeatmapLevelPack GetLevelPackWithLevels(BeatmapLevelSO[] levels, string packName = null, Sprite packCover = null)
         {
-            var table = ReflectionUtil.GetPrivateField<LevelPackLevelsViewController>(_standardLevelListViewController, "_levelPackLevelsViewController");
-            if (table)
-            {
-                //RemoveDuplicates();
+            CustomLevelCollectionSO levelCollection = ScriptableObject.CreateInstance<CustomLevelCollectionSO>();
+            levelCollection.SetPrivateField("_levelList", levels.ToList());
+            levelCollection.SetPrivateField("_beatmapLevels", levels);
+            
+            CustomBeatmapLevelPackSO pack = CustomBeatmapLevelPackSO.GetPack(levelCollection);
+            pack.SetPrivateField("_packName", string.IsNullOrEmpty(packName) ? "Custom Songs" : packName);
+            pack.SetPrivateField("_coverImage", UIUtilities.BlankSprite);
+            pack.SetPrivateField("_isPackAlwaysOwned", true);
+            return pack;
+        }
 
-                TableView tableView = table.GetComponentInChildren<TableView>();
+        public static IEnumerator ScrollToLevel(string levelID, Action<bool> callback, bool isRetry = false)
+        {
+            if (_standardLevelListViewController)
+            {
+                TableView tableView = _standardLevelListViewController.GetComponentInChildren<TableView>();
                 tableView.ReloadData();
 
-                var levels = table.levelPack.beatmapLevelCollection.beatmapLevels.Where(l => l.levelID == levelID).ToArray();
+                var levels = _standardLevelListViewController.levelPack.beatmapLevelCollection.beatmapLevels.Where(l => l.levelID == levelID).ToArray();
+
                 if (levels.Length > 0)
                 {
-                    int row = GetLevelIndex(table, levelID);
+                    int row = GetLevelIndex(_standardLevelListViewController, levelID);
                     if (row != -1)
                     {
                         tableView.SelectCellWithIdx(row, true);
-                        tableView.ScrollToCellWithIdx(row, TableView.ScrollPositionType.Center, true);
-                        return true;
+                        tableView.ScrollToCellWithIdx(row, TableView.ScrollPositionType.Beginning, true);
+                        callback?.Invoke(true);
+                        yield break;
                     }
                 }
             }
+
+            if (!isRetry)
+            {
+                yield return SongListUtils.RefreshSongs(false, false, true);
+                yield return ScrollToLevel(levelID, callback, true);
+                yield break;
+            }
+
             var tempLevels = SongLoader.CustomLevels.Where(l => l.levelID == levelID).ToArray();
             foreach (CustomLevel l in tempLevels)
                 SongLoader.CustomLevels.Remove(l);
 
             Plugin.Log($"Failed to scroll to {levelID}!");
-            return false;
+            callback?.Invoke(false);
         }
     }
 }

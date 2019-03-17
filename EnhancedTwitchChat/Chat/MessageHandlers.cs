@@ -92,7 +92,7 @@ namespace EnhancedTwitchChat.Chat
 
             MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMsg.message), twitchMsg));
 #if REQUEST_BOT
-            if (Config.Instance.SongRequestBot)
+            if (RequestBotConfig.Instance.RequestBotEnabled)
                 RequestBot.COMMAND.Parse(twitchMsg.user, twitchMsg.message);
 #endif
         }

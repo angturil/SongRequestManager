@@ -20,7 +20,108 @@ namespace EnhancedTwitchChat
         public string SongBlacklist;
     }
 
-    public class Config
+    public class RequestBotConfig
+    {
+        public string FilePath { get; }
+        
+        //public string RequestCommandAliases = "request,bsr,add,sr";
+
+#if !REQUEST_BOT
+        public string SongBlacklist = "";
+#endif
+
+        public bool RequestBotEnabled = false;
+        public bool RequestQueueOpen = true;
+        public bool PersistentRequestQueue = true;
+
+        public int RequestHistoryLimit = 20;
+        public int UserRequestLimit = 5;
+        public int SubRequestLimit = 5;
+        public int ModRequestLimit = 10;
+        public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
+        public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
+        //public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
+
+        //public string DeckList = "fun hard challenge dance";
+
+        public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI
+        public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
+        public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
+        public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
+
+        public event Action<RequestBotConfig> ConfigChangedEvent;
+
+        private readonly FileSystemWatcher _configWatcher;
+        private bool _saving;
+
+        public static RequestBotConfig Instance = null;
+
+        // These settings let you configure the text of various bot commands.  BUG:I'd like to remove it from here for this release
+
+
+        public int MaximumQueueTextEntries = 8;
+
+        public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
+        
+
+        public RequestBotConfig(string filePath)
+        {
+            Instance = this;
+            FilePath = filePath;
+
+            if (!Directory.Exists(Path.GetDirectoryName(FilePath)))
+                Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
+
+            if (File.Exists(FilePath))
+            {
+                Load();
+            }
+            Save();
+
+            _configWatcher = new FileSystemWatcher(Path.GetDirectoryName(filePath))
+            {
+                NotifyFilter = NotifyFilters.LastWrite,
+                Filter = "RequestBotSettings.ini",
+                EnableRaisingEvents = true
+            };
+            _configWatcher.Changed += ConfigWatcherOnChanged;
+        }
+
+        ~RequestBotConfig()
+        {
+            _configWatcher.Changed -= ConfigWatcherOnChanged;
+        }
+
+        public void Load()
+        {
+            ConfigSerializer.LoadConfig(this, FilePath);
+        }
+
+        public void Save(bool callback = false)
+        {
+            if (!callback)
+                _saving = true;
+            ConfigSerializer.SaveConfig(this, FilePath);
+        }
+        
+        private void ConfigWatcherOnChanged(object sender, FileSystemEventArgs fileSystemEventArgs)
+        {
+            if (_saving)
+            {
+                _saving = false;
+                return;
+            }
+
+            Load();
+
+            if (ConfigChangedEvent != null)
+            {
+                ConfigChangedEvent(this);
+            }
+        }
+    }
+
+    public class ChatConfig
     {
         public string FilePath { get; }
 
@@ -55,53 +156,21 @@ namespace EnhancedTwitchChat
         public float BackgroundColorA = 0.6f;
         public float BackgroundPadding = 4;
 
-        public bool LockChatPosition = false;
-        public bool ReverseChatOrder = false;
         public bool AnimatedEmotes = true;
         public bool DrawShadows = false;
-        public bool SongRequestBot = false;
-        public bool PersistentRequestQueue = true;
+        public bool LockChatPosition = false;
+        public bool ReverseChatOrder = false;
         public bool FilterCommandMessages = false;
         public bool FilterBroadcasterMessages = false;
         public bool FilterUserlistMessages = true; // Filter messages in chatexclude.users ( pick a better name ) 
 
-        public string RequestCommandAliases = "request,bsr,add,sr";
-
-    #if !REQUEST_BOT
-        public string SongBlacklist = "";
-    #endif
-
-        public bool QueueOpen = true;
-
-        public int RequestHistoryLimit = 20;
-        public int RequestLimit = 5;
-        public int SubRequestLimit = 5;
-        public int ModRequestLimit = 10;
-        public int VipBonus = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
-        public int RequestCooldownMinutes = 0; // BUG: Currently inactive
-
-        public string DeckList = "fun hard challenge dance";
-
-        public float lowestallowedrating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
-
-        public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI
-
-        public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
-
-        public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
-
-        public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
-        public bool ShowStarRating = true; // Show star rating (quality, not difficulty) on songs being requested *IMPLEMENTED*, needs UI
-
-        public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
-        public int maxaddnewresults = 5;  // Max results per command,mainly to avoid overwhelming the queue *needs UI*
-
-        public event Action<Config> ConfigChangedEvent;
+      
+        public event Action<ChatConfig> ConfigChangedEvent;
 
         private readonly FileSystemWatcher _configWatcher;
         private bool _saving;
 
-        public static Config Instance = null;
+        public static ChatConfig Instance = null;
 
         // These settings let you configure the text of various bot commands.  BUG:I'd like to remove it from here for this release
 
@@ -165,7 +234,7 @@ namespace EnhancedTwitchChat
             }
         }
 
-        public Config(string filePath)
+        public ChatConfig(string filePath)
         {
             Instance = this;
             FilePath = filePath;
@@ -215,7 +284,7 @@ namespace EnhancedTwitchChat
             _configWatcher.Changed += ConfigWatcherOnChanged;
         }
 
-        ~Config()
+        ~ChatConfig()
         {
             _configWatcher.Changed -= ConfigWatcherOnChanged;
         }

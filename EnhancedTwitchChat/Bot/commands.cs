@@ -120,10 +120,8 @@ namespace EnhancedTwitchChat.Bot
                 Note: Default permissions are broadcaster only, so don't need to set them
 
             */
-
-            string[] array = Config.Instance.RequestCommandAliases.Split(',');
-
-            new COMMAND(Config.Instance.RequestCommandAliases.Split(',')).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
+            
+            new COMMAND(new string[] { "request", "bsr", "add", "sr" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
 
             AddCommand("queue", ListQueue, Everyone, "usage: %alias%%|% ... Displays a list of the currently requested songs.", _nothing);
 

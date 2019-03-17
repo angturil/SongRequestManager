@@ -207,13 +207,13 @@ namespace EnhancedTwitchChat.Bot
 
             if (filter.HasFlag(SongFilter.Blacklist) && SongBlacklist.Songs.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is banned!";
 
-            if (filter.HasFlag(SongFilter.Mapper) && mapperwhiteliston && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
+            if (filter.HasFlag(SongFilter.Mapper) && _mapperWhitelist && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
             if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist, songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} has already been requested this session!";
 
             if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"no permitted results found!";
 
-            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < Config.Instance.lowestallowedrating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
+            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
 
             return "";
         }
@@ -710,8 +710,8 @@ namespace EnhancedTwitchChat.Bot
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
         {
-            Config.Instance.QueueOpen = state;
-            Config.Instance.Save();
+            RequestBotConfig.Instance.RequestQueueOpen = state;
+            RequestBotConfig.Instance.Save();
 
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
             WriteQueueStatusToFile(QueueMessage(state));
@@ -720,7 +720,7 @@ namespace EnhancedTwitchChat.Bot
         private static void WriteQueueSummaryToFile()
         {
 
-            if (!Config.Instance.UpdateQueueStatusFiles) return;
+            if (!RequestBotConfig.Instance.UpdateQueueStatusFiles) return;
 
             try
             {
@@ -735,7 +735,7 @@ namespace EnhancedTwitchChat.Bot
                     var song = req.song;
                     queuesummary += new DynamicText().AddSong(song).Parse(ref QueueTextFileFormat);  // Format of Queue is now user configurable
 
-                    if (++count > Config.Instance.MaximumQueueTextEntries)
+                    if (++count > ChatConfig.Instance.MaximumQueueTextEntries)
                     {
                         queuesummary += "...\n";
                         break;
@@ -781,7 +781,7 @@ namespace EnhancedTwitchChat.Bot
             RequestQueue.Write();
 
             // Update the request button ui accordingly
-            UpdateRequestButton();
+            UpdateRequestUI();
 
             // Notify the chat that the queue was cleared
             QueueChatMessage($"Queue is now empty.");
