@@ -39,6 +39,7 @@ namespace EnhancedTwitchChat
         public int SubRequestLimit = 5;
         public int ModRequestLimit = 10;
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
+        public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
         //public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
 
@@ -48,6 +49,7 @@ namespace EnhancedTwitchChat
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
+        public int MaximumQueueTextEntries = 8;
 
         public event Action<RequestBotConfig> ConfigChangedEvent;
 
@@ -59,9 +61,7 @@ namespace EnhancedTwitchChat
         // These settings let you configure the text of various bot commands.  BUG:I'd like to remove it from here for this release
 
 
-        public int MaximumQueueTextEntries = 8;
 
-        public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
         
 
         public RequestBotConfig(string filePath)
@@ -171,14 +171,7 @@ namespace EnhancedTwitchChat
         private bool _saving;
 
         public static ChatConfig Instance = null;
-
-        // These settings let you configure the text of various bot commands.  BUG:I'd like to remove it from here for this release
-
-
-        public int MaximumQueueTextEntries = 8;
-
-        public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
-
+        
         public Color TextColor
         {
             get

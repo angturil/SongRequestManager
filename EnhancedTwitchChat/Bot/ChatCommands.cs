@@ -735,7 +735,7 @@ namespace EnhancedTwitchChat.Bot
                     var song = req.song;
                     queuesummary += new DynamicText().AddSong(song).Parse(ref QueueTextFileFormat);  // Format of Queue is now user configurable
 
-                    if (++count > ChatConfig.Instance.MaximumQueueTextEntries)
+                    if (++count > RequestBotConfig.Instance.MaximumQueueTextEntries)
                     {
                         queuesummary += "...\n";
                         break;

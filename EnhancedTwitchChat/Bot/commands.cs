@@ -176,7 +176,7 @@ namespace EnhancedTwitchChat.Bot
 
             new COMMAND("att").Action(AddToTop).Help(Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the top of the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
 
-            new COMMAND("about").Help(Broadcasteronly, $"EnhancedTwitchChat Bot version 2.0.0. Developed by brian91292 and angturil. Find us on github.", _fail); // Help commands have no code
+            new COMMAND("about").Help(Broadcasteronly, $"EnhancedTwitchChat Bot version {Plugin.Instance.Version}. Developed by brian91292 and angturil. Find us on github.", _fail); // Help commands have no code
 
 #if UNRELEASED
 
