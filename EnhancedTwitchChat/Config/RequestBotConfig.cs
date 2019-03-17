@@ -30,7 +30,9 @@ namespace EnhancedTwitchChat.Config
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
         //public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
 
-        //public string DeckList = "fun hard challenge dance";
+        #if UNRELEASED
+        public string DeckList = "fun hard challenge dance";
+        #endif
 
         public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
