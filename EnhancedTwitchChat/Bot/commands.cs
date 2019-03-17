@@ -54,8 +54,9 @@ namespace EnhancedTwitchChat.Bot
             RegEx = 524288, // Enable regex check
             UserFlag1 = 1048576, // Use it for whatever bit makes you happy 
             UserFlag2 = 2097152, // Use it for whatever bit makes you happy 
-            UserFlag3 = 4194304, // Use it for whatever bit makes you happy 
-            UserFlag4 = 8388608, // Use it for whatever bit makes you happy 
+            UserFlag3 = 4194304, // Use it for whatever bit makes you happy
+ 
+            Dynamic = 8388608, // This command is generated dynamically, and cannot be saved/loaded 
 
             SilentPreflight = 16277216, //  
 
@@ -110,7 +111,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void InitializeCommands()
         {
-
+            #region Command declarations
             /*
                Prototype of new calling convention for adding new commands.
 
@@ -119,92 +120,97 @@ namespace EnhancedTwitchChat.Bot
 
                 Note: Default permissions are broadcaster only, so don't need to set them
 
+                *VERY IMPORTANT*
+ 
+                The Command name or FIRST alias in the alias list is considered the Base name of the command, and absolutely should not be changed through code. Choose this first name wisely.
+                We use the Base name to allow user command Customization, it is how the command is identified to the user. You can alter the alias list of the commands in 
+                the command configuration file (botcommands.cfg).
+ 
+                The file format is as follows:
+                
+                <Base commandname>/alias < alias(s) /rights < command flags > /help Help text
+
+                You only need to change the parts that you wish to modify. Leaving a section out, or black will result in it being ignored. The order of the sections is enforced.
+                Do NOT put help before rights, for example. This is done to avoid future confusion, and to allow the Save code to maintain a consistent result. Help text MUST always
+                be at the end, since they can include the description of themselves (including the /Help part). If new sections are added, they must come before /help
+                Command lines with errors will be displayed,possibly ignored. Section names are case sensitive - to avoid ambiguity with aliases that they describe which should be lowercase.
+ 
+                Comments in the file are preceded by // I intend to display the full file content at the bottom as comments
+
+                Examples:
+
+                request/Alias request bsr add sr /Flags Mod Sub VIP Broadcaster /Help New help text for request 
+                queue/Alias queue,requested 
+                block/Alias block,Ban /Help We didn't change permissions   
+
             */
-            
+
+
             new COMMAND(new string[] { "request", "bsr", "add", "sr" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
-
-            AddCommand("queue", ListQueue, Everyone, "usage: %alias%%|% ... Displays a list of the currently requested songs.", _nothing);
-
-            AddCommand("unblock", Unban, Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
-
-            AddCommand("block", Ban, Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
-
-            AddCommand("remove", DequeueSong, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Removes a song from the queue.", _atleast1);
-
-            AddCommand("clearqueue", Clearqueue, Broadcasteronly, "usage: %alias%%|%... Clears the song request queue. You can still get it back from the JustCleared deck, or the history window", _nothing);
-
-            AddCommand("mtt", MoveRequestToTop, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the top of the request queue.", _atleast1);
-
-            AddCommand("remap", Remap, Mod, "usage: %alias%<songid1> , <songid2>%|%... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.", _RemapRegex);
-
-            AddCommand("unmap", Unmap, Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversongversion);
-
-
             new COMMAND(new string[] { "lookup", "find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
-
-            AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the bottom of the request queue.", _atleast1);
-
-            AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong, Everyone, "usage: %alias%%|%... Removes your last requested song form the queue. It can be requested again later.", _nothing);
+            AddCommand("link", ShowSongLink, Everyone, "usage: %alias%|%... Shows details, and a link to the current song", _nothing);
 
             AddCommand("open", OpenQueue, Mod, "usage: %alias%%|%... Opens the queue allowing song requests.", _nothing);
-
             AddCommand("close", CloseQueue, Mod, "usage: %alias%%|%... Closes the request queue.", _nothing);
 
-            AddCommand("restore", restoredeck, Broadcasteronly, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
-
-            AddCommand("commandlist", showCommandlist, Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
-
+            AddCommand("queue", ListQueue, Everyone, "usage: %alias%%|% ... Displays a list of the currently requested songs.", _nothing);
             AddCommand("played", ShowSongsplayed, Mod, "usage: %alias%%|%... Displays all the songs already played this session.", _nothing);
+            AddCommand("history", ShowHistory, Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
+            new COMMAND("who").Action(Who).Help(Mod, "usage: %alias% <songid or name>%|%Find out who requested the song in the currently queue or recent history.", _atleast1);
 
+            AddCommand("mtt", MoveRequestToTop, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the top of the request queue.", _atleast1);
+            new COMMAND("att").Action(AddToTop).Help(Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the top of the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
+            AddCommand(new string[] { "last", "demote", "later" }, MoveRequestToBottom, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the bottom of the request queue.", _atleast1);
+            AddCommand("remove", DequeueSong, Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Removes a song from the queue.", _atleast1);
+            AddCommand(new string[] { "wrongsong", "wrong", "oops" }, WrongSong, Everyone, "usage: %alias%%|%... Removes your last requested song form the queue. It can be requested again later.", _nothing);
+
+            AddCommand("unblock", Unban, Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
+            AddCommand("block", Ban, Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
             AddCommand("blist", ShowBanList, Broadcasteronly, "usage: Don't use, it will spam chat!", _atleast1); // Purposely annoying to use, add a character after the command to make it happen 
 
+            AddCommand("remap", Remap, Mod, "usage: %alias%<songid1> , <songid2>%|%... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.", _RemapRegex);
+            AddCommand("unmap", Unmap, Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversongversion);
+
+            AddCommand("clearqueue", Clearqueue, Broadcasteronly, "usage: %alias%%|%... Clears the song request queue. You can still get it back from the JustCleared deck, or the history window", _nothing);
+            AddCommand("clearalreadyplayed", ClearDuplicateList, Broadcasteronly, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
+            AddCommand("restore", restoredeck, Broadcasteronly, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
+
+            new COMMAND("about").Help(Broadcasteronly, $"EnhancedTwitchChat Bot version {Plugin.Instance.Version}. Developed by brian91292 and angturil. Find us on github.", _fail); // Help commands have no code
+            AddCommand(new string[] { "help"}, help, Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
+            AddCommand("commandlist", showCommandlist, Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
             AddCommand("readdeck", Readdeck, Broadcasteronly, "usage: %alias", _alphaNumericRegex);
             AddCommand("writedeck", Writedeck, Broadcasteronly, "usage: %alias", _alphaNumericRegex);
 
-            AddCommand("clearalreadyplayed", ClearDuplicateList, Broadcasteronly, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
-
-            AddCommand(new string[] { "help", ".help" }, help, Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
-
-            AddCommand("link", ShowSongLink, Everyone, "usage: %alias%|%... Shows details, and a link to the current song", _nothing);
-
-            AddCommand("allowmappers", MapperAllowList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
-
             AddCommand("chatmessage", ChatMessage, Broadcasteronly, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
             AddCommand("runscript", RunScript, Broadcasteronly, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
-            AddCommand("history", ShowHistory, Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
-
-            new COMMAND("att").Action(AddToTop).Help(Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the top of the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
-
-            new COMMAND("about").Help(Broadcasteronly, $"EnhancedTwitchChat Bot version {Plugin.Instance.Version}. Developed by brian91292 and angturil. Find us on github.", _fail); // Help commands have no code
 
 #if UNRELEASED
 
 
-            // These are future features
+            // These comments contain forward looking statement that are absolutely subject to change. I make no commitment to following through
+            // on any specific feature,interface or implementation. I do not promise to make them generally available. Its probably best to avoid using or making assumptions based on these.
 
-            //AddCommand("/at"); // Scehdule at a certain time (command property)
+            new COMMAND ("backup").Help(CmdFlags.Disabled, "Backup %ETC% directory.", _atleast1); // BUG: No code, Future feature
 
             new COMMAND("every").Help(Broadcasteronly, "Run a command at a certain time", _atleast1); // BUG: No action
             new COMMAND("at").Help(Broadcasteronly, "Run a command at a certain time.", _atleast1); // BUG: No action
             new COMMAND("in").Help(Broadcasteronly, "Run a command at a certain time.", _atleast1); // BUG: No action
             new COMMAND("alias").Help(Broadcasteronly, "usage: %alias %|% Create a command alias, short cuts version a commands. Single line only. Supports %variables% (processed at execution time), parameters are appended.", _atleast1); // BUG: No action
 
-
-            new COMMAND("who").Action(Who).Help(Mod, "usage: %alias% <songid or name>%|%Find out who requested the song in the currently queue or recent history.",_atleast1) ; 
             new COMMAND("songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|%Assign a message to the song",_atleast1); 
             new COMMAND("detail"); // Get song details
 
-            COMMAND.InitializeCommands();
+            COMMAND.InitializeCommands(); // BUG: Currently empty
 
+            AddCommand("allowmappers", MapperAllowList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
             AddCommand("blockmappers", MapperBanList, Broadcasteronly, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
 
-
-            // Temporary commands for testing, most of these will be unified in a general list/parameter interface
-
             new COMMAND(new string[] { "addnew", "addlatest" }).Coroutine(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
-
             new COMMAND("addsongs").Coroutine(addsongs).Help(Broadcasteronly, "usage: %alias%%|% Add all songs matching a criteria (up to 40) to the queue", _atleast1);
+            new COMMAND("mapper").Coroutine(addsongsBymapper).Help(Broadcasteronly, "usage: %alias%<mapperlist>");
+
+            // These commands will use a completely new format in future builds and rely on a slightly more flexible parser. Commands like userlist.add george, userlist1=userlist2 will be allowed. 
 
             AddCommand("openlist", OpenList);
             AddCommand("unload", UnloadList);
@@ -213,8 +219,6 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("list", ListList);
             AddCommand("lists", showlists);
             AddCommand("addtolist", Addtolist, Broadcasteronly, "usage: %alias%<list> <value to add>", _atleast1);
-            AddCommand("addtoqueue", queuelist, Broadcasteronly, "usage: %alias%<list>", _atleast1);
-
             AddCommand("removefromlist", RemoveFromlist, Broadcasteronly, "usage: %alias%<list> <value to add>", _atleast1);
             AddCommand("listundo", Addtolist, Broadcasteronly, "usage: %alias%<list>", _atleast1); // BUG: No function defined yet, undo the last operation
 
@@ -224,11 +228,12 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("decklist", decklist, Mod, "usage: %alias", _deck);
             AddCommand("whatdeck", whatdeck, Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
 
-            new COMMAND("mapper").Coroutine(addsongsBymapper).Help(Broadcasteronly, "usage: %alias%<mapperlist>");
+            AddCommand("addtoqueue", queuelist, Broadcasteronly, "usage: %alias%<list>", _atleast1);
+
 
 #endif
-
-
+            #endregion
+            #region SUBCOMMAND Declarations
             // BEGIN SUBCOMMANDS - these modify the Properties of a command, or the current parse state. 
 
             new COMMAND("/enable").Action(SubcmdEnable).Help(Subcmd, "usage: <command>/enable");
@@ -245,7 +250,8 @@ namespace EnhancedTwitchChat.Bot
             new COMMAND("/helpmsg").Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/helpmsg");
             new COMMAND("/silent").Action(SubcmdSilent).Help(Subcmd | Everyone, "usage: <command>/silent");
 
-
+            new COMMAND("/alias").Action(SubcmdAlias).Help(Subcmd | Broadcasteronly,"usage: %alias% %|% Defines all the aliases a command can use"); // BUG: not implemented yet
+            #endregion
         }
 
 
@@ -254,19 +260,23 @@ namespace EnhancedTwitchChat.Bot
 
         }
 
+        static string success = "";
+        static string endcommand = "X";
+        static string notsubcommand="NotSubcmd";
+
         #region Subcommands
         public string SubcmdEnable(ParseState state)
         {
             state.botcmd.Flags &= ~CmdFlags.Disabled;
             Instance?.QueueChatMessage($"{state.command} Enabled.");
-            return "X";
+            return endcommand;
         }
 
         public string SubcmdDisable(ParseState state)
         {
             state.botcmd.Flags |= CmdFlags.Disabled;
             Instance?.QueueChatMessage($"{state.command} Disabled.");
-            return "X";
+            return endcommand;
         }
 
         public string SubcmdCurrentSong(ParseState state)
@@ -317,60 +327,93 @@ namespace EnhancedTwitchChat.Bot
 
         public string SubcmdShowflags(ParseState state)
         {
-            Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
-            return "X";
+            if (state.subparameter == "")
+            {
+                Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
+            }
+            else
+            {
+                return SubcmdSetflags(state);
+            }
+            return endcommand;
         }
 
         public string SubcmdSetflags(ParseState state)
         {
-            string[] flags = state.parameter.Split(new char[] { ' ', ',' });
+            try
+            {
 
-            CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), state.parameter);
+                string[] flags = state.subparameter.Split(new char[] { ' ', ',' });
 
-            state.botcmd.Flags |= flag;
+                CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), state.subparameter);
+                state.botcmd.Flags |= flag;
 
-            Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
+                if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
 
-            return "X";
+            }
+            catch   
+            {
+                return $"Unable to set  {state.command} flags to {state.subparameter}";
+            }
+
+            return endcommand;
         }
 
         public string SubcmdClearflags(ParseState state)
         {
-            string[] flags = state.parameter.Split(new char[] { ' ', ',' });
+            string[] flags = state.subparameter.Split(new char[] { ' ', ',' });
 
-            CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), state.parameter);
+            CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), state.subparameter);
 
             state.botcmd.Flags &= ~flag;
 
             Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
 
-            return "X";
+            return endcommand;
         }
 
 
         public string SubcmdAllow(ParseState state)
         {
             // BUG: No parameter checking
-            string key = state.parameter.ToLower();
+            string key = state.subparameter.ToLower();
             state.botcmd.permittedusers = key;
-            Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
-            return "X";
+            if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"Permit custom userlist set to  {key}.");
+            return endcommand;
         }
+
+        public string SubcmdAlias(ParseState state)
+        {
+
+            state.subparameter.ToLower();
+
+            if (state.botcmd.aliases.Contains(state.botcmd.aliases[0]) || COMMAND.aliaslist.ContainsKey(state.botcmd.aliases[0]))
+                {
+                foreach (var alias in state.botcmd.aliases) COMMAND.aliaslist.Remove(alias);
+                state.botcmd.aliases = state.subparameter.Split(new char[] { ' ', ',' }).ToList();
+                }
+            else
+                {
+                return $"Unable to set {state.command} aliases to {state.subparameter}";    
+                }
+
+            return endcommand;
+        }
+
 
         public string SubcmdSethelp(ParseState state)
         {
-            state.botcmd.ShortHelp = state.parameter;
-            Instance?.QueueChatMessage($"{state.command} help: {state.parameter}");
-            return "X";
+            state.botcmd.ShortHelp = state.parameter; // This one's different
+            if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"{state.command} help: {state.parameter}");
+            return endcommand;
         }
 
 
         public string SubcmdSilent(ParseState state)
         {
             state.flags |= CmdFlags.Silent;
-            return "";
+            return success;
         }
-
 
 
         #endregion
@@ -379,16 +422,15 @@ namespace EnhancedTwitchChat.Bot
         #region COMMAND Class
         public partial class COMMAND
         {
-            //public static List<COMMAND> cmdlist = new List<COMMAND>(); // Collection of our command objects
-            public static Dictionary<string, COMMAND> aliaslist = new Dictionary<string, COMMAND>();
-            //public static Dictionary<string, COMMAND> subcommands = new Dictionary<string, COMMAND>();
+            public static Dictionary<string, COMMAND> aliaslist = new Dictionary<string, COMMAND>(); // There can be only one (static)!
 
+            // BUG: Extra methods will be removed after the offending code is migrated, There will likely always be 2-3.
             private Action<TwitchUser, string> Method = null;  // Method to call
             private Action<TwitchUser, string, CmdFlags, string> Method2 = null; // Alternate method
             private Func<COMMAND, TwitchUser, string, CmdFlags, string, string> Method3 = null; // Prefered method, returns the error msg as a string.
             private Func<TwitchUser, string, IEnumerator> func1 = null;
 
-            public Func<ParseState, string> subcommand = null;
+            public Func<ParseState, string> subcommand = null; // Prefered calling convention. It does expose calling command base properties, so be careful.
 
             public CmdFlags Flags = Broadcasteronly;          // flags
             public string ShortHelp = "";                   // short help text (on failing preliminary check
@@ -419,15 +461,13 @@ namespace EnhancedTwitchChat.Bot
                 else if (func1 != null) Instance.StartCoroutine(func1(user, request));
             }
 
-
             public static void InitializeCommands()
             {
-
+            // BUG: Currently unused due to common variable scope visibility, but could change later.
             }
 
-            COMMAND AddAliases()
+            public COMMAND AddAliases()
             {
-
                 foreach (var entry in aliases)
                 {
                     var cmdname = entry;
@@ -503,20 +543,128 @@ namespace EnhancedTwitchChat.Bot
                 return this;
             }
 
-
-
             public static void Parse(TwitchUser user, string request, CmdFlags flags = 0, string info = "")
             {
                 if (!Instance || request.Length == 0) return;
 
                 // This will be used for all parsing type operations, allowing subcommands efficient access to parse state logic
                 ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();
-
             }
+
+            #region Command List Save / Load functionality
+            private string GetHelpText()
+                {
+                return ShortHelp;
+                }
+
+            private string GetFlags()
+                {
+                return Flags.ToString();
+                }
+
+            private string GetAliases()
+                {
+                return String.Join(",", aliases.ToArray());
+                }
+
+
+
+           // BUG: This is pass 1, refactoring will get done eventually.
+           public static void CommandConfiguration(string configfilename="botcommands")
+                {
+
+                RequestBot.Instance.QueueChatMessage($"Reading {configfilename}");
+
+                var filename = Path.Combine(datapath, configfilename + ".cfg");
+
+                SortedDictionary<string, COMMAND> unique = new SortedDictionary<string, COMMAND>();
+
+                var commandsummary = new StringBuilder();
+
+                foreach (var alias in aliaslist)
+                    {
+                    var BaseKey = alias.Value.aliases[0];
+                    if (!unique.ContainsKey(BaseKey)) unique.Add(BaseKey, alias.Value); // Create a sorted dictionary of each unique command object
+                    }
+
+                commandsummary.Append("// This section contains ONLY commands that have changed.\r\n\r\n");
+
+                try
+                {
+                    bool failed = false;
+
+                    using (StreamReader sr = new StreamReader(filename))
+                    {
+                        while (sr.Peek() >= 0)
+                        {
+                            string line = sr.ReadLine();
+                            if (line.Length < 2 || line.StartsWith("//")) continue;
+
+                            // MAGICALLY configure the customized commands 
+                            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser,"!" + line,CmdFlags.SilentResult);
+
+                        }
+                    }
+                }
+                catch       
+                {
+                // If it doesn't exist, or ends early, that's fine.
+                }
+
+                if (!File.Exists(filename))               
+                    {
+                    RequestBot.Instance.QueueChatMessage($"Creating {filename}.cfg");
+
+                    commandsummary.Append("\r\n");
+                    commandsummary.Append("// This is a summary of the current command states, these are for reference only. Use the uncommented section for your changes.\r\n\r\n");
+
+                    foreach (var entry in unique)
+                    {
+                        var command = entry.Value;
+
+                        if (command.Flags.HasFlag(CmdFlags.Dynamic) || command.Flags.HasFlag(CmdFlags.Subcommand)) continue; // we do not allow customization of Subcommands or dynamic commands at this time
+
+                        var cmdname = command.aliases[0];
+                        cmdname += new string(' ', 20 - cmdname.Length);
+
+                        commandsummary.Append($"// {cmdname}/alias {command.GetAliases()} /flags {command.GetFlags()} /sethelp {command.GetHelpText()}\r\n");
+                    }
+
+                    // BUG: Ok, we should probably just use a text file. But I very 
+
+                    commandsummary.Append(
+                    @"
+                    // The Command name or FIRST alias in the alias list is considered the Base name of the command, and absolutely should not be changed through code. Choose this first name wisely
+                    // We use the Base name to allow user command Customization, it is how the command is identified to the user. You can alter the alias list of the commands in
+                    // the command configuration file(botcommands.cfg).
+ 
+                    // The file format is as follows:
+  
+                    // < Base commandname > /alias < alias(s) /flags < command flags > /sethelp Help text
+            
+                    // You only need to change the parts that you wish to modify. Leaving a section out, or black will result in it being ignored.The order of the sections is enforced.
+                    // Do NOT put help before rights, for example.This is done to avoid future confusion, and to allow the Save code to maintain a consistent result.Help text MUST always
+                    // be at the end, since they can include the description of themselves(including the / Help part).If new sections are added, they must come before / help
+                    // Command lines with errors will be displayed, possibly ignored.Section names are case sensitive - to avoid ambiguity with aliases that they describe which should be lowercase.
+                    // Comments in the file are preceded by // I intend to display the full file content at the bottom as comments
+                    
+                    // Examples:
+                   
+                    // request /alias request bsr add sr /flags Mod Sub VIP Broadcaster /sethelp New help text for request
+                    // queue /alias queue, requested
+                    // block /alias block, Ban /sethelp We didn't change permissions
+                    ");
+
+                    File.WriteAllText(filename, commandsummary.ToString());
+                }
+            }
+
+
+
+            #endregion
 
         }
         #endregion
-
 
         public class ParseState
         {
@@ -530,6 +678,8 @@ namespace EnhancedTwitchChat.Bot
 
             public COMMAND botcmd = null;
 
+            public string subparameter="";
+
             public ParseState(ref TwitchUser user, ref string request, CmdFlags flags, ref string info)
             {
                 this.user = user;
@@ -541,25 +691,32 @@ namespace EnhancedTwitchChat.Bot
             public string ExecuteSubcommand() // BUG: Only one supported for now (till I finalize the parse logic) ,we'll make it all work eventually
             {
                 int commandstart = 0;
-                int parameterstart = 0;
 
+                if (parameter.Length<2) return notsubcommand;
 
-                while (parameterstart < parameter.Length && ((parameter[parameterstart] < '0' || parameter[parameterstart] > '9') && parameter[parameterstart] != ' ')) parameterstart++;  // Command name ends with #... for now, I'll clean up some more later           
-                int commandlength = parameterstart - commandstart;
-                while (parameterstart < parameter.Length && parameter[parameterstart] == ' ') parameterstart++; // Eat the space(s) if that's the separator after the command
-                if (commandlength == 0) return "";
+                int subcommandend = parameter.IndexOfAny(new[] { ' ', '/' },1);
+                if (subcommandend == -1) subcommandend = parameter.Length;
+
+                int subcommandsectionend = parameter.IndexOf('/',1);
+                if (subcommandsectionend== -1) subcommandsectionend = parameter.Length;
+
+                int commandlength = subcommandend-commandstart;
+                if (commandlength == 0) return notsubcommand;
 
                 string subcommand = parameter.Substring(commandstart, commandlength).ToLower();
 
 
+
+                subparameter = (subcommandsectionend - subcommandend>0) ? parameter.Substring(subcommandend, subcommandsectionend - subcommandend).Trim(' ') : "";
+
                 COMMAND subcmd;
-                if (!COMMAND.aliaslist.TryGetValue(subcommand, out subcmd)) return "";
+                if (!COMMAND.aliaslist.TryGetValue(subcommand, out subcmd)) return notsubcommand;
 
                 // BUG: Need to check subcmd permissions here.     
 
                 if (!HasRights(ref subcmd, ref user)) return error($"No permission to use {subcommand}");
 
-                parameter = parameter.Substring(parameterstart);
+                parameter = parameter.Substring(subcommandsectionend);
 
                 try
                 {
@@ -602,17 +759,28 @@ namespace EnhancedTwitchChat.Bot
                 //          !decklist/setflags SUB
                 //          !lookup/sethelp usage: %alias%<song name or id>
                 //
-
-                string errormsg = ExecuteSubcommand();
-                if (errormsg != "")
+                
+                while (true)
                 {
-                    if (errormsg == done) return;
+                    string errormsg = ExecuteSubcommand();
+                    if (errormsg == notsubcommand)  break;
+                    if (errormsg != "")
+                    {
+                        if (errormsg == done)
+                        {
+                            flags |= CmdFlags.Disabled; // Temporarily disable the rest of the command - flags is local parse state flag.
+                            continue;
+                        }
+                    else
+                    {
+                        Instance.QueueChatMessage(errormsg);
+                        //ShowHelpMessage(ref botcmd, ref user, parameter, false);
+                    }
+                        return;
+                    }
+                }            
 
-                    ShowHelpMessage(ref botcmd, ref user, parameter, false);
-                    return;
-                }
-
-                if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
+                if (botcmd.Flags.HasFlag(CmdFlags.Disabled) || flags.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
 
                 // Check permissions first
 
@@ -679,14 +847,9 @@ namespace EnhancedTwitchChat.Bot
                     }
                     catch (Exception ex)
                     {
-                        // Display failure message, and lock out command for a time period. Not yet.
-
                         Plugin.Log(ex.ToString());
-
                     }
-
                 }
-
                 return this;
 
             }
@@ -699,14 +862,12 @@ namespace EnhancedTwitchChat.Bot
         public void AddCommand(string[] alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias%] ... Rights: %rights%", Regex regex = null)
         {
             new COMMAND(alias).Action(method).Help(flags, shorthelptext, regex);
-
         }
 
         public void AddCommand(string alias, Action<TwitchUser, string> method, CmdFlags flags = Broadcasteronly, string shorthelptext = "usage: [%alias%] ... Rights: %rights%", Regex regex = null)
         {
             new COMMAND(alias).Action(method).Help(flags, shorthelptext, regex);
         }
-
 
         // A much more general solution for extracting dymatic values into a text string. If we need to convert a text message to one containing local values, but the availability of those values varies by calling location
         // We thus build a table with only those values we have. 
@@ -764,12 +925,7 @@ namespace EnhancedTwitchChat.Bot
             return false;
 
         }
-
-        // You can modify commands using !allow !setflags !clearflags and !sethelp
         #endregion
-
-
-
     }
 }
 #endif
