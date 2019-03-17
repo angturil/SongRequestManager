@@ -19,7 +19,7 @@ namespace EnhancedTwitchChat
     public class Plugin : IPlugin
     {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "1.2.0";
+        public string Version => "1.2.0-beta1";
 
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
@@ -63,7 +63,7 @@ namespace EnhancedTwitchChat
 
             yield return new WaitUntil(() => SceneManager.GetActiveScene().name == MenuSceneName);
             if (TwitchLoginConfig.Instance.TwitchChannelName == String.Empty)
-                yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { TwitchLoginConfig.Instance.TwitchChannelName = channelName; ChatConfig.Instance.Save(true); }));
+                yield return new WaitUntil(() => BeatSaberUI.DisplayKeyboard("Enter Your Twitch Channel Name!", String.Empty, null, (channelName) => { TwitchLoginConfig.Instance.TwitchChannelName = channelName; TwitchLoginConfig.Instance.Save(true); }));
         }
         
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)

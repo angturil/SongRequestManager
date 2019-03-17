@@ -31,18 +31,14 @@ namespace EnhancedTwitchChat.Bot
         // .json = (not part of list manager.. yet)
 
         // This code is currently in an extreme state of flux. Underlying implementation will change.
-
-
-
+        
         private void OpenList(TwitchUser requestor, string request)
         {
             listcollection.OpenList(request.ToLower());
         }
-
-
+        
         public static ListCollectionManager listcollection = new ListCollectionManager();
-
-
+        
         [Flags] public enum ListFlags { ReadOnly = 1, InMemory = 2, Uncached = 4, Dynamic = 8, LineSeparator = 16, Unchanged = 256 };
 
         // The list collection maintains a dictionary of named, persistent lists. Accessing a collection by name automatically loads or crates it.
@@ -54,15 +50,13 @@ namespace EnhancedTwitchChat.Bot
             // BUG: List name case normalization is inconsistent. I'll probably fix it by changing the list interface (its currently just the filename)
 
             public Dictionary<string, StringListManager> ListCollection = new Dictionary<string, StringListManager>();
-
-
+            
             public ListCollectionManager()
             {
                 // Add an empty list so we can set various lists to empty
                 StringListManager empty = new StringListManager();
                 ListCollection.Add("empty", empty);
             }
-
 
             public StringListManager ClearOldList(string request, TimeSpan delta, ListFlags flags = ListFlags.Unchanged)
             {
@@ -71,7 +65,7 @@ namespace EnhancedTwitchChat.Bot
 
                 StringListManager list = OpenList(request, flags);
 
-                if (UpdatedAge > delta)
+                if (File.Exists(listfilename) && UpdatedAge > delta) // BUG: There's probably a better way to handle this
                 {
                     RequestBot.Instance.QueueChatMessage($"Clearing old session {request}");
                     list.Clear();
@@ -81,9 +75,7 @@ namespace EnhancedTwitchChat.Bot
 
                 return list;
             }
-
-
-
+            
             public StringListManager OpenList(string request, ListFlags flags = ListFlags.Unchanged) // All lists are accessed through here, flags determine mode
             {
                 StringListManager list;
@@ -168,8 +160,7 @@ namespace EnhancedTwitchChat.Bot
                 }
                 catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
             }
-
-
+            
             public void ClearList(ref string listname, ListFlags flags = ListFlags.Unchanged)
             {
                 try
@@ -180,7 +171,6 @@ namespace EnhancedTwitchChat.Bot
             }
 
         }
-
 
         // All variables are public for now until we finalize the interface
         public class StringListManager
