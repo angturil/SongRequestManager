@@ -284,49 +284,77 @@ namespace EnhancedTwitchChat.Utils
             return Image.FromStream(new MemoryStream(byteArrayIn));
         }
 
-        public static IEnumerator DownloadSpriteAsync(string url, Action<Sprite> downloadCompleted)
+        public enum DownloadType
         {
-            using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(url))
+            Raw,
+            Texture,
+            Audio,
+            AssetBundle
+        }
+
+        private static UnityWebRequest WebRequestForType(string url, DownloadType type, AudioType audioType = AudioType.OGGVORBIS)
+        {
+            switch(type)
             {
-                yield return www.SendWebRequest();
-                
-                if (www.isNetworkError || www.isHttpError)
+                case DownloadType.Raw:
+                    return UnityWebRequest.Get(url);
+                case DownloadType.Texture:
+                    return UnityWebRequestTexture.GetTexture(url);
+                case DownloadType.Audio:
+                    return UnityWebRequestMultimedia.GetAudioClip(url, audioType);
+                case DownloadType.AssetBundle:
+                    return UnityWebRequestAssetBundle.GetAssetBundle(url);
+            }
+            return null;
+        }
+
+        public static IEnumerator Download(string url, DownloadType type, Action<UnityWebRequest> beforeSend, Action<UnityWebRequest> downloadCompleted, Action<UnityWebRequest> downloadFailed = null)
+        {
+            using (UnityWebRequest web = WebRequestForType(url, type))
+            {
+                if (web == null) yield break;
+
+                beforeSend?.Invoke(web);
+
+                // Send the web request
+                yield return web.SendWebRequest();
+
+                // Write the error if we encounter one
+                if (web.isNetworkError || web.isHttpError)
                 {
-                    Plugin.Log($"Http request error! {www.error}");
+                    downloadFailed?.Invoke(web);
+                    Plugin.Log($"Http error {web.responseCode} occurred during web request to url {url}. Error: {web.error}");
                     yield break;
                 }
-                //Plugin.Log($"Success downloading \"{url}\"");
-                downloadCompleted?.Invoke(UIUtilities.LoadSpriteFromTexture(DownloadHandlerTexture.GetContent(www)));
+                downloadCompleted?.Invoke(web);
             }
+        }
+
+        public static IEnumerator DownloadSpriteAsync(string url, Action<Sprite> downloadCompleted)
+        {
+            yield return Download(url, DownloadType.Texture, null, (web) =>
+            {
+                downloadCompleted?.Invoke(UIUtilities.LoadSpriteFromTexture(DownloadHandlerTexture.GetContent(web)));
+            });
         }
         
         public static IEnumerator DownloadFile(string url, string path)
         {
-            using (UnityWebRequest www = UnityWebRequest.Get(url))
+            yield return Download(url, DownloadType.Raw, null, (web) =>
             {
-                yield return www.SendWebRequest();
-
-                if (www.isNetworkError || www.isHttpError)
-                {
-                    Plugin.Log($"Http request error! {www.error}");
-                    yield break;
-                }
-                //Plugin.Log($"Success downloading \"{url}\"");
-                byte[] data = www.downloadHandler.data;
+                byte[] data = web.downloadHandler.data;
                 try
                 {
                     if (!Directory.Exists(Path.GetDirectoryName(path)))
                         Directory.CreateDirectory(Path.GetDirectoryName(path));
 
                     File.WriteAllBytes(path, data);
-                    //Plugin.Log("Downloaded file!");
                 }
                 catch (Exception)
                 {
                     Plugin.Log("Failed to download file!");
-                    yield break;
                 }
-            }
+            });
         }
 
         public static bool IsModInstalled(string modName)
