@@ -248,17 +248,13 @@ namespace EnhancedTwitchChat.Bot
 
             new COMMAND("/allow").Action(SubcmdAllow).Help(Subcmd, "usage: <command>/allow");
             new COMMAND("/helpmsg").Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/helpmsg");
+            new COMMAND("/sethelp").Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/sethelp");
             new COMMAND("/silent").Action(SubcmdSilent).Help(Subcmd | Everyone, "usage: <command>/silent");
 
             new COMMAND("/alias").Action(SubcmdAlias).Help(Subcmd | Broadcasteronly,"usage: %alias% %|% Defines all the aliases a command can use"); // BUG: not implemented yet
             #endregion
         }
 
-
-        public void Alias(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
-        {
-
-        }
 
         static string success = "";
         static string endcommand = "X";
@@ -387,10 +383,11 @@ namespace EnhancedTwitchChat.Bot
 
             state.subparameter.ToLower();
 
-            if (state.botcmd.aliases.Contains(state.botcmd.aliases[0]) || COMMAND.aliaslist.ContainsKey(state.botcmd.aliases[0]))
+            if (state.botcmd.aliases.Contains(state.botcmd.aliases[0]) || COMMAND.aliaslist.ContainsKey('!'+state.botcmd.aliases[0]))
                 {
-                foreach (var alias in state.botcmd.aliases) COMMAND.aliaslist.Remove(alias);
-                state.botcmd.aliases = state.subparameter.Split(new char[] { ' ', ',' }).ToList();
+                foreach (var alias in state.botcmd.aliases) COMMAND.aliaslist.Remove('!'+alias);
+                state.botcmd.aliases = state.subparameter.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                state.botcmd.AddAliases();
                 }
             else
                 {
@@ -403,8 +400,8 @@ namespace EnhancedTwitchChat.Bot
 
         public string SubcmdSethelp(ParseState state)
         {
-            state.botcmd.ShortHelp = state.parameter; // This one's different
-            if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"{state.command} help: {state.parameter}");
+            state.botcmd.ShortHelp = state.subparameter + state.parameter; // This one's different
+            if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"{state.command} help: {state.botcmd.ShortHelp}");
             return endcommand;
         }
 
@@ -414,10 +411,7 @@ namespace EnhancedTwitchChat.Bot
             state.flags |= CmdFlags.Silent;
             return success;
         }
-
-
         #endregion
-
 
         #region COMMAND Class
         public partial class COMMAND
