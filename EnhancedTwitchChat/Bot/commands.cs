@@ -53,9 +53,9 @@ namespace EnhancedTwitchChat.Bot
             Log = 262144, // Log every use of the command to a file
             RegEx = 524288, // Enable regex check
             UserFlag1 = 1048576, // Use it for whatever bit makes you happy 
-            UserFlag2 = 2097152, // Use it for whatever bit makes you happy 
-            UserFlag3 = 4194304, // Use it for whatever bit makes you happy
- 
+            UserFlag2 = 2097152, // Use it for whatever bit makes you happy
+
+            Variable = 4194304, // This is a variable 
             Dynamic = 8388608, // This command is generated dynamically, and cannot be saved/loaded 
 
             SilentPreflight = 16277216, //  
@@ -86,6 +86,7 @@ namespace EnhancedTwitchChat.Bot
         const CmdFlags Help = CmdFlags.BypassRights;
         const CmdFlags Silent = CmdFlags.Silent;
         const CmdFlags Subcmd = CmdFlags.Subcommand | Broadcasteronly;
+        const CmdFlags Var= CmdFlags.Variable | Broadcasteronly;
 
         #endregion
 
@@ -184,6 +185,16 @@ namespace EnhancedTwitchChat.Bot
 
             AddCommand("chatmessage", ChatMessage, Broadcasteronly, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
             AddCommand("runscript", RunScript, Broadcasteronly, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
+
+            // BUG: This is a prototype,  I can store these as variables, so they can be set by the command configuration tools (whatever they end up being)
+
+            new COMMAND("AddSongToQueueText").Help(Var, "Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.", _nothing);
+            new COMMAND("LookupSongDetail").Help(Var,"%songName% %songSubName%/%authorName% %Rating% (%version%)", _nothing);
+            new COMMAND("BsrSongDetail").Help(Var,"%songName% %songSubName%/%authorName% %Rating% (%version%)",_nothing);
+            new COMMAND("LinkSonglink").Help(Var,"%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%", _nothing);
+            new COMMAND("NextSonglink").Help(Var,"%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%",_nothing);
+            new COMMAND("SongHintText").Help(Var,"%user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>",_nothing);
+            new COMMAND("QueueTextFileFormat").Help(Var,"%songName%%LF%",_nothing);         // Don't forget to include %LF% for these.
 
 #if UNRELEASED
 
@@ -419,6 +430,7 @@ namespace EnhancedTwitchChat.Bot
         {
             state.flags |= CmdFlags.SilentResult; // Turn off success messages, but still allow errors.
 
+            
 
             return endcommand; // This is an assignment, we're not executing the object.
         }
@@ -894,7 +906,7 @@ namespace EnhancedTwitchChat.Bot
                 foreach (var entry in COMMAND.aliaslist)
                 {
                     var botcmd = entry.Value;
-                    if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Subcmd))
+                    if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Subcmd) && !botcmd.Flags.HasFlag(Var))
                         msg.Add($"{entry.Key.Substring(1)}", " "); // BUG: Removes the built in ! in the commands. 
                 }
                 msg.Add(">");

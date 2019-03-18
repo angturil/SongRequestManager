@@ -216,11 +216,11 @@ namespace EnhancedTwitchChat.Bot
 
             if (filter.HasFlag(SongFilter.Mapper) && _mapperWhitelist && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
-            if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist, songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} has already been requested this session!";
+            if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist, songid)) return fast ? "X" : $"{song["songName"].Value} by  {song["authorName"].Value} already requested this session!";
 
             if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"no permitted results found!";
 
-            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
+            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below {RequestBotConfig.Instance.LowestAllowedRating}% rating!";
 
             return "";
         }
@@ -468,7 +468,7 @@ namespace EnhancedTwitchChat.Bot
 
             return null;
         }
-
+   
         public string Who(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
         {
 
@@ -580,7 +580,8 @@ namespace EnhancedTwitchChat.Bot
             foreach (var entry in COMMAND.aliaslist)
             {
                 var botcmd = entry.Value;
-                if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Subcmd)) msg.Add($"{entry.Key}", " "); // Only show commands you're allowed to use
+                // BUG: Please refactor this its getting too damn long
+                if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Var) && !botcmd.Flags.HasFlag(Subcmd)) msg.Add($"{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
         }
