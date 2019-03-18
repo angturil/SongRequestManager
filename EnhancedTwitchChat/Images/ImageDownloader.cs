@@ -130,8 +130,6 @@ namespace EnhancedTwitchChat.Textures
         }
     }
 
-    
-
     public class ImageDownloader : MonoBehaviour
     {
         public static ConcurrentDictionary<string, string> BTTVEmoteIDs = new ConcurrentDictionary<string, string>();
@@ -171,8 +169,7 @@ namespace EnhancedTwitchChat.Textures
 
             StartCoroutine(GetEmotes());
         }
-
-
+        
         public static IEnumerator GetEmotes()
         {
             yield return GetTwitchGlobalBadges();
@@ -322,7 +319,6 @@ namespace EnhancedTwitchChat.Textures
                 yield return new WaitUntil(() => _waitForFrames-- == 0);
             }
         }
-
         
         public static IEnumerator PreloadAnimatedEmotes()
         {
