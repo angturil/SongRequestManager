@@ -175,7 +175,7 @@ namespace EnhancedTwitchChat.Bot
             AddCommand("clearalreadyplayed", ClearDuplicateList, Broadcasteronly, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
             AddCommand("restore", restoredeck, Broadcasteronly, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
 
-            new COMMAND("about").Help(Broadcasteronly, $"EnhancedTwitchChat Bot version {Plugin.Instance.Version}. Developed by brian91292 and angturil. Find us on github.", _fail); // Help commands have no code
+            new COMMAND("about").Help(Everyone, $"EnhancedTwitchChat Bot version {Plugin.Instance.Version}. Developed by brian91292 and angturil. Find us on github.", _fail); // Help commands have no code
             AddCommand(new string[] { "help"}, help, Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
             AddCommand("commandlist", showCommandlist, Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
@@ -248,17 +248,15 @@ namespace EnhancedTwitchChat.Bot
 
             new COMMAND("/allow").Action(SubcmdAllow).Help(Subcmd, "usage: <command>/allow");
             new COMMAND("/helpmsg").Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/helpmsg");
+            new COMMAND("/sethelp").Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/sethelp");
             new COMMAND("/silent").Action(SubcmdSilent).Help(Subcmd | Everyone, "usage: <command>/silent");
+
+            new COMMAND("=").Action(SubcmdEqual).Help(Subcmd | Broadcasteronly, "usage: =");
 
             new COMMAND("/alias").Action(SubcmdAlias).Help(Subcmd | Broadcasteronly,"usage: %alias% %|% Defines all the aliases a command can use"); // BUG: not implemented yet
             #endregion
         }
 
-
-        public void Alias(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
-        {
-
-        }
 
         static string success = "";
         static string endcommand = "X";
@@ -333,6 +331,7 @@ namespace EnhancedTwitchChat.Bot
             }
             else
             {
+                
                 return SubcmdSetflags(state);
             }
             return endcommand;
@@ -343,7 +342,7 @@ namespace EnhancedTwitchChat.Bot
             try
             {
 
-                string[] flags = state.subparameter.Split(new char[] { ' ', ',' });
+                string[] flags = state.subparameter.Split(new char[] { ' ', ','}, StringSplitOptions.RemoveEmptyEntries);
 
                 CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), state.subparameter);
                 state.botcmd.Flags |= flag;
@@ -367,7 +366,7 @@ namespace EnhancedTwitchChat.Bot
 
             state.botcmd.Flags &= ~flag;
 
-            Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
+            if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
 
             return endcommand;
         }
@@ -387,10 +386,11 @@ namespace EnhancedTwitchChat.Bot
 
             state.subparameter.ToLower();
 
-            if (state.botcmd.aliases.Contains(state.botcmd.aliases[0]) || COMMAND.aliaslist.ContainsKey(state.botcmd.aliases[0]))
+            if (state.botcmd.aliases.Contains(state.botcmd.aliases[0]) || COMMAND.aliaslist.ContainsKey('!'+state.botcmd.aliases[0]))
                 {
-                foreach (var alias in state.botcmd.aliases) COMMAND.aliaslist.Remove(alias);
-                state.botcmd.aliases = state.subparameter.Split(new char[] { ' ', ',' }).ToList();
+                foreach (var alias in state.botcmd.aliases) COMMAND.aliaslist.Remove('!'+alias);
+                state.botcmd.aliases = state.subparameter.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                state.botcmd.AddAliases();
                 }
             else
                 {
@@ -403,8 +403,8 @@ namespace EnhancedTwitchChat.Bot
 
         public string SubcmdSethelp(ParseState state)
         {
-            state.botcmd.ShortHelp = state.parameter; // This one's different
-            if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"{state.command} help: {state.parameter}");
+            state.botcmd.ShortHelp = state.subparameter + state.parameter; // This one's different
+            if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"{state.command} help: {state.botcmd.ShortHelp}");
             return endcommand;
         }
 
@@ -415,9 +415,15 @@ namespace EnhancedTwitchChat.Bot
             return success;
         }
 
+        public string SubcmdEqual(ParseState state)
+        {
+            state.flags |= CmdFlags.SilentResult; // Turn off success messages, but still allow errors.
+
+
+            return endcommand; // This is an assignment, we're not executing the object.
+        }
 
         #endregion
-
 
         #region COMMAND Class
         public partial class COMMAND
@@ -473,7 +479,7 @@ namespace EnhancedTwitchChat.Bot
                     var cmdname = entry;
                     if (entry.Length == 0) continue; // Make sure we don't get a blank command
                     cmdname = (entry[0] == '.') ? entry.Substring(1) : '!' + entry;
-                    if (entry[0] == '/') cmdname = entry;
+                    if (entry[0] == '/' || entry[0]=='=') cmdname = entry;
                     if (!aliaslist.ContainsKey(cmdname)) aliaslist.Add(cmdname, this);
                 }
                 return this;
@@ -573,9 +579,9 @@ namespace EnhancedTwitchChat.Bot
            public static void CommandConfiguration(string configfilename="botcommands")
                 {
 
-                RequestBot.Instance.QueueChatMessage($"Reading {configfilename}");
+                //RequestBot.Instance.QueueChatMessage($"Reading {configfilename}");
 
-                var filename = Path.Combine(datapath, configfilename + ".cfg");
+                var filename = Path.Combine(datapath, configfilename + ".ini");
 
                 SortedDictionary<string, COMMAND> unique = new SortedDictionary<string, COMMAND>();
 
@@ -613,7 +619,7 @@ namespace EnhancedTwitchChat.Bot
 
                 if (!File.Exists(filename))               
                     {
-                    RequestBot.Instance.QueueChatMessage($"Creating {filename}.cfg");
+                    RequestBot.Instance.QueueChatMessage($"Creating {filename}.ini");
 
                     commandsummary.Append("\r\n");
                     commandsummary.Append("// This is a summary of the current command states, these are for reference only. Use the uncommented section for your changes.\r\n\r\n");
@@ -627,7 +633,7 @@ namespace EnhancedTwitchChat.Bot
                         var cmdname = command.aliases[0];
                         cmdname += new string(' ', 20 - cmdname.Length);
 
-                        commandsummary.Append($"// {cmdname}/alias {command.GetAliases()} /flags {command.GetFlags()} /sethelp {command.GetHelpText()}\r\n");
+                        commandsummary.Append($"// {cmdname}= /alias {command.GetAliases()} /flags {command.GetFlags()} /sethelp {command.GetHelpText()}\r\n");
                     }
 
                     // BUG: Ok, we should probably just use a text file. But I very 
@@ -636,23 +642,23 @@ namespace EnhancedTwitchChat.Bot
                     @"
                     // The Command name or FIRST alias in the alias list is considered the Base name of the command, and absolutely should not be changed through code. Choose this first name wisely
                     // We use the Base name to allow user command Customization, it is how the command is identified to the user. You can alter the alias list of the commands in
-                    // the command configuration file(botcommands.cfg).
+                    // the command configuration file(botcommands.ini).
  
                     // The file format is as follows:
   
                     // < Base commandname > /alias < alias(s) /flags < command flags > /sethelp Help text
             
-                    // You only need to change the parts that you wish to modify. Leaving a section out, or black will result in it being ignored.The order of the sections is enforced.
-                    // Do NOT put help before rights, for example.This is done to avoid future confusion, and to allow the Save code to maintain a consistent result.Help text MUST always
-                    // be at the end, since they can include the description of themselves(including the / Help part).If new sections are added, they must come before / help
-                    // Command lines with errors will be displayed, possibly ignored.Section names are case sensitive - to avoid ambiguity with aliases that they describe which should be lowercase.
-                    // Comments in the file are preceded by // I intend to display the full file content at the bottom as comments
+                    // You only need to change the parts that you wish to modify. Leaving a section out, or blank will result in it being ignored.
+                    // /sethelp MUST be the last section, since it allows command text with /'s, up to and including help messages for /sethelp.
+                    // Command lines with errors will be displayed, possibly ignored. 
                     
                     // Examples:
                    
                     // request /alias request bsr add sr /flags Mod Sub VIP Broadcaster /sethelp New help text for request
                     // queue /alias queue, requested
-                    // block /alias block, Ban /sethelp We didn't change permissions
+                    // block /alias block, Ban 
+                    // lookup /disable
+
                     ");
 
                     File.WriteAllText(filename, commandsummary.ToString());
@@ -694,18 +700,19 @@ namespace EnhancedTwitchChat.Bot
 
                 if (parameter.Length<2) return notsubcommand;
 
-                int subcommandend = parameter.IndexOfAny(new[] { ' ', '/' },1);
+                int subcommandend = parameter.IndexOfAny(new[] { ' ', '/' }, 1);
                 if (subcommandend == -1) subcommandend = parameter.Length;
 
-                int subcommandsectionend = parameter.IndexOf('/',1);
-                if (subcommandsectionend== -1) subcommandsectionend = parameter.Length;
+                int subcommandsectionend = parameter.IndexOf('/', 1);
+                if (subcommandsectionend == -1) subcommandsectionend = parameter.Length;
 
-                int commandlength = subcommandend-commandstart;
+                //RequestBot.Instance.QueueChatMessage($"parameter [{parameter}] ({subcommandend},{subcommandsectionend})");
+
+                int commandlength = subcommandend - commandstart;
+
                 if (commandlength == 0) return notsubcommand;
 
                 string subcommand = parameter.Substring(commandstart, commandlength).ToLower();
-
-
 
                 subparameter = (subcommandsectionend - subcommandend>0) ? parameter.Substring(subcommandend, subcommandsectionend - subcommandend).Trim(' ') : "";
 
@@ -724,12 +731,8 @@ namespace EnhancedTwitchChat.Bot
                 }
                 catch (Exception ex)
                 {
-                    // Display failure message, and lock out command for a time period. Not yet.
-
                     Plugin.Log(ex.ToString());
-
                 }
-
 
                 return "";
             }
@@ -831,7 +834,7 @@ namespace EnhancedTwitchChat.Bot
                 int parameterstart = 0;
 
                 // This is a replacement for the much simpler Split code. It was changed to support /fakerest parameters, and sloppy users ... ie: !add4334-333 should now work, so should !command/flags
-                while (parameterstart < request.Length && ((request[parameterstart] < '0' || request[parameterstart] > '9') && request[parameterstart] != '/' && request[parameterstart] != ' ')) parameterstart++;  // Command name ends with #... for now, I'll clean up some more later           
+                while (parameterstart < request.Length && (request[parameterstart] != '=' && request[parameterstart] != '/' && request[parameterstart] != ' ')) parameterstart++;  // Command name ends with #... for now, I'll clean up some more later           
                 int commandlength = parameterstart - commandstart;
                 while (parameterstart < request.Length && request[parameterstart] == ' ') parameterstart++; // Eat the space(s) if that's the separator after the command
                 if (commandlength == 0) return this;

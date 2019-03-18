@@ -40,6 +40,8 @@ namespace EnhancedTwitchChat.Config
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
         public int MaximumQueueTextEntries = 8;
 
+        public string BotPrefix = "";
+
         public event Action<RequestBotConfig> ConfigChangedEvent;
 
         private readonly FileSystemWatcher _configWatcher;

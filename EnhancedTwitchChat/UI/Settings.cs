@@ -12,6 +12,7 @@ using UnityEngine.SceneManagement;
 using System.Threading.Tasks;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Config;
+using System.IO;
 
 namespace EnhancedTwitchChat.UI
 {
@@ -40,6 +41,7 @@ namespace EnhancedTwitchChat.UI
                 Task.Run(() => TwitchWebSocketClient.Connect(true));
             });
 
+            MenuButtonUI.AddButton("Restart Game", () => { System.Diagnostics.Process.Start(Path.Combine(Environment.CurrentDirectory, System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName), Environment.CommandLine); Application.Quit(); });
 
             var menu = SettingsUI.CreateSubMenu("Enhanced Twitch Chat");
             var channelName = menu.AddString("Twitch Channel Name", "The name of the channel you want Enhanced Twitch Chat to monitor");
