@@ -265,7 +265,7 @@ namespace EnhancedTwitchChat.Bot
 
         public void QueueChatMessage(string message)
         {
-            _botMessageQueue.Enqueue(message);
+            _botMessageQueue.Enqueue(RequestBotConfig.Instance.BotPrefix+message);
         }
         
         private IEnumerator ProcessRequestQueue()
