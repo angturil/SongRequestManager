@@ -134,7 +134,6 @@ namespace EnhancedTwitchChat.Bot
             if (!Directory.Exists(datapath))
                 Directory.CreateDirectory(datapath);
 
-
             playedfilename = Path.Combine(datapath, "played.json"); // Record of all the songs played in the current session
 
             string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
@@ -155,7 +154,6 @@ namespace EnhancedTwitchChat.Bot
             InitializeCommands();
 
             COMMAND.CommandConfiguration();
-
             RunStartupScripts();
 
             StartCoroutine(ProcessRequestQueue());
@@ -196,7 +194,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void FixedUpdate()
         {
-            if (_configChanged) 
+            if (_configChanged)
                 OnConfigChanged();
 
             if (_botMessageQueue.Count > 0)
@@ -269,9 +267,7 @@ namespace EnhancedTwitchChat.Bot
         {
             _botMessageQueue.Enqueue(message);
         }
-
-
-
+        
         private IEnumerator ProcessRequestQueue()
         {
             var waitForRequests = new WaitUntil(() => UnverifiedRequestQueue.Count > 0);
@@ -284,12 +280,29 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
+        private List<JSONObject> GetSongListFromResults(JSONNode result, ref string errorMessage)
+        {
+            List<JSONObject> songs = new List<JSONObject>(); 
+            if (result["songs"].IsArray)
+            {
+                // Might consider sorting the list by rating to improve quality of results            
+                foreach (JSONObject currentSong in result["songs"].AsArray)
+                {
+                    errorMessage = SongSearchFilter(currentSong, false);
+                    if (errorMessage == "")
+                        songs.Add(currentSong);
+                }
+            }
+            else
+            {
+                songs.Add(result["song"].AsObject);
+            }
+            return songs;
+        }
+
         private IEnumerator CheckRequest(RequestInfo requestInfo)
         {
             TwitchUser requestor = requestInfo.requestor;
-
-            //QueueChatMessage($"request={requestInfo.requestInfo}");
-
             string request = requestInfo.request;
 
             // Special code for numeric searches
@@ -312,92 +325,81 @@ namespace EnhancedTwitchChat.Bot
                 }
             }
 
+            JSONNode result = null;
             // Get song query results from beatsaver.com
-
             string requestUrl = requestInfo.isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
-            using (var web = UnityWebRequest.Get($"{requestUrl}/{request}"))
-            {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
+            yield return Utilities.Download(requestUrl, Utilities.DownloadType.Raw, null,
+                // Download success
+                (web) =>
                 {
-                    Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
+                    result = JSON.Parse(web.downloadHandler.text);
+                },
+                // Download failed,  song probably doesn't exist on beatsaver
+                (web) =>
+                {
                     QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
-                    yield break;
                 }
+            );
+            if (result == null) yield break;
 
-                JSONNode result = JSON.Parse(web.downloadHandler.text);
-                if (result["songs"].IsArray && result["total"].AsInt == 0)
-                {
-                    QueueChatMessage($"No results found for request \"{request}\"");
-                    yield break;
-                }
-                yield return null;
-
-                List<JSONObject> songs = new List<JSONObject>();                 // Load resulting songs into a list 
-                string errormessage = "";
-                if (result["songs"].IsArray)
-                {
-                    // Might consider sorting the list by rating to improve quality of results            
-                    foreach (JSONObject currentSong in result["songs"].AsArray)
-                    {
-                        errormessage = SongSearchFilter(currentSong, false);
-                        if (errormessage == "")
-                            songs.Add(currentSong);
-                    }
-                }
-                else
-                {
-                    songs.Add(result["song"].AsObject);
-                }
-
-                // Filter out too many or too few results
-                if (songs.Count == 0)
-                {
-                    if (errormessage == "") errormessage = $"No results found for request \"{request}\"";
-                }
-                else if (!RequestBotConfig.Instance.AutopickFirstSong && songs.Count >= 4)
-                    errormessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
-                else if (!RequestBotConfig.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
-                {
-                    var msg = new QueueLongMessage(1, 5);
-
-                    msg.Header($"@{requestor.displayName}, please choose: ");
-                    foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(ref BsrSongDetail), ", ");
-                    msg.end("...", $"No matching songs for for {request}");
-                    yield break;
-
-                }
-                else
-                {
-                    if (isNotModerator(requestor) || !requestInfo.isBeatSaverId) errormessage = SongSearchFilter(songs[0], false);
-                }
-
-                // Display reason why chosen song was rejected, if filter is triggered. Do not add filtered songs
-                if (errormessage != "")
-                {
-                    QueueChatMessage(errormessage);
-                    yield break;
-                }
-
-                var song = songs[0];
-
-                RequestTracker[requestor.id].numRequests++;
-
-                listcollection.add(duplicatelist, song["id"].Value);
-                if ((requestInfo.flags.HasFlag(CmdFlags.MoveToTop)))
-                    RequestQueue.Songs.Insert(0, new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
-                else
-                    RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
-
-                RequestQueue.Write();
-
-                Writedeck(requestor, "savedqueue"); // This can be used as a backup if persistent Queue is turned off.
-
-                new DynamicText().AddSong(ref song).QueueMessage(AddSongToQueueText);
-
-                UpdateRequestUI();
-                _refreshQueue = true;
+            // Make sure we actually found 1+ songs
+            if (result["songs"].IsArray && result["total"].AsInt == 0)
+            {
+                QueueChatMessage($"No results found for request \"{request}\"");
+                yield break;
             }
+            yield return null;
+
+            string errorMessage = "";
+            List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage);
+            // Filter out too many or too few results
+            if (songs.Count == 0)
+            {
+                if (errorMessage == "")
+                    errorMessage = $"No results found for request \"{request}\"";
+            }
+            else if (!RequestBotConfig.Instance.AutopickFirstSong && songs.Count >= 4)
+            {
+                errorMessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
+            }
+            else if (!RequestBotConfig.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
+            {
+                var msg = new QueueLongMessage(1, 5);
+                msg.Header($"@{requestor.displayName}, please choose: ");
+                foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(ref BsrSongDetail), ", ");
+                msg.end("...", $"No matching songs for for {request}");
+                yield break;
+            }
+            else
+            {
+                if (isNotModerator(requestor) || !requestInfo.isBeatSaverId) errorMessage = SongSearchFilter(songs[0], false);
+            }
+
+            // Display reason why chosen song was rejected, if filter is triggered. Do not add filtered songs
+            if (errorMessage != "")
+            {
+                QueueChatMessage(errorMessage);
+                yield break;
+            }
+            
+            var song = songs[0];
+
+            RequestTracker[requestor.id].numRequests++;
+
+            listcollection.add(duplicatelist, song["id"].Value);
+            if ((requestInfo.flags.HasFlag(CmdFlags.MoveToTop)))
+                RequestQueue.Songs.Insert(0, new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
+            else
+                RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
+
+            RequestQueue.Write();
+
+            Writedeck(requestor, "savedqueue"); // This can be used as a backup if persistent Queue is turned off.
+
+            new DynamicText().AddSong(ref song).QueueMessage(AddSongToQueueText);
+
+            UpdateRequestUI();
+            _refreshQueue = true;
         }
 
 
@@ -410,7 +412,6 @@ namespace EnhancedTwitchChat.Bot
                 {
                     SetRequestStatus(index, RequestStatus.Played);
                     request = DequeueRequest(index);
-
                 }
                 else
                 {
@@ -447,9 +448,9 @@ namespace EnhancedTwitchChat.Bot
                     string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
                     yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
                     yield return Utilities.ExtractZip(localPath, currentSongDirectory);
+                    yield return new WaitUntil(() => SongLoader.AreSongsLoaded && !SongLoader.AreSongsLoading);
                     yield return SongListUtils.RetrieveNewSong(songIndex, true);
-
-
+                    
                     Utilities.EmptyDirectory(".requestcache", true);
                     levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
                 }
@@ -457,8 +458,7 @@ namespace EnhancedTwitchChat.Bot
                 {
                     Plugin.Log($"Song {songName} already exists!");
                 }
-
-
+                
                 if (levels.Length > 0)
                 {
                     Plugin.Log($"Scrolling to level {levels[0].levelID}");
@@ -466,6 +466,7 @@ namespace EnhancedTwitchChat.Bot
                     bool success = false;
                     yield return SongListUtils.ScrollToLevel(levels[0].levelID, (s) => success = s);
 
+                    // Redownload the song if we failed to scroll to it
                     if (!success && !retried)
                     {
                         retried = true;
@@ -482,13 +483,12 @@ namespace EnhancedTwitchChat.Bot
                 _songRequestMenu.Dismiss();
             }
         }
-
-
+        
         private static void UpdateRequestUI(bool writeSummary = true)
         {
             try
             {
-                if(writeSummary)
+                if (writeSummary)
                     WriteQueueSummaryToFile(); // Write out queue status to file, do it first
 
                 _requestButton.interactable = RequestBotConfig.Instance.RequestBotEnabled;
@@ -502,7 +502,7 @@ namespace EnhancedTwitchChat.Bot
                     _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Plugin.Log(ex.ToString());
             }

@@ -129,7 +129,9 @@ namespace EnhancedTwitchChat.Textures
             return tiers[0].minBits.ToString();
         }
     }
+
     
+
     public class ImageDownloader : MonoBehaviour
     {
         public static ConcurrentDictionary<string, string> BTTVEmoteIDs = new ConcurrentDictionary<string, string>();
@@ -182,8 +184,7 @@ namespace EnhancedTwitchChat.Textures
             yield return GetFFZChannelEmotes();
             yield return PreloadAnimatedEmotes();
         }
-
-
+        
         private static IEnumerator ProcessQueue()
         {
             var waitForEmote = new WaitUntil(() => Instance._imageDownloadQueue.Count > 0);
@@ -215,8 +216,7 @@ namespace EnhancedTwitchChat.Textures
                 }
             }
         }
-
-
+        
         private static IEnumerator ProcessAnimQueue()
         {
             var waitForAnimatedEmote = new WaitUntil(() => Instance._animationDownloadQueue.Count > 0);
@@ -229,11 +229,11 @@ namespace EnhancedTwitchChat.Textures
                     switch (imageDownloadInfo.type)
                     {
                         case ImageType.BTTV_Animated:
-                            yield return Download($"https://cdn.betterttv.net/emote/{imageDownloadInfo.spriteIndex.Substring(2)}/3x", imageDownloadInfo);
+                            yield return DownloadAnimated($"https://cdn.betterttv.net/emote/{imageDownloadInfo.spriteIndex.Substring(2)}/3x", imageDownloadInfo);
                             break;
                         case ImageType.Cheermote:
                             Match match = Utilities.cheermoteRegex.Match(imageDownloadInfo.spriteIndex);
-                            yield return Download($"https://d3aqoihi2n8ty8.cloudfront.net/actions/{(match.Groups["Prefix"].Value)}/dark/animated/{(match.Groups["Value"].Value)}/4.gif", imageDownloadInfo);
+                            yield return DownloadAnimated($"https://d3aqoihi2n8ty8.cloudfront.net/actions/{(match.Groups["Prefix"].Value)}/dark/animated/{(match.Groups["Value"].Value)}/4.gif", imageDownloadInfo);
                             break;
                     }
                 }
@@ -248,63 +248,66 @@ namespace EnhancedTwitchChat.Textures
                 _imageDownloadQueue.Enqueue(emote);
         }
 
+        private static bool ImageExistsLocally(ref string imagePath, TextureDownloadInfo imageDownloadInfo, out string localFilePath)
+        {
+            string origImagePath = imagePath;
+
+            string currentPath = Path.Combine(Environment.CurrentDirectory, "Cache", "Images", ImageTypeNames.Get(imageDownloadInfo.type));
+            if (!Directory.Exists(currentPath))
+                Directory.CreateDirectory(currentPath);
+
+            localFilePath = Path.Combine(currentPath, imageDownloadInfo.spriteIndex);
+            if (File.Exists(localFilePath))
+            {
+                imagePath = localFilePath;
+                return true;
+            }
+            return false;
+        }
+
+        public static IEnumerator DownloadAnimated(string imagePath, TextureDownloadInfo imageDownloadInfo, bool isRetry = false)
+        {
+            if (!CachedTextures.ContainsKey(imageDownloadInfo.spriteIndex))
+            {
+                byte[] animData = null;
+                int _waitForFrames = 10;
+                bool localPathExists = ImageExistsLocally(ref imagePath, imageDownloadInfo, out var localFilePath);
+                
+                yield return Utilities.Download(imagePath, Utilities.DownloadType.Raw, null, (web) =>
+                {
+                    animData = web.downloadHandler.data;
+                });
+
+                if (animData != null)
+                {
+                    CachedTextures.TryAdd(imageDownloadInfo.spriteIndex, null);
+                    yield return AnimationDecoder.Process(animData, ChatHandler.Instance.OverlayAnimatedImage, imageDownloadInfo);
+                    if (!localPathExists)
+                        ImageSaveQueue.Enqueue(new TextureSaveInfo(localFilePath, animData));
+                }
+
+                yield return new WaitUntil(() => _waitForFrames-- == 0);
+            }
+        }
+
         public static IEnumerator Download(string imagePath, TextureDownloadInfo imageDownloadInfo, bool isRetry = false)
         {
-            bool isAnimated = imageDownloadInfo.type == ImageType.BTTV_Animated || imageDownloadInfo.type == ImageType.Cheermote;
             if (!CachedTextures.ContainsKey(imageDownloadInfo.spriteIndex))
             {
                 int _waitForFrames = 5;
                 Sprite sprite = null;
                 if (imageDownloadInfo.type != ImageType.Emoji)
                 {
-                    bool localPathExists = false;
-                    string origImagePath = imagePath;
-
-                    string currentPath = Path.Combine(Environment.CurrentDirectory, "Cache", "Images", ImageTypeNames.Get(imageDownloadInfo.type));
-                    if (!Directory.Exists(currentPath))
-                        Directory.CreateDirectory(currentPath);
-
-                    string localFilePath = Path.Combine(currentPath, imageDownloadInfo.spriteIndex);
-                    if (File.Exists(localFilePath))
+                    bool localPathExists = ImageExistsLocally(ref imagePath, imageDownloadInfo, out var localFilePath);
+                    yield return Utilities.Download(imagePath, Utilities.DownloadType.Texture,  null, (web) =>
                     {
-                        localPathExists = true;
-                        imagePath = localFilePath;
-                    }
-
-                    using (var web = UnityWebRequestTexture.GetTexture(imagePath, true))
-                    {
-                        yield return web.SendWebRequest();
-                        if (web.isNetworkError || web.isHttpError)
+                        sprite = UIUtilities.LoadSpriteFromTexture(DownloadHandlerTexture.GetContent(web));
+                        if (sprite)
                         {
-                            Plugin.Log($"An error occured when requesting emote {imageDownloadInfo.spriteIndex}, Message: \"{web.error}\"");
-                            CachedTextures.TryAdd(imageDownloadInfo.spriteIndex, null);
-                            yield break;
-                        }
-                        else if (isAnimated)
-                        {
-                            CachedTextures.TryAdd(imageDownloadInfo.spriteIndex, null);
-                            yield return AnimationDecoder.Process(web.downloadHandler.data, ChatHandler.Instance.OverlayAnimatedImage, imageDownloadInfo);
                             if (!localPathExists)
                                 ImageSaveQueue.Enqueue(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
-
-                            _waitForFrames = 10;
-                            while (_waitForFrames > 0)
-                            {
-                                _waitForFrames--;
-                                yield return null;
-                            }
-                            yield break;
                         }
-                        else
-                        {
-                            sprite = UIUtilities.LoadSpriteFromTexture(DownloadHandlerTexture.GetContent(web));
-                            if (sprite)
-                            {
-                                if (!localPathExists)
-                                    ImageSaveQueue.Enqueue(new TextureSaveInfo(localFilePath, web.downloadHandler.data));
-                            }
-                        }
-                    }
+                    });
                 }
                 else
                     sprite = UIUtilities.LoadSpriteFromResources($"EnhancedTwitchChat.Resources.Emojis.{imageDownloadInfo.spriteIndex.ToLower()}");
@@ -316,12 +319,7 @@ namespace EnhancedTwitchChat.Textures
                     ChatHandler.Instance.OverlayImage(sprite, imageDownloadInfo);
                 }
 
-                _waitForFrames = 5;
-                while (_waitForFrames > 0)
-                {
-                    _waitForFrames--;
-                    yield return null;
-                }
+                yield return new WaitUntil(() => _waitForFrames-- == 0);
             }
         }
 
@@ -350,41 +348,40 @@ namespace EnhancedTwitchChat.Textures
         {
             Plugin.Log($"Downloading twitch cheermote listing");
             int emotesCached = 0;
-            using (UnityWebRequest web = UnityWebRequest.Get("https://api.twitch.tv/kraken/bits/actions"))
-            {
-                web.SetRequestHeader("Accept", "application/vnd.twitchtv.v5+json");
-                web.SetRequestHeader("Channel-ID", TwitchLoginConfig.Instance.TwitchChannelName);
-                web.SetRequestHeader("Client-ID", "jg6ij5z8mf8jr8si22i5uq8tobnmde");
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
+            yield return Utilities.Download("https://api.twitch.tv/kraken/bits/actions", Utilities.DownloadType.Raw, 
+                // BeforeSend
+                (web) =>
                 {
-                    Plugin.Log($"An error occured when requesting twitch global badge listing, Message: \"{web.error}\"");
-                    yield break;
-                }
-                if (web.downloadHandler.text.Length == 0) yield break;
-
-                JSONNode json = JSON.Parse(web.downloadHandler.text);
-                if (json["actions"].IsArray)
+                    web.SetRequestHeader("Accept", "application/vnd.twitchtv.v5+json");
+                    web.SetRequestHeader("Channel-ID", TwitchLoginConfig.Instance.TwitchChannelName);
+                    web.SetRequestHeader("Client-ID", "jg6ij5z8mf8jr8si22i5uq8tobnmde");
+                },
+                // DownloadCompleted
+                (web) =>
                 {
-                    foreach (JSONNode node in json["actions"].AsArray.Values)
+                    JSONNode json = JSON.Parse(web.downloadHandler.text);
+                    if (json["actions"].IsArray)
                     {
-                        Cheermote cheermote = new Cheermote();
-                        string prefix = node["prefix"].ToString().ToLower();
-                        foreach (JSONNode tier in node["tiers"].Values)
+                        foreach (JSONNode node in json["actions"].AsArray.Values)
                         {
-                            CheermoteTier newTier = new CheermoteTier();
-                            newTier.minBits = tier["min_bits"].AsInt;
-                            newTier.color = tier["color"];
-                            newTier.canCheer = tier["can_cheer"].AsBool;
-                            cheermote.tiers.Add(newTier);
+                            Cheermote cheermote = new Cheermote();
+                            string prefix = node["prefix"].ToString().ToLower();
+                            foreach (JSONNode tier in node["tiers"].Values)
+                            {
+                                CheermoteTier newTier = new CheermoteTier();
+                                newTier.minBits = tier["min_bits"].AsInt;
+                                newTier.color = tier["color"];
+                                newTier.canCheer = tier["can_cheer"].AsBool;
+                                cheermote.tiers.Add(newTier);
+                            }
+                            cheermote.tiers = cheermote.tiers.OrderBy(t => t.minBits).ToList();
+                            TwitchCheermoteIDs.TryAdd(prefix.Substring(1, prefix.Length - 2), cheermote);
+                            //Plugin.Log($"Cheermote: {prefix}");
+                            emotesCached++;
                         }
-                        cheermote.tiers = cheermote.tiers.OrderBy(t => t.minBits).ToList();
-                        TwitchCheermoteIDs.TryAdd(prefix.Substring(1, prefix.Length - 2), cheermote);
-                        //Plugin.Log($"Cheermote: {prefix}");
-                        emotesCached++;
                     }
                 }
-            }
+            );
             Plugin.Log($"Web request completed, {emotesCached.ToString()} twitch cheermotes now cached!");
         }
 
@@ -392,16 +389,8 @@ namespace EnhancedTwitchChat.Textures
         {
             Plugin.Log($"Downloading twitch global badge listing");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get("https://badges.twitch.tv/v1/badges/global/display"))
+            yield return Utilities.Download("https://badges.twitch.tv/v1/badges/global/display", Utilities.DownloadType.Raw, null, (web) =>
             {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                    Plugin.Log($"An error occured when requesting twitch global badge listing, Message: \"{web.error}\"");
-                    yield break;
-                }
-                if (web.downloadHandler.text.Length == 0) yield break;
-                
                 JSONNode json = JSON.Parse(web.downloadHandler.text);
                 if (json["badge_sets"].IsObject)
                 {
@@ -415,14 +404,13 @@ namespace EnhancedTwitchChat.Textures
                             string versionID = version.Key;
                             string url = versionObject["image_url_4x"];
                             string index = url.Substring(url.IndexOf("/v1/") + 4).Replace("/3", "");
-                            //Plugin.Log($"Badge: {name}{versionID}");
                             TwitchBadgeIDs.TryAdd($"{name}{versionID}", index);
                             emotesCached++;
                         }
                     }
                 }
-                Plugin.Log($"Web request completed, {emotesCached.ToString()} twitch global badges now cached!");
-            }
+            });
+            Plugin.Log($"Web request completed, {emotesCached.ToString()} twitch global badges now cached!");
         }
 
         public static IEnumerator GetTwitchChannelBadges()
@@ -431,29 +419,21 @@ namespace EnhancedTwitchChat.Textures
 
             Plugin.Log($"Downloading twitch channel badge listing");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get($"https://badges.twitch.tv/v1/badges/channels/{TwitchWebSocketClient.ChannelInfo[TwitchLoginConfig.Instance.TwitchChannelName].roomId}/display"))
+            yield return Utilities.Download($"https://badges.twitch.tv/v1/badges/channels/{TwitchWebSocketClient.ChannelInfo[TwitchLoginConfig.Instance.TwitchChannelName].roomId}/display", Utilities.DownloadType.Raw, null, (web) =>
             {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                    Plugin.Log($"An error occured when requesting twitch channel badge listing, Message: \"{web.error}\"");
-                    yield break;
-                }
-                if (web.downloadHandler.text.Length == 0) yield break;
-
-                JSONNode json = SimpleJSON.JSON.Parse(web.downloadHandler.text);
+                JSONNode json = JSON.Parse(web.downloadHandler.text);
                 if (json["badge_sets"]["subscriber"].IsObject)
                 {
                     string name = "subscriber";
                     JSONObject badge = json["badge_sets"]["subscriber"]["versions"].AsObject;
-                    foreach (KeyValuePair<string, SimpleJSON.JSONNode> version in badge)
+                    foreach (KeyValuePair<string, JSONNode> version in badge)
                     {
                         string versionID = version.Key;
                         JSONObject versionObject = version.Value.AsObject;
                         string url = versionObject["image_url_4x"];
                         string index = url.Substring(url.IndexOf("/v1/") + 4).Replace("/3", "");
                         string finalName = $"{name}{versionID}";
-                        if(!TwitchBadgeIDs.TryAdd(finalName, index) && name == "subscriber")
+                        if (!TwitchBadgeIDs.TryAdd(finalName, index) && name == "subscriber")
                         {
                             // Overwrite the affiliate sub badges if the channel has any custom ones
                             if (TwitchBadgeIDs.TryGetValue(finalName, out var existing))
@@ -465,28 +445,21 @@ namespace EnhancedTwitchChat.Textures
                         emotesCached++;
                     }
                 }
-                Plugin.Log($"Web request completed, {emotesCached.ToString()} twitch channel badges now cached!");
-            }
+            });
+            Plugin.Log($"Web request completed, {emotesCached.ToString()} twitch channel badges now cached!");
         }
 
         public static IEnumerator GetBTTVGlobalEmotes()
         {
             Plugin.Log("Downloading BTTV global emote listing");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get("https://api.betterttv.net/2/emotes"))
+            yield return Utilities.Download("https://api.betterttv.net/2/emotes", Utilities.DownloadType.Raw, null, (web) =>
             {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                    Plugin.Log($"An error occured when requesting BTTV global emote listing, Message: \"{web.error}\"");
-                    yield break;
-                }
-                if (web.downloadHandler.text.Length == 0) yield break;
-                JSONNode json = SimpleJSON.JSON.Parse(web.downloadHandler.text);
+                JSONNode json = JSON.Parse(web.downloadHandler.text);
                 if (json["status"].AsInt == 200)
                 {
                     JSONArray emotes = json["emotes"].AsArray;
-                    foreach (SimpleJSON.JSONObject o in emotes)
+                    foreach (JSONObject o in emotes)
                     {
                         if (o["channel"] == null)
                         {
@@ -498,28 +471,21 @@ namespace EnhancedTwitchChat.Textures
                         }
                     }
                 }
-                Plugin.Log($"Web request completed, {emotesCached.ToString()} BTTV global emotes now cached!");
-            }
+            });
+            Plugin.Log($"Web request completed, {emotesCached.ToString()} BTTV global emotes now cached!");
         }
 
         public static IEnumerator GetBTTVChannelEmotes()
         {
             Plugin.Log($"Downloading BTTV emotes for channel {TwitchLoginConfig.Instance.TwitchChannelName}");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get($"https://api.betterttv.net/2/channels/{TwitchLoginConfig.Instance.TwitchChannelName}"))
+            yield return Utilities.Download($"https://api.betterttv.net/2/channels/{TwitchLoginConfig.Instance.TwitchChannelName}", Utilities.DownloadType.Raw, null, (web) =>
             {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                    Plugin.Log($"An error occured when requesting BTTV channel emote listing, Message: \"{web.error}\"");
-                    yield break;
-                }
-                if (web.downloadHandler.text.Length == 0) yield break;
-                JSONNode json = SimpleJSON.JSON.Parse(web.downloadHandler.text);
+                JSONNode json = JSON.Parse(web.downloadHandler.text);
                 if (json["status"].AsInt == 200)
                 {
                     JSONArray emotes = json["emotes"].AsArray;
-                    foreach (SimpleJSON.JSONObject o in emotes)
+                    foreach (JSONObject o in emotes)
                     {
                         if (o["imageType"] != "gif")
                             BTTVEmoteIDs.TryAdd(o["code"], o["id"]);
@@ -528,29 +494,21 @@ namespace EnhancedTwitchChat.Textures
                         emotesCached++;
                     }
                 }
-                Plugin.Log($"Web request completed, {emotesCached.ToString()} BTTV channel emotes now cached!");
-            }
+            });
+            Plugin.Log($"Web request completed, {emotesCached.ToString()} BTTV channel emotes now cached!");
         }
         
         public static IEnumerator GetFFZGlobalEmotes()
         {
             Plugin.Log("Downloading FFZ global emote listing");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get("https://api.frankerfacez.com/v1/set/global"))
+            yield return Utilities.Download("https://api.frankerfacez.com/v1/set/global", Utilities.DownloadType.Raw, null, (web) =>
             {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                    Plugin.Log($"An error occured when requesting FFZ global emote listing, Message: \"{web.error}\"");
-                    yield break;
-                }
-                if (web.downloadHandler.text.Length == 0) yield break;
-
-                JSONNode json = SimpleJSON.JSON.Parse(web.downloadHandler.text);
+                JSONNode json = JSON.Parse(web.downloadHandler.text);
                 if (json["sets"].IsObject)
                 {
                     JSONArray emotes = json["sets"]["3"]["emoticons"].AsArray;
-                    foreach (SimpleJSON.JSONObject o in emotes)
+                    foreach (JSONObject o in emotes)
                     {
                         JSONObject urls = o["urls"].AsObject;
                         string url = urls[urls.Count - 1];
@@ -559,28 +517,20 @@ namespace EnhancedTwitchChat.Textures
                         emotesCached++;
                     }
                 }
-                Plugin.Log($"Web request completed, {emotesCached.ToString()} FFZ global emotes now cached!");
-            }
+            });
+            Plugin.Log($"Web request completed, {emotesCached.ToString()} FFZ global emotes now cached!");
         }
         public static IEnumerator GetFFZChannelEmotes()
         {
             Plugin.Log($"Downloading FFZ emotes for channel {TwitchLoginConfig.Instance.TwitchChannelName}");
             int emotesCached = 0;
-            using (var web = UnityWebRequest.Get($"https://api.frankerfacez.com/v1/room/{TwitchLoginConfig.Instance.TwitchChannelName}"))
+            yield return Utilities.Download($"https://api.frankerfacez.com/v1/room/{TwitchLoginConfig.Instance.TwitchChannelName}", Utilities.DownloadType.Raw, null, (web) =>
             {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                    Plugin.Log($"An error occured when requesting FFZ channel emote listing, Message: \"{web.error}\"");
-                    yield break;
-                }
-                if (web.downloadHandler.text.Length == 0) yield break;
-
-                JSONNode json = SimpleJSON.JSON.Parse(web.downloadHandler.text);
+                JSONNode json = JSON.Parse(web.downloadHandler.text);
                 if (json["sets"].IsObject)
                 {
                     JSONArray emotes = json["sets"][json["room"]["set"].ToString()]["emoticons"].AsArray;
-                    foreach (SimpleJSON.JSONObject o in emotes)
+                    foreach (JSONObject o in emotes)
                     {
                         JSONObject urls = o["urls"].AsObject;
                         string url = urls[urls.Count - 1];
@@ -589,8 +539,8 @@ namespace EnhancedTwitchChat.Textures
                         emotesCached++;
                     }
                 }
-                Plugin.Log($"Web request completed, {emotesCached.ToString()} FFZ channel emotes now cached!");
-            }
+            });
+            Plugin.Log($"Web request completed, {emotesCached.ToString()} FFZ channel emotes now cached!");
         }
     };
 }
