@@ -46,7 +46,14 @@ namespace EnhancedTwitchChat.Bot
 
         #region Utility functions
 
-        const int MaximumTwitchMessageLength = 498;
+        public static int MaximumTwitchMessageLength
+            {
+            get
+                {
+                return 498-RequestBotConfig.Instance.BotPrefix.Length;
+                }
+            }
+
 
         public void ChatMessage(TwitchUser requestor, string request)
         {
@@ -75,7 +82,6 @@ namespace EnhancedTwitchChat.Bot
             return DateTime.Now - lastModified;
         }
 
-        // BUG: Attempted rewrite of CheckSong/partial song list produced unexpected formatting... please investigate
         public class QueueLongMessage
         {
             private StringBuilder msgBuilder = new StringBuilder();

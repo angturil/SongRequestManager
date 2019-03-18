@@ -327,7 +327,7 @@ namespace EnhancedTwitchChat.Bot
 
             JSONNode result = null;
             // Get song query results from beatsaver.com
-            string requestUrl = requestInfo.isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
+            string requestUrl = requestInfo.isBeatSaverId ? $"https://beatsaver.com/api/songs/detail/{request}" : $"https://beatsaver.com/api/songs/search/song/{request}";
             yield return Utilities.Download(requestUrl, Utilities.DownloadType.Raw, null,
                 // Download success
                 (web) =>
