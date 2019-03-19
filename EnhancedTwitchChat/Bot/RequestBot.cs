@@ -337,7 +337,7 @@ namespace EnhancedTwitchChat.Bot
                 // Download failed,  song probably doesn't exist on beatsaver
                 (web) =>
                 {
-                    QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
+                    QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified. {requestUrl}");
                 }
             );
             if (result == null) yield break;
@@ -366,7 +366,7 @@ namespace EnhancedTwitchChat.Bot
             {
                 var msg = new QueueLongMessage(1, 5);
                 msg.Header($"@{requestor.displayName}, please choose: ");
-                foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(ref BsrSongDetail), ", ");
+                foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(BsrSongDetail), ", ");
                 msg.end("...", $"No matching songs for for {request}");
                 yield break;
             }
@@ -396,7 +396,7 @@ namespace EnhancedTwitchChat.Bot
 
             Writedeck(requestor, "savedqueue"); // This can be used as a backup if persistent Queue is turned off.
 
-            new DynamicText().AddSong(ref song).QueueMessage(AddSongToQueueText);
+            new DynamicText().AddSong(ref song).QueueMessage(AddSongToQueueText.ToString());
 
             UpdateRequestUI();
             _refreshQueue = true;
@@ -478,7 +478,7 @@ namespace EnhancedTwitchChat.Bot
                     Plugin.Log("Failed to find new level!");
                 }
 
-                if (!request.song.IsNull) new DynamicText().AddSong(request.song).QueueMessage(NextSonglink); // Display next song message
+                if (!request.song.IsNull) new DynamicText().AddSong(request.song).QueueMessage(NextSonglink.ToString()); // Display next song message
 
                 _songRequestMenu.Dismiss();
             }

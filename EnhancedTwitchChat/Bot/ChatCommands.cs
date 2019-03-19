@@ -20,31 +20,22 @@ namespace EnhancedTwitchChat.Bot
         // BUG: This one needs to be cleaned up a lot imo
         // BUG: This file needs to be split up a little, but not just yet... Its easier for me to move around in one massive file, since I can see the whole thing at once. 
 
-        // *** WARNING ***
-        // These are here for this release, since we're not yet ready to support users customizing this. 
-        // The final location and naming of these variables is not yet decided. I've moved them out of config to avoid
-        // Filling the configuration file with variables that will no longer work in the future, and confuse the end user trying
-        // to edit things that are located elsewhere. If you already have these in your .ini, and run this build, you should
-        // Probably remove them to avoid future confusion.
-
-        public static string AddSongToQueueText = "Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.";
-
-        public static string LookupSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
-
-        public static string BsrSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
-
-        public static string LinkSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%";
-
-        public static string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
-
-        public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>";
-
-        //public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
-
-        public static string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
+        static StringBuilder AddSongToQueueText = new StringBuilder( "Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.");
+        static StringBuilder LookupSongDetail= new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%)");
+        static StringBuilder BsrSongDetail=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%)");
+        static StringBuilder LinkSonglink=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%");
+        static StringBuilder NextSonglink=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%");
+        static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>");
+        static StringBuilder QueueTextFileFormat=new StringBuilder ("%songName%%LF%");         // Don't forget to include %LF% for these. 
 
 
         #region Utility functions
+
+        public string Variable(ParseState state) // Basically show the value of a variable without parsing
+            {
+            QueueChatMessage(state.botcmd.userParameter.ToString());
+            return "";
+            }
 
         public static int MaximumTwitchMessageLength
             {
@@ -618,14 +609,14 @@ namespace EnhancedTwitchChat.Bot
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-                        msg.Add(new DynamicText().AddSong(ref song).Parse(ref LookupSongDetail), ", ");
+                        msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail), ", ");
                     }
 
                 }
                 else
                 {
                     song = result["song"].AsObject;
-                    msg.Add(new DynamicText().AddSong(ref song).Parse(ref LookupSongDetail));
+                    msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail));
                 }
 
                 msg.end("...", "No results for for request <request>");
@@ -741,7 +732,7 @@ namespace EnhancedTwitchChat.Bot
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
                 {
                     var song = req.song;
-                    queuesummary += new DynamicText().AddSong(song).Parse(ref QueueTextFileFormat);  // Format of Queue is now user configurable
+                    queuesummary += new DynamicText().AddSong(song).Parse(QueueTextFileFormat);  // Format of Queue is now user configurable
 
                     if (++count > RequestBotConfig.Instance.MaximumQueueTextEntries)
                     {
@@ -904,7 +895,7 @@ namespace EnhancedTwitchChat.Bot
             {
                 if (RequestBotListViewController.currentsong.song.IsNull) return; // Is this needed?
                 var song = RequestBotListViewController.currentsong.song;
-                if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(LinkSonglink);
+                if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(LinkSonglink.ToString());
 
             }
             catch (Exception ex)
@@ -997,7 +988,7 @@ namespace EnhancedTwitchChat.Bot
             {
 
                 StringBuilder aliastext = new StringBuilder();
-                foreach (var alias in botcmd.aliases) aliastext.Append($"!{alias} ");
+                foreach (var alias in botcmd.aliases) aliastext.Append($"{alias} ");
                 Add("alias", aliastext.ToString());
 
                 aliastext.Clear();
@@ -1038,6 +1029,10 @@ namespace EnhancedTwitchChat.Bot
                 return Parse(ref text, parselong);
             }
 
+            public string Parse(StringBuilder text, bool parselong = false) // We implement a path for ref or nonref
+            {
+                return Parse(text.ToString(), parselong);
+            }
 
             // Refactor, supports %variable%, and no longer uses split, should be closer to c++ speed.
             public string Parse(ref string text, bool parselong = false)
