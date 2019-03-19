@@ -20,31 +20,22 @@ namespace EnhancedTwitchChat.Bot
         // BUG: This one needs to be cleaned up a lot imo
         // BUG: This file needs to be split up a little, but not just yet... Its easier for me to move around in one massive file, since I can see the whole thing at once. 
 
-        // *** WARNING ***
-        // These are here for this release, since we're not yet ready to support users customizing this. 
-        // The final location and naming of these variables is not yet decided. I've moved them out of config to avoid
-        // Filling the configuration file with variables that will no longer work in the future, and confuse the end user trying
-        // to edit things that are located elsewhere. If you already have these in your .ini, and run this build, you should
-        // Probably remove them to avoid future confusion.
-
-        public static string AddSongToQueueText = "Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.";
-
-        public static string LookupSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
-
-        public static string BsrSongDetail = "%songName% %songSubName%/%authorName% %Rating% (%version%)";
-
-        public static string LinkSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%";
-
-        public static string NextSonglink = "%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%";
-
-        public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>";
-
-        //public static string SongHintText = "Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>%LF%<size=60%>Song ID %version% ,rating: %Rating%</size>";
-
-        public static string QueueTextFileFormat = "%songName%%LF%";         // Don't forget to include %LF% for these.
+        static StringBuilder AddSongToQueueText = new StringBuilder( "Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.");
+        static StringBuilder LookupSongDetail= new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%)");
+        static StringBuilder BsrSongDetail=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%)");
+        static StringBuilder LinkSonglink=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%");
+        static StringBuilder NextSonglink=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%");
+        static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>");
+        static StringBuilder QueueTextFileFormat=new StringBuilder ("%songName%%LF%");         // Don't forget to include %LF% for these. 
 
 
         #region Utility functions
+
+        public string Variable(ParseState state) // Basically show the value of a variable without parsing
+            {
+            QueueChatMessage(state.botcmd.userParameter.ToString());
+            return "";
+            }
 
         public static int MaximumTwitchMessageLength
             {
@@ -53,7 +44,6 @@ namespace EnhancedTwitchChat.Bot
                 return 498-RequestBotConfig.Instance.BotPrefix.Length;
                 }
             }
-
 
         public void ChatMessage(TwitchUser requestor, string request)
         {
@@ -184,7 +174,6 @@ namespace EnhancedTwitchChat.Bot
             if (requestor.isBroadcaster) return false;
             if (message != "") QueueChatMessage($"{message} is broadcaster only.");
             return true;
-
         }
 
         bool isNotModerator(TwitchUser requestor, string message = "")
@@ -207,7 +196,7 @@ namespace EnhancedTwitchChat.Bot
 
         [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, all = -1 };
 
-        private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.all)
+        private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.all) // BUG: This could be nicer
         {
             string songid = song["id"].Value;
             if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
@@ -216,11 +205,11 @@ namespace EnhancedTwitchChat.Bot
 
             if (filter.HasFlag(SongFilter.Mapper) && _mapperWhitelist && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
-            if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist, songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} has already been requested this session!";
+            if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist, songid)) return fast ? "X" : $"{song["songName"].Value} by  {song["authorName"].Value} already requested this session!";
 
             if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"no permitted results found!";
 
-            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below the lowest permitted rating!";
+            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below {RequestBotConfig.Instance.LowestAllowedRating}% rating!";
 
             return "";
         }
@@ -250,10 +239,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void ClearDuplicateList(TwitchUser requestor, string request)
         {
-            if (isNotBroadcaster(requestor)) return;
-
             QueueChatMessage("Session duplicate list is now clear.");
-
             listcollection.ClearList(ref duplicatelist);
         }
 
@@ -317,7 +303,6 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-
                 int count = 0;
                 if (RequestQueue.Songs.Count == 0)
                 {
@@ -326,7 +311,6 @@ namespace EnhancedTwitchChat.Bot
                 }
 
                 string queuefile = Path.Combine(datapath, request + ".deck");
-
                 StreamWriter fileWriter = new StreamWriter(queuefile);
 
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
@@ -338,7 +322,6 @@ namespace EnhancedTwitchChat.Bot
                 }
 
                 fileWriter.Close();
-
                 if (request != "savedqueue") QueueChatMessage($"wrote {count} entries to {request}");
             }
             catch
@@ -349,15 +332,11 @@ namespace EnhancedTwitchChat.Bot
 
         private void Readdeck(TwitchUser requestor, string request)
         {
-
             try
             {
                 string queuefile = Path.Combine(datapath, request + ".deck");
-
                 string fileContent = File.ReadAllText(queuefile);
-
                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
 
                 for (int n = 0; n < integerStrings.Length; n++)
                 {
@@ -407,18 +386,16 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
 
-        // BUG: This actually needs to store the name of the list. Period.
+        // BUG: Will use a new interface to the list manager
         private void MapperAllowList(TwitchUser requestor, string request)
         {
             string key = request.ToLower();
             mapperwhitelist = listcollection.OpenList(key); // BUG: this is still not the final interface
             QueueChatMessage($"Mapper whitelist set to {request}.");
-
         }
 
         private void MapperBanList(TwitchUser requestor, string request)
         {
-
             string key = request.ToLower();
             mapperBanlist = listcollection.ListCollection[key];
             QueueChatMessage($"Mapper ban list set to {request}.");
@@ -428,7 +405,6 @@ namespace EnhancedTwitchChat.Bot
         private bool mapperfiltered(JSONObject song)
         {
             string normalizedauthor = song["authorName"].Value.ToLower();
-
             if (mapperwhitelist.list.Count > 0)
             {
                 foreach (var mapper in mapperwhitelist.list)
@@ -465,13 +441,11 @@ namespace EnhancedTwitchChat.Bot
                     if (song["id"].Value == songId) return entry;
                 }
             }
-
             return null;
         }
-
+   
         public string Who(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
         {
-
             SongRequest result = null;
             result = FindMatch(RequestQueue.Songs, request);
             if (result == null) result = FindMatch(RequestHistory.Songs, request);
@@ -480,32 +454,26 @@ namespace EnhancedTwitchChat.Bot
             return "";
         }
 
-        public string SongMsg(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
+        public string SongMsg(ParseState state)
         {
-            string[] parts = request.Split(new char[] { ' ', ',' }, 2);
+            string[] parts = state.parameter.Split(new char[] { ' ', ',' }, 2);
             var songId = GetBeatSaverId(parts[0]);
-            if (songId == "")
-            {
-                QueueChatMessage($"Usage: ... <songid>");
-                return "";
-            }
-            foreach (var entry in RequestQueue.Songs)
-            {
+            if (songId == "") return state.helptext(true);
+        
+           foreach (var entry in RequestQueue.Songs)
+           {
                 var song = entry.song;
 
                 if (song["id"].Value == songId)
                 {
                     entry.requestInfo = parts[1];
-                    //QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
-                    return "";
+                    QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
+                    return success;
                 }
             }
             QueueChatMessage($"Unable to find {songId}");
-
-            return "";
+            return success;
         }
-
-
 
         #region Move Request To Top/Bottom
 
@@ -580,7 +548,8 @@ namespace EnhancedTwitchChat.Bot
             foreach (var entry in COMMAND.aliaslist)
             {
                 var botcmd = entry.Value;
-                if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Subcmd)) msg.Add($"{entry.Key}", " "); // Only show commands you're allowed to use
+                // BUG: Please refactor this its getting too damn long
+                if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Var) && !botcmd.Flags.HasFlag(Subcmd)) msg.Add($"{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
         }
@@ -597,7 +566,6 @@ namespace EnhancedTwitchChat.Bot
                 {
                     Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
                     QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
-
                     yield break;
                 }
 
@@ -605,7 +573,6 @@ namespace EnhancedTwitchChat.Bot
                 if (result["songs"].IsArray && result["total"].AsInt == 0)
                 {
                     QueueChatMessage($"No results found for request \"{request}\"");
-
                     yield break;
                 }
                 JSONObject song;
@@ -617,14 +584,13 @@ namespace EnhancedTwitchChat.Bot
                     foreach (JSONObject entry in result["songs"])
                     {
                         song = entry;
-                        msg.Add(new DynamicText().AddSong(ref song).Parse(ref LookupSongDetail), ", ");
+                        msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail), ", ");
                     }
-
                 }
                 else
                 {
                     song = result["song"].AsObject;
-                    msg.Add(new DynamicText().AddSong(ref song).Parse(ref LookupSongDetail));
+                    msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail));
                 }
 
                 msg.end("...", "No results for for request <request>");
@@ -634,6 +600,7 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
+        // BUG: Should be dynamic text
         private void ListQueue(TwitchUser requestor, string request)
         {
 
@@ -642,7 +609,6 @@ namespace EnhancedTwitchChat.Bot
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
                 var song = req.song;
-
                 if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
             }
             msg.end($" ... and {RequestQueue.Songs.Count - msg.Count} more songs.", "Queue is empty.");
@@ -664,7 +630,6 @@ namespace EnhancedTwitchChat.Bot
             return;
 
         }
-
 
         private void ShowSongsplayed(TwitchUser requestor, string request) // Note: This can be spammy.
         {
@@ -705,14 +670,16 @@ namespace EnhancedTwitchChat.Bot
         {
             return QueueState ? "Queue is open" : "Queue is closed";
         }
-        private void OpenQueue(TwitchUser requestor, string request)
+        private string OpenQueue(ParseState state)
         {
-            ToggleQueue(requestor, request, true);
+            ToggleQueue(state.user, state.parameter, true);
+            return success;
         }
 
-        private void CloseQueue(TwitchUser requestor, string request)
+        private string CloseQueue(ParseState state)
         {
-            ToggleQueue(requestor, request, false);
+            ToggleQueue(state.user, state.parameter, false);
+            return success;
         }
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
@@ -740,7 +707,7 @@ namespace EnhancedTwitchChat.Bot
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
                 {
                     var song = req.song;
-                    queuesummary += new DynamicText().AddSong(song).Parse(ref QueueTextFileFormat);  // Format of Queue is now user configurable
+                    queuesummary += new DynamicText().AddSong(song).Parse(QueueTextFileFormat);  // Format of Queue is now user configurable
 
                     if (++count > RequestBotConfig.Instance.MaximumQueueTextEntries)
                     {
@@ -896,20 +863,19 @@ namespace EnhancedTwitchChat.Bot
 
 
         // BUG: This requires a switch, or should be disabled for those who don't allow links
-        private void ShowSongLink(TwitchUser requestor, string request)
+        private string ShowSongLink(ParseState state)
         {
-
-            try  // We're accessing an element across threads, this is only 99.99% safe
+            try  // We're accessing an element across threads, and currentsong doesn't need to be defined
             {
-                if (RequestBotListViewController.currentsong.song.IsNull) return; // Is this needed?
                 var song = RequestBotListViewController.currentsong.song;
-                if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(LinkSonglink);
-
+                if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(LinkSonglink.ToString());
             }
             catch (Exception ex)
             {
                 Plugin.Log(ex.ToString());
             }
+
+         return success;
 
         }
 
@@ -931,9 +897,7 @@ namespace EnhancedTwitchChat.Bot
             string rating = song["rating"].AsInt.ToString();
             if (rating == "0") return "";
             return rating + '%';
-
         }
-
 
         #region DynamicText class and support functions.
 
@@ -996,7 +960,7 @@ namespace EnhancedTwitchChat.Bot
             {
 
                 StringBuilder aliastext = new StringBuilder();
-                foreach (var alias in botcmd.aliases) aliastext.Append($"!{alias} ");
+                foreach (var alias in botcmd.aliases) aliastext.Append($"{alias} ");
                 Add("alias", aliastext.ToString());
 
                 aliastext.Clear();
@@ -1037,6 +1001,10 @@ namespace EnhancedTwitchChat.Bot
                 return Parse(ref text, parselong);
             }
 
+            public string Parse(StringBuilder text, bool parselong = false) // We implement a path for ref or nonref
+            {
+                return Parse(text.ToString(), parselong);
+            }
 
             // Refactor, supports %variable%, and no longer uses split, should be closer to c++ speed.
             public string Parse(ref string text, bool parselong = false)
