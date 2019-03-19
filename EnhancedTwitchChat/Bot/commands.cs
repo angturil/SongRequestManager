@@ -125,7 +125,7 @@ namespace EnhancedTwitchChat.Bot
  
                 The Command name or FIRST alias in the alias list is considered the Base name of the command, and absolutely should not be changed through code. Choose this first name wisely.
                 We use the Base name to allow user command Customization, it is how the command is identified to the user. You can alter the alias list of the commands in 
-                the command configuration file (botcommands.cfg).
+                the command configuration file (botcommands.ini).
  
                 The file format is as follows:
                 
@@ -147,12 +147,13 @@ namespace EnhancedTwitchChat.Bot
             */
 
 
-            new COMMAND(new string[] { "!request", "!bsr", "!add", "!sr" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
-            new COMMAND(new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
-            AddCommand("!link", ShowSongLink, Everyone, "usage: %alias%|%... Shows details, and a link to the current song", _nothing);
+            new COMMAND (new string[] { "!request", "!bsr", "!add", "!sr" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
+            new COMMAND (new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
-            AddCommand("!open", OpenQueue, Mod, "usage: %alias%%|%... Opens the queue allowing song requests.", _nothing);
-            AddCommand("!close", CloseQueue, Mod, "usage: %alias%%|%... Closes the request queue.", _nothing);
+            new COMMAND ("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias%|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
+
+            new COMMAND ("!open").Action(OpenQueue).Help(Mod, "usage: %alias%%|%... Opens the queue allowing song requests.", _nothing);
+            new COMMAND ("!close").Action(CloseQueue).Help(Mod, "usage: %alias%%|%... Closes the request queue.", _nothing);
 
             AddCommand("!queue", ListQueue, Everyone, "usage: %alias%%|% ... Displays a list of the currently requested songs.", _nothing);
             AddCommand("!played", ShowSongsplayed, Mod, "usage: %alias%%|%... Displays all the songs already played this session.", _nothing);
@@ -195,7 +196,6 @@ namespace EnhancedTwitchChat.Bot
             new COMMAND("NextSonglink",NextSonglink);
             new COMMAND("SongHintText",SongHintText);
             new COMMAND("QueueTextFileFormat", QueueTextFileFormat);
-
      
 #if UNRELEASED
 
@@ -210,7 +210,7 @@ namespace EnhancedTwitchChat.Bot
             new COMMAND("!in").Help(Broadcasteronly, "Run a command at a certain time.", _atleast1); // BUG: No action
             new COMMAND("!alias").Help(Broadcasteronly, "usage: %alias %|% Create a command alias, short cuts version a commands. Single line only. Supports %variables% (processed at execution time), parameters are appended.", _atleast1); // BUG: No action
 
-            new COMMAND("!songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|%Assign a message to the song",_atleast1); 
+            new COMMAND("!songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|% Assign a message to the song",_atleast1); 
             new COMMAND("!detail"); // Get song details
 
             COMMAND.InitializeCommands(); // BUG: Currently empty
@@ -475,15 +475,16 @@ namespace EnhancedTwitchChat.Bot
                 permittedusers = fixedname;
             }
 
-            public void Execute(ParseState state)
+            public string Execute(ParseState state)
             {
                 // BUG: Most of these will be replaced.  
 
                 if (Method2 != null) Method2(state.user, state.parameter, state.flags, state.info);
                 else if (Method != null) Method(state.user, state.parameter);
-                else if (Method3 != null) Method3(this, state.user, state.parameter, state.flags, state.info);
+                else if (Method3 != null) return Method3(this, state.user, state.parameter, state.flags, state.info);
                 else if (func1 != null) Instance.StartCoroutine(func1(state.user, state.parameter));
-                else if (subcommand != null) subcommand(state) ; // Recommended.
+                else if (subcommand != null) return subcommand(state); // Recommended.
+                return success;
             }
 
             public static void InitializeCommands()
@@ -781,6 +782,10 @@ namespace EnhancedTwitchChat.Bot
                 return Error;
             }
 
+            public string helptext(bool showlong=false)
+            {
+                return new DynamicText().AddUser(ref user).AddBotCmd(ref botcmd).Parse(ref botcmd.ShortHelp, showlong);
+            }
 
             static string done = "X";
             public void ExecuteCommand()
@@ -844,7 +849,11 @@ namespace EnhancedTwitchChat.Bot
 
                 try
                 {
-                    botcmd.Execute(this); // Call the command
+                    string errormsg = botcmd.Execute(this); // Call the command
+                    if (errormsg != "" && !flags.HasFlag(CmdFlags.SilentError))
+                    {
+                        Instance.QueueChatMessage(errormsg);
+                    }
                 }
                 catch (Exception ex)
                 {

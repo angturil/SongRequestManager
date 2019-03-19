@@ -45,7 +45,6 @@ namespace EnhancedTwitchChat.Bot
                 }
             }
 
-
         public void ChatMessage(TwitchUser requestor, string request)
         {
             var dt = new DynamicText().AddUser(ref requestor);
@@ -175,7 +174,6 @@ namespace EnhancedTwitchChat.Bot
             if (requestor.isBroadcaster) return false;
             if (message != "") QueueChatMessage($"{message} is broadcaster only.");
             return true;
-
         }
 
         bool isNotModerator(TwitchUser requestor, string message = "")
@@ -198,7 +196,7 @@ namespace EnhancedTwitchChat.Bot
 
         [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, all = -1 };
 
-        private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.all)
+        private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.all) // BUG: This could be nicer
         {
             string songid = song["id"].Value;
             if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
@@ -241,10 +239,7 @@ namespace EnhancedTwitchChat.Bot
 
         private void ClearDuplicateList(TwitchUser requestor, string request)
         {
-            if (isNotBroadcaster(requestor)) return;
-
             QueueChatMessage("Session duplicate list is now clear.");
-
             listcollection.ClearList(ref duplicatelist);
         }
 
@@ -308,7 +303,6 @@ namespace EnhancedTwitchChat.Bot
         {
             try
             {
-
                 int count = 0;
                 if (RequestQueue.Songs.Count == 0)
                 {
@@ -317,7 +311,6 @@ namespace EnhancedTwitchChat.Bot
                 }
 
                 string queuefile = Path.Combine(datapath, request + ".deck");
-
                 StreamWriter fileWriter = new StreamWriter(queuefile);
 
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
@@ -329,7 +322,6 @@ namespace EnhancedTwitchChat.Bot
                 }
 
                 fileWriter.Close();
-
                 if (request != "savedqueue") QueueChatMessage($"wrote {count} entries to {request}");
             }
             catch
@@ -340,15 +332,11 @@ namespace EnhancedTwitchChat.Bot
 
         private void Readdeck(TwitchUser requestor, string request)
         {
-
             try
             {
                 string queuefile = Path.Combine(datapath, request + ".deck");
-
                 string fileContent = File.ReadAllText(queuefile);
-
                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
 
                 for (int n = 0; n < integerStrings.Length; n++)
                 {
@@ -398,18 +386,16 @@ namespace EnhancedTwitchChat.Bot
         #endregion
 
 
-        // BUG: This actually needs to store the name of the list. Period.
+        // BUG: Will use a new interface to the list manager
         private void MapperAllowList(TwitchUser requestor, string request)
         {
             string key = request.ToLower();
             mapperwhitelist = listcollection.OpenList(key); // BUG: this is still not the final interface
             QueueChatMessage($"Mapper whitelist set to {request}.");
-
         }
 
         private void MapperBanList(TwitchUser requestor, string request)
         {
-
             string key = request.ToLower();
             mapperBanlist = listcollection.ListCollection[key];
             QueueChatMessage($"Mapper ban list set to {request}.");
@@ -419,7 +405,6 @@ namespace EnhancedTwitchChat.Bot
         private bool mapperfiltered(JSONObject song)
         {
             string normalizedauthor = song["authorName"].Value.ToLower();
-
             if (mapperwhitelist.list.Count > 0)
             {
                 foreach (var mapper in mapperwhitelist.list)
@@ -456,13 +441,11 @@ namespace EnhancedTwitchChat.Bot
                     if (song["id"].Value == songId) return entry;
                 }
             }
-
             return null;
         }
    
         public string Who(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
         {
-
             SongRequest result = null;
             result = FindMatch(RequestQueue.Songs, request);
             if (result == null) result = FindMatch(RequestHistory.Songs, request);
@@ -471,32 +454,26 @@ namespace EnhancedTwitchChat.Bot
             return "";
         }
 
-        public string SongMsg(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
+        public string SongMsg(ParseState state)
         {
-            string[] parts = request.Split(new char[] { ' ', ',' }, 2);
+            string[] parts = state.parameter.Split(new char[] { ' ', ',' }, 2);
             var songId = GetBeatSaverId(parts[0]);
-            if (songId == "")
-            {
-                QueueChatMessage($"Usage: ... <songid>");
-                return "";
-            }
-            foreach (var entry in RequestQueue.Songs)
-            {
+            if (songId == "") return state.helptext(true);
+        
+           foreach (var entry in RequestQueue.Songs)
+           {
                 var song = entry.song;
 
                 if (song["id"].Value == songId)
                 {
                     entry.requestInfo = parts[1];
-                    //QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
-                    return "";
+                    QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
+                    return success;
                 }
             }
             QueueChatMessage($"Unable to find {songId}");
-
-            return "";
+            return success;
         }
-
-
 
         #region Move Request To Top/Bottom
 
@@ -589,7 +566,6 @@ namespace EnhancedTwitchChat.Bot
                 {
                     Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
                     QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
-
                     yield break;
                 }
 
@@ -597,7 +573,6 @@ namespace EnhancedTwitchChat.Bot
                 if (result["songs"].IsArray && result["total"].AsInt == 0)
                 {
                     QueueChatMessage($"No results found for request \"{request}\"");
-
                     yield break;
                 }
                 JSONObject song;
@@ -611,7 +586,6 @@ namespace EnhancedTwitchChat.Bot
                         song = entry;
                         msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail), ", ");
                     }
-
                 }
                 else
                 {
@@ -626,6 +600,7 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
+        // BUG: Should be dynamic text
         private void ListQueue(TwitchUser requestor, string request)
         {
 
@@ -634,7 +609,6 @@ namespace EnhancedTwitchChat.Bot
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
                 var song = req.song;
-
                 if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
             }
             msg.end($" ... and {RequestQueue.Songs.Count - msg.Count} more songs.", "Queue is empty.");
@@ -656,7 +630,6 @@ namespace EnhancedTwitchChat.Bot
             return;
 
         }
-
 
         private void ShowSongsplayed(TwitchUser requestor, string request) // Note: This can be spammy.
         {
@@ -697,14 +670,16 @@ namespace EnhancedTwitchChat.Bot
         {
             return QueueState ? "Queue is open" : "Queue is closed";
         }
-        private void OpenQueue(TwitchUser requestor, string request)
+        private string OpenQueue(ParseState state)
         {
-            ToggleQueue(requestor, request, true);
+            ToggleQueue(state.user, state.parameter, true);
+            return success;
         }
 
-        private void CloseQueue(TwitchUser requestor, string request)
+        private string CloseQueue(ParseState state)
         {
-            ToggleQueue(requestor, request, false);
+            ToggleQueue(state.user, state.parameter, false);
+            return success;
         }
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
@@ -888,20 +863,19 @@ namespace EnhancedTwitchChat.Bot
 
 
         // BUG: This requires a switch, or should be disabled for those who don't allow links
-        private void ShowSongLink(TwitchUser requestor, string request)
+        private string ShowSongLink(ParseState state)
         {
-
-            try  // We're accessing an element across threads, this is only 99.99% safe
+            try  // We're accessing an element across threads, and currentsong doesn't need to be defined
             {
-                if (RequestBotListViewController.currentsong.song.IsNull) return; // Is this needed?
                 var song = RequestBotListViewController.currentsong.song;
                 if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(LinkSonglink.ToString());
-
             }
             catch (Exception ex)
             {
                 Plugin.Log(ex.ToString());
             }
+
+         return success;
 
         }
 
@@ -923,9 +897,7 @@ namespace EnhancedTwitchChat.Bot
             string rating = song["rating"].AsInt.ToString();
             if (rating == "0") return "";
             return rating + '%';
-
         }
-
 
         #region DynamicText class and support functions.
 
