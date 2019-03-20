@@ -193,7 +193,7 @@ namespace EnhancedTwitchChat.Chat
                     {
                         try
                         {
-                            while (Initialized && _ws.IsConnected && _ws.IsAlive && _ws.ReadyState == WebSocketState.Open)
+                            while (Initialized && _ws.IsConnected)
                             {
                                 //Plugin.Log("Connected and alive!");
                                 Thread.Sleep(500);
