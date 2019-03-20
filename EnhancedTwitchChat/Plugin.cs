@@ -19,7 +19,7 @@ namespace EnhancedTwitchChat
     public class Plugin : IPlugin
     {
         public string Name => "EnhancedTwitchChat";
-        public string Version => "1.2.0-beta3";
+        public string Version => "1.2.0-beta4";
 
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
@@ -98,9 +98,9 @@ namespace EnhancedTwitchChat
             {
                 ChatHandler.Instance?.SceneManager_activeSceneChanged(from, to);
             }
-            catch {}
+            catch { }
         }
-
+        
         public void OnLevelWasLoaded(int level)
         {
         }
