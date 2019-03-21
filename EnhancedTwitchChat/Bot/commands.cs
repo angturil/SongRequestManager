@@ -53,7 +53,7 @@ namespace EnhancedTwitchChat.Bot
             Log = 262144, // Log every use of the command to a file
             RegEx = 524288, // Enable regex check
             UserFlag1 = 1048576, // Use it for whatever bit makes you happy 
-            UserFlag2 = 2097152, // Use it for whatever bit makes you happy
+            NoParameter = 2097152, // The (subcommand) takes no parameter
 
             Variable = 4194304, // This is a variable 
             Dynamic = 8388608, // This command is generated dynamically, and cannot be saved/loaded 
@@ -214,9 +214,13 @@ namespace EnhancedTwitchChat.Bot
 
             new COMMAND ("!backup").Help(CmdFlags.Disabled, "Backup %ETC% directory.", _atleast1); // BUG: No code, Future feature
 
-            new COMMAND("!every").Help(Broadcaster, "Run a command at a certain time", _atleast1); // BUG: No action
+            
+
+            new COMMAND("!every").Action(Every).Help(Broadcaster, "usage: every <minutes> %|% Run a command every <minutes>.", _atleast1);
+            new COMMAND("!in").Action(EventIn). Help(Broadcaster, "usage: in <minutes> <bot command>.", _atleast1);
+            new COMMAND("!clearevents").Action(ClearEvents).Help(Broadcaster, "usage: %alias% %|% Clear all timer events.");
+
             new COMMAND("!at").Help(Broadcaster, "Run a command at a certain time.", _atleast1); // BUG: No action
-            new COMMAND("!in").Help(Broadcaster, "Run a command at a certain time.", _atleast1); // BUG: No action
             new COMMAND("!alias").Help(Broadcaster, "usage: %alias %|% Create a command alias, short cuts version a commands. Single line only. Supports %variables% (processed at execution time), parameters are appended.", _atleast1); // BUG: No action
 
             new COMMAND("!songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|% Assign a message to the song",_atleast1); 
@@ -269,7 +273,7 @@ namespace EnhancedTwitchChat.Bot
             new COMMAND("/allow").Action(SubcmdAllow).Help(Subcmd, "usage: <command>/allow");
             new COMMAND("/helpmsg").Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/helpmsg");
             new COMMAND("/sethelp").Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/sethelp");
-            new COMMAND("/silent").Action(SubcmdSilent).Help(Subcmd | Everyone, "usage: <command>/silent");
+            new COMMAND("/silent").Action(SubcmdSilent).Help(Subcmd|CmdFlags.NoParameter | Everyone, "usage: <command>/silent");
 
             new COMMAND("=").Action(SubcmdEqual).Help(Subcmd | Broadcaster, "usage: =");
 
@@ -645,8 +649,7 @@ namespace EnhancedTwitchChat.Bot
 
                 try
                 {
-                    bool failed = false;
-
+ 
                     using (StreamReader sr = new StreamReader(filename))
                     {
                         while (sr.Peek() >= 0)
@@ -777,7 +780,10 @@ namespace EnhancedTwitchChat.Bot
 
                 if (!HasRights(ref subcmd, ref user)) return error($"No permission to use {subcommand}");
 
-                parameter = parameter.Substring(subcommandsectionend);
+                if (subcmd.Flags.HasFlag(CmdFlags.NoParameter))
+                    parameter = parameter.Substring(subcommandend).Trim(' ');
+                else
+                    parameter = parameter.Substring(subcommandsectionend);
 
                 try
                 {
@@ -800,7 +806,7 @@ namespace EnhancedTwitchChat.Bot
 
             public string error(string Error)
             {
-                return Error;
+                return text(Error);
             }
 
             public string helptext(bool showlong=false)
@@ -825,7 +831,7 @@ namespace EnhancedTwitchChat.Bot
                 //          !decklist/setflags SUB
                 //          !lookup/sethelp usage: %alias%<song name or id>
                 //
-                
+
                 while (true)
                 {
                     string errormsg = ExecuteSubcommand();
@@ -849,6 +855,7 @@ namespace EnhancedTwitchChat.Bot
                 if (botcmd.Flags.HasFlag(CmdFlags.Disabled) || flags.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
 
                 // Check permissions first
+
 
                 bool allow = HasRights(ref botcmd, ref user);
 

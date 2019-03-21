@@ -436,7 +436,35 @@ namespace EnhancedTwitchChat.Bot
             }
             return null;
         }
-   
+
+        public string ClearEvents(ParseState state)
+            {
+            BotEvent.Clear();
+            return success;
+            }    
+
+        public string Every(ParseState state)
+            {
+            float period;
+
+            string[] parts = state.parameter.Split(new char[] { ' ', ',' }, 2);
+
+            if (!float.TryParse(parts[0], out period)) return state.error($"You must specify a time in minutes after {state.command}.");
+            if (period < 1) return state.error($"You must specify a period of at least 1 minute");
+            new BotEvent(TimeSpan.FromMinutes(period), parts[1], true);
+            return success;
+            }
+
+        public string EventIn(ParseState state)
+        {
+            float period;
+            string[] parts = state.parameter.Split(new char[] { ' ', ',' }, 2);
+
+            if (!float.TryParse(parts[0], out period)) return state.error($"You must specify a time in minutes after {state.command}.");
+            if (period < 1) return state.error($"You must specify a period of at least 1 minute");
+            new BotEvent(TimeSpan.FromMinutes(period), parts[1], false);
+            return success;
+        }
         public string Who(ParseState state)
         {
             SongRequest result = null;

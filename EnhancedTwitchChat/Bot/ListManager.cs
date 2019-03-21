@@ -192,7 +192,7 @@ namespace EnhancedTwitchChat.Bot
 
             }
 
-            public bool Readfile(string filename, bool ConvertToLower = true)
+            public bool Readfile(string filename, bool ConvertToLower = false)
             {
                 if (flags.HasFlag(ListFlags.InMemory)) return false;
 
@@ -234,7 +234,7 @@ namespace EnhancedTwitchChat.Bot
             public bool Writefile(string filename)
             {
 
-                string separator = filename.EndsWith(".script") ? "\n" : ",";
+                string separator = filename.EndsWith(".script") ? "\r\n" : ",";
 
                 try
                 {
