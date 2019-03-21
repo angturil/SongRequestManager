@@ -28,6 +28,8 @@ namespace EnhancedTwitchChat.Bot
         static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>");
         static StringBuilder QueueTextFileFormat=new StringBuilder ("%songName%%LF%");         // Don't forget to include %LF% for these. 
 
+        static StringBuilder QueueListFormat= new StringBuilder("%songName% (%version%)");
+        static StringBuilder HistoryListFormat = new StringBuilder("%songName% (%version%)");
 
         #region Utility functions
 
@@ -95,7 +97,6 @@ namespace EnhancedTwitchChat.Bot
             public void Header(string text)
             {
                 msgBuilder.Append(text);
-
             }
 
             // BUG: Only works form string < MaximumTwitchMessageLength
@@ -119,7 +120,6 @@ namespace EnhancedTwitchChat.Bot
                         Count = overflowcount;
                         return true;
                     }
-
                     RequestBot.Instance.QueueChatMessage(msgBuilder.ToString(0, msgBuilder.Length - separatorlength));
                     msgBuilder.Clear();
                 }
@@ -145,11 +145,9 @@ namespace EnhancedTwitchChat.Bot
                 }
 
                 // Reset the class for reuse
-
                 maxoverflowpoint = 0;
                 messageCount = 1;
                 msgBuilder.Clear();
-
             }
         }
 
@@ -220,7 +218,6 @@ namespace EnhancedTwitchChat.Bot
             string matchby = "";
             if (_beatSaverRegex.IsMatch(request)) matchby = "version";
             else if (_digitRegex.IsMatch(request)) matchby = "id";
-
             if (matchby == "") return fast ? "X" : $"Invalid song id {request} used in RequestInQueue check";
 
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
@@ -228,7 +225,6 @@ namespace EnhancedTwitchChat.Bot
                 var song = req.song;
                 if (song[matchby].Value == request) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!";
             }
-
             return ""; // Empty string: The request is not in the RequestQueue.Songs
         }
 
@@ -242,10 +238,7 @@ namespace EnhancedTwitchChat.Bot
             QueueChatMessage("Session duplicate list is now clear.");
             listcollection.ClearList(ref duplicatelist);
         }
-
         #endregion
-
-
 
         #region Ban/Unban Song
         public void Ban(TwitchUser requestor, string request)
@@ -443,12 +436,40 @@ namespace EnhancedTwitchChat.Bot
             }
             return null;
         }
-   
-        public string Who(COMMAND cmd, TwitchUser requestor, string request, CmdFlags flags, string info)
+
+        public string ClearEvents(ParseState state)
+            {
+            BotEvent.Clear();
+            return success;
+            }    
+
+        public string Every(ParseState state)
+            {
+            float period;
+
+            string[] parts = state.parameter.Split(new char[] { ' ', ',' }, 2);
+
+            if (!float.TryParse(parts[0], out period)) return state.error($"You must specify a time in minutes after {state.command}.");
+            if (period < 1) return state.error($"You must specify a period of at least 1 minute");
+            new BotEvent(TimeSpan.FromMinutes(period), parts[1], true);
+            return success;
+            }
+
+        public string EventIn(ParseState state)
+        {
+            float period;
+            string[] parts = state.parameter.Split(new char[] { ' ', ',' }, 2);
+
+            if (!float.TryParse(parts[0], out period)) return state.error($"You must specify a time in minutes after {state.command}.");
+            if (period < 1) return state.error($"You must specify a period of at least 1 minute");
+            new BotEvent(TimeSpan.FromMinutes(period), parts[1], false);
+            return success;
+        }
+        public string Who(ParseState state)
         {
             SongRequest result = null;
-            result = FindMatch(RequestQueue.Songs, request);
-            if (result == null) result = FindMatch(RequestHistory.Songs, request);
+            result = FindMatch(RequestQueue.Songs, state.parameter);
+            if (result == null) result = FindMatch(RequestHistory.Songs, state.parameter);
 
             if (result != null) QueueChatMessage($"{result.song["songName"].Value} requested by {result.requestor.displayName}.");
             return "";
@@ -539,7 +560,6 @@ namespace EnhancedTwitchChat.Bot
 
         #region List Commands
 
-        // BUG: once we have aliases and command permissions, we can filter the results, so users do not see commands they have no access to    
         private void showCommandlist(TwitchUser requestor, string request)
         {
 
@@ -553,6 +573,21 @@ namespace EnhancedTwitchChat.Bot
             }
             msg.end("...", $"No commands available.");
         }
+
+        private void showFormatList (TwitchUser requestor, string request)
+        {
+
+            var msg = new QueueLongMessage();
+
+            foreach (var entry in COMMAND.aliaslist)
+            {
+                var botcmd = entry.Value;
+                // BUG: Please refactor this its getting too damn long
+                if (HasRights(ref botcmd, ref requestor) && botcmd.Flags.HasFlag(Var) ) msg.Add($"{entry.Key}", ", "); // Only show commands you're allowed to use
+            }
+            msg.end("...", $"No commands available.");
+        }
+
 
         private IEnumerator LookupSongs(TwitchUser requestor, string request)
         {
@@ -609,7 +644,7 @@ namespace EnhancedTwitchChat.Bot
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
                 var song = req.song;
-                if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
+                if (msg.Add(new DynamicText().AddSong(ref song).Parse(QueueListFormat), ", ")) break;
             }
             msg.end($" ... and {RequestQueue.Songs.Count - msg.Count} more songs.", "Queue is empty.");
             return;
@@ -624,7 +659,7 @@ namespace EnhancedTwitchChat.Bot
             foreach (var entry in RequestHistory.Songs)
             {
                 var song = entry.song;
-                if (msg.Add(song["songName"].Value + " (" + song["version"] + ")", ", ")) break;
+                if (msg.Add(new DynamicText().AddSong(ref song).Parse(HistoryListFormat), ", ")) break;
             }
             msg.end($" ... and {RequestHistory.Songs.Count - msg.Count} more songs.", "History is empty.");
             return;
@@ -723,7 +758,6 @@ namespace EnhancedTwitchChat.Bot
             {
                 Plugin.Log(ex.ToString());
             }
-
         }
 
         public static void WriteQueueStatusToFile(string status)
@@ -991,7 +1025,6 @@ namespace EnhancedTwitchChat.Bot
                 Add("Rating", GetRating(ref song));
                 Add("BeatsaverLink", $"https://beatsaver.com/browse/detail/{song["version"].Value}");
                 Add("BeatsaberLink", $"https://bsaber.com/songs/{song["id"].Value}");
-
                 return this;
             }
 
@@ -1009,13 +1042,11 @@ namespace EnhancedTwitchChat.Bot
             // Refactor, supports %variable%, and no longer uses split, should be closer to c++ speed.
             public string Parse(ref string text, bool parselong = false)
             {
-
                 StringBuilder output = new StringBuilder(text.Length); // We assume a starting capacity at LEAST = to length of original string;
 
                 for (int p = 0; p < text.Length; p++) // P is pointer, that's good enough for me
                 {
                     char c = text[p];
-
                     if (c == '%')
                     {
                         int keywordstart = p + 1;
@@ -1043,15 +1074,11 @@ namespace EnhancedTwitchChat.Bot
                             p += keywordlength + 1; // Reset regular text
                             continue;
                         }
-
                     }
-
                     output.Append(c);
                 }
 
-
                 return output.ToString();
-
             }
 
             public DynamicText QueueMessage(string text, bool parselong = false)

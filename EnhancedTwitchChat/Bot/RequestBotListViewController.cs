@@ -21,12 +21,65 @@ using UnityEngine;
 using UnityEngine.UI;
 using VRUI;
 using Image = UnityEngine.UI.Image;
-
+using System.IO;
+using EnhancedTwitchChat.Chat;
 
 namespace EnhancedTwitchChat.Bot
 {
     class RequestBotListViewController : CustomListViewController
     {
+
+
+        static bool test(string x)
+        {
+            File.AppendAllText("c:\\sehria\\beatsaberbuttons.txt", x+"\r\n");
+            return false; 
+        }
+
+        public class MyButton
+        {
+            static List<MyButton> mybuttons = new List<MyButton>();
+
+
+            public void update()
+                {
+           
+            }
+
+            public MyButton(float x1,float y1,string text,string action,RectTransform container)
+                {
+                Button mybutton;
+
+                //Resources.FindObjectsOfTypeAll<Button>().Any(x => (test(x.name)) );
+
+                // BuyPackButton
+
+
+
+
+                mybutton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "BuyPackButton")), container, false);
+                mybutton.ToggleWordWrapping(false);
+                (mybutton.transform as RectTransform).anchoredPosition = new Vector2(x1, y1);
+                //(mybutton.transform).localRotation = new Quaternion(0.0f, 0.2f, 0.0f, 0.0f);
+                mybutton.transform.localScale = new Vector3(0.8f, 0.5f, 1.0f);
+                mybutton.SetButtonTextSize(4f);
+                mybutton.SetButtonText(text);               
+                mybutton.onClick.RemoveAllListeners();
+
+                mybutton.onClick.AddListener(delegate ()        
+                {
+                    RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, action);
+                    RequestBotListViewController.Instance.UpdateRequestUI(true);
+                });
+                HoverHint _MyHintText = BeatSaberUI.AddHintText(mybutton.transform as RectTransform, action);
+
+                Material material = Resources.FindObjectsOfTypeAll<Material>().Where(m => m.name == "UINoGlow").FirstOrDefault();
+
+            }
+        }
+
+
+
         public static RequestBotListViewController Instance;
 
         private CustomMenu _confirmationDialog;
@@ -34,11 +87,8 @@ namespace EnhancedTwitchChat.Bot
         private LevelListTableCell _songListTableCellInstance;
         private SongPreviewPlayer _songPreviewPlayer;
         private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton, _queueButton;
-#if UNRELEASED
-        private Button _BlacklistLastButton;
-#endif
 
-        private TextMeshProUGUI _warningTitle, _warningMessage;
+        private TextMeshProUGUI _warningTitle, _warningMessage,_CurrentSongName,_CurrentSongName2;
         private HoverHint _historyHintText;
         private int _requestRow = 0;
         private int _historyRow = 0;
@@ -80,6 +130,46 @@ namespace EnhancedTwitchChat.Bot
                 RectTransform container = new GameObject("RequestBotContainer", typeof(RectTransform)).transform as RectTransform;
                 container.SetParent(rectTransform, false);
                 container.sizeDelta = new Vector2(60f, 0f);
+
+                #if UNRELEASED
+
+                // BUG: This code is at an extremely early stage.
+                // BUG: Need scalable buttons and multiple buttons per line when applicable
+                // BUG: Need custom button colors and styles
+                // BUG: Need additional modes disabling one shot buttons
+                // BUG: Need to make sure the buttons are usable on older headsets
+
+                _CurrentSongName = BeatSaberUI.CreateText(container, "", new Vector2(-35, 37f));
+                _CurrentSongName.fontSize = 3f;
+                _CurrentSongName.color = Color.cyan;
+                _CurrentSongName.alignment = TextAlignmentOptions.Left;
+                _CurrentSongName.enableWordWrapping = false;
+                _CurrentSongName.text = "";
+
+                _CurrentSongName2 = BeatSaberUI.CreateText(container, "", new Vector2(-35, 34f));
+                _CurrentSongName2.fontSize = 3f;
+                _CurrentSongName2.color = Color.cyan;
+                _CurrentSongName2.alignment = TextAlignmentOptions.Left;
+                _CurrentSongName2.enableWordWrapping = false;
+                _CurrentSongName2.text = "";
+
+                var list =RequestBot.listcollection.OpenList("ViewButton.script");
+                float y = 27.5f;
+                foreach (string line in list.list)
+                {
+                    string [] entry = line.Split(new char[] { ';' });
+                    if (entry.Length>1 && entry[0].Length>0)
+                        {
+                        new MyButton(-20, y, entry[0], entry[1], container);
+                        y -= 5;
+                        }
+                    else
+                    {
+                        y -= 2.5f;        
+                    }
+                }
+
+                #endif
 
                 // History button
                 _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
@@ -211,7 +301,16 @@ namespace EnhancedTwitchChat.Bot
             _historyHintText.text = isShowingHistory ? "Go back to your current song request queue." : "View the history of song requests from the current session.";
             _historyButton.SetButtonText(isShowingHistory ? "Requests" : "History");
             _playButton.SetButtonText(isShowingHistory ? "Replay" : "Play");
-            
+
+
+            #if UNRELEASED
+            if (RequestHistory.Songs.Count > 0)
+            {
+                _CurrentSongName.text = RequestHistory.Songs[0].song["songName"].Value;
+                _CurrentSongName2.text = $"{RequestHistory.Songs[0].song["authorName"].Value} ({RequestHistory.Songs[0].song["version"].Value})";
+            }
+            #endif
+
             _customListTableView.ReloadData();
 
             if (NumberOfCells() > _selectedRow)

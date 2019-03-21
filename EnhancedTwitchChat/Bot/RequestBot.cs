@@ -19,6 +19,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Timers;
 
 #if OLDVERSION
 using TMPro;
@@ -178,11 +179,63 @@ namespace EnhancedTwitchChat.Bot
             _configChanged = false;
         }
 
+
+        
+        // BUG: Prototype code, used for testing.
+        class BotEvent
+        {
+            public static List<BotEvent> events = new List<BotEvent>();
+
+
+            private ElapsedEventArgs arg;
+            public DateTime time;
+            public string command;
+            public bool repeat;
+            Timer timeq;
+
+        public static void Clear()
+            {                
+                foreach (var ev in events) ev.timeq.Stop();
+            }
+        public BotEvent(DateTime time,string command,bool repeat)
+            {
+                this.time = time;
+                this.command = command;
+                this.repeat = repeat;
+                timeq = new System.Timers.Timer(1000);
+                timeq.Elapsed += (s, args) => ScheduledCommand(command, args);
+                timeq.AutoReset = true;
+                timeq.Enabled = true;
+            }
+
+        public BotEvent(TimeSpan delta, string command, bool repeat=false)
+            {
+                this.command = command;
+                this.repeat = repeat;
+                timeq = new System.Timers.Timer(delta.TotalMilliseconds);
+                timeq.Elapsed += (s, args) => ScheduledCommand(command, args);
+                timeq.AutoReset = repeat;
+
+                events.Add(this);
+
+                timeq.Enabled = true;
+            }
+        }
+
+ 
+
+        public static void ScheduledCommand(string command, System.Timers.ElapsedEventArgs e)
+            {
+            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, command);
+            }
+
         private void RunStartupScripts()
         {
             ReadRemapList(); // BUG: This should use list manager
 
 #if UNRELEASED
+
+
             OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
             MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
             loaddecks(TwitchWebSocketClient.OurTwitchUser, ""); // Load our default deck collection
@@ -677,10 +730,6 @@ namespace EnhancedTwitchChat.Bot
             }
         }
 
-        public static void Process(int index)
-        {
-            Instance?.StartCoroutine(ProcessSongRequest(index));
-        }
 
     }
 }
