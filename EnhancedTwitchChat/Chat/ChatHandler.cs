@@ -503,7 +503,7 @@ namespace EnhancedTwitchChat
                     if (_tmpArray[index].text != "")
                     {
                         _tmpArray[index].transform.localPosition = new Vector3(-ChatConfig.Instance.ChatWidth / 2, currentYValue, 0);
-                        currentYValue -= (_tmpArray[index].preferredHeight + (i < _chatMessages.Count() - 1 ? ChatConfig.Instance.MessageSpacing + 1.5f : 0));
+                        currentYValue -= (_tmpArray[index].preferredHeight + (i < _chatMessages.Count() - 1 ? ChatConfig.Instance.LineSpacing + 1.5f : 0));
                     }
                 }
                 _currentBackgroundHeight = (initialYValue - currentYValue) + ChatConfig.Instance.BackgroundPadding * 2;
