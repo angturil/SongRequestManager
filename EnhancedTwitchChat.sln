@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27428.2037
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnhancedTwitchChat", "EnhancedTwitchChat\EnhancedTwitchChat.csproj", "{205F177C-3995-46B4-854B-9EED576B706D}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnhancedTwitchIntegration", "EnhancedTwitchIntegration\EnhancedTwitchIntegration.csproj", "{CDBD5008-0F51-408E-B89C-6142CB5C70E5}"
 EndProject
 Global
@@ -15,14 +13,6 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{205F177C-3995-46B4-854B-9EED576B706D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{205F177C-3995-46B4-854B-9EED576B706D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{205F177C-3995-46B4-854B-9EED576B706D}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{205F177C-3995-46B4-854B-9EED576B706D}.Debug|x64.Build.0 = Debug|Any CPU
-		{205F177C-3995-46B4-854B-9EED576B706D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{205F177C-3995-46B4-854B-9EED576B706D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{205F177C-3995-46B4-854B-9EED576B706D}.Release|x64.ActiveCfg = Release|Any CPU
-		{205F177C-3995-46B4-854B-9EED576B706D}.Release|x64.Build.0 = Release|Any CPU
 		{CDBD5008-0F51-408E-B89C-6142CB5C70E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CDBD5008-0F51-408E-B89C-6142CB5C70E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CDBD5008-0F51-408E-B89C-6142CB5C70E5}.Debug|x64.ActiveCfg = Debug|Any CPU

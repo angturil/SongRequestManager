@@ -9,8 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using EnhancedTwitchChat.Config;
-
+using EnhancedTwitchIntegration.Config;
 // Feature requests: Add Reason for being banned to banlist
 //  
 
