@@ -93,8 +93,15 @@ namespace EnhancedTwitchChat
             SongLoader.Instance.RetrieveNewSong(songFolderName);
             
             // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
-            if (resetFilterMode && _songDownloaderInstalled)
-                ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
+            if (resetFilterMode)
+            {
+                // If song browser is installed, update/refresh it
+                if (_songBrowserInstalled)
+                    ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
+                // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+                else if (_songDownloaderInstalled)
+                    ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
+            }
 
             //// Set the row index to the previously selected song
             //if (selectOldLevel)
@@ -131,10 +138,11 @@ namespace EnhancedTwitchChat
                 if(packsCollection.beatmapLevelPacks[i].packName == "Custom Maps")
                     customSongPackIndex = i;
 
-            if (customSongPackIndex != -1)
+            if (customSongPackIndex != -1 && levelPacksTableView.GetPrivateField<int>("_selectedColumn") != customSongPackIndex)
             {
                 tableView.SelectCellWithIdx(customSongPackIndex, true);
-                for(int i=0; i<Mathf.FloorToInt(customSongPackIndex/4); i++)
+                tableView.ScrollToCellWithIdx(0, TableView.ScrollPositionType.Beginning, false);
+                for (int i = 0; i < Mathf.FloorToInt(customSongPackIndex / 4); i++)
                     tableView.PageScrollDown();
             }
 
