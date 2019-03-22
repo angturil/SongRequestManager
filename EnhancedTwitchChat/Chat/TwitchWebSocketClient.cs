@@ -1,4 +1,4 @@
-﻿using EnhancedTwitchChat.Bot;
+﻿//using EnhancedTwitchChat.Bot;
 using EnhancedTwitchChat.Config;
 using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.Utils;

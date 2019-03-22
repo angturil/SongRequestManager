@@ -9,10 +9,11 @@ using EnhancedTwitchChat.UI;
 using System.Threading.Tasks;
 using System.Collections;
 using CustomUI.BeatSaber;
-using EnhancedTwitchChat.Bot;
+//using EnhancedTwitchChat.Bot;
 using System.Runtime.CompilerServices;
 using TMPro;
 using EnhancedTwitchChat.Config;
+using EnhancedTwitchChat.Utils;
 
 namespace EnhancedTwitchChat
 {
@@ -23,11 +24,12 @@ namespace EnhancedTwitchChat
 
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
+        public bool RequestBotInstalled = false;
+
         public static Plugin Instance { get; private set; }
 
-        private readonly ChatConfig ChatConfig = new ChatConfig();
-        private readonly RequestBotConfig RequestBotConfig = new RequestBotConfig();
-        private readonly TwitchLoginConfig TwitchLoginConfig = new TwitchLoginConfig();
+        private ChatConfig ChatConfig;
+        private TwitchLoginConfig TwitchLoginConfig;
 
         public static void Log(string text,
                         [CallerFilePath] string file = "",
@@ -42,6 +44,9 @@ namespace EnhancedTwitchChat
             if (Instance != null) return;
             Instance = this;
 
+            TwitchLoginConfig = new TwitchLoginConfig();
+            ChatConfig = new ChatConfig();
+
             SharedCoroutineStarter.instance.StartCoroutine(DelayedStartup());
         }
 
@@ -54,6 +59,8 @@ namespace EnhancedTwitchChat
         private IEnumerator DelayedStartup()
         {
             yield return new WaitForSeconds(0.5f);
+
+            RequestBotInstalled = Utilities.IsModInstalled("EnhancedTwitchIntegration");
 
             ChatHandler.OnLoad();
             Task.Run(() => TwitchWebSocketClient.Initialize());
@@ -71,12 +78,8 @@ namespace EnhancedTwitchChat
             if (arg0.name == MenuSceneName)
             {
                 Settings.OnLoad();
-#if REQUEST_BOT
-                RequestBot.OnLoad();
-#endif
 
                 ChatConfig.Save(true);
-                RequestBotConfig.Save(true);
                 TwitchLoginConfig.Save(true);
             }
         }

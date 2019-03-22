@@ -1,5 +1,4 @@
-﻿#if REQUEST_BOT
-
+﻿
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.SimpleJSON;
 using System;
@@ -7,9 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static EnhancedTwitchChat.Bot.RequestBot;
+using static EnhancedTwitchIntegration.Bot.RequestBot;
 
-namespace EnhancedTwitchChat.Bot
+namespace EnhancedTwitchIntegration.Bot
 {
     public class SongRequest
     {
@@ -51,5 +50,3 @@ namespace EnhancedTwitchChat.Bot
         }
     }
 }
-
-#endif

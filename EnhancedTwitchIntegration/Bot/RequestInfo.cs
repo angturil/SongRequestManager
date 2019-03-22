@@ -1,5 +1,4 @@
-﻿#if REQUEST_BOT
-
+﻿
 using EnhancedTwitchChat.Chat;
 using System;
 using System.Collections.Generic;
@@ -7,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EnhancedTwitchChat.Bot
+namespace EnhancedTwitchIntegration.Bot
 {
     public class RequestInfo
     {
@@ -29,5 +28,3 @@ namespace EnhancedTwitchChat.Bot
         }
     }
 }
-
-#endif

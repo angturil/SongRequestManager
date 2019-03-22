@@ -1,6 +1,6 @@
 ﻿using BeatSaverDownloader.UI;
 using CustomUI.BeatSaber;
-using CustomUI.Utilities;
+//using CustomUI.Utilities;
 using EnhancedTwitchChat.Utils;
 using HMUI;
 using SongBrowserPlugin;
@@ -15,7 +15,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace EnhancedTwitchChat
+namespace EnhancedTwitchIntegration
 {
     class SongListUtils
     {

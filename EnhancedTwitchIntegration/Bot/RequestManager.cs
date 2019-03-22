@@ -1,5 +1,4 @@
-﻿#if REQUEST_BOT
-
+﻿
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.SimpleJSON;
 using System;
@@ -11,7 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace EnhancedTwitchChat.Bot
+namespace EnhancedTwitchIntegration.Bot
 {
     public class RequestManager
     {
@@ -130,5 +129,3 @@ namespace EnhancedTwitchChat.Bot
         }
     }
 }
-
-#endif

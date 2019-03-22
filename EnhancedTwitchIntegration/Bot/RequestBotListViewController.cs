@@ -1,9 +1,6 @@
 ﻿//#define PRIVATE
 
-#if REQUEST_BOT
-
 using CustomUI.BeatSaber;
-using CustomUI.Utilities;
 using EnhancedTwitchChat.Config;
 using EnhancedTwitchChat.UI;
 using EnhancedTwitchChat.Utils;
@@ -23,8 +20,9 @@ using VRUI;
 using Image = UnityEngine.UI.Image;
 using System.IO;
 using EnhancedTwitchChat.Chat;
+using EnhancedTwitchIntegration.Config;
 
-namespace EnhancedTwitchChat.Bot
+namespace EnhancedTwitchIntegration.Bot
 {
     class RequestBotListViewController : CustomListViewController
     {
@@ -472,7 +470,7 @@ namespace EnhancedTwitchChat.Bot
             if (!_cachedSprites.ContainsKey(url))
             {
                 RequestBot.Instance.StartCoroutine(Utilities.DownloadSpriteAsync(url, downloadCompleted));
-                _cachedSprites.Add(url, UIUtilities.BlankSprite);
+                _cachedSprites.Add(url, CustomUI.Utilities.UIUtilities.BlankSprite);
             }
             return _cachedSprites[url];
         }
@@ -487,36 +485,33 @@ namespace EnhancedTwitchChat.Bot
             LevelListTableCell _tableCell = GetTableCell(row);
 
 
-            ReflectionUtil.GetPrivateField<UnityEngine.UI.Image>(_tableCell, "_coverImage").sprite = null;
+            _tableCell.GetPrivateField<Image>("_coverImage").sprite = null;
 
             SongRequest request = SongInfoForRow(row);
-            SimpleJSON.JSONObject song = request.song;
 
             //BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
 
-            var dt = new RequestBot.DynamicText().AddSong(song).AddUser(ref request.requestor); // Get basic fields
+            var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
             dt.Add("Status", request.status.ToString());
             dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
             dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString());
 
             BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
 
-            _tableCell.SetText(song["songName"].Value);
-            _tableCell.SetSubText(song["authorName"].Value);
+            _tableCell.SetText(request.song["songName"].Value);
+            _tableCell.SetSubText(request.song["authorName"].Value);
             if (SongLoader.AreSongsLoaded)
             {
                 CustomLevel level = CustomLevelForRow(row);
                 if (level)
                     _tableCell.SetIcon(level.coverImage);
             }
-            if (ReflectionUtil.GetPrivateField<UnityEngine.UI.Image>(_tableCell, "_coverImage").sprite == null)
+            if (_tableCell.GetPrivateField<Image>("_coverImage").sprite == null)
             {
-                string url = song["coverUrl"].Value;
+                string url = request.song["coverUrl"].Value;
                 _tableCell.SetIcon(GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); }));
             }
             return _tableCell;
         }
     }
 }
-
-#endif

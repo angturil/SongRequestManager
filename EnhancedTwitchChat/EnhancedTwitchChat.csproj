@@ -49,6 +49,10 @@
     <Reference Include="BeatSaverDownloader">
       <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\BeatSaverDownloader.dll</HintPath>
     </Reference>
+    <Reference Include="EnhancedTwitchIntegration, Version=0.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\EnhancedTwitchIntegration.dll</HintPath>
+    </Reference>
     <Reference Include="IllusionInjector, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\IllusionInjector.dll</HintPath>
     </Reference>
@@ -136,16 +140,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Bot\ChatCommands.cs" />
-    <Compile Include="Bot\commands.cs" />
-    <Compile Include="Bot\ListManager.cs" />
-    <Compile Include="Bot\RequestBot.cs" />
-    <Compile Include="Bot\RequestBotListViewController.cs" />
-    <Compile Include="Bot\RequestInfo.cs" />
-    <Compile Include="Bot\RequestManager.cs" />
-    <Compile Include="Bot\RequestUserTracker.cs" />
-    <Compile Include="Bot\SongRequest.cs" />
-    <Compile Include="Bot\UnreleasedCode.cs" />
     <Compile Include="Chat\MessageHandlers.cs" />
     <Compile Include="Chat\TwitchMessage.cs" />
     <Compile Include="Chat\TwitchWebSocketClient.cs" />
@@ -226,10 +220,9 @@
     <Compile Include="Chat\websocket-sharp\WebSocketException.cs" />
     <Compile Include="Chat\websocket-sharp\WebSocketFrame.cs" />
     <Compile Include="Chat\websocket-sharp\WebSocketState.cs" />
-    <Compile Include="Config\RequestBotConfig.cs" />
+    <Compile Include="Config\ChatConfig.cs" />
     <Compile Include="Config\TwitchLoginConfig.cs" />
     <Compile Include="UI\ColorExtensions.cs" />
-    <Compile Include="Config\ChatConfig.cs" />
     <Compile Include="Chat\ChatMover.cs" />
     <Compile Include="Chat\LockToggle.cs" />
     <Compile Include="Images\AnimationController.cs" />
@@ -241,7 +234,6 @@
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UI\Settings.cs" />
-    <Compile Include="UI\SongListUtils.cs" />
     <Compile Include="Utilities\ObjectPool.cs" />
     <Compile Include="Utilities\ReflectionUtil.cs" />
     <Compile Include="Utilities\SimpleJSON.cs" />
@@ -3109,10 +3101,10 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>::copy /Y "$(TargetDir)$(TargetFileName)" "C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins"
-copy /Y "$(TargetDir)$(TargetFileName)" "C:\Beat Saber\Plugins"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins"
+::copy /Y "$(TargetDir)$(TargetFileName)" "C:\Beat Saber\Plugins"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent>::"$(ProjectDir)..\..\PluginVersionSetter.exe" "$(ProjectDir)Properties\AssemblyInfo.cs" "$(ProjectDir)Plugin.cs"</PreBuildEvent>
+    <PreBuildEvent>"$(ProjectDir)..\..\PluginVersionSetter.exe" "$(ProjectDir)Properties\AssemblyInfo.cs" "$(ProjectDir)Plugin.cs"</PreBuildEvent>
   </PropertyGroup>
 </Project>
