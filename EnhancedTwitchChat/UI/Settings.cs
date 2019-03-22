@@ -77,8 +77,8 @@ namespace EnhancedTwitchChat.UI
             chatWidth.GetValue += () => { return (int)ChatConfig.Instance.ChatWidth; };
 
             var messageSpacing = menu.AddSlider("Message Spacing", "The amount of vertical space between each message.", 0, 20, 2, true);
-            messageSpacing.SetValue += (spacing) => { ChatConfig.Instance.MessageSpacing = spacing; };
-            messageSpacing.GetValue += () => { return (int)ChatConfig.Instance.MessageSpacing; };
+            messageSpacing.SetValue += (spacing) => { ChatConfig.Instance.LineSpacing = spacing; };
+            messageSpacing.GetValue += () => { return (int)ChatConfig.Instance.LineSpacing; };
             
             var textColor = menu.AddColorPicker("Text Color", "Choose the color of the menu text.", ChatConfig.Instance.TextColor);
             textColor.SetValue += (texCol) => { ChatConfig.Instance.TextColor = texCol; };

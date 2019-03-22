@@ -28,7 +28,7 @@ namespace EnhancedTwitchChat.Config
         public bool SongRequestBot = false;
         public bool PersistentRequestQueue = true;
     }
-
+    
     public class ChatConfig
     {
         private string FilePath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "EnhancedTwitchChat.ini");
@@ -40,7 +40,7 @@ namespace EnhancedTwitchChat.Config
 
         public float ChatScale = 1.1f;
         public float ChatWidth = 160;
-        public float MessageSpacing = 2.0f;
+        public float LineSpacing = 2.0f;
         public int MaxChatLines = 30;
         
         public float PositionX = 0;

@@ -511,13 +511,19 @@ namespace EnhancedTwitchChat.Bot
                 {
                     Plugin.Log($"Song {songName} already exists!");
                 }
-                
+
+                if (!retried)
+                {
+                    // Dismiss the song request viewcontroller now
+                    _songRequestMenu.Dismiss();
+                }
+
                 if (levels.Length > 0)
                 {
                     Plugin.Log($"Scrolling to level {levels[0].levelID}");
 
                     bool success = false;
-                    yield return SongListUtils.ScrollToLevel(levels[0].levelID, (s) => success = s);
+                    yield return SongListUtils.ScrollToLevel(levels[0].levelID, (s) => success = s, false);
 
                     // Redownload the song if we failed to scroll to it
                     if (!success && !retried)
@@ -532,8 +538,6 @@ namespace EnhancedTwitchChat.Bot
                 }
 
                 if (!request.song.IsNull) new DynamicText().AddSong(request.song).QueueMessage(NextSonglink.ToString()); // Display next song message
-
-                _songRequestMenu.Dismiss();
             }
         }
         
