@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EnhancedTwitchChat.Config
+namespace EnhancedTwitchIntegration.Config
 {
     public class RequestBotConfig
     {

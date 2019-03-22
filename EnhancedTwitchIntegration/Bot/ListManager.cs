@@ -1,4 +1,3 @@
-#if REQUEST_BOT
 
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.SimpleJSON;
@@ -12,7 +11,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace EnhancedTwitchChat.Bot
+namespace EnhancedTwitchIntegration.Bot
 {
     public partial class RequestBot : MonoBehaviour
     {
@@ -346,5 +345,3 @@ namespace EnhancedTwitchChat.Bot
 
     }
 }
-
-#endif

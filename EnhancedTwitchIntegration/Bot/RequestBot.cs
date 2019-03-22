@@ -1,5 +1,4 @@
-﻿#if REQUEST_BOT
-
+﻿
 using CustomUI.BeatSaber;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Textures;
@@ -8,7 +7,7 @@ using EnhancedTwitchChat.Utils;
 using HMUI;
 using EnhancedTwitchChat.SimpleJSON;
 //using SongBrowserPlugin;
-using SongLoaderPlugin;
+//using SongLoaderPlugin;
 using SongLoaderPlugin.OverrideClasses;
 using System;
 using System.Collections;
@@ -34,8 +33,10 @@ using Image = UnityEngine.UI.Image;
 using Toggle = UnityEngine.UI.Toggle;
 using TMPro;
 using EnhancedTwitchChat.Config;
+using EnhancedTwitchIntegration.Config;
+using SongLoaderPlugin;
 
-namespace EnhancedTwitchChat.Bot
+namespace EnhancedTwitchIntegration.Bot
 {
     public partial class RequestBot : MonoBehaviour
     {
@@ -737,5 +738,3 @@ namespace EnhancedTwitchChat.Bot
 
     }
 }
-
-#endif

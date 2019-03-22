@@ -2,7 +2,6 @@
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.UI;
-using EnhancedTwitchChat.Bot;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -14,6 +13,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using VRUIControls;
 using EnhancedTwitchChat.Config;
+#if REQUEST_BOT
+using EnhancedTwitchIntegration.Bot;
+#endif
 
 namespace EnhancedTwitchChat
 {
@@ -178,11 +180,10 @@ namespace EnhancedTwitchChat
 
                         if (ChatConfig.Instance.FilterUserlistMessages)
                         {
-                            string excludefilename = "chatexclude.users";
-
-                        #if REQUEST_BOT
-                            if (RequestBot.Instance &&   RequestBot.listcollection.contains(ref excludefilename, messageToSend.twitchMessage.user.displayName.ToLower(), RequestBot.ListFlags.Uncached)) return;
-                        #endif
+                            if (Plugin.Instance.RequestBotInstalled)
+                            {
+                                if (IsExcludedUser(messageToSend.twitchMessage.user)) return;
+                            }
                         }
                         StartCoroutine(AddNewChatMessage(messageToSend.msg, messageToSend));
                     }
@@ -193,6 +194,15 @@ namespace EnhancedTwitchChat
                 else if (Plugin.Instance.IsAtMainMenu && ImageDownloader.ImageSaveQueue.Count > 0 && ImageDownloader.ImageSaveQueue.TryDequeue(out var saveInfo))
                     File.WriteAllBytes(saveInfo.path, saveInfo.data);
             }
+        }
+
+        private bool IsExcludedUser(TwitchUser user)
+        {
+#if REQUEST_BOT
+            string excludefilename = "chatexclude.users";
+            return RequestBot.Instance && RequestBot.listcollection.contains(ref excludefilename, user.displayName.ToLower(), RequestBot.ListFlags.Uncached);
+#endif
+            return false;
         }
 
         public void LateUpdate()

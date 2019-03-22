@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EnhancedTwitchChat.Bot
+namespace EnhancedTwitchIntegration.Bot
 {
     public class RequestUserTracker
     {

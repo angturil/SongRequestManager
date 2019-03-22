@@ -12,6 +12,7 @@ using UnityEngine.SceneManagement;
 using System.Threading.Tasks;
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Config;
+//using EnhancedTwitchIntegration.Config;
 using System.IO;
 
 namespace EnhancedTwitchChat.UI
@@ -52,13 +53,18 @@ namespace EnhancedTwitchChat.UI
             fontName.SetValue += (font) => { ChatConfig.Instance.FontName = font; };
             fontName.GetValue += () => { return ChatConfig.Instance.FontName; };
 
-            var songRequestsEnabled = menu.AddBool("Song Request Bot", "Enables song requests in chat! Click the \"Next Request\" button in the top right corner of your song list to move onto the next request!\r\n\r\n<size=60%>Use <b>!request <beatsaver-id></b> or <b>!request <song name></b> to request songs!</size>");
-            songRequestsEnabled.SetValue += (requests) => { RequestBotConfig.Instance.RequestBotEnabled = requests; };
-            songRequestsEnabled.GetValue += () => { return RequestBotConfig.Instance.RequestBotEnabled; };
-            
-            var persistentRequestQueue = menu.AddBool("Persistent Request Queue", "When enabled, the song request queue will persist after you restart the game.");
-            persistentRequestQueue.SetValue += (persistentQueue) => { RequestBotConfig.Instance.PersistentRequestQueue = persistentQueue; };
-            persistentRequestQueue.GetValue += () => { return RequestBotConfig.Instance.PersistentRequestQueue; };
+            //if (Plugin.Instance.RequestBotInstalled)
+            //{
+            //#if REQUEST_BOT
+            //    var songRequestsEnabled = menu.AddBool("Song Request Bot", "Enables song requests in chat! Click the \"Next Request\" button in the top right corner of your song list to move onto the next request!\r\n\r\n<size=60%>Use <b>!request <beatsaver-id></b> or <b>!request <song name></b> to request songs!</size>");
+            //    songRequestsEnabled.SetValue += (requests) => { RequestBotConfig.Instance.RequestBotEnabled = requests; };
+            //    songRequestsEnabled.GetValue += () => { return RequestBotConfig.Instance.RequestBotEnabled; };
+
+            //    var persistentRequestQueue = menu.AddBool("Persistent Request Queue", "When enabled, the song request queue will persist after you restart the game.");
+            //    persistentRequestQueue.SetValue += (persistentQueue) => { RequestBotConfig.Instance.PersistentRequestQueue = persistentQueue; };
+            //    persistentRequestQueue.GetValue += () => { return RequestBotConfig.Instance.PersistentRequestQueue; };
+            //#endif
+            //}
 
             var animatedEmotes = menu.AddBool("Animated Emotes", "Enables animated BetterTwitchTV/FrankerFaceZ/Cheermotes in the chat. When disabled, these emotes will still appear but will not be animated.");
             animatedEmotes.SetValue += (animted) => { Plugin.Log($"Setting animated emotes to {animted}"); ChatConfig.Instance.AnimatedEmotes = animted; };

@@ -1,4 +1,4 @@
-﻿using EnhancedTwitchChat.Bot;
+﻿//using EnhancedTwitchChat.Bot;
 using IllusionPlugin;
 using EnhancedTwitchChat.SimpleJSON;
 using System;
@@ -7,6 +7,10 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+#if REQUEST_BOT
+using EnhancedTwitchIntegration.Config;
+using EnhancedTwitchIntegration.Bot;
+#endif
 
 namespace EnhancedTwitchChat.Config
 {
@@ -173,22 +177,20 @@ namespace EnhancedTwitchChat.Config
                     TwitchLoginConfig.Instance.TwitchUsername = semiOldConfigInfo.TwitchUsername;
                     TwitchLoginConfig.Instance.TwitchOAuthToken = semiOldConfigInfo.TwitchOAuthToken;
                     TwitchLoginConfig.Instance.Save(true);
-                    
-                    RequestBotConfig.Instance.RequestBotEnabled = semiOldConfigInfo.SongRequestBot;
-                    RequestBotConfig.Instance.PersistentRequestQueue = semiOldConfigInfo.PersistentRequestQueue;
-                    RequestBotConfig.Instance.Save(true);
+
+                    if (Plugin.Instance.RequestBotInstalled)
+                    {
+                        UpdateRequestBotConfig(ref semiOldConfigInfo);
+                    }
                 }
 
-#if REQUEST_BOT
-                if (text.Contains("SongBlacklist=")) 
+                if (Plugin.Instance.RequestBotInstalled)
                 {
-                    var oldConfig = new OldBlacklistOption();
-                    ConfigSerializer.LoadConfig(oldConfig, FilePath);
-
-                    if(oldConfig.SongBlacklist.Length > 0)
-                        SongBlacklist.ConvertFromList(oldConfig.SongBlacklist.Split(','));
+                    if (text.Contains("SongBlacklist="))
+                    {
+                        UpdateRequestBotBlacklist();
+                    }
                 }
-#endif
             }
             CorrectConfigSettings();
             Save();
@@ -200,6 +202,26 @@ namespace EnhancedTwitchChat.Config
                 EnableRaisingEvents = true
             };
             _configWatcher.Changed += ConfigWatcherOnChanged;
+        }
+
+        private void UpdateRequestBotBlacklist()
+        {
+#if REQUEST_BOT
+            var oldConfig = new OldBlacklistOption();
+            ConfigSerializer.LoadConfig(oldConfig, FilePath);
+
+            if (oldConfig.SongBlacklist.Length > 0)
+                SongBlacklist.ConvertFromList(oldConfig.SongBlacklist.Split(','));
+#endif
+        }
+
+        private void UpdateRequestBotConfig(ref SemiOldConfigOptions semiOldConfigInfo)
+        {
+#if REQUEST_BOT
+            RequestBotConfig.Instance.RequestBotEnabled = semiOldConfigInfo.SongRequestBot;
+            RequestBotConfig.Instance.PersistentRequestQueue = semiOldConfigInfo.PersistentRequestQueue;
+            RequestBotConfig.Instance.Save(true);
+#endif
         }
 
         ~ChatConfig()

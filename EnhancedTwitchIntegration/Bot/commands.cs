@@ -1,5 +1,3 @@
-#if REQUEST_BOT
-
 using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.SimpleJSON;
 using System;
@@ -15,7 +13,7 @@ using System.Text.RegularExpressions;
 using System.Diagnostics;
 // Feature requests: Add Reason for being banned to banlist
 
-namespace EnhancedTwitchChat.Bot
+namespace EnhancedTwitchIntegration.Bot
 {
     public partial class RequestBot : MonoBehaviour
     {
@@ -992,4 +990,3 @@ namespace EnhancedTwitchChat.Bot
         #endregion
     }
 }
-#endif

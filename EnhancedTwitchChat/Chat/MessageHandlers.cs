@@ -1,7 +1,11 @@
-﻿using EnhancedTwitchChat.Bot;
+﻿//using EnhancedTwitchChat.Bot;
 using EnhancedTwitchChat.Config;
 using EnhancedTwitchChat.Textures;
 using EnhancedTwitchChat.Utils;
+#if REQUEST_BOT
+using EnhancedTwitchIntegration.Bot;
+using EnhancedTwitchIntegration.Config;
+#endif
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -92,6 +96,14 @@ namespace EnhancedTwitchChat.Chat
                 ParseMessageTag(t, ref twitchMsg);
 
             MessageParser.Parse(new ChatMessage(Utilities.StripHTML(twitchMsg.message), twitchMsg));
+            if (Plugin.Instance.RequestBotInstalled)
+            {
+                ParseRequestBot(twitchMsg);
+            }
+        }
+
+        private static void ParseRequestBot(TwitchMessage twitchMsg)
+        {
 #if REQUEST_BOT
             if (RequestBotConfig.Instance.RequestBotEnabled)
                 RequestBot.COMMAND.Parse(twitchMsg.user, twitchMsg.message);
