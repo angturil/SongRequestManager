@@ -40,30 +40,92 @@ namespace EnhancedTwitchChat.Bot
         {
             static List<MyButton> mybuttons = new List<MyButton>();
 
-
             public void update()
                 {
            
             }
 
-            public MyButton(float x1,float y1,string text,string action,RectTransform container)
+            public static void RemoveButtons()
                 {
-                Button mybutton;
+                foreach (var button in mybuttons) Destroy(button.mybutton);
+                mybuttons.Clear();
+                }
 
+            // add buttons to container
+            public static void AddButtons (RectTransform container)
+                {
+
+                // Bounding box
+                float x1 = -17.5f - 20f;
+                float y1 = 27.5f;
+                float x2 = 0;
+                float y2 = 30f;
+
+                float padding = 0.6f;
+
+                var list = RequestBot.listcollection.OpenList("ViewButton.script");
+                float y = y1;
+                float x = x1;
+
+                foreach (string line in list.list)
+                {
+                    string[] entry = line.Split(new char[] { ';' });
+                    if (entry.Length > 1 && entry[0].Length > 0)
+                    {
+                        float width = 40f;
+                        if (entry.Length > 2) float.TryParse(entry[2], out width);
+
+                        if (x + width * 0.45f > x2)
+                        {
+                            y -= 5 + padding;
+                            x = x1;
+                        }
+
+                        var dt = new RequestBot.DynamicText();
+
+                        try // This object may not exist at the time of call
+                        {
+                        dt.AddSong(currentsong.song);
+                        }
+                        catch
+                        { }
+
+                        string ourtext = dt.Parse(entry[0]);
+
+                        new MyButton(x + width * 0.45f / 2, y, width, entry[0], entry[1], container);
+                        x += width * 0.45f + padding;
+                    }
+                    else
+                    {
+                        y -= 7f;
+                        x = x1;
+                    }
+                }
+
+            }
+
+            Button mybutton;
+
+            public MyButton(float x1,float y1, float width,string text,string action,RectTransform container)
+                {
+ 
                 //Resources.FindObjectsOfTypeAll<Button>().Any(x => (test(x.name)) );
-
-                // BuyPackButton
-
-
-
 
                 mybutton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "BuyPackButton")), container, false);
                 mybutton.ToggleWordWrapping(false);
                 (mybutton.transform as RectTransform).anchoredPosition = new Vector2(x1, y1);
+                (mybutton.transform as RectTransform).sizeDelta = new Vector2(width, 10);
                 //(mybutton.transform).localRotation = new Quaternion(0.0f, 0.2f, 0.0f, 0.0f);
-                mybutton.transform.localScale = new Vector3(0.8f, 0.5f, 1.0f);
-                mybutton.SetButtonTextSize(4f);
-                mybutton.SetButtonText(text);               
+                mybutton.transform.localScale = new Vector3(0.45f, 0.45f, 1.0f);
+                mybutton.SetButtonTextSize(5f);
+                mybutton.SetButtonText(text);
+                Text [] txt = mybutton.GetComponents<Text>();
+                if (txt.Length>0)
+                {
+                    (mybutton.transform as RectTransform).sizeDelta = txt[0].rectTransform.sizeDelta;
+
+                }
+                
                 mybutton.onClick.RemoveAllListeners();
 
                 mybutton.onClick.AddListener(delegate ()        
@@ -123,7 +185,7 @@ namespace EnhancedTwitchChat.Bot
 
                 InitConfirmationDialog();
 
-                _songListTableCellInstance = Resources.FindObjectsOfTypeAll<LevelListTableCell>().First(x => (x.name == "LevelListTableCell"));
+                _songListTableCellInstance = Resources.FindObjectsOfTypeAll<LevelListTableCell>().First(o => (o.name == "LevelListTableCell"));
                 _songPreviewPlayer = Resources.FindObjectsOfTypeAll<SongPreviewPlayer>().FirstOrDefault();
                 DidSelectRowEvent += DidSelectRow;
 
@@ -134,7 +196,6 @@ namespace EnhancedTwitchChat.Bot
                 #if UNRELEASED
 
                 // BUG: This code is at an extremely early stage.
-                // BUG: Need scalable buttons and multiple buttons per line when applicable
                 // BUG: Need custom button colors and styles
                 // BUG: Need additional modes disabling one shot buttons
                 // BUG: Need to make sure the buttons are usable on older headsets
@@ -153,26 +214,13 @@ namespace EnhancedTwitchChat.Bot
                 _CurrentSongName2.enableWordWrapping = false;
                 _CurrentSongName2.text = "";
 
-                var list =RequestBot.listcollection.OpenList("ViewButton.script");
-                float y = 27.5f;
-                foreach (string line in list.list)
-                {
-                    string [] entry = line.Split(new char[] { ';' });
-                    if (entry.Length>1 && entry[0].Length>0)
-                        {
-                        new MyButton(-20, y, entry[0], entry[1], container);
-                        y -= 5;
-                        }
-                    else
-                    {
-                        y -= 2.5f;        
-                    }
-                }
+                MyButton.AddButtons(container);
+
 
                 #endif
 
                 // History button
-                _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
+                _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
                 _historyButton.ToggleWordWrapping(false);
                 (_historyButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 30f);
                 _historyButton.SetButtonText("History");
@@ -187,7 +235,7 @@ namespace EnhancedTwitchChat.Bot
                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
                 
                 // Blacklist button
-                _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
+                _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
                 _blacklistButton.ToggleWordWrapping(false);
                 (_blacklistButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 10f);
                 _blacklistButton.SetButtonText("Blacklist");
@@ -213,7 +261,7 @@ namespace EnhancedTwitchChat.Bot
                 BeatSaberUI.AddHintText(_blacklistButton.transform as RectTransform, "Block the selected request from being queued in the future.");
 
                 // Skip button
-                _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
+                _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
                 _skipButton.ToggleWordWrapping(false);
                 (_skipButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 0f);
                 _skipButton.SetButtonText("Skip");
@@ -240,7 +288,7 @@ namespace EnhancedTwitchChat.Bot
                 BeatSaberUI.AddHintText(_skipButton.transform as RectTransform, "Remove the selected request from the queue.");
 
                 // Play button
-                _playButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
+                _playButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
                 _playButton.ToggleWordWrapping(false);
                 (_playButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -10f);
                 _playButton.SetButtonText("Play");
@@ -261,7 +309,7 @@ namespace EnhancedTwitchChat.Bot
                 BeatSaberUI.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");
 
                 // Queue button
-                _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "QuitButton")), container, false);
+                _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
                 _queueButton.ToggleWordWrapping(false);
                 _queueButton.SetButtonTextSize(3.5f);
                 (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -30f);

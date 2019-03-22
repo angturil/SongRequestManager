@@ -186,8 +186,6 @@ namespace EnhancedTwitchChat.Bot
         {
             public static List<BotEvent> events = new List<BotEvent>();
 
-
-            private ElapsedEventArgs arg;
             public DateTime time;
             public string command;
             public bool repeat;
@@ -454,6 +452,8 @@ namespace EnhancedTwitchChat.Bot
             UpdateRequestUI();
             _refreshQueue = true;
         }
+
+
 
 
         private static IEnumerator ProcessSongRequest(int index, bool fromHistory = false)
