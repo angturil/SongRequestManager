@@ -259,26 +259,26 @@ namespace EnhancedTwitchChat.Bot
             #endregion
             #region SUBCOMMAND Declarations
             // BEGIN SUBCOMMANDS - these modify the Properties of a command, or the current parse state. 
+            // sub commands need to have at least one alias that does not begin with an illegal character, or you will not be able to alter them in twitch chat
 
-            new COMMAND("/enable").Action(SubcmdEnable).Help(Subcmd, "usage: <command>/enable");
-            new COMMAND("/disable").Action(SubcmdDisable).Help(Subcmd, "usage: <command>/disable");
-            new COMMAND("/current").Action(SubcmdCurrentSong).Help(Subcmd | Everyone, "usage: <command>/current");
-            new COMMAND("/last").Action(SubcmdPreviousSong).Help(Subcmd | Everyone, "usage: <command>/last");
-            new COMMAND("/next").Action(SubcmdNextSong).Help(Subcmd | Everyone, "usage: <command>/next");
+            new COMMAND(new string[] { "/enable", "subcmdenable" }).Action(SubcmdEnable).Help(Subcmd, "usage: <command>/enable");
+            new COMMAND(new string[] { "/disable", "subcmddisable" }).Action(SubcmdDisable).Help(Subcmd, "usage: <command>/disable");
+            new COMMAND(new string[] { "/current", "subcmdcurrent" }).Action(SubcmdCurrentSong).Help(Subcmd | Everyone, "usage: <command>/current");
+            new COMMAND(new string[] { "/last","/previous", "subcmdlast" }).Action(SubcmdPreviousSong).Help(Subcmd | Everyone, "usage: <command>/last");
+            new COMMAND(new string[] { "/next", "subcmdnext" }).Action(SubcmdNextSong).Help(Subcmd | Everyone, "usage: <command>/next");
 
-            new COMMAND("/flags").Action(SubcmdShowflags).Help(Subcmd, "usage: <command>/next");
-            new COMMAND("/set").Action(SubcmdSetflags).Help(Subcmd, "usage: <command>/set");
-            new COMMAND("/clear").Action(SubcmdClearflags).Help(Subcmd, "usage: <command>/clear");
+            new COMMAND(new string[] { "/flags", "subcmdflags" }).Action(SubcmdShowflags).Help(Subcmd, "usage: <command>/next");
+            new COMMAND(new string[] { "/set", "subcmdset" }).Action(SubcmdSetflags).Help(Subcmd, "usage: <command>/set <flags>");
+            new COMMAND(new string[] { "/clear", "subcmdclear" }).Action(SubcmdClearflags).Help(Subcmd, "usage: <command>/clear <flags>");
 
-            new COMMAND("/allow").Action(SubcmdAllow).Help(Subcmd, "usage: <command>/allow");
-            new COMMAND("/helpmsg").Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/helpmsg");
-            new COMMAND("/sethelp").Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/sethelp");
-            new COMMAND("/silent").Action(SubcmdSilent).Help(Subcmd|CmdFlags.NoParameter | Everyone, "usage: <command>/silent");
+            new COMMAND(new string[] { "/allow", "subcmdallow" }).Action(SubcmdAllow).Help(Subcmd, "usage: <command>/allow");
+            new COMMAND(new string[] { "/sethelp","/helpmsg", "subcmdsethelp" }).Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/sethelp");
+            new COMMAND(new string[] { "/silent", "subcmdsilent" }).Action(SubcmdSilent).Help(Subcmd|CmdFlags.NoParameter | Everyone, "usage: <command>/silent");
 
-            new COMMAND("=").Action(SubcmdEqual).Help(Subcmd | Broadcaster, "usage: =");
+            new COMMAND(new string[] { "=", "subcmdequal" }).Action(SubcmdEqual).Help(Subcmd | Broadcaster, "usage: =");
 
-            new COMMAND("/alias").Action(SubcmdAlias).Help(Subcmd | Broadcaster,"usage: %alias% %|% Defines all the aliases a command can use");
-            new COMMAND("/default").Action(SubcmdDefault).Help(Subcmd | Broadcaster, "usage: <formattext> %alias%") ;
+            new COMMAND(new string[] { "/alias","subcmdalias" }).Action(SubcmdAlias).Help(Subcmd | Broadcaster,"usage: %alias% %|% Defines all the aliases a command can use");
+            new COMMAND(new string[] { "/default","subcmddefault" }).Action(SubcmdDefault).Help(Subcmd | Broadcaster, "usage: <formattext> %alias%") ;
 
             #endregion
         }
