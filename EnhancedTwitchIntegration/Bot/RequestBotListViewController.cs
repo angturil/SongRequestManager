@@ -117,7 +117,7 @@ namespace EnhancedTwitchIntegration.Bot
                 mybutton.transform.localScale = new Vector3(0.45f, 0.45f, 1.0f);
                 mybutton.SetButtonTextSize(5f);
                 mybutton.SetButtonText(text);
-                Text [] txt = mybutton.GetComponents<Text>();
+                TMP_Text [] txt = mybutton.GetComponents<TMP_Text>();
                 if (txt.Length>0)
                 {
                     (mybutton.transform as RectTransform).sizeDelta = txt[0].rectTransform.sizeDelta;
@@ -132,8 +132,6 @@ namespace EnhancedTwitchIntegration.Bot
                     RequestBotListViewController.Instance.UpdateRequestUI(true);
                 });
                 HoverHint _MyHintText = BeatSaberUI.AddHintText(mybutton.transform as RectTransform, action);
-
-                Material material = Resources.FindObjectsOfTypeAll<Material>().Where(m => m.name == "UINoGlow").FirstOrDefault();
 
             }
         }
