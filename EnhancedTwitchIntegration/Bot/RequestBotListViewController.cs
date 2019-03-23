@@ -93,13 +93,10 @@ namespace EnhancedTwitchIntegration.Bot
                         dt.AddSong(RequestHistory.Songs[0].song);
                         if (entry.Length > 3)
                             {
-                                string deckname = entry[3].ToLower();
+                                string deckname = entry[3].ToLower()+".deck";
 
-                                if (RequestBot.deck.ContainsKey(deckname)) 
-                                {   
-                                    if (RequestBot.listcollection.OpenList(deckname+".deck",RequestBot.ListFlags.Uncached).Contains(RequestHistory.Songs[0].song["id"].Value))
-                                    color = Color.magenta;
-                                } 
+                                if (RequestBot.listcollection.contains(ref deckname,RequestHistory.Songs[0].song["id"].Value))
+                                color = Color.magenta;
                             }
                         }
                         catch

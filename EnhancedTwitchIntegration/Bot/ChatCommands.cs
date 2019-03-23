@@ -900,7 +900,7 @@ namespace EnhancedTwitchIntegration.Bot
         {
             try  // We're accessing an element across threads, and currentsong doesn't need to be defined
             {
-                var song = RequestBotListViewController.currentsong.song;
+                var song = RequestHistory.Songs[0].song;
                 if (!song.IsNull) new DynamicText().AddSong(ref song).QueueMessage(LinkSonglink.ToString());
             }
             catch (Exception ex)

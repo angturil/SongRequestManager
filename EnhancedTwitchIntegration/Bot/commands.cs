@@ -196,7 +196,6 @@ namespace EnhancedTwitchIntegration.Bot
             new COMMAND("NextSonglink",NextSonglink);
             new COMMAND("SongHintText",SongHintText);
             new COMMAND("QueueTextFileFormat", QueueTextFileFormat);
-
             new COMMAND("QueueListFormat", QueueListFormat);
             new COMMAND("HistoryListFormat", HistoryListFormat);
 
@@ -212,8 +211,7 @@ namespace EnhancedTwitchIntegration.Bot
 
             new COMMAND ("!backup").Help(CmdFlags.Disabled, "Backup %ETC% directory.", _atleast1); // BUG: No code, Future feature
 
-            
-
+          
             new COMMAND("!every").Action(Every).Help(Broadcaster, "usage: every <minutes> %|% Run a command every <minutes>.", _atleast1);
             new COMMAND("!in").Action(EventIn). Help(Broadcaster, "usage: in <minutes> <bot command>.", _atleast1);
             new COMMAND("!clearevents").Action(ClearEvents).Help(Broadcaster, "usage: %alias% %|% Clear all timer events.");
@@ -250,7 +248,10 @@ namespace EnhancedTwitchIntegration.Bot
             new COMMAND ("!whatdeck").Action(whatdeck).Help(Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
             new COMMAND ("!decklist").Action(decklist).Help(Mod, "usage: %alias", _deck);
 
-            new COMMAND("!addtoqueue").Action(queuelist).Help(Broadcaster, "usage: %alias%<list>", _atleast1);
+            new COMMAND("!addtoqueue").Action(queuelist).Help(Broadcaster, "usage: %alias% <list>", _atleast1);
+            new COMMAND("!unqueuemsg").Help(Broadcaster,"usage: %alias% msg text to match",_atleast1); // BUG: No code
+
+            new COMMAND(new string[] { "/toggle", "subcomdtoggle" }).Action(SubcmdToggle).Help(Subcmd | Mod | CmdFlags.NoParameter); // BUG: Not implemented
 
 
 #endif
@@ -278,9 +279,16 @@ namespace EnhancedTwitchIntegration.Bot
             new COMMAND(new string[] { "/alias","subcmdalias" }).Action(SubcmdAlias).Help(Subcmd | Broadcaster,"usage: %alias% %|% Defines all the aliases a command can use");
             new COMMAND(new string[] { "/default","subcmddefault" }).Action(SubcmdDefault).Help(Subcmd | Broadcaster, "usage: <formattext> %alias%") ;
 
+            new COMMAND(new string[] { "/newest","subcmdnewest" }).Help(Subcmd|Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/best" ,"subcmdbest"}).Help(Subcmd | Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/oldest","subcmdoldest" }).Help(Subcmd| Everyone); // BUG: Not implemented
+
+  
             #endregion
         }
 
+
+        
 
         const string success = "";
         const string endcommand = "X";
@@ -305,7 +313,8 @@ namespace EnhancedTwitchIntegration.Bot
         {
             try
             {
-                state.parameter += RequestHistory.Songs[0].song["version"];
+                if (state.parameter != "") state.parameter += " ";
+                state.parameter +=RequestHistory.Songs[0].song["version"];
                 return "";
             }
             catch
@@ -320,6 +329,7 @@ namespace EnhancedTwitchIntegration.Bot
         {
             try
             {
+                if (state.parameter != "") state.parameter += " ";
                 state.parameter += RequestHistory.Songs[1].song["version"];
                 return "";
             }
@@ -335,6 +345,7 @@ namespace EnhancedTwitchIntegration.Bot
         {
             try
             {
+                if (state.parameter != "") state.parameter += " ";
                 state.parameter += RequestQueue.Songs[0].song["version"];
                 return "";
             }
@@ -450,6 +461,7 @@ namespace EnhancedTwitchIntegration.Bot
 
             return endcommand; // This is an assignment, we're not executing the object.
         }
+
 
         public string SubcmdDefault(ParseState state)
         {
@@ -954,7 +966,8 @@ namespace EnhancedTwitchIntegration.Bot
                 {
                     var botcmd = entry.Value;
                     if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Subcmd) && !botcmd.Flags.HasFlag(Var))
-                        msg.Add($"{entry.Key.Substring(1)}", " "); // BUG: Removes the built in ! in the commands, letting it slide... for now 
+                                
+                        msg.Add($"{entry.Key.TrimStart('!')}", " "); // BUG: Removes the built in ! in the commands, letting it slide... for now 
                 }
                 msg.Add(">");
                 msg.end("...", $"No commands available >");
