@@ -80,7 +80,7 @@ namespace EnhancedTwitchIntegration.Bot
         private static string duplicatelist = "duplicate.list"; // BUG: Name of the list, needs to use a different interface for this.
 
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
-        private static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
+        public static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
 
         public static string datapath; // Location of all local data files
 
@@ -146,6 +146,15 @@ namespace EnhancedTwitchIntegration.Bot
             TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
             if (PlayedAge < TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
 
+
+            /*            
+            var oldConfig = new OldBlacklistOption();
+            ConfigSerializer.LoadConfig(oldConfig, datapath);
+
+            if (oldConfig.SongBlacklist.Length > 0)
+                File.WriteAllText(Path.Combine("UserData", "EnhancedTwitchChat", "SongBlacklistMigration.list"), oldConfig.SongBlacklist);
+             */ 
+
             RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
             RequestHistory.Read();
             SongBlacklist.Read();
@@ -155,13 +164,35 @@ namespace EnhancedTwitchIntegration.Bot
             UpdateRequestUI();
             InitializeCommands();
 
+            EnhancedTwitchChat.ChatHandler.ChatMessageFilters += MyChatMessageHandler;
+
+
             COMMAND.CommandConfiguration();
             RunStartupScripts();
+
 
             StartCoroutine(ProcessRequestQueue());
             StartCoroutine(ProcessBlacklistRequests());
 
+            MessageHandlers.PRIVMSG += PRIVMSG;
+
+
+
             RequestBotConfig.Instance.ConfigChangedEvent += OnConfigChangedEvent;
+        }
+
+
+
+        public bool MyChatMessageHandler(TwitchMessage msg)
+        {
+            string excludefilename = "chatexclude.users";
+            return RequestBot.Instance && RequestBot.listcollection.contains(ref excludefilename, msg.user.displayName.ToLower(), RequestBot.ListFlags.Uncached);
+        }
+
+        private void PRIVMSG(TwitchMessage msg)
+          {
+          if (RequestBotConfig.Instance.RequestBotEnabled)
+              RequestBot.COMMAND.Parse(msg.user, msg.message);
         }
 
         private void OnConfigChangedEvent(RequestBotConfig config)

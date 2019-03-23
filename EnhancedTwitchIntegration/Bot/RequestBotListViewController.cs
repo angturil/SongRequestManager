@@ -27,7 +27,6 @@ namespace EnhancedTwitchIntegration.Bot
     class RequestBotListViewController : CustomListViewController
     {
 
-
         static bool test(string x)
         {
             File.AppendAllText("c:\\sehria\\beatsaberbuttons.txt", x+"\r\n");
@@ -43,17 +42,22 @@ namespace EnhancedTwitchIntegration.Bot
            
             }
 
+            public static RectTransform container = null;
             public static void RemoveButtons()
                 {
-                foreach (var button in mybuttons) Destroy(button.mybutton);
-                mybuttons.Clear();
+                foreach (var button in mybuttons) button.mybutton.enabled=false;
+                
                 }
 
             // add buttons to container
-            public static void AddButtons (RectTransform container)
+            public static void AddButtons ()
                 {
 
-                // Bounding box
+                // BUG: Prototype GARBAGE code. To be replaced as soon as the core ideas are tested
+
+                if (container == null) return;
+
+               // Bounding box
                 float x1 = -17.5f - 20f;
                 float y1 = 27.5f;
                 float x2 = 0;
@@ -65,6 +69,7 @@ namespace EnhancedTwitchIntegration.Bot
                 float y = y1;
                 float x = x1;
 
+                int l = 0;
                 foreach (string line in list.list)
                 {
                     string[] entry = line.Split(new char[] { ';' });
@@ -81,16 +86,37 @@ namespace EnhancedTwitchIntegration.Bot
 
                         var dt = new RequestBot.DynamicText();
 
+                        Color color = Color.blue;
+
                         try // This object may not exist at the time of call
                         {
-                        dt.AddSong(currentsong.song);
+                        dt.AddSong(RequestHistory.Songs[0].song);
+                        if (entry.Length > 3)
+                            {
+                                string deckname = entry[3].ToLower();
+
+                                if (RequestBot.deck.ContainsKey(deckname)) 
+                                {   
+                                    if (RequestBot.listcollection.OpenList(deckname+".deck",RequestBot.ListFlags.Uncached).Contains(RequestHistory.Songs[0].song["id"].Value))
+                                    color = Color.magenta;
+                                } 
+                            }
                         }
                         catch
                         { }
-
+                         
                         string ourtext = dt.Parse(entry[0]);
 
-                        new MyButton(x + width * 0.45f / 2, y, width, entry[0], entry[1], container);
+                        MyButton my;
+
+                        if (l < MyButton.mybuttons.Count)
+                            my = mybuttons[l];
+                        else
+                           my = new MyButton();
+
+                        l++;
+
+                        my.SetMyButton(x + width * 0.45f / 2, y, width,color, dt.Parse(entry[0]), entry[1], container);
                         x += width * 0.45f + padding;
                     }
                     else
@@ -104,12 +130,17 @@ namespace EnhancedTwitchIntegration.Bot
 
             Button mybutton;
 
-            public MyButton(float x1,float y1, float width,string text,string action,RectTransform container)
+            public MyButton()
+                {
+                
+                mybutton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "BuyPackButton")), container, false);
+                mybuttons.Add(this);
+                }
+            public void SetMyButton(float x1,float y1, float width,Color color,string text,string action,RectTransform container)
                 {
  
                 //Resources.FindObjectsOfTypeAll<Button>().Any(x => (test(x.name)) );
 
-                mybutton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "BuyPackButton")), container, false);
                 mybutton.ToggleWordWrapping(false);
                 (mybutton.transform as RectTransform).anchoredPosition = new Vector2(x1, y1);
                 (mybutton.transform as RectTransform).sizeDelta = new Vector2(width, 10);
@@ -117,13 +148,21 @@ namespace EnhancedTwitchIntegration.Bot
                 mybutton.transform.localScale = new Vector3(0.45f, 0.45f, 1.0f);
                 mybutton.SetButtonTextSize(5f);
                 mybutton.SetButtonText(text);
+
+
+                mybutton.GetComponentInChildren<Image>().color = color;
+
+                //mybutton.GetComponentInChildren<TMP_Text>().autoSizeTextContainer=true;
+
+                /*
                 TMP_Text [] txt = mybutton.GetComponents<TMP_Text>();
                 if (txt.Length>0)
                 {
                     (mybutton.transform as RectTransform).sizeDelta = txt[0].rectTransform.sizeDelta;
 
                 }
-                
+                */
+
                 mybutton.onClick.RemoveAllListeners();
 
                 mybutton.onClick.AddListener(delegate ()        
@@ -132,7 +171,6 @@ namespace EnhancedTwitchIntegration.Bot
                     RequestBotListViewController.Instance.UpdateRequestUI(true);
                 });
                 HoverHint _MyHintText = BeatSaberUI.AddHintText(mybutton.transform as RectTransform, action);
-
             }
         }
 
@@ -210,7 +248,8 @@ namespace EnhancedTwitchIntegration.Bot
                 _CurrentSongName2.enableWordWrapping = false;
                 _CurrentSongName2.text = "";
 
-                MyButton.AddButtons(container);
+                MyButton.container = container; 
+                MyButton.AddButtons();
 
 
                 #endif
@@ -352,6 +391,9 @@ namespace EnhancedTwitchIntegration.Bot
             {
                 _CurrentSongName.text = RequestHistory.Songs[0].song["songName"].Value;
                 _CurrentSongName2.text = $"{RequestHistory.Songs[0].song["authorName"].Value} ({RequestHistory.Songs[0].song["version"].Value})";
+
+                MyButton.AddButtons();
+
             }
             #endif
 

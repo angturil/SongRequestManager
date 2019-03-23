@@ -7,8 +7,8 @@
     <ProjectGuid>{CDBD5008-0F51-408E-B89C-6142CB5C70E5}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>EnhancedTwitchIntegration</RootNamespace>
-    <AssemblyName>EnhancedTwitchIntegration</AssemblyName>
+    <RootNamespace>SongRequestConsole</RootNamespace>
+    <AssemblyName>SongRequestConsole</AssemblyName>
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
