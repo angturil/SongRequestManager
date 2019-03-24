@@ -159,7 +159,7 @@ namespace EnhancedTwitchIntegration.Bot
         private SongPreviewPlayer _songPreviewPlayer;
         private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton, _queueButton;
 
-        private TextMeshProUGUI _warningTitle, _warningMessage,_CurrentSongName2;
+        private TextMeshProUGUI _warningTitle, _warningMessage,_CurrentSongName,_CurrentSongName2;
         private HoverHint _historyHintText;
         private int _requestRow = 0;
         private int _historyRow = 0;
@@ -220,12 +220,12 @@ namespace EnhancedTwitchIntegration.Bot
 
 
 
-                KeyboardText = BeatSaberUI.CreateText(container, "", new Vector2(-35, 37f));
-                KeyboardText.fontSize = 3f;
-                KeyboardText.color = Color.cyan;
-                KeyboardText.alignment = TextAlignmentOptions.Left;
-                KeyboardText.enableWordWrapping = false;
-                KeyboardText.text = "";
+                _CurrentSongName = BeatSaberUI.CreateText(container, "", new Vector2(-35, 37f));
+                _CurrentSongName.fontSize = 3f;
+                _CurrentSongName.color = Color.cyan;
+                _CurrentSongName.alignment = TextAlignmentOptions.Left;
+                _CurrentSongName.enableWordWrapping = false;
+                _CurrentSongName.text = "";
 
                 _CurrentSongName2 = BeatSaberUI.CreateText(container, "", new Vector2(-35, 34f));
                 _CurrentSongName2.fontSize = 3f;
@@ -375,7 +375,7 @@ namespace EnhancedTwitchIntegration.Bot
             #if UNRELEASED
             if (RequestHistory.Songs.Count > 0)
             {
-                KeyboardText.text = RequestHistory.Songs[0].song["songName"].Value;
+                _CurrentSongName.text = RequestHistory.Songs[0].song["songName"].Value;
                 _CurrentSongName2.text = $"{RequestHistory.Songs[0].song["authorName"].Value} ({RequestHistory.Songs[0].song["version"].Value})";
 
                 MyButton.AddButtons();
