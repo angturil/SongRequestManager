@@ -51,7 +51,7 @@ namespace EnhancedTwitchIntegration.Bot
             var dt = new DynamicText().AddUser(ref requestor);
             try
             {
-                dt.AddSong(RequestBotListViewController.currentsong.song); // Exposing the current song 
+                dt.AddSong(RequestHistory.Songs[0].song); // Exposing the current song 
             }
             catch (Exception ex)
             {
@@ -59,7 +59,6 @@ namespace EnhancedTwitchIntegration.Bot
             }
 
             dt.QueueMessage(request);
-
         }
 
         public void RunScript(TwitchUser requestor, string request)
@@ -886,7 +885,7 @@ namespace EnhancedTwitchIntegration.Bot
                     QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
 
                     listcollection.remove(duplicatelist, song["id"].Value);
-                    RequestBot.Skip(i);
+                    RequestBot.Skip(i,RequestStatus.Wrongsong);
                     return;
                 }
             }

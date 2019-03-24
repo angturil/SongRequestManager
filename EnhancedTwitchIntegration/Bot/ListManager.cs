@@ -232,7 +232,6 @@ namespace EnhancedTwitchIntegration.Bot
 
             public bool Writefile(string filename)
             {
-
                 string separator = filename.EndsWith(".script") ? "\r\n" : ",";
 
                 try
@@ -247,7 +246,6 @@ namespace EnhancedTwitchIntegration.Bot
                 {
                     // Ignoring this for now, failed write can be silent
                 }
-
                 return false;
             }
 

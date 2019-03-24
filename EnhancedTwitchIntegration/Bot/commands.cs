@@ -105,7 +105,6 @@ namespace EnhancedTwitchIntegration.Bot
 
         #endregion
 
-
         #region Command Registration 
 
         private void InitializeCommands()
@@ -185,8 +184,6 @@ namespace EnhancedTwitchIntegration.Bot
             new COMMAND ("!chatmessage").Action(ChatMessage).Help(Broadcaster, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
             new COMMAND ("!runscript").Action(RunScript).Help(Broadcaster, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
 
-            // BUG: This is a prototype,  I can store these as variables, so they can be set by the command configuration tools (whatever they end up being)
-
             new COMMAND("!formatlist").Action(showFormatList).Help(Broadcaster, "Show a list of all the available customizable text format strings. Use caution, as this can make the output of some commands unusable. You can use /default to return a variable to its default setting.");
 
             new COMMAND("AddSongToQueueText",AddSongToQueueText); // These variables are bound due to class reference assignment
@@ -198,6 +195,7 @@ namespace EnhancedTwitchIntegration.Bot
             new COMMAND("QueueTextFileFormat", QueueTextFileFormat);
             new COMMAND("QueueListFormat", QueueListFormat);
             new COMMAND("HistoryListFormat", HistoryListFormat);
+            new COMMAND("!songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|% Assign a message to a songid, which will be visible to the player during song selection.", _atleast1);
 
 
 #if UNRELEASED
@@ -210,17 +208,15 @@ namespace EnhancedTwitchIntegration.Bot
 
 
             new COMMAND ("!backup").Help(CmdFlags.Disabled, "Backup %ETC% directory.", _atleast1); // BUG: No code, Future feature
-
-          
+         
             new COMMAND("!every").Action(Every).Help(Broadcaster, "usage: every <minutes> %|% Run a command every <minutes>.", _atleast1);
             new COMMAND("!in").Action(EventIn). Help(Broadcaster, "usage: in <minutes> <bot command>.", _atleast1);
             new COMMAND("!clearevents").Action(ClearEvents).Help(Broadcaster, "usage: %alias% %|% Clear all timer events.");
 
-            new COMMAND("!at").Help(Broadcaster, "Run a command at a certain time.", _atleast1); // BUG: No action
+            new COMMAND("!at").Help(Broadcaster, "Run a command at a certain time.", _atleast1); // BUG: No code
             new COMMAND("!alias").Help(Broadcaster, "usage: %alias %|% Create a command alias, short cuts version a commands. Single line only. Supports %variables% (processed at execution time), parameters are appended.", _atleast1); // BUG: No action
 
-            new COMMAND("!songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|% Assign a message to the song",_atleast1); 
-            new COMMAND("!detail"); // Get song details
+            new COMMAND("!detail"); // Get song details BUG: NO code
 
 
             new COMMAND ("!allowmappers").Action(MapperAllowList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
@@ -232,7 +228,7 @@ namespace EnhancedTwitchIntegration.Bot
 
             // These commands will use a completely new format in future builds and rely on a slightly more flexible parser. Commands like userlist.add george, userlist1=userlist2 will be allowed. 
 
-            new COMMAND ("!openlist").Action(OpenList);
+            new COMMAND ("!openlist").Action(OpenList); // BUG: this command makes  list available.
             new COMMAND ("!unload").Action(UnloadList);
             new COMMAND ("!clearlist").Action(ClearList);
             new COMMAND ("!write").Action(writelist);
@@ -241,6 +237,8 @@ namespace EnhancedTwitchIntegration.Bot
             new COMMAND ("!addtolist").Action(Addtolist).Help(Broadcaster, "usage: %alias%<list> <value to add>", _atleast1);
             new COMMAND ("!removefromlist").Action(RemoveFromlist).Help(Broadcaster, "usage: %alias%<list> <value to add>", _atleast1);
             new COMMAND ("!listundo").Action(Addtolist).Help(Broadcaster, "usage: %alias%<list>", _atleast1); // BUG: No function defined yet, undo the last operation
+
+            // Deck related commandws are currently not released
 
             new COMMAND ("!deck").Action(createdeck);
             new COMMAND ("!unloaddeck").Action(unloaddeck);
@@ -251,7 +249,7 @@ namespace EnhancedTwitchIntegration.Bot
             new COMMAND("!addtoqueue").Action(queuelist).Help(Broadcaster, "usage: %alias% <list>", _atleast1);
             new COMMAND("!unqueuemsg").Help(Broadcaster,"usage: %alias% msg text to match",_atleast1); // BUG: No code
 
-            new COMMAND(new string[] { "/toggle", "subcomdtoggle" }).Action(SubcmdToggle).Help(Subcmd | Mod | CmdFlags.NoParameter); // BUG: Not implemented
+            new COMMAND(new string[] { "/toggle", "subcomdtoggle" }).Action(SubcmdToggle).Help(Subcmd | Mod | CmdFlags.NoParameter,"usage: <!deck> /toggle <songid> %|% Adds a song to a deck if not present, otherwise removes it. Used primarily for button actions"); 
 
 
 #endif

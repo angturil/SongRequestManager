@@ -27,12 +27,6 @@ namespace EnhancedTwitchIntegration.Bot
     class RequestBotListViewController : CustomListViewController
     {
 
-        static bool test(string x)
-        {
-            File.AppendAllText("c:\\sehria\\beatsaberbuttons.txt", x+"\r\n");
-            return false; 
-        }
-
         public class MyButton
         {
             static List<MyButton> mybuttons = new List<MyButton>();
@@ -61,7 +55,7 @@ namespace EnhancedTwitchIntegration.Bot
                 float x1 = -17.5f - 20f;
                 float y1 = 27.5f;
                 float x2 = 0;
-                float y2 = 30f;
+                //float y2 = 30f;
 
                 float padding = 0.6f;
 
@@ -91,12 +85,10 @@ namespace EnhancedTwitchIntegration.Bot
                         try // This object may not exist at the time of call
                         {
                         dt.AddSong(RequestHistory.Songs[0].song);
-                        if (entry.Length > 3)
+                        if (entry.Length > 3) 
                             {
                                 string deckname = entry[3].ToLower()+".deck";
-
-                                if (RequestBot.listcollection.contains(ref deckname,RequestHistory.Songs[0].song["id"].Value))
-                                color = Color.magenta;
+                                if (RequestBot.listcollection.contains(ref deckname,RequestHistory.Songs[0].song["id"].Value)) color = Color.magenta;
                             }
                         }
                         catch
@@ -135,8 +127,7 @@ namespace EnhancedTwitchIntegration.Bot
                 }
             public void SetMyButton(float x1,float y1, float width,Color color,string text,string action,RectTransform container)
                 {
- 
-                //Resources.FindObjectsOfTypeAll<Button>().Any(x => (test(x.name)) );
+                TMP_Text txt = mybutton.GetComponentInChildren<TMP_Text>();
 
                 mybutton.ToggleWordWrapping(false);
                 (mybutton.transform as RectTransform).anchoredPosition = new Vector2(x1, y1);
@@ -145,14 +136,19 @@ namespace EnhancedTwitchIntegration.Bot
                 mybutton.transform.localScale = new Vector3(0.45f, 0.45f, 1.0f);
                 mybutton.SetButtonTextSize(5f);
                 mybutton.SetButtonText(text);
-
-
                 mybutton.GetComponentInChildren<Image>().color = color;
 
-                //mybutton.GetComponentInChildren<TMP_Text>().autoSizeTextContainer=true;
 
+                txt.autoSizeTextContainer = true;
+                //txt.ForceMeshUpdate();
+                //txt.UpdateVertexData();
+
+                //(mybutton.transform as RectTransform).sizeDelta = txt.rectTransform.sizeDelta;
+
+
+
+                //mybutton.GetComponentInChildren<TMP_Text>().autoSizeTextContainer=true;
                 /*
-                TMP_Text [] txt = mybutton.GetComponents<TMP_Text>();
                 if (txt.Length>0)
                 {
                     (mybutton.transform as RectTransform).sizeDelta = txt[0].rectTransform.sizeDelta;

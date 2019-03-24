@@ -47,7 +47,9 @@ namespace EnhancedTwitchIntegration.Bot
             Queued,
             Blacklisted,
             Skipped,
-            Played
+            Played,
+            Wrongsong,
+            SongSearch,
         }
 
 
@@ -60,12 +62,6 @@ namespace EnhancedTwitchIntegration.Bot
         private static bool _refreshQueue = false;
 
         private static Queue<string> _botMessageQueue = new Queue<string>();
-
-        //private static Dictionary<string, BOTCOMMAND> NewCommands = new Dictionary<string, BOTCOMMAND>(); // BUG: Still not the final form
-
-#if UNRELEASED
-        //static private string CommandEveryXminutes ="!add waterbreak song";   // BUG: Not yet iplemented
-#endif
 
         bool _mapperWhitelist = false; // BUG: Need to clean these up a bit.
         bool _configChanged = false;
@@ -599,7 +595,8 @@ namespace EnhancedTwitchIntegration.Bot
 
         public static void DequeueRequest(SongRequest request, bool updateUI = true)
         {
-            RequestHistory.Songs.Insert(0, request);
+            if (request.status!=RequestStatus.Wrongsong  ) RequestHistory.Songs.Insert(0, request); // Wrong song requests are not logged into history, is it possible that other status states shouldn't be moved either?
+
             if (RequestHistory.Songs.Count > RequestBotConfig.Instance.RequestHistoryLimit)
             {
                 int diff = RequestHistory.Songs.Count - RequestBotConfig.Instance.RequestHistoryLimit;
