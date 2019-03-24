@@ -30,19 +30,8 @@ namespace EnhancedTwitchIntegration.Bot
         public class MyButton
         {
             static List<MyButton> mybuttons = new List<MyButton>();
-
-            public void update()
-                {
-           
-            }
-
             public static RectTransform container = null;
-            public static void RemoveButtons()
-                {
-                foreach (var button in mybuttons) button.mybutton.enabled=false;
-                
-                }
-
+ 
             // add buttons to container
             public static void AddButtons ()
                 {
@@ -145,17 +134,6 @@ namespace EnhancedTwitchIntegration.Bot
 
                 //(mybutton.transform as RectTransform).sizeDelta = txt.rectTransform.sizeDelta;
 
-
-
-                //mybutton.GetComponentInChildren<TMP_Text>().autoSizeTextContainer=true;
-                /*
-                if (txt.Length>0)
-                {
-                    (mybutton.transform as RectTransform).sizeDelta = txt[0].rectTransform.sizeDelta;
-
-                }
-                */
-
                 mybutton.onClick.RemoveAllListeners();
 
                 mybutton.onClick.AddListener(delegate ()        
@@ -167,17 +145,21 @@ namespace EnhancedTwitchIntegration.Bot
             }
         }
 
-
-
         public static RequestBotListViewController Instance;
 
         private CustomMenu _confirmationDialog;
         private CustomViewController _confirmationViewController;
+
+        private CustomMenu _KeyboardDialog;
+        private CustomViewController _KeyboardViewController;
+
+        private KEYBOARD mykeyboard;
+
         private LevelListTableCell _songListTableCellInstance;
         private SongPreviewPlayer _songPreviewPlayer;
         private Button _playButton, _skipButton, _blacklistButton, _historyButton, _okButton, _cancelButton, _queueButton;
 
-        private TextMeshProUGUI _warningTitle, _warningMessage,_CurrentSongName,_CurrentSongName2;
+        private TextMeshProUGUI _warningTitle, _warningMessage,_CurrentSongName2;
         private HoverHint _historyHintText;
         private int _requestRow = 0;
         private int _historyRow = 0;
@@ -220,19 +202,30 @@ namespace EnhancedTwitchIntegration.Bot
                 container.SetParent(rectTransform, false);
                 container.sizeDelta = new Vector2(60f, 0f);
 
-                #if UNRELEASED
+                try
+                {
+                    InitKeyboardDialog();
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log(ex.ToString());
+                }
+
+#if UNRELEASED
 
                 // BUG: This code is at an extremely early stage.
                 // BUG: Need custom button colors and styles
                 // BUG: Need additional modes disabling one shot buttons
                 // BUG: Need to make sure the buttons are usable on older headsets
 
-                _CurrentSongName = BeatSaberUI.CreateText(container, "", new Vector2(-35, 37f));
-                _CurrentSongName.fontSize = 3f;
-                _CurrentSongName.color = Color.cyan;
-                _CurrentSongName.alignment = TextAlignmentOptions.Left;
-                _CurrentSongName.enableWordWrapping = false;
-                _CurrentSongName.text = "";
+
+
+                KeyboardText = BeatSaberUI.CreateText(container, "", new Vector2(-35, 37f));
+                KeyboardText.fontSize = 3f;
+                KeyboardText.color = Color.cyan;
+                KeyboardText.alignment = TextAlignmentOptions.Left;
+                KeyboardText.enableWordWrapping = false;
+                KeyboardText.text = "";
 
                 _CurrentSongName2 = BeatSaberUI.CreateText(container, "", new Vector2(-35, 34f));
                 _CurrentSongName2.fontSize = 3f;
@@ -245,7 +238,7 @@ namespace EnhancedTwitchIntegration.Bot
                 MyButton.AddButtons();
 
 
-                #endif
+#endif
 
                 // History button
                 _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
@@ -382,10 +375,12 @@ namespace EnhancedTwitchIntegration.Bot
             #if UNRELEASED
             if (RequestHistory.Songs.Count > 0)
             {
-                _CurrentSongName.text = RequestHistory.Songs[0].song["songName"].Value;
+                KeyboardText.text = RequestHistory.Songs[0].song["songName"].Value;
                 _CurrentSongName2.text = $"{RequestHistory.Songs[0].song["authorName"].Value} ({RequestHistory.Songs[0].song["version"].Value})";
 
                 MyButton.AddButtons();
+
+                _KeyboardDialog.Present();
 
             }
             #endif
@@ -399,7 +394,156 @@ namespace EnhancedTwitchIntegration.Bot
             }
         }
 
-        private void InitConfirmationDialog()
+
+        // Experimental chat console
+        class KEYBOARD
+        {
+            List<KEY> keys = new List<KEY>();
+
+            RectTransform container;
+            Vector2 currentposition;
+            Vector2 baseposition;
+            float padding = 0.5f;
+            private TextMeshProUGUI KeyboardText;
+
+            KEY AddKey(string keylabel, float width=12)
+                {
+                var position = currentposition;
+                position.x += width / 4;
+                KEY key = new KEY(this,container, position, keylabel, width, Color.white);
+                keys.Add(key);
+                currentposition.x += width/2+padding;
+                return key;
+                }
+           
+            public KEYBOARD (RectTransform container)
+                {
+                this.container = container;
+                baseposition = new Vector2(-40, 13);
+                currentposition = baseposition;
+
+                KeyboardText = BeatSaberUI.CreateText(container, "", new Vector2(0, 30f));
+                KeyboardText.fontSize = 6f;
+                KeyboardText.color = Color.white;
+                KeyboardText.alignment = TextAlignmentOptions.Center;
+                KeyboardText.enableWordWrapping = false;
+                KeyboardText.text = "";
+
+                AddKeys("`1234567890-=").AddKey("<--",15);
+                NextRow();
+                AddKey("TAB", 15f);
+                AddKeys("QWERTYUIOP[]\\");
+                NextRow();
+                AddKey("CAPS", 20f);
+                AddKeys("ASDFGHJKL;'").AddKey("ENTER",20f);
+                NextRow();
+                AddKey("SHIFT", 25f);
+                AddKeys("ZXCVBNM,./").AddKey("CLEAR",28f);
+                NextRow();
+                AddKey("BSR", 15f).value = "!bsr ";
+                currentposition.x += 30;
+                AddKey("SPACE",40).value=" ";
+
+            }
+
+            public KEYBOARD NextRow(float adjustx=0)
+                {
+                currentposition.y -= 6;
+                currentposition.x = baseposition.x;
+                return this;
+                }
+            public KEYBOARD AddKeys(string Keyrow)
+                {
+                foreach (char c in Keyrow) AddKey(c.ToString());
+                return this;
+                }
+
+            class KEY
+            {
+
+            public string value = "";
+
+            public Button mybutton;
+            public KEY(KEYBOARD kb,RectTransform container, Vector2 position,string text,float width,Color color)
+                {
+                value = text;
+
+                // Scaling math is not finalized                              
+
+                mybutton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "KeyboardButton")), container, false);
+                TMP_Text txt = mybutton.GetComponentInChildren<TMP_Text>();
+                mybutton.ToggleWordWrapping(false);
+                (mybutton.transform as RectTransform).anchoredPosition = position;
+                (mybutton.transform as RectTransform).sizeDelta = new Vector2(width, 10);
+                mybutton.transform.localScale = new Vector3(0.5f, 0.5f, 1.0f);
+                mybutton.SetButtonTextSize(5f);
+                mybutton.SetButtonText(text);
+                mybutton.GetComponentInChildren<Image>().color = color;
+
+                txt.autoSizeTextContainer = true;
+
+                mybutton.onClick.RemoveAllListeners();
+
+                mybutton.onClick.AddListener(delegate ()
+                {
+
+                    // BUG: This needs command specific actions. Temporary hack to make it all work for today
+
+                    if (value == "CLEAR")
+                        {
+                        kb.KeyboardText.text = "";
+                        }
+
+                    else if (value == "<--")
+                    {
+                        if (kb.KeyboardText.text.Length > 0) kb.KeyboardText.text = kb.KeyboardText.text.Substring(0, kb.KeyboardText.text.Length - 1); // Is there a cleaner way to say this?
+                    }
+
+                    else if (value=="ENTER")
+                        {
+                        var typedtext = kb.KeyboardText.text;
+                        if (typedtext != "")
+                        {
+                            if (typedtext[0] == '!')
+                            {
+                                RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, typedtext);
+                            }
+                            else
+                            {
+                                TwitchWebSocketClient.SendMessage($"PRIVMSG #{TwitchLoginConfig.Instance.TwitchChannelName} :{typedtext}");
+                                //RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!chatmessage {typedtext}");
+                            }
+ 
+                        kb.KeyboardText.text = "";
+                        }
+                        }
+                    else
+                        kb.KeyboardText.text += value;
+                });
+                HoverHint _MyHintText = BeatSaberUI.AddHintText(mybutton.transform as RectTransform, value);
+                }
+            }
+ 
+        }
+
+
+        private void InitKeyboardDialog()
+        {
+            _KeyboardDialog = BeatSaberUI.CreateCustomMenu<CustomMenu>("Twitch Keyboard");
+            _KeyboardViewController = BeatSaberUI.CreateViewController<CustomViewController>();
+            _KeyboardDialog.SetRightViewController(_KeyboardViewController, true);
+
+            RectTransform KeyboardContainer = new GameObject("KeyboardContainer", typeof(RectTransform)).transform as RectTransform;
+            KeyboardContainer.SetParent(_KeyboardViewController.rectTransform, false);
+            KeyboardContainer.sizeDelta = new Vector2(60f, 40f);
+
+            mykeyboard = new KEYBOARD(KeyboardContainer);
+
+            _KeyboardDialog.Present();
+        }
+
+
+            private void InitConfirmationDialog()
         {
             _confirmationDialog = BeatSaberUI.CreateCustomMenu<CustomMenu>("Are you sure?");
             _confirmationViewController = BeatSaberUI.CreateViewController<CustomViewController>();
