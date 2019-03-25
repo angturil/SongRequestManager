@@ -13,7 +13,7 @@ using System.Text.RegularExpressions;
 using System.Diagnostics;
 // Feature requests: Add Reason for being banned to banlist
 
-namespace EnhancedTwitchIntegration.Bot
+namespace SongRequestManager
 {
     public partial class RequestBot : MonoBehaviour
     {

@@ -6,8 +6,7 @@ using EnhancedTwitchChat.UI;
 using EnhancedTwitchChat.Utils;
 using HMUI;
 using EnhancedTwitchChat.SimpleJSON;
-//using SongBrowserPlugin;
-//using SongLoaderPlugin;
+
 using SongLoaderPlugin.OverrideClasses;
 using System;
 using System.Collections;
@@ -33,10 +32,10 @@ using Image = UnityEngine.UI.Image;
 using Toggle = UnityEngine.UI.Toggle;
 using TMPro;
 using EnhancedTwitchChat.Config;
-using EnhancedTwitchIntegration.Config;
+using SongRequestManager.Config;
 using SongLoaderPlugin;
 
-namespace EnhancedTwitchIntegration.Bot
+namespace SongRequestManager
 {
     public partial class RequestBot : MonoBehaviour
     {
@@ -81,7 +80,11 @@ namespace EnhancedTwitchIntegration.Bot
         public static string datapath; // Location of all local data files
 
         private static CustomMenu _songRequestMenu = null;
-        private static RequestBotListViewController _songRequestListViewController = null;
+
+
+        public static RequestBotListViewController _songRequestListViewController = null;
+
+        public static CustomViewController _KeyboardViewController = null;
 
         public static string playedfilename = "";
 
@@ -107,11 +110,33 @@ namespace EnhancedTwitchIntegration.Bot
             if (_songRequestListViewController == null)
                 _songRequestListViewController = BeatSaberUI.CreateViewController<RequestBotListViewController>();
 
+
+            if (_KeyboardViewController == null)
+            {
+                _KeyboardViewController = BeatSaberUI.CreateViewController<CustomViewController>();
+
+                RectTransform KeyboardContainer = new GameObject("KeyboardContainer", typeof(RectTransform)).transform as RectTransform;
+                KeyboardContainer.SetParent(_KeyboardViewController.rectTransform, false);
+                KeyboardContainer.sizeDelta = new Vector2(60f, 40f);
+
+                var mykeyboard = new KEYBOARD(KeyboardContainer);
+            }
+
             if (_songRequestMenu == null)
             {
                 _songRequestMenu = BeatSaberUI.CreateCustomMenu<CustomMenu>("Song Request Queue");
                 _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
+                _songRequestMenu.SetRightViewController(_KeyboardViewController, false);
             }
+
+            /*
+            if (_songRequestMenu == null)
+            {
+                _songRequestMenu = BeatSaberUI.CreateCustomMenu<CustomMenu>("Song Request Queue");
+                _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
+
+            }
+            */
 
             SongListUtils.Initialize();
 
@@ -331,7 +356,8 @@ namespace EnhancedTwitchIntegration.Bot
             try
             {
                 Plugin.Log($"Sending message: \"{message}\"");
-                TwitchWebSocketClient.SendMessage($"PRIVMSG #{TwitchLoginConfig.Instance.TwitchChannelName} :{message}");
+                //TwitchWebSocketClient.SendMessage($"PRIVMSG #{TwitchLoginConfig.Instance.TwitchChannelName} :{message}");
+                TwitchWebSocketClient.SendMessage(message);
                 TwitchMessage tmpMessage = new TwitchMessage();
                 tmpMessage.user = TwitchWebSocketClient.OurTwitchUser;
                 MessageParser.Parse(new ChatMessage(message, tmpMessage));

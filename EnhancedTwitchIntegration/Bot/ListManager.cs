@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace EnhancedTwitchIntegration.Bot
+namespace SongRequestManager
 {
     public partial class RequestBot : MonoBehaviour
     {

@@ -7,8 +7,8 @@
     <ProjectGuid>{CDBD5008-0F51-408E-B89C-6142CB5C70E5}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SongRequestConsole</RootNamespace>
-    <AssemblyName>SongRequestConsole</AssemblyName>
+    <RootNamespace>SongRequestManager</RootNamespace>
+    <AssemblyName>SongRequestManager</AssemblyName>
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -103,6 +103,7 @@
   <ItemGroup>
     <Compile Include="Bot\ChatCommands.cs" />
     <Compile Include="Bot\commands.cs" />
+    <Compile Include="Bot\Keyboard.cs" />
     <Compile Include="Bot\ListManager.cs" />
     <Compile Include="Bot\RequestBot.cs" />
     <Compile Include="Bot\RequestBotListViewController.cs" />

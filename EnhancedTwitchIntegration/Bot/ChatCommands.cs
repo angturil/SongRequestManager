@@ -1,7 +1,7 @@
 ﻿using EnhancedTwitchChat.Chat;
 using EnhancedTwitchChat.Config;
 using EnhancedTwitchChat.SimpleJSON;
-using EnhancedTwitchIntegration.Config;
+using SongRequestManager.Config;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace EnhancedTwitchIntegration.Bot
+namespace SongRequestManager
 {
     public partial class RequestBot : MonoBehaviour
     {

@@ -1,13 +1,13 @@
 ﻿
-using EnhancedTwitchIntegration.Bot;
-using EnhancedTwitchIntegration.Config;
+using SongRequestManager;
+using SongRequestManager.Config;
 using IllusionPlugin;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using UnityEngine.SceneManagement;
 
-namespace EnhancedTwitchIntegration
+namespace SongRequestManager
 {
     public class Plugin : IPlugin
     {

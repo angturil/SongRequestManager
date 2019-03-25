@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EnhancedTwitchIntegration.Config
+namespace SongRequestManager.Config
 {
     public class RequestBotConfig
     {
@@ -21,8 +21,8 @@ namespace EnhancedTwitchIntegration.Config
         public bool RequestQueueOpen = true;
         public bool PersistentRequestQueue = true;
 
-        public int RequestHistoryLimit = 20;
-        public int UserRequestLimit = 5;
+        public int RequestHistoryLimit = 40;
+        public int UserRequestLimit = 2;
         public int SubRequestLimit = 5;
         public int ModRequestLimit = 10;
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*

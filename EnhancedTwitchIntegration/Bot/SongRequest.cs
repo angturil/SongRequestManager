@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static EnhancedTwitchIntegration.Bot.RequestBot;
+using static SongRequestManager.RequestBot;
 
-namespace EnhancedTwitchIntegration.Bot
+namespace SongRequestManager
 {
     public class SongRequest
     {
