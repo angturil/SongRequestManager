@@ -294,9 +294,9 @@ namespace SongRequestManager
             // We protect this since setting nonexistent keys will throw.
             try
             {                
-                AddKeyboard(BOTKEYS);
+                //AddKeyboard(BOTKEYS);
 
-                AddKeyboard(FKEYROW);
+                //AddKeyboard(FKEYROW);
             
                 AddKeyboard(QWERTY);
 
