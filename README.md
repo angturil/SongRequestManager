@@ -1,7 +1,15 @@
 # Mod Info
-Song Request Manager is an integrated, fully Customizable song request bot and Console for BeatSaber. It started life as an extensive rewrite of the built in song request bot in https://github.com/brian91292/BeatSaber-EnhancedTwitchChat, but quickly grew in scope and features. Its now a separate but dependent module. 
+Song Request Manager is an integrated, fully Customizable song request bot and Console for BeatSaber. It started life as an extensive rewrite of the built in song request bot in https://github.com/brian91292/BeatSaber-EnhancedTwitchChat, but quickly grew in scope and features. Its now a separate but dependent module. We just split from Enhanced twitch chat.
 
 # Features
+Completely customizable, Full featured song request bot for Beatsaber, currently supports Twitch. 
+Over 80 commands, all with custom help, permissions and customization options.
+Persistent Song request Queue, History, Played history and already played list. 
+In game song console allows you to Play requested songs. 
+Integrated twitch keyboard allows using your chat console directly Ingame! User twitch chat or liv for chat display.
+Experimental song search and newest feature allows you to search for songs directly from console without exiting to browser or downloader.
+Dozens of new features are being worked on, and will be released as testing allows.
+
 Documentation needs work. Type !help.
   
 # Dependencies
