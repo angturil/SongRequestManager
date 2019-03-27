@@ -30,4 +30,4 @@ For the rest of the config options, you will have to manually edit the config fi
 To compile this mod simply clone the repo and update the project references to reference the corresponding assemblies in the `Beat Saber\Beat Saber_Data\Managed` folder, then compile. You may need to change the post build event if your Beat Saber directory isn't at the same location as mine.
 
 # Download
-[Click here to download the latest SongRequestManager.dll](https://www.modsaber.org/mod/SongRequestManager/1.3.0)
+[Click here to download the latest SongRequestManager.dll](https://github.com/angturil/SongRequestManager/releases/download/1.3.0/SongRequestManager.dll)
