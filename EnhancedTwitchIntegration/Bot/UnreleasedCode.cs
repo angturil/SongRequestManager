@@ -13,7 +13,6 @@ using SongRequestManager.Config;
 // Feature requests: Add Reason for being banned to banlist
 //  
 
-// Angturil:
 //
 // NOTE: Any unreleased code structure, dependencies, or files are subject to change without notice. Any dependencies you create around this code 
 // are virtually guaranteed not to work in future builds. If I thought the code was release ready, it wouldn't be here.
