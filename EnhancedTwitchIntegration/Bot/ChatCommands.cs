@@ -587,25 +587,25 @@ namespace SongRequestManager
         }
 
 
-        private IEnumerator LookupSongs(TwitchUser requestor, string request)
+        private IEnumerator LookupSongs(ParseState state)
         {
-            bool isBeatSaverId = _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request);
+            bool isBeatSaverId = _digitRegex.IsMatch(state.parameter) || _beatSaverRegex.IsMatch(state.parameter);
 
             string requestUrl = isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
-            using (var web = UnityWebRequest.Get($"{requestUrl}/{request}"))
+            using (var web = UnityWebRequest.Get($"{requestUrl}/{state.parameter}"))
             {
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)
                 {
-                    Plugin.Log($"Error {web.error} occured when trying to request song {request}!");
-                    QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified.");
+                    Plugin.Log($"Error {web.error} occured when trying to request song {state.parameter}!");
+                    QueueChatMessage($"Invalid BeatSaver ID \"{state.parameter}\" specified.");
                     yield break;
                 }
 
                 JSONNode result = JSON.Parse(web.downloadHandler.text);
                 if (result["songs"].IsArray && result["total"].AsInt == 0)
                 {
-                    QueueChatMessage($"No results found for request \"{request}\"");
+                    QueueChatMessage($"No results found for request \"{state.parameter}\"");
                     yield break;
                 }
                 JSONObject song;

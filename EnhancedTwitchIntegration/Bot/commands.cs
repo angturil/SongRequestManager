@@ -56,7 +56,7 @@ namespace SongRequestManager
             Variable = 4194304, // This is a variable 
             Dynamic = 8388608, // This command is generated dynamically, and cannot be saved/loaded 
 
-            SilentPreflight = 16277216, //  
+            ToQueue = 16277216, //  Request is moved directly to queue, bypassing song check
 
             MoveToTop = 1 << 25, // Private, used by ATT command. Its possible to have multiple aliases for the same flag
 
@@ -144,54 +144,54 @@ namespace SongRequestManager
             */
 
 
-            new COMMAND (new string[] { "!request", "!bsr", "!add", "!sr" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
-            new COMMAND (new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
+            new COMMAND(new string[] { "!request", "!bsr", "!add", "!sr" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
+            new COMMAND(new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
-            new COMMAND ("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias%|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
+            new COMMAND("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias%|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
 
-            new COMMAND ("!open").Action(OpenQueue).Help(Mod, "usage: %alias%%|%... Opens the queue allowing song requests.", _nothing);
-            new COMMAND ("!close").Action(CloseQueue).Help(Mod, "usage: %alias%%|%... Closes the request queue.", _nothing);
+            new COMMAND("!open").Action(OpenQueue).Help(Mod, "usage: %alias%%|%... Opens the queue allowing song requests.", _nothing);
+            new COMMAND("!close").Action(CloseQueue).Help(Mod, "usage: %alias%%|%... Closes the request queue.", _nothing);
 
-            new COMMAND ("!queue").Action(ListQueue).Help(Everyone, "usage: %alias%%|% ... Displays a list of the currently requested songs.", _nothing);
-            new COMMAND ("!played").Action(ShowSongsplayed).Help(Mod, "usage: %alias%%|%... Displays all the songs already played this session.", _nothing);
-            new COMMAND ("!history").Action(ShowHistory).Help(Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
-            new COMMAND ("!who").Action(Who).Help(Mod, "usage: %alias% <songid or name>%|%Find out who requested the song in the currently queue or recent history.", _atleast1);
+            new COMMAND("!queue").Action(ListQueue).Help(Everyone, "usage: %alias%%|% ... Displays a list of the currently requested songs.", _nothing);
+            new COMMAND("!played").Action(ShowSongsplayed).Help(Mod, "usage: %alias%%|%... Displays all the songs already played this session.", _nothing);
+            new COMMAND("!history").Action(ShowHistory).Help(Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
+            new COMMAND("!who").Action(Who).Help(Mod, "usage: %alias% <songid or name>%|%Find out who requested the song in the currently queue or recent history.", _atleast1);
 
-            new COMMAND ("!mtt").Action(MoveRequestToTop).Help(Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the top of the request queue.", _atleast1);
-            new COMMAND ("!att").Action(AddToTop).Help(Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the top of the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
-            new COMMAND (new string[] { "!last", "!demote", "!later" }).Action(MoveRequestToBottom).Help(Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the bottom of the request queue.", _atleast1);
-            new COMMAND ("!remove").Action(DequeueSong).Help(Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Removes a song from the queue.", _atleast1);
-            new COMMAND (new string[] { "!wrongsong", "!wrong", "!oops" }).Action(WrongSong).Help(Everyone, "usage: %alias%%|%... Removes your last requested song form the queue. It can be requested again later.", _nothing);
+            new COMMAND("!mtt").Action(MoveRequestToTop).Help(Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the top of the request queue.", _atleast1);
+            new COMMAND("!att").Action(AddToTop).Help(Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the top of the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
+            new COMMAND(new string[] { "!last", "!demote", "!later" }).Action(MoveRequestToBottom).Help(Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the bottom of the request queue.", _atleast1);
+            new COMMAND("!remove").Action(DequeueSong).Help(Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Removes a song from the queue.", _atleast1);
+            new COMMAND(new string[] { "!wrongsong", "!wrong", "!oops" }).Action(WrongSong).Help(Everyone, "usage: %alias%%|%... Removes your last requested song form the queue. It can be requested again later.", _nothing);
 
-            new COMMAND ("!unblock").Action(Unban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
-            new COMMAND ("!block").Action(Ban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
-            new COMMAND ("!blist").Action(ShowBanList).Help(Broadcaster, "usage: Don't use, it will spam chat!", _atleast1); // Purposely annoying to use, add a character after the command to make it happen 
+            new COMMAND("!unblock").Action(Unban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
+            new COMMAND("!block").Action(Ban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
+            new COMMAND("!blist").Action(ShowBanList).Help(Broadcaster, "usage: Don't use, it will spam chat!", _atleast1); // Purposely annoying to use, add a character after the command to make it happen 
 
-            new COMMAND ("!remap").Action(Remap).Help(Mod, "usage: %alias%<songid1> , <songid2>%|%... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.", _RemapRegex);
-            new COMMAND ("!unmap").Action(Unmap).Help(Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversongversion);
+            new COMMAND("!remap").Action(Remap).Help(Mod, "usage: %alias%<songid1> , <songid2>%|%... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.", _RemapRegex);
+            new COMMAND("!unmap").Action(Unmap).Help(Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversongversion);
 
-            new COMMAND ("!clearqueue").Action(Clearqueue).Help(Broadcaster, "usage: %alias%%|%... Clears the song request queue. You can still get it back from the JustCleared deck, or the history window", _nothing);
-            new COMMAND ("!clearalreadyplayed").Action(ClearDuplicateList).Help(Broadcaster, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
-            new COMMAND ("!restore").Action(restoredeck).Help(Broadcaster, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
+            new COMMAND("!clearqueue").Action(Clearqueue).Help(Broadcaster, "usage: %alias%%|%... Clears the song request queue. You can still get it back from the JustCleared deck, or the history window", _nothing);
+            new COMMAND("!clearalreadyplayed").Action(ClearDuplicateList).Help(Broadcaster, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
+            new COMMAND("!restore").Action(restoredeck).Help(Broadcaster, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
 
-            new COMMAND ("!about").Help(Everyone, $"EnhancedTwitchChat Bot version {Plugin.Instance.Version}. Developed by brian91292 and angturil. Find us on github.", _fail); // Help commands have no code
-            new COMMAND (new string[] { "!help"}).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
-            new COMMAND ("!commandlist").Action(showCommandlist).Help(Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
+            new COMMAND("!about").Help(Everyone, $"EnhancedTwitchChat Bot version {Plugin.Instance.Version}. Developed by brian91292 and angturil. Find us on github.", _fail); // Help commands have no code
+            new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
+            new COMMAND("!commandlist").Action(showCommandlist).Help(Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
-            new COMMAND ("!readdeck").Action(Readdeck).Help(Broadcaster, "usage: %alias", _alphaNumericRegex);
-            new COMMAND ("!writedeck").Action(Writedeck).Help(Broadcaster, "usage: %alias", _alphaNumericRegex);
+            new COMMAND("!readdeck").Action(Readdeck).Help(Broadcaster, "usage: %alias", _alphaNumericRegex);
+            new COMMAND("!writedeck").Action(Writedeck).Help(Broadcaster, "usage: %alias", _alphaNumericRegex);
 
-            new COMMAND ("!chatmessage").Action(ChatMessage).Help(Broadcaster, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
-            new COMMAND ("!runscript").Action(RunScript).Help(Broadcaster, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
+            new COMMAND("!chatmessage").Action(ChatMessage).Help(Broadcaster, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
+            new COMMAND("!runscript").Action(RunScript).Help(Broadcaster, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
 
             new COMMAND("!formatlist").Action(showFormatList).Help(Broadcaster, "Show a list of all the available customizable text format strings. Use caution, as this can make the output of some commands unusable. You can use /default to return a variable to its default setting.");
 
-            new COMMAND("AddSongToQueueText",AddSongToQueueText); // These variables are bound due to class reference assignment
+            new COMMAND("AddSongToQueueText", AddSongToQueueText); // These variables are bound due to class reference assignment
             new COMMAND("LookupSongDetail", LookupSongDetail);
             new COMMAND("BsrSongDetail", BsrSongDetail);
             new COMMAND("LinkSonglink", LinkSonglink);
-            new COMMAND("NextSonglink",NextSonglink);
-            new COMMAND("SongHintText",SongHintText);
+            new COMMAND("NextSonglink", NextSonglink);
+            new COMMAND("SongHintText", SongHintText);
             new COMMAND("QueueTextFileFormat", QueueTextFileFormat);
             new COMMAND("QueueListFormat", QueueListFormat);
             new COMMAND("HistoryListFormat", HistoryListFormat);
@@ -207,10 +207,10 @@ namespace SongRequestManager
             COMMAND.InitializeCommands(); // BUG: Currently empty
 
 
-            new COMMAND ("!backup").Help(CmdFlags.Disabled, "Backup %ETC% directory.", _atleast1); // BUG: No code, Future feature
-         
+            new COMMAND("!backup").Help(CmdFlags.Disabled, "Backup %ETC% directory.", _atleast1); // BUG: No code, Future feature
+
             new COMMAND("!every").Action(Every).Help(Broadcaster, "usage: every <minutes> %|% Run a command every <minutes>.", _atleast1);
-            new COMMAND("!in").Action(EventIn). Help(Broadcaster, "usage: in <minutes> <bot command>.", _atleast1);
+            new COMMAND("!in").Action(EventIn).Help(Broadcaster, "usage: in <minutes> <bot command>.", _atleast1);
             new COMMAND("!clearevents").Action(ClearEvents).Help(Broadcaster, "usage: %alias% %|% Clear all timer events.");
 
             new COMMAND("!at").Help(Broadcaster, "Run a command at a certain time.", _atleast1); // BUG: No code
@@ -219,37 +219,37 @@ namespace SongRequestManager
             new COMMAND("!detail"); // Get song details BUG: NO code
 
 
-            new COMMAND ("!allowmappers").Action(MapperAllowList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
-            new COMMAND ("!blockmappers").Action(MapperBanList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
+            new COMMAND("!allowmappers").Action(MapperAllowList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
+            new COMMAND("!blockmappers").Action(MapperBanList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
 
-            new COMMAND (new string[] { "!addnew", "!addlatest" }).Coroutine(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
-            new COMMAND ("!addsongs").Coroutine(addsongs).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria (up to 40) to the queue", _atleast1);
-            new COMMAND ("!mapper").Coroutine(addsongsBymapper).Help(Broadcaster, "usage: %alias%<mapperlist>");
+            new COMMAND(new string[] { "!addnew", "!addlatest" }).Coroutine(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
+            new COMMAND("!addsongs").Coroutine(addsongs).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria (up to 40) to the queue", _atleast1);
+            new COMMAND("!mapper").Coroutine(addsongsBymapper).Help(Broadcaster, "usage: %alias%<mapperlist>");
 
             // These commands will use a completely new format in future builds and rely on a slightly more flexible parser. Commands like userlist.add george, userlist1=userlist2 will be allowed. 
 
-            new COMMAND ("!openlist").Action(OpenList); // BUG: this command makes  list available.
-            new COMMAND ("!unload").Action(UnloadList);
-            new COMMAND ("!clearlist").Action(ClearList);
-            new COMMAND ("!write").Action(writelist);
-            new COMMAND ("!list").Action(ListList);
-            new COMMAND ("!lists").Action(showlists);
-            new COMMAND ("!addtolist").Action(Addtolist).Help(Broadcaster, "usage: %alias%<list> <value to add>", _atleast1);
-            new COMMAND ("!removefromlist").Action(RemoveFromlist).Help(Broadcaster, "usage: %alias%<list> <value to add>", _atleast1);
-            new COMMAND ("!listundo").Action(Addtolist).Help(Broadcaster, "usage: %alias%<list>", _atleast1); // BUG: No function defined yet, undo the last operation
+            new COMMAND("!openlist").Action(OpenList); // BUG: this command makes  list available.
+            new COMMAND("!unload").Action(UnloadList);
+            new COMMAND("!clearlist").Action(ClearList);
+            new COMMAND("!write").Action(writelist);
+            new COMMAND("!list").Action(ListList);
+            new COMMAND("!lists").Action(showlists);
+            new COMMAND("!addtolist").Action(Addtolist).Help(Broadcaster, "usage: %alias%<list> <value to add>", _atleast1);
+            new COMMAND("!removefromlist").Action(RemoveFromlist).Help(Broadcaster, "usage: %alias%<list> <value to add>", _atleast1);
+            new COMMAND("!listundo").Action(Addtolist).Help(Broadcaster, "usage: %alias%<list>", _atleast1); // BUG: No function defined yet, undo the last operation
 
             // Deck related commandws are currently not released
 
-            new COMMAND ("!deck").Action(createdeck);
-            new COMMAND ("!unloaddeck").Action(unloaddeck);
-            new COMMAND ("!loaddecks").Action(loaddecks);
-            new COMMAND ("!whatdeck").Action(whatdeck).Help(Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
-            new COMMAND ("!decklist").Action(decklist).Help(Mod, "usage: %alias", _deck);
+            new COMMAND("!deck").Action(createdeck);
+            new COMMAND("!unloaddeck").Action(unloaddeck);
+            new COMMAND("!loaddecks").Action(loaddecks);
+            new COMMAND("!whatdeck").Action(whatdeck).Help(Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
+            new COMMAND("!decklist").Action(decklist).Help(Mod, "usage: %alias", _deck);
 
             new COMMAND("!addtoqueue").Action(queuelist).Help(Broadcaster, "usage: %alias% <list>", _atleast1);
-            new COMMAND("!unqueuemsg").Help(Broadcaster,"usage: %alias% msg text to match",_atleast1); // BUG: No code
+            new COMMAND("!unqueuemsg").Help(Broadcaster, "usage: %alias% msg text to match", _atleast1); // BUG: No code
 
-            new COMMAND(new string[] { "/toggle", "subcomdtoggle" }).Action(SubcmdToggle).Help(Subcmd | Mod | CmdFlags.NoParameter,"usage: <!deck> /toggle <songid> %|% Adds a song to a deck if not present, otherwise removes it. Used primarily for button actions"); 
+            new COMMAND(new string[] { "/toggle", "subcomdtoggle" }).Action(SubcmdToggle).Help(Subcmd | Mod | CmdFlags.NoParameter, "usage: <!deck> /toggle <songid> %|% Adds a song to a deck if not present, otherwise removes it. Used primarily for button actions");
 
 
 #endif
@@ -261,7 +261,7 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/enable", "subcmdenable" }).Action(SubcmdEnable).Help(Subcmd, "usage: <command>/enable");
             new COMMAND(new string[] { "/disable", "subcmddisable" }).Action(SubcmdDisable).Help(Subcmd, "usage: <command>/disable");
             new COMMAND(new string[] { "/current", "subcmdcurrent" }).Action(SubcmdCurrentSong).Help(Subcmd | Everyone, "usage: <command>/current");
-            new COMMAND(new string[] { "/last","/previous", "subcmdlast" }).Action(SubcmdPreviousSong).Help(Subcmd | Everyone, "usage: <command>/last");
+            new COMMAND(new string[] { "/last", "/previous", "subcmdlast" }).Action(SubcmdPreviousSong).Help(Subcmd | Everyone, "usage: <command>/last");
             new COMMAND(new string[] { "/next", "subcmdnext" }).Action(SubcmdNextSong).Help(Subcmd | Everyone, "usage: <command>/next");
 
             new COMMAND(new string[] { "/flags", "subcmdflags" }).Action(SubcmdShowflags).Help(Subcmd, "usage: <command>/next");
@@ -269,18 +269,19 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/clear", "subcmdclear" }).Action(SubcmdClearflags).Help(Subcmd, "usage: <command>/clear <flags>");
 
             new COMMAND(new string[] { "/allow", "subcmdallow" }).Action(SubcmdAllow).Help(Subcmd, "usage: <command>/allow");
-            new COMMAND(new string[] { "/sethelp","/helpmsg", "subcmdsethelp" }).Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/sethelp");
-            new COMMAND(new string[] { "/silent", "subcmdsilent" }).Action(SubcmdSilent).Help(Subcmd|CmdFlags.NoParameter | Everyone, "usage: <command>/silent");
+            new COMMAND(new string[] { "/sethelp", "/helpmsg", "subcmdsethelp" }).Action(SubcmdSethelp).Help(Subcmd, "usage: <command>/sethelp");
+            new COMMAND(new string[] { "/silent", "subcmdsilent" }).Action(SubcmdSilent).Help(Subcmd | CmdFlags.NoParameter | Everyone, "usage: <command>/silent");
 
             new COMMAND(new string[] { "=", "subcmdequal" }).Action(SubcmdEqual).Help(Subcmd | Broadcaster, "usage: =");
 
-            new COMMAND(new string[] { "/alias","subcmdalias" }).Action(SubcmdAlias).Help(Subcmd | Broadcaster,"usage: %alias% %|% Defines all the aliases a command can use");
-            new COMMAND(new string[] { "/default","subcmddefault" }).Action(SubcmdDefault).Help(Subcmd | Broadcaster, "usage: <formattext> %alias%") ;
+            new COMMAND(new string[] { "/alias", "subcmdalias" }).Action(SubcmdAlias).Help(Subcmd | Broadcaster, "usage: %alias% %|% Defines all the aliases a command can use");
+            new COMMAND(new string[] { "/default", "subcmddefault" }).Action(SubcmdDefault).Help(Subcmd | Broadcaster, "usage: <formattext> %alias%");
 
-            new COMMAND(new string[] { "/newest","subcmdnewest" }).Help(Subcmd|Everyone); // BUG: Not implemented
-            new COMMAND(new string[] { "/best" ,"subcmdbest"}).Help(Subcmd | Everyone); // BUG: Not implemented
-            new COMMAND(new string[] { "/oldest","subcmdoldest" }).Help(Subcmd| Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/newest", "subcmdnewest" }).Help(Subcmd | Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/best", "subcmdbest" }).Help(Subcmd | Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/oldest", "subcmdoldest" }).Help(Subcmd | Everyone); // BUG: Not implemented
 
+            new COMMAND(new string[] { "/top", "subcmdtop" }).Action(SubcmdTop).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster, "%alias% sets a flag to move the request(s) to the top of the queue.");
   
             #endregion
         }
@@ -448,6 +449,12 @@ namespace SongRequestManager
             return success;
         }
 
+        public string SubcmdTop(ParseState state)
+        {
+            state.flags |= CmdFlags.MoveToTop;
+            return success;
+        }
+
         public string SubcmdEqual(ParseState state)
         {
             state.flags |= CmdFlags.SilentResult; // Turn off success messages, but still allow errors.
@@ -483,7 +490,7 @@ namespace SongRequestManager
             private Action<TwitchUser, string> Method = null;  // Method to call
             private Action<TwitchUser, string, CmdFlags, string> Method2 = null; // Alternate method
             //private Func<COMMAND, TwitchUser, string, CmdFlags, string, string> Method3 = null; // Prefered method, returns the error msg as a string.
-            private Func<TwitchUser, string, IEnumerator> func1 = null;
+            private Func<ParseState, IEnumerator> func1 = null;
 
             public Func<ParseState, string> subcommand = null; // Prefered calling convention. It does expose calling command base properties, so be careful.
 
@@ -516,7 +523,7 @@ namespace SongRequestManager
                 if (Method2 != null) Method2(state.user, state.parameter, state.flags, state.info);
                 else if (Method != null) Method(state.user, state.parameter);
                 //else if (Method3 != null) return Method3(this, state.user, state.parameter, state.flags, state.info);
-                else if (func1 != null) Instance.StartCoroutine(func1(state.user, state.parameter));
+                else if (func1 != null) Instance.StartCoroutine(func1(state));
                 else if (subcommand != null) return subcommand(state); // Recommended.
                 return success;
             }
@@ -605,7 +612,7 @@ namespace SongRequestManager
                 return this;
             }
 
-            public COMMAND Coroutine(Func<TwitchUser, string, IEnumerator> action)
+            public COMMAND Coroutine(Func<ParseState, IEnumerator> action)
             {
                 func1 = action;
                 return this;
@@ -870,7 +877,7 @@ namespace SongRequestManager
                 if (!allow && !botcmd.Flags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.displayName.ToLower()))
                 {
                     CmdFlags twitchpermission = botcmd.Flags & CmdFlags.TwitchLevel;
-                    if (!botcmd.Flags.HasFlag(CmdFlags.SilentPreflight)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
+                    if (!botcmd.Flags.HasFlag(CmdFlags.SilentCheck)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
                     return;
                 }
 

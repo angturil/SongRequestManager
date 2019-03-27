@@ -22,22 +22,25 @@ namespace SongRequestManager
         RectTransform container;
         Vector2 currentposition;
         Vector2 baseposition;
+        float scale = 0.5f; // BUG: Effect of changing this has NOT beed tested. assume changing it doesn't work.
         float padding = 0.5f;
         float buttonwidth = 12f;
         private TextMeshProUGUI KeyboardText;
         private TextMeshProUGUI KeyboardCursor;
 
-        KEY dummy = new KEY(); 
+
+        KEY dummy = new KEY(); // This allows for some lazy programming, since unfound key searches will point to this instead of null. It still logs an error though
 
         // Keyboard spaces and CR/LF are significicant.
         // A slash following a space or CR/LF alters the width of the space
+        // CR on an empty line results in a half life advance
 
         public const string QWERTY =
-@"
+@"[CLEAR]/20
 (`~) (1!) (2@) (3#) (4$) (5%) (6^) (7&) (8*) (9() (0)) (-_) (=+) [<--]/15
 [TAB]/15'\t' (qQ) (wW) (eE) (rR) (tT) (yY) (uU) (iI) (oO) (pP) ([{) (]}) (\|)
-[CAPS]/20 (aA) (sS) (dD) (fF) (gG) (hH) (jJ) (kK) (lL) (;:) ('"") [ENTER]/20
-[SHIFT]/25 (zZ) (xX) (cC) (vV) (bB) (nN) (mM) (,<) (.>) (/?) [CLEAR]/28
+[CAPS]/20 (aA) (sS) (dD) (fF) (gG) (hH) (jJ) (kK) (lL) (;:) ('"") [ENTER]/20,22
+[SHIFT]/25 (zZ) (xX) (cC) (vV) (bB) (nN) (mM) (,<) (.>) (/?)  
 /23 (!!) (@@) [SPACE]/40' ' (##) (__)";
 
         public const string FKEYROW =
@@ -48,9 +51,10 @@ namespace SongRequestManager
         public const string NUMPAD =
 @"
 [NUM] (//) (**) (--)
-(77) (88) (99) (++)
+(77) (88) (99) [+]/10,22
 (44) (55) (66)
-(11) (22) (33) [ENTER]
+(11) (22) (33) [ENTER]/10,22
+[0]/22 [.]
 ";
 
         public const string DVORAK =
@@ -66,21 +70,7 @@ namespace SongRequestManager
 @"[ADD]/0'!bsr ' [UPTIME]/0' !uptime%CR%' [sehriaCat1]/0' sehriaCat1' [sehriaCat2]/0' sehriaCat2' [sehriaXD]/0' sehriaXD' [tohruSway]/0' tohruSway' [RainbowDance]/0' RainbowDance' 
 ";
 
-/*
-        AddKeys("`1234567890[]", "~!@#$%^&*(){}").AddKey("<--", 15);
-        NextRow();
-        AddKey("TAB", 15f).value = "\t";
-            AddKeys("',.", "\"<>"); AddKeys("PYFGCRL"); AddKeys("/=\\", "?+|");
-        NextRow();
-        AddKey("CAPS", 20f);
-        AddKeys("AOEUIDHTNS"); AddKey("-", "_"); AddKey("ENTER", 20f);
-        NextRow();
-        AddKey("SHIFT", 25f);
-        AddKey(";", ":"); AddKeys("QJKXBMWVZ"); AddKey("CLEAR", 28f);
-        NextRow();
-        currentposition.x += 23;
-            AddKey("!"); AddKey("@"); AddKey("SPACE", 40).value = " "; AddKey("#"); AddKey("_");
-*/
+        
 
         public KEY this[string index]
         {
@@ -122,17 +112,17 @@ namespace SongRequestManager
         }
 
 
-        KEY AddKey(string keylabel, float width = 12)
+        KEY AddKey(string keylabel, float width = 12,float height=10)
         {
             var position = currentposition;
             //position.x += width / 4;
-            KEY key = new KEY(this, container, position, keylabel, width, Color.white);
+            KEY key = new KEY(this, container, position, keylabel, width, Color.white,height);
             keys.Add(key);
             //currentposition.x += width / 2 + padding;
             return key;
         }
 
-        KEY AddKey(string keylabel, string Shifted, float width = 12)
+        KEY AddKey(string keylabel, string Shifted, float width = 12,float height=10)
         {
             KEY key = AddKey(keylabel, width);
             key.shifted = Shifted;
@@ -141,14 +131,15 @@ namespace SongRequestManager
 
 
         // BUG: Refactor this within a keybard parser subclass once everything works.
-        void EmitKey(ref float spacing,ref float Width, ref string Label, ref string Key,ref bool space,ref string newvalue)
+        void EmitKey(ref float spacing,ref float Width, ref string Label, ref string Key,ref bool space,ref string newvalue,ref float height)
             {
             currentposition.x += spacing;
             
-            if (Label != "") AddKey(Label, Width).Set(newvalue);
+            if (Label != "") AddKey(Label, Width,height).Set(newvalue);
             else if (Key != "") AddKey(Key[0].ToString(), Key[1].ToString()).Set(newvalue);
             spacing = 0;
             Width = buttonwidth;
+            height = 10f;
             Label = "";
             Key = "";
             newvalue = "";
@@ -179,11 +170,13 @@ namespace SongRequestManager
         KEYBOARD AddKeyboard(string Keyboard)
             {
             bool space = true;
-            float spacing = 0;
+            float spacing = padding;
             float width = buttonwidth;
+            float height = 10f;
             string Label = "";
             string Key = "";
             string newvalue = "";
+           
         
             int p = 0; // P is for parser
             while (p<Keyboard.Length)
@@ -196,18 +189,18 @@ namespace SongRequestManager
                         break;
 
                     case '\n':
-                        EmitKey(ref spacing, ref width, ref Label, ref Key, ref space,ref newvalue);
+                        EmitKey(ref spacing, ref width, ref Label, ref Key, ref space,ref newvalue,ref height);
                         space = true;
                         NextRow();
                         break;
 
                     case ' ':
                         space = true;
-                        spacing += padding;
+                        //spacing += padding;
                         break;
 
                     case '[':
-                        EmitKey(ref spacing, ref width, ref Label, ref Key,ref space,ref newvalue);
+                        EmitKey(ref spacing, ref width, ref Label, ref Key,ref space,ref newvalue,ref height);
 
                        space = false;
                        p++;
@@ -217,7 +210,7 @@ namespace SongRequestManager
                        break;
 
                     case '(':
-                        EmitKey(ref spacing, ref width, ref Label, ref Key,ref space,ref newvalue);
+                        EmitKey(ref spacing, ref width, ref Label, ref Key,ref space,ref newvalue,ref height);
 
                         p++;
                         Key = Keyboard.Substring(p, 2);
@@ -231,10 +224,15 @@ namespace SongRequestManager
                         float number=0;
                         if (ReadFloat(ref Keyboard,ref p,ref number))
                             {
+                            if (p<Keyboard.Length && Keyboard[p]==',')
+                                {
+                                p++;
+                                ReadFloat(ref Keyboard, ref p, ref height);
+                                }
 
                             if (space)
                                 {
-                                if (Label!="" || Key!="") EmitKey(ref spacing, ref width, ref Label, ref Key, ref space,ref newvalue);
+                                if (Label!="" || Key!="") EmitKey(ref spacing, ref width, ref Label, ref Key, ref space,ref newvalue,ref height);
                                 spacing = number;
                                 }
                             else width = number;
@@ -259,7 +257,7 @@ namespace SongRequestManager
                 p++;
                 }
 
-            EmitKey(ref spacing, ref width, ref Label, ref Key,ref space,ref newvalue);
+            EmitKey(ref spacing, ref width, ref Label, ref Key,ref space,ref newvalue,ref height);
 
             return this;
             }
@@ -289,18 +287,39 @@ namespace SongRequestManager
             KeyboardCursor.alignment = TextAlignmentOptions.Left;
             KeyboardCursor.enableWordWrapping = false;
 
-            DrawCursor();
+            DrawCursor(); // BUG: Doesn't handle trailing spaces.. seriously, wtf.
 
             // We protect this since setting nonexistent keys will throw.
             try
-            {                
-                //AddKeyboard(BOTKEYS);
+            {               
 
-                //AddKeyboard(FKEYROW);
+                // BUG: These are here on a temporary basis, they will be moving out as soon as API is finished
+ 
+                #if UNRELEASED
+                SetScale(0.4f);
+                AddKeyboard(BOTKEYS);
+                SetScale(0.5f);
+                #endif
             
                 AddKeyboard(QWERTY);
 
-                // Set default actions
+                #if UNRELEASED
+
+                SetScale(0.75f);   
+
+                AddKeyboard(RequestBot.SEARCH);
+
+                SetScale(0.4f);
+
+                AddKeyboard(RequestBot.DECKS);
+
+                SetAction("CLEAR SEARCH", ClearSearch);
+                SetAction("SEARCH", Search);
+                SetAction("NEWEST", Newest);
+
+                #endif
+
+                // Set default actions,these are common to most keyboards, even if the key isn't present.
 
                 SetAction("CLEAR", Clear);
                 SetAction("ENTER",Enter);
@@ -314,9 +333,6 @@ namespace SongRequestManager
             }
 
             return;
-
-         
-
         }
 
         public KEYBOARD NextRow(float adjustx = 0)
@@ -325,28 +341,53 @@ namespace SongRequestManager
             currentposition.x = baseposition.x;
             return this;
         }
-        public KEYBOARD AddKeys(string Keyrow)
-        {
-            foreach (char c in Keyrow) AddKey(c.ToString().ToLower()).shifted=c.ToString();
+
+        public KEYBOARD SetScale(float scale)
+            {
+            this.scale = scale;
             return this;
-        }
+            }
 
-        public KEYBOARD AddKeys(string Keyrow,string Shifted)
-        {
+        void Newest(KEY key)
+            {
+            ClearSearches();
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top");
+            }
 
-            if (Keyrow.Length!=Shifted.Length)
+        void Search(KEY key)
+            {
+            if (key.kb.KeyboardText.text.StartsWith("!"))
                 {
-                // BUG: They should match
-                return this;
+                Enter(key);
                 }
 
-            for (int i=0;i<Keyrow.Length;i++)
-                {
-                AddKey(Keyrow[i].ToString(),Shifted[i].ToString());
-                }
+            #if UNRELEASED
+            ClearSearches();
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}");
+            Clear(key);
+            #endif
+            }
 
-            return this;
+        void ClearSearches()
+            {
+            for (int i = 0; i < RequestQueue.Songs.Count; i++)
+            {
+                var entry = RequestQueue.Songs[i];
+                if (entry.status == RequestBot.RequestStatus.SongSearch)
+                {
+                    RequestBot.DequeueRequest(i, false);
+                    i--;
+                }
+            }
         }
+        void ClearSearch(KEY key)
+            {
+            ClearSearches();          
+            
+            RequestBot.UpdateRequestUI();
+            RequestBot._refreshQueue = true;
+            }
+
 
         void Clear(KEY key)
             {
@@ -379,7 +420,10 @@ namespace SongRequestManager
         void SHIFT(KEY key)
         {
             key.kb.Shift = !key.kb.Shift;
-            key.mybutton.GetComponentInChildren<Image>().color = key.kb.Shift ? Color.green : Color.white;
+            foreach (KEY k in key.kb.keys)
+            {
+                if (k.name=="SHIFT") k.mybutton.GetComponentInChildren<Image>().color = key.kb.Shift ? Color.green : Color.white;
+            }
         }
 
         void CAPS(KEY key)
@@ -390,13 +434,12 @@ namespace SongRequestManager
 
         void DrawCursor()
         {
-            Vector2 v = KeyboardText.GetPreferredValues(KeyboardText.text);
-            v.y = 30f;
+            Vector2 v = KeyboardText.GetPreferredValues(KeyboardText.text+"|");
 
+            v.y = 30f; // BUG: This needs to be derived from the text position
             // BUG: I do not know why that 30f is here, It makes things work, but I can't understand WHY! Me stupid.
-            v.x = v.x / 2 + 30f;
+            v.x = v.x / 2 + 30f-0.5f; // BUG: The .5 gets rid of the trailing |, but technically, we need to calculate its width and store it
             (KeyboardCursor.transform as RectTransform).anchoredPosition = v;
-
         }
             
 
@@ -427,7 +470,7 @@ namespace SongRequestManager
             }
 
 
-            public KEY(KEYBOARD kb, RectTransform container, Vector2 position, string text, float width, Color color)
+            public KEY(KEYBOARD kb, RectTransform container, Vector2 position, string text, float width, Color color,float height=10f)
             {
                 value = text;
                 this.kb = kb;
@@ -438,7 +481,7 @@ namespace SongRequestManager
                 TMP_Text txt = mybutton.GetComponentInChildren<TMP_Text>();
                 mybutton.ToggleWordWrapping(false);
   
-                mybutton.transform.localScale = new Vector3(0.5f, 0.5f, 1.0f);
+                mybutton.transform.localScale = new Vector3(kb.scale, kb.scale, 1.0f);
                 mybutton.SetButtonTextSize(5f);
                 mybutton.SetButtonText(text);
                 mybutton.GetComponentInChildren<Image>().color = color;
@@ -451,13 +494,13 @@ namespace SongRequestManager
                     width = v.x;
                 }
 
-                position.x += width / 4; // /2 * scale
+                position.x += kb.scale*width / 2 ; // /2 * scale
+                position.y -= kb.scale * height / 2;
                 (mybutton.transform as RectTransform).anchoredPosition = position;
+ 
+                (mybutton.transform as RectTransform).sizeDelta = new Vector2(width, height);
 
-
-                (mybutton.transform as RectTransform).sizeDelta = new Vector2(width, 10);
-
-                kb.currentposition.x += width / 2 + kb.padding;
+                kb.currentposition.x += width *kb.scale + kb.padding;
 
                 mybutton.onClick.RemoveAllListeners();
 

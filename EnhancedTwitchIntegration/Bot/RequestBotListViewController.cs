@@ -532,7 +532,7 @@ namespace SongRequestManager
             BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
 
             _tableCell.SetText(request.song["songName"].Value);
-            _tableCell.SetSubText(request.song["authorName"].Value);
+            _tableCell.SetSubText(request.song["authorName"].Value+" ("+request.song["version"].Value+")");
             if (SongLoader.AreSongsLoaded)
             {
                 CustomLevel level = CustomLevelForRow(row);

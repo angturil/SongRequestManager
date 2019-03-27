@@ -58,7 +58,7 @@ namespace SongRequestManager
         public static Dictionary<string, RequestUserTracker> RequestTracker = new Dictionary<string, RequestUserTracker>();
 
         private static Button _requestButton;
-        private static bool _refreshQueue = false;
+        public static bool _refreshQueue = false;
 
         private static Queue<string> _botMessageQueue = new Queue<string>();
 
@@ -595,7 +595,7 @@ namespace SongRequestManager
             }
         }
         
-        private static void UpdateRequestUI(bool writeSummary = true)
+        public static void UpdateRequestUI(bool writeSummary = true)
         {
             try
             {
@@ -621,7 +621,7 @@ namespace SongRequestManager
 
         public static void DequeueRequest(SongRequest request, bool updateUI = true)
         {
-            if (request.status!=RequestStatus.Wrongsong  ) RequestHistory.Songs.Insert(0, request); // Wrong song requests are not logged into history, is it possible that other status states shouldn't be moved either?
+            if (request.status!=RequestStatus.Wrongsong && request.status!=RequestStatus.SongSearch) RequestHistory.Songs.Insert(0, request); // Wrong song requests are not logged into history, is it possible that other status states shouldn't be moved either?
 
             if (RequestHistory.Songs.Count > RequestBotConfig.Instance.RequestHistoryLimit)
             {
