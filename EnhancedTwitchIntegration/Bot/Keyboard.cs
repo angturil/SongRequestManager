@@ -15,18 +15,20 @@ namespace SongRequestManager
     // Experimental chat console
     public class KEYBOARD
     {
-        List<KEY> keys = new List<KEY>();
+        public List<KEY> keys = new List<KEY>();
 
+        bool EnableInputField = true;
         bool Shift = false;
         bool Caps = false;
         RectTransform container;
         Vector2 currentposition;
         Vector2 baseposition;
-        float scale = 0.5f; // BUG: Effect of changing this has NOT beed tested. assume changing it doesn't work.
+        float scale=0.5f; // BUG: Effect of changing this has NOT beed tested. assume changing it doesn't work.
         float padding = 0.5f;
         float buttonwidth = 12f;
-        private TextMeshProUGUI KeyboardText;
+        public TextMeshProUGUI KeyboardText;
         private TextMeshProUGUI KeyboardCursor;
+        public Button BaseButton;
 
 
         KEY dummy = new KEY(); // This allows for some lazy programming, since unfound key searches will point to this instead of null. It still logs an error though
@@ -39,7 +41,7 @@ namespace SongRequestManager
 @"[CLEAR]/20
 (`~) (1!) (2@) (3#) (4$) (5%) (6^) (7&) (8*) (9() (0)) (-_) (=+) [<--]/15
 [TAB]/15'\t' (qQ) (wW) (eE) (rR) (tT) (yY) (uU) (iI) (oO) (pP) ([{) (]}) (\|)
-[CAPS]/20 (aA) (sS) (dD) (fF) (gG) (hH) (jJ) (kK) (lL) (;:) ('"") [ENTER]/20,22
+[CAPS]/20 (aA) (sS) (dD) (fF) (gG) (hH) (jJ) (kK) (lL) (;:) ('"") [ENTER]/20,22#20A0D0
 [SHIFT]/25 (zZ) (xX) (cC) (vV) (bB) (nN) (mM) (,<) (.>) (/?)  
 /23 (!!) (@@) [SPACE]/40' ' (##) (__)";
 
@@ -84,6 +86,12 @@ namespace SongRequestManager
 
         }
 
+
+        public void SetButtonType(string ButtonName= "KeyboardButton")
+            {
+            BaseButton = Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == ButtonName));
+            if (BaseButton==null) BaseButton = Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "KeyboardButton"));
+            }
         public void SetValue (string keylabel, string value)
             {
             bool found = false;
@@ -98,7 +106,7 @@ namespace SongRequestManager
 
         }
 
-        void SetAction(string keyname, Action<KEY> action)
+        public void SetAction(string keyname, Action<KEY> action)
         {
             bool found = false;
             foreach (KEY key in keys) if (key.name == keyname)
@@ -112,11 +120,17 @@ namespace SongRequestManager
         }
 
 
-        KEY AddKey(string keylabel, float width = 12,float height=10)
+        KEY AddKey(string keylabel, float width = 12,float height=10,int color=0xffffff)
         {
             var position = currentposition;
             //position.x += width / 4;
-            KEY key = new KEY(this, container, position, keylabel, width, Color.white,height);
+      
+            Color co = Color.white;
+
+            co.r = (float)(color & 0xff) / 255;
+            co.g = (float)((color>>8) & 0xff) / 255;
+            co.b = (float)((color>>16) & 0xff) / 255;
+            KEY key = new KEY(this,  position, keylabel, width, height,co);
             keys.Add(key);
             //currentposition.x += width / 2 + padding;
             return key;
@@ -131,11 +145,11 @@ namespace SongRequestManager
 
 
         // BUG: Refactor this within a keybard parser subclass once everything works.
-        void EmitKey(ref float spacing,ref float Width, ref string Label, ref string Key,ref bool space,ref string newvalue,ref float height)
+        void EmitKey(ref float spacing,ref float Width, ref string Label, ref string Key,ref bool space,ref string newvalue,ref float height,ref int color)
             {
             currentposition.x += spacing;
             
-            if (Label != "") AddKey(Label, Width,height).Set(newvalue);
+            if (Label != "") AddKey(Label, Width,height,color).Set(newvalue);
             else if (Key != "") AddKey(Key[0].ToString(), Key[1].ToString()).Set(newvalue);
             spacing = 0;
             Width = buttonwidth;
@@ -143,6 +157,7 @@ namespace SongRequestManager
             Label = "";
             Key = "";
             newvalue = "";
+            color = 0xffffff;
             space = false;
             return;
             }
@@ -167,8 +182,9 @@ namespace SongRequestManager
 
         // Very basic parser for the keyboard grammar - no doubt can be improved. Tricky to implement because of special characters.
         // It might possible to make grep do this, but it would be even harder to read than this!
-        KEYBOARD AddKeyboard(string Keyboard)
+        public KEYBOARD AddKeys(string Keyboard, float scale = 0.5f)
             {
+            this.scale = scale;
             bool space = true;
             float spacing = padding;
             float width = buttonwidth;
@@ -176,101 +192,133 @@ namespace SongRequestManager
             string Label = "";
             string Key = "";
             string newvalue = "";
-           
-        
+            int color = 0xffffff;
             int p = 0; // P is for parser
-            while (p<Keyboard.Length)
+
+
+            try
+            {
+
+                while (p < Keyboard.Length)
                 {
 
-                switch (Keyboard[p])
-                {
-                    case '\r':
-                        space = true;
-                        break;
+                    switch (Keyboard[p])
+                    {
+                        case '\r':
+                            space = true;
+                            break;
 
-                    case '\n':
-                        EmitKey(ref spacing, ref width, ref Label, ref Key, ref space,ref newvalue,ref height);
-                        space = true;
-                        NextRow();
-                        break;
+                        case '\n':
+                            EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
+                            space = true;
+                            NextRow();
+                            break;
 
-                    case ' ':
-                        space = true;
-                        //spacing += padding;
-                        break;
+                        case ' ':
+                            space = true;
+                            //spacing += padding;
+                            break;
 
-                    case '[':
-                        EmitKey(ref spacing, ref width, ref Label, ref Key,ref space,ref newvalue,ref height);
+                        case '[':
+                            EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
 
-                       space = false;
-                       p++;
-                       int label = p;
-                       while (p < Keyboard.Length && Keyboard[p] != ']') p++;
-                       Label = Keyboard.Substring(label, p - label);
-                       break;
+                            space = false;
+                            p++;
+                            int label = p;
+                            while (p < Keyboard.Length && Keyboard[p] != ']') p++;
+                            Label = Keyboard.Substring(label, p - label);
+                            break;
 
-                    case '(':
-                        EmitKey(ref spacing, ref width, ref Label, ref Key,ref space,ref newvalue,ref height);
+                        case '(':
+                            EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
 
-                        p++;
-                        Key = Keyboard.Substring(p, 2);
-                        p += 2;
-                        space = false;
-                        break;                        
+                            p++;
+                            Key = Keyboard.Substring(p, 2);
+                            p += 2;
+                            space = false;
+                            break;
 
-                    case '/':
-                                               
-                        p++;
-                        float number=0;
-                        if (ReadFloat(ref Keyboard,ref p,ref number))
-                            {
-                            if (p<Keyboard.Length && Keyboard[p]==',')
-                                {
-                                p++;
-                                ReadFloat(ref Keyboard, ref p, ref height);
-                                }
-
-                            if (space)
-                                {
-                                if (Label!="" || Key!="") EmitKey(ref spacing, ref width, ref Label, ref Key, ref space,ref newvalue,ref height);
-                                spacing = number;
-                                }
-                            else width = number;
+                        case '#':
+                            // BUG: Make this support alpha and 6/8 digit forms
+                            p++;
+                            color = int.Parse(Keyboard.Substring(p, 6), System.Globalization.NumberStyles.HexNumber);
+                            p += 6;
                             continue;
-                            } 
 
-                        break;                  
-    
-                    case '\'':
-                        p++;
-                        int newvaluep = p;
-                        while (p < Keyboard.Length && Keyboard[p] != '\'') p++;
-                        newvalue = Keyboard.Substring(newvaluep, p - newvaluep);
-                        break;
+                        case '/':
 
-   
-                    default:
-                        Plugin.Log($"Unable to parse keyboard at position {p} char [{Keyboard[p]}]: [{Keyboard}]" );                    
-                        return this;
+                            p++;
+                            float number = 0;
+                            if (ReadFloat(ref Keyboard, ref p, ref number))
+                            {
+                                if (p < Keyboard.Length && Keyboard[p] == ',')
+                                {
+                                    p++;
+                                    ReadFloat(ref Keyboard, ref p, ref height);
+                                }
+
+                                if (space)
+                                {
+                                    if (Label != "" || Key != "") EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
+                                    spacing = number;
+                                }
+                                else width = number;
+                                continue;
+                            }
+
+                            break;
+
+                        case '\'':
+                            p++;
+                            int newvaluep = p;
+                            while (p < Keyboard.Length && Keyboard[p] != '\'') p++;
+                            newvalue = Keyboard.Substring(newvaluep, p - newvaluep);
+                            break;
+
+
+                        default:
+                            Plugin.Log($"Unable to parse keyboard at position {p} char [{Keyboard[p]}]: [{Keyboard}]");
+                            return this;
                     }
 
-                p++;
+                    p++;
                 }
 
-            EmitKey(ref spacing, ref width, ref Label, ref Key,ref space,ref newvalue,ref height);
+                EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
+
+            }
+            catch (Exception ex)
+            {
+            Plugin.Log($"Unable to parse keyboard at position {p} : [{Keyboard}]");
+            Plugin.Log(ex.ToString());
+            }
 
             return this;
             }
 
     
-
+        // Default actions may be called more than once. Make sure to only set any overrides that replace these AFTER all keys have been added
+        public KEYBOARD DefaultActions()
+            {         
+            SetAction("CLEAR", Clear);
+            SetAction("ENTER", Enter);
+            SetAction("<--", Backspace);
+            SetAction("SHIFT", SHIFT);
+            SetAction("CAPS", CAPS);
+            return this;    
+            }
     
-        public KEYBOARD(RectTransform container)
+        public KEYBOARD(RectTransform container,string DefaultKeyboard=QWERTY,bool EnableInputField=true,float x=0,float y=0)
         {
+            this.EnableInputField = EnableInputField;
             this.container = container;
-            baseposition = new Vector2(-50, 23);
+            baseposition = new Vector2(-50+x, 23+y);
             currentposition = baseposition;
             bool addhint = true;
+
+            SetButtonType();
+
+            // BUG: Make this an input field maybe
 
             KeyboardText = BeatSaberUI.CreateText(container, "", new Vector2(0, 30f));
             KeyboardText.fontSize = 6f;
@@ -278,60 +326,32 @@ namespace SongRequestManager
             KeyboardText.alignment = TextAlignmentOptions.Center;
             KeyboardText.enableWordWrapping = false;
             KeyboardText.text = "";
+            KeyboardText.enabled = this.EnableInputField;
             //KeyboardText
 
+             
 
             KeyboardCursor = BeatSaberUI.CreateText(container, "|", new Vector2(0, 0));
             KeyboardCursor.fontSize = 6f;
             KeyboardCursor.color = Color.cyan;
             KeyboardCursor.alignment = TextAlignmentOptions.Left;
             KeyboardCursor.enableWordWrapping = false;
+            KeyboardCursor.enabled = this.EnableInputField;
 
             DrawCursor(); // BUG: Doesn't handle trailing spaces.. seriously, wtf.
 
             // We protect this since setting nonexistent keys will throw.
-            try
-            {               
 
                 // BUG: These are here on a temporary basis, they will be moving out as soon as API is finished
  
-                #if UNRELEASED
-                SetScale(0.4f);
-                AddKeyboard(BOTKEYS);
-                SetScale(0.5f);
-                #endif
-            
-                AddKeyboard(QWERTY);
 
-                #if UNRELEASED
+                if (DefaultKeyboard != "")
+                    {
+                    AddKeys(DefaultKeyboard);
+                    DefaultActions();
+                    }
 
-                SetScale(0.75f);   
-
-                AddKeyboard(RequestBot.SEARCH);
-
-                SetScale(0.4f);
-
-                AddKeyboard(RequestBot.DECKS);
-
-                SetAction("CLEAR SEARCH", ClearSearch);
-                SetAction("SEARCH", Search);
-                SetAction("NEWEST", Newest);
-
-                #endif
-
-                // Set default actions,these are common to most keyboards, even if the key isn't present.
-
-                SetAction("CLEAR", Clear);
-                SetAction("ENTER",Enter);
-                SetAction("<--",Backspace);
-                SetAction("SHIFT",SHIFT);
-                SetAction("CAPS",CAPS);
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log(ex.ToString());
-            }
-
+        
             return;
         }
 
@@ -389,12 +409,12 @@ namespace SongRequestManager
             }
 
 
-        void Clear(KEY key)
+        public void Clear(KEY key)
             {
             key.kb.KeyboardText.text = "";
             }
 
-        void Enter(KEY key)
+        public void Enter(KEY key)
         {
             var typedtext = key.kb.KeyboardText.text;
             if (typedtext != "")
@@ -434,6 +454,8 @@ namespace SongRequestManager
 
         void DrawCursor()
         {
+            if (!EnableInputField) return;
+            
             Vector2 v = KeyboardText.GetPreferredValues(KeyboardText.text+"|");
 
             v.y = 30f; // BUG: This needs to be derived from the text position
@@ -463,28 +485,25 @@ namespace SongRequestManager
                 return this;
             }
 
-
             public KEY()
             {
             // This key is not intialized at all
             }
 
-
-            public KEY(KEYBOARD kb, RectTransform container, Vector2 position, string text, float width, Color color,float height=10f)
+            public KEY(KEYBOARD kb, Vector2 position, string text, float width,float height, Color color)
             {
                 value = text;
                 this.kb = kb;
 
-                // Scaling math is not finalized                              
                 name = text;
-                mybutton = Button.Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "KeyboardButton")), container, false);
+                mybutton = Button.Instantiate(kb.BaseButton, kb.container, false);
                 TMP_Text txt = mybutton.GetComponentInChildren<TMP_Text>();
                 mybutton.ToggleWordWrapping(false);
-  
+
                 mybutton.transform.localScale = new Vector3(kb.scale, kb.scale, 1.0f);
                 mybutton.SetButtonTextSize(5f);
                 mybutton.SetButtonText(text);
-                mybutton.GetComponentInChildren<Image>().color = color;
+                mybutton.GetComponentInChildren<Image>().color =  color;
 
                 if (width == 0)
                 {
@@ -494,7 +513,9 @@ namespace SongRequestManager
                     width = v.x;
                 }
 
-                position.x += kb.scale*width / 2 ; // /2 * scale
+                // Adjust starting position so button aligns to upper left of current drawing position
+
+                position.x += kb.scale*width / 2 ; 
                 position.y -= kb.scale * height / 2;
                 (mybutton.transform as RectTransform).anchoredPosition = position;
  

@@ -31,7 +31,7 @@ namespace SongRequestManager.Config
         //public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
 
         #if UNRELEASED
-        public string DeckList = "fun hard challenge dance";
+        public string DeckList = "fun hard challenge dance chill";
         #endif
 
         public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI

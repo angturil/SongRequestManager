@@ -119,7 +119,30 @@ namespace SongRequestManager
                 KeyboardContainer.SetParent(_KeyboardViewController.rectTransform, false);
                 KeyboardContainer.sizeDelta = new Vector2(60f, 40f);
 
-                var mykeyboard = new KEYBOARD(KeyboardContainer);
+                var mykeyboard = new KEYBOARD(KeyboardContainer,"");
+#if UNRELEASED
+                mykeyboard.AddKeys(KEYBOARD.BOTKEYS,0.4f);
+#endif
+                mykeyboard.AddKeys(KEYBOARD.QWERTY); // You can replace this with DVORAK if you like
+                mykeyboard.DefaultActions();
+
+                const string SEARCH = @"
+
+[CLEAR SEARCH]/0 /2 [NEWEST]/0 /2 [SEARCH]/0";
+
+                //mykeyboard.SetButtonType("QuitButton"); // Adding this alters button positions??! Why?
+                mykeyboard.AddKeys(SEARCH,0.75f);
+
+                mykeyboard.SetAction("CLEAR SEARCH", ClearSearch);
+                mykeyboard.SetAction("SEARCH", Search);
+                mykeyboard.SetAction("NEWEST", Newest);
+
+
+#if UNRELEASED
+                mykeyboard.AddKeys(RequestBot.DECKS,0.4f);
+#endif
+                // The UI for this might need a bit of work.
+
             }
 
             if (_songRequestMenu == null)
@@ -147,6 +170,45 @@ namespace SongRequestManager
             if (Instance) return;
             new GameObject("EnhancedTwitchChatRequestBot").AddComponent<RequestBot>();
         }
+
+
+        public static void Newest(KEYBOARD.KEY key)
+        {
+            ClearSearches();
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top");
+        }
+
+        public static void Search(KEYBOARD.KEY key)
+        {
+            if (key.kb.KeyboardText.text.StartsWith("!"))
+            {
+                key.kb.Enter(key);
+            }
+            ClearSearches();
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}");
+            key.kb.Clear(key);
+        }
+
+        public static void ClearSearches()
+        {
+            for (int i = 0; i < RequestQueue.Songs.Count; i++)
+            {
+                var entry = RequestQueue.Songs[i];
+                if (entry.status == RequestBot.RequestStatus.SongSearch)
+                {
+                    RequestBot.DequeueRequest(i, false);
+                    i--;
+                }
+            }
+        }
+        public static void ClearSearch(KEYBOARD.KEY key)
+        {
+            ClearSearches();
+
+            RequestBot.UpdateRequestUI();
+            RequestBot._refreshQueue = true;
+        }
+
 
         private void Awake()
         {

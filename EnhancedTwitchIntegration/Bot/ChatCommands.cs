@@ -494,6 +494,149 @@ namespace SongRequestManager
             return success;
         }
 
+        private IEnumerator addsongsFromnewest(ParseState state)
+        {
+            int totalSongs = 0;
+
+            string requestUrl = "https://beatsaver.com/api/songs/new";
+
+            int offset = 0;
+
+            bool found = true;
+
+            while (found && offset < 40) // MaxiumAddScanRange
+            {
+                found = false;
+
+                using (var web = UnityWebRequest.Get($"{requestUrl}/{offset}"))
+                {
+                    yield return web.SendWebRequest();
+                    if (web.isNetworkError || web.isHttpError)
+                    {
+                        Plugin.Log($"Error {web.error} occured when trying to request song {requestUrl}!");
+                        QueueChatMessage($"Invalid BeatSaver ID \"{requestUrl}\" specified.");
+
+                        yield break;
+                    }
+
+                    JSONNode result = JSON.Parse(web.downloadHandler.text);
+                    if (result["songs"].IsArray && result["total"].AsInt == 0)
+                    {
+                        QueueChatMessage($"No results found for request \"{requestUrl}\"");
+
+                        yield break;
+                    }
+
+                    if (result["songs"].IsArray)
+                    {
+                        foreach (JSONObject entry in result["songs"])
+                        {
+                            found = true;
+                            JSONObject song = entry;
+
+                            if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
+
+
+
+                            //if (state.flags.HasFlag(CmdFlags.ToQueue))
+                            QueueSong(state, song);
+
+                            //ProcessSongRequest(requestor, song["version"].Value);
+                            listcollection.add("latest.deck", song["id"].Value);
+                            totalSongs++;
+                        }
+                    }
+                }
+                offset += 20; // Magic beatsaver.com skip constant.
+            }
+
+            if (totalSongs == 0)
+            {
+                QueueChatMessage($"No new songs found.");
+            }
+            else
+            {
+                #if UNRELEASED
+                QueueChatMessage($"Added {totalSongs} to latest.deck");                
+                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest");
+                #endif
+
+                UpdateRequestUI();
+                _refreshQueue = true;
+
+            }
+            yield return null;
+        }
+
+        // General search version
+        private IEnumerator addsongs(ParseState state)
+        {
+            int totalSongs = 0;
+
+            bool isBeatSaverId = _digitRegex.IsMatch(state.parameter) || _beatSaverRegex.IsMatch(state.parameter);
+
+            string requestUrl = isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
+
+            using (var web = UnityWebRequest.Get($"{requestUrl}/{state.parameter}"))
+            {
+                yield return web.SendWebRequest();
+                if (web.isNetworkError || web.isHttpError)
+                {
+                    Plugin.Log($"Error {web.error} occured when trying to request song {state.parameter}!");
+                    QueueChatMessage($"Invalid BeatSaver ID \"{state.parameter}\" specified.");
+
+                    yield break;
+                }
+
+                JSONNode result = JSON.Parse(web.downloadHandler.text);
+                if (result["songs"].IsArray && result["total"].AsInt == 0)
+                {
+                    QueueChatMessage($"No results found for request \"{state.parameter}\"");
+
+                    yield break;
+                }
+                JSONObject song;
+
+                if (result["songs"].IsArray)
+                {
+                    int count = 0;
+                    foreach (JSONObject entry in result["songs"])
+                    {
+                        song = entry;
+
+                        //if (filtersong(song)) continue;
+                        if (IsInQueue(song["id"].Value)) continue;
+                        QueueSong(state, song);
+                        count++;
+                        totalSongs++; ;
+                    }
+                }
+                else
+                {
+                    song = result["song"].AsObject;
+
+                    QueueSong(state, song);
+                    totalSongs++;
+                }
+
+                UpdateRequestUI();
+                _refreshQueue = true;
+
+                yield return null;
+            }
+        }
+
+
+        public static void QueueSong(ParseState state, JSONObject song)
+        {
+            if ((state.flags.HasFlag(CmdFlags.MoveToTop)))
+                RequestQueue.Songs.Insert(0, new SongRequest(song, state.user, DateTime.UtcNow, RequestStatus.SongSearch, "search result"));
+            else
+                RequestQueue.Songs.Add(new SongRequest(song, state.user, DateTime.UtcNow, RequestStatus.SongSearch, "search result"));
+        }
+
+
+
         #region Move Request To Top/Bottom
 
         private void MoveRequestToTop(TwitchUser requestor, string request)

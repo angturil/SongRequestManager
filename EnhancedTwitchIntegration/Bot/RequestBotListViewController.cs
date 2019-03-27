@@ -27,123 +27,6 @@ namespace SongRequestManager
     public class RequestBotListViewController : CustomListViewController
     {
 
-        public class MyButton
-        {
-            static List<MyButton> mybuttons = new List<MyButton>();
-            public static RectTransform container = null;
- 
-            // add buttons to container
-            public static void AddButtons ()
-                {
-
-                // BUG: Prototype GARBAGE code. To be replaced as soon as the core ideas are tested
-
-                if (container == null) return;
-
-               // Bounding box
-                float x1 = -17.5f - 20f;
-                float y1 = 27.5f;
-                float x2 = 0;
-                //float y2 = 30f;
-
-                float padding = 0.6f;
-
-                var list = RequestBot.listcollection.OpenList("ViewButton.script");
-                float y = y1;
-                float x = x1;
-
-                int l = 0;
-                foreach (string line in list.list)
-                {
-                    string[] entry = line.Split(new char[] { ';' });
-                    if (entry.Length > 1 && entry[0].Length > 0)
-                    {
-                        float width = 40f;
-                        if (entry.Length > 2) float.TryParse(entry[2], out width);
-
-                        if (x + width * 0.45f > x2)
-                        {
-                            y -= 5 + padding;
-                            x = x1;
-                        }
-
-                        var dt = new RequestBot.DynamicText();
-
-                        Color color = Color.blue;
-
-                        try // This object may not exist at the time of call
-                        {
-                        dt.AddSong(RequestHistory.Songs[0].song);
-                        if (entry.Length > 3) 
-                            {
-                                string deckname = entry[3].ToLower()+".deck";
-                                if (RequestBot.listcollection.contains(ref deckname,RequestHistory.Songs[0].song["id"].Value)) color = Color.magenta;
-                            }
-                        }
-                        catch
-                        { }
-                         
-                        string ourtext = dt.Parse(entry[0]);
-
-                        MyButton my;
-
-                        if (l < MyButton.mybuttons.Count)
-                            my = mybuttons[l];
-                        else
-                           my = new MyButton();
-
-                        l++;
-
-                        my.SetMyButton(x + width * 0.45f / 2, y, width,color, dt.Parse(entry[0]), entry[1], container);
-                        x += width * 0.45f + padding;
-                    }
-                    else
-                    {
-                        y -= 7f;
-                        x = x1;
-                    }
-                }
-
-            }
-
-            Button mybutton;
-
-            public MyButton()
-                {
-                
-                mybutton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "BuyPackButton")), container, false);
-                mybuttons.Add(this);
-                }
-            public void SetMyButton(float x1,float y1, float width,Color color,string text,string action,RectTransform container)
-                {
-                TMP_Text txt = mybutton.GetComponentInChildren<TMP_Text>();
-
-                mybutton.ToggleWordWrapping(false);
-                (mybutton.transform as RectTransform).anchoredPosition = new Vector2(x1, y1);
-                (mybutton.transform as RectTransform).sizeDelta = new Vector2(width, 10);
-                //(mybutton.transform).localRotation = new Quaternion(0.0f, 0.2f, 0.0f, 0.0f);
-                mybutton.transform.localScale = new Vector3(0.45f, 0.45f, 1.0f);
-                mybutton.SetButtonTextSize(5f);
-                mybutton.SetButtonText(text);
-                mybutton.GetComponentInChildren<Image>().color = color;
-
-
-                txt.autoSizeTextContainer = true;
-                //txt.ForceMeshUpdate();
-                //txt.UpdateVertexData();
-
-                //(mybutton.transform as RectTransform).sizeDelta = txt.rectTransform.sizeDelta;
-
-                mybutton.onClick.RemoveAllListeners();
-
-                mybutton.onClick.AddListener(delegate ()        
-                {
-                    RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, action);
-                    RequestBotListViewController.Instance.UpdateRequestUI(true);
-                });
-                HoverHint _MyHintText = BeatSaberUI.AddHintText(mybutton.transform as RectTransform, action);
-            }
-        }
 
         public static RequestBotListViewController Instance;
 
@@ -176,10 +59,42 @@ namespace SongRequestManager
         private bool isShowingHistory = false;
         private bool confirmDialogActive = false;
 
+        private KEYBOARD CenterKeys;
+
+        string SONGLISTKEY = @"
+[blacklist last]/0'!block/current%CR%'
+
+[fun +]/20'!fun/current/toggle%CR%' [hard +]/20'!hard/current/toggle%CR%'
+[dance +]/20'!dance/current/toggle%CR%' [chill +]/20'!chill/current/toggle%CR%'
+[challenge +]/20'!challenge/current/toggle%CR%'
+
+[Random song!]/0'!decklist draw%CR%'
+
+[clear queue]/30'!clearqueue%CR%'/0#4040FF
+[restore queue]/30'!readdeck savedqueue%CR%'
+";
+
+
         public void Awake()
         {
             Instance = this;
         }
+
+        public void ColorDeckButtons(KEYBOARD kb,Color basecolor,Color Present)
+            {
+            foreach (KEYBOARD.KEY key in kb.keys)
+            foreach (var item in RequestBot.deck)
+                {
+                    string search = $"!{item.Key}/current/toggle";
+                    if (key.value.StartsWith(search))
+                        {
+                        string deckname = item.Key.ToLower() + ".deck";
+                        Color color= (RequestBot.listcollection.contains(ref deckname, RequestHistory.Songs[0].song["id"].Value)) ? Present : basecolor;
+                        key.mybutton.GetComponentInChildren<Image>().color =color;
+                        }
+                }   
+
+            }
 
         static public SongRequest currentsong = null;
         protected override void DidActivate(bool firstActivation, ActivationType type)
@@ -210,12 +125,8 @@ namespace SongRequestManager
 
 #if UNRELEASED
 
-                // BUG: This code is at an extremely early stage.
-                // BUG: Need custom button colors and styles
                 // BUG: Need additional modes disabling one shot buttons
                 // BUG: Need to make sure the buttons are usable on older headsets
-
-
 
                 _CurrentSongName = BeatSaberUI.CreateText(container, "", new Vector2(-35, 37f));
                 _CurrentSongName.fontSize = 3f;
@@ -231,9 +142,9 @@ namespace SongRequestManager
                 _CurrentSongName2.enableWordWrapping = false;
                 _CurrentSongName2.text = "";
 
-                MyButton.container = container; 
-                MyButton.AddButtons();
 
+                CenterKeys = new KEYBOARD(container, SONGLISTKEY,false, -15,15);
+                ColorDeckButtons(CenterKeys, Color.white, Color.magenta);
 
 #endif
 
@@ -375,9 +286,7 @@ namespace SongRequestManager
                 _CurrentSongName.text = RequestHistory.Songs[0].song["songName"].Value;
                 _CurrentSongName2.text = $"{RequestHistory.Songs[0].song["authorName"].Value} ({RequestHistory.Songs[0].song["version"].Value})";
 
-                MyButton.AddButtons();
-
-                //_KeyboardDialog.Present(true);
+                ColorDeckButtons(CenterKeys, Color.white, Color.magenta);
 
             }
             #endif
