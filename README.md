@@ -27,14 +27,14 @@ Needs more documentation
 # Config
 The configuration files are located under UserData\EnhancedTwitchChat. RequestBotSettings.ini and TwitchLoginInfo.ini are the two files you need to adjust. *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values (**NOTE:** You will need to setup your channel info to be able to receive song requests.)
 
-# # TwitchLoginInfo.ini
+# TwitchLoginInfo.ini
 | Option | Description |
 | - | - |
 | **TwitchChannelName** | The name of the Twitch channel whos chat you want to join (this is your Twitch username if you want to join your own channel) |
 | **TwitchUsername** | Your twitch username for the account you want to send messages as in chat (only matters if you're using the request bot) |
 | **TwitchOAuthToken** | The oauth token corresponding to the TwitchUsername entered above ([Click here to generate an oauth token](https://twitchapps.com/tmi/))  |
 
-RequestBotSettings.ini
+# RequestBotSettings.ini
 | Option | Description |
 | - | - |
 | **RequestBotEnabled** | When set to true, users can make song requests in chat. |
