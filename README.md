@@ -38,10 +38,13 @@ The configuration files are located under UserData\EnhancedTwitchChat. RequestBo
 | Option | Description |
 | - | - |
 | **RequestBotEnabled** | When set to true, users can make song requests in chat. |
-| **UserRequestLimit=2 | Number of simulataneous song requests in the queue per tier
-| **SubRequestLimit=5 |
-| **ModRequestLimit=10 |
-| **VipBonusRequests=1 | VIP's are treated as a bonus over their regular level. A non subbed VIP would get 3 song requests.
+| **UserRequestLimit=2** | Number of simulataneous song requests in the queue per tier
+| **SubRequestLimit=5** |
+| **ModRequestLimit=10** |
+| **VipBonusRequests=1** | VIP's are treated as a bonus over their regular level. A non subbed VIP would get 3 song requests.
+| **SessionResetAfterXHours=6** | Amount of time after session ENDS before your Duplicate song list and Played list are reset.
+| **LowestAllowedRating=40** | Lowest allowed rating (as voted on [BeatSaver.com](on https://Beatsaver.com)) permitted. Unrated songs get a pass.
+
 
 # Compiling
 To compile this mod simply clone the repo and update the project references to reference the corresponding assemblies in the `Beat Saber\Beat Saber_Data\Managed` and `Beat Saber\Plugins` folder, then compile. You may need to change the post build event if your Beat Saber directory isn't at the same location as mine.
