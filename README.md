@@ -32,7 +32,7 @@ For the rest of the config options, you will have to manually edit the config fi
 | **TwitchChannelName** | The name of the Twitch channel whos chat you want to join (this is your Twitch username if you want to join your own channel) |
 | **TwitchUsername** | Your twitch username for the account you want to send messages as in chat (only matters if you're using the request bot) |
 | **TwitchOAuthToken** | The oauth token corresponding to the TwitchUsername entered above ([Click here to generate an oauth token](https://twitchapps.com/tmi/))  |
-| **SongRequestBot** | When set to true, users can make song requests in chat. |
+| **RequestBotEnabled** | When set to true, users can make song requests in chat. |
 
 # Compiling
 To compile this mod simply clone the repo and update the project references to reference the corresponding assemblies in the `Beat Saber\Beat Saber_Data\Managed` folder, then compile. You may need to change the post build event if your Beat Saber directory isn't at the same location as mine.
