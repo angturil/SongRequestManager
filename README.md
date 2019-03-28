@@ -37,8 +37,8 @@ The configuration files are located under UserData\EnhancedTwitchChat. RequestBo
 # RequestBotSettings.ini
 | Option | Description |
 | - | - |
-| ** PersistentRequestQueue=True ** | Resets the queue at the start of session - this will soon change to reset the queue after session reset, like the duplicate and played lists. |
-| RequestHistoryLimit=100 | How many entries are key in the history list of songs that you've already played/skipped |
+| **PersistentRequestQueue=True** | Resets the queue at the start of session - this will soon change to reset the queue after session reset, like the duplicate and played lists. |
+| **RequestHistoryLimit=100** | How many entries are key in the history list of songs that you've already played/skipped |
 | **RequestBotEnabled** | When set to true, users can make song requests in chat. |
 | **UserRequestLimit=2** | Number of simulataneous song requests in the queue per tier
 | **SubRequestLimit=5** |
@@ -46,10 +46,10 @@ The configuration files are located under UserData\EnhancedTwitchChat. RequestBo
 | **VipBonusRequests=1** | VIP's are treated as a bonus over their regular level. A non subbed VIP would get 3 song requests.
 | **SessionResetAfterXHours=6** | Amount of time after session ENDS before your Duplicate song list and Played list are reset.
 | **LowestAllowedRating=40** | Lowest allowed rating (as voted on [BeatSaver.com](on https://Beatsaver.com)) permitted. Unrated songs get a pass.|
-| ** AutopickFirstSong=False ** | If on, will simply pick the first song. Otherwise, the recommended method shows a list of possible songs that match your search. Careful use of Block and Remap will make this method more effective over time |
-| ** UpdateQueueStatusFiles=True ** | Enables the generation of queuestatus.txt and queuelist.txt. Use StreamOBS' Text (GDI+) option to display your queue status and list on your live stream! |
-| ** MaximumQueueTextEntries=8 ** | How many entries are sent to the queuelist.txt file. Any entries beyond that will display a ... |
-| ** BotPrefix ="" ** | This adds a prefix to all bot output, set it to "! " to allow filtering of all bot output by TTS or Enhanced Twitch chat. You can use other means like filtering by name to achiveve this |
+| **AutopickFirstSong=False** | If on, will simply pick the first song. Otherwise, the recommended method shows a list of possible songs that match your search. Careful use of Block and Remap will make this method more effective over time |
+| **UpdateQueueStatusFiles=True** | Enables the generation of queuestatus.txt and queuelist.txt. Use StreamOBS' Text (GDI+) option to display your queue status and list on your live stream! |
+| **MaximumQueueTextEntries=8** | How many entries are sent to the queuelist.txt file. Any entries beyond that will display a ... |
+| **BotPrefix =""** | This adds a prefix to all bot output, set it to "! " to allow filtering of all bot output by TTS or Enhanced Twitch chat. You can use other means like filtering by name to achiveve this |
 
 
 # Compiling
