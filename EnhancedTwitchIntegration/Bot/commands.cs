@@ -111,40 +111,16 @@ namespace SongRequestManager
         {
             #region Command declarations
             /*
-               Prototype of new calling convention for adding new commands.
-
-                new COMMAND("command").Action(Routine).Help(Broadcasteronly, "usage: %alias", _anything);
-                new COMMAND("command").Action(Routine);
-
-                Note: Default permissions are broadcaster only, so don't need to set them
-
                 *VERY IMPORTANT*
  
                 The Command name or FIRST alias in the alias list is considered the Base name of the command, and absolutely should not be changed through code. Choose this first name wisely.
                 We use the Base name to allow user command Customization, it is how the command is identified to the user. You can alter the alias list of the commands in 
-                the command configuration file (botcommands.ini).
+                the command configuration file (srmcommands.ini).
  
-                The file format is as follows:
-                
-                <Base commandname>/alias < alias(s) /rights < command flags > /help Help text
-
-                You only need to change the parts that you wish to modify. Leaving a section out, or black will result in it being ignored. The order of the sections is enforced.
-                Do NOT put help before rights, for example. This is done to avoid future confusion, and to allow the Save code to maintain a consistent result. Help text MUST always
-                be at the end, since they can include the description of themselves (including the /Help part). If new sections are added, they must come before /help
-                Command lines with errors will be displayed,possibly ignored. Section names are case sensitive - to avoid ambiguity with aliases that they describe which should be lowercase.
- 
-                Comments in the file are preceded by // I intend to display the full file content at the bottom as comments
-
-                Examples:
-
-                request/Alias request bsr add sr /Flags Mod Sub VIP Broadcaster /Help New help text for request 
-                queue/Alias queue,requested 
-                block/Alias block,Ban /Help We didn't change permissions   
-
             */
 
 
-            new COMMAND(new string[] { "!request", "!bsr", "!add", "!sr" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
+            new COMMAND(new string[] { "!request", "!bsr", "!add", "!sr","!srm" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
             new COMMAND(new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
             new COMMAND("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias%|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
@@ -650,10 +626,10 @@ namespace SongRequestManager
                 }
 
            // BUG: This is pass 1, refactoring will get done eventually.
-           public static void CommandConfiguration(string configfilename="botcommands")
+           public static void CommandConfiguration(string configfilename="srmcommands")
                 {
 
-                //RequestBot.Instance.QueueChatMessage($"Reading {configfilename}");
+                var UserSettings = new StringBuilder();
 
                 var filename = Path.Combine(datapath, configfilename + ".ini");
 
@@ -667,7 +643,26 @@ namespace SongRequestManager
                     if (!unique.ContainsKey(BaseKey)) unique.Add(BaseKey, alias.Value); // Create a sorted dictionary of each unique command object
                     }
 
-                commandsummary.Append("// This section contains ONLY commands that have changed.\r\n\r\n");
+                commandsummary.Append("\r\n");
+                commandsummary.Append("// This is a summary of the current command states, these are for reference only. Use the uncommented section for your changes.\r\n\r\n");
+
+                foreach (var entry in unique)
+                {
+                    var command = entry.Value;
+
+                    if (command.Flags.HasFlag(CmdFlags.Dynamic) || command.Flags.HasFlag(CmdFlags.Subcommand)) continue; // we do not allow customization of Subcommands or dynamic commands at this time
+
+                    var cmdname = command.aliases[0];
+                    cmdname += new string(' ', 20 - cmdname.Length);
+
+                    if (command.Flags.HasFlag(CmdFlags.Variable))
+                        commandsummary.Append($"// {cmdname}= {command.userParameter.ToString()}\r\n");
+                    else
+                        commandsummary.Append($"// {cmdname}= /alias {command.GetAliases()} /flags {command.GetFlags()} /sethelp {command.GetHelpText()}\r\n");
+
+                }
+
+                UserSettings.Append("// This section contains ONLY commands that have changed.\r\n\r\n");
 
                 try
                 {
@@ -680,68 +675,51 @@ namespace SongRequestManager
                             line.Trim(' ');
                             if (line.Length < 2 || line.StartsWith("//")) continue;
 
+                            UserSettings.Append(line).Append("\r\n");
                             // MAGICALLY configure the customized commands 
 
-                            if (line[0] != '!') line = '!' + line; // Insert the ! if needed.
+                            //if (line[0] != '!') line = '!' + line; // Insert the ! if needed.
                             COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser,line,CmdFlags.SilentResult);
 
                         }
+                        sr.Close();
                     }
+                    
                 }
                 catch       
                 {
                 // If it doesn't exist, or ends early, that's fine.
                 }
 
-                if (!File.Exists(filename))               
-                    {
-                    RequestBot.Instance.QueueChatMessage($"Creating {filename}");
+                   UserSettings.Append(commandsummary.ToString());
 
-                    commandsummary.Append("\r\n");
-                    commandsummary.Append("// This is a summary of the current command states, these are for reference only. Use the uncommented section for your changes.\r\n\r\n");
-
-                    foreach (var entry in unique)
-                    {
-                        var command = entry.Value;
-
-                        if (command.Flags.HasFlag(CmdFlags.Dynamic) || command.Flags.HasFlag(CmdFlags.Subcommand)) continue; // we do not allow customization of Subcommands or dynamic commands at this time
-
-                        var cmdname = command.aliases[0];
-                        cmdname += new string(' ', 20 - cmdname.Length);
-
-                        if (command.Flags.HasFlag(CmdFlags.Variable))
-                            commandsummary.Append($"// {cmdname}= {command.userParameter.ToString()}\r\n");
-                        else
-                            commandsummary.Append($"// {cmdname}= /alias {command.GetAliases()} /flags {command.GetFlags()} /sethelp {command.GetHelpText()}\r\n");
-                    }
 
                     // BUG: Ok, we should probably just use a text file. But I very 
 
-                    commandsummary.Append(
-                    @"
-                    // The Command name or FIRST alias in the alias list is considered the Base name of the command, and absolutely should not be changed through code. Choose this first name wisely
-                    // We use the Base name to allow user command Customization, it is how the command is identified to the user. You can alter the alias list of the commands in
-                    // the command configuration file(botcommands.ini).
- 
-                    // The file format is as follows:
-  
-                    // < Base commandname > /alias < alias(s) /flags < command flags > /sethelp Help text
-            
-                    // You only need to change the parts that you wish to modify. Leaving a section out, or blank will result in it being ignored.
-                    // /sethelp MUST be the last section, since it allows command text with /'s, up to and including help messages for /sethelp.
-                    // Command lines with errors will be displayed, possibly ignored. 
-                    
-                    // Examples:
-                   
-                    // request /alias request bsr add sr /flags Mod Sub VIP Broadcaster /sethelp New help text for request
-                    // queue /alias queue, requested
-                    // block /alias block, Ban 
-                    // lookup /disable
+                    UserSettings.Append(
+@"//
+// The Command name or FIRST alias in the alias list is considered the Base name of the command, and absolutely should not be changed through code. Choose this first name wisely
+// We use the Base name to allow user command Customization, it is how the command is identified to the user. You can alter the alias list of the commands in
+// the command configuration file(botcommands.ini).
+// 
+// The file format is as follows:
+//  
+// < !Base commandname > /alias < alias(s) /flags < command flags > /sethelp Help text
+//            
+// You only need to change the parts that you wish to modify. Leaving a section out, or blank will result in it being ignored.
+// /sethelp MUST be the last section, since it allows command text with /'s, up to and including help messages for /sethelp.
+// Command lines with errors will be displayed, possibly ignored. 
+//                    
+// Examples:
+//                   
+// !request /alias request bsr add sr /flags Mod Sub VIP Broadcaster /sethelp New help text for request
+// !queue /alias queue, requested
+// !block /alias block, Ban 
+// !lookup /disable
+//");
 
-                    ");
-
-                    File.WriteAllText(filename, commandsummary.ToString());
-                }
+                    File.WriteAllText(filename, UserSettings.ToString());
+                
             }
 
 
