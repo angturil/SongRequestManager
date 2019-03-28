@@ -19,7 +19,7 @@ Enhanced Twitch Chat depends on [EnhancedTwitchChat](https://www.modsaber.org/mo
 Copy SongRequestManager.dll to your Beat Saber\Plugins folder, and install all of its dependencies. That's it!
 
 # Usage
-All you need to enter is the channel name which you want to join (see the `Setup` section below), the chat will show up to your right in game, and you can move it by pointing at it with the laser from your controller and grabbing it with the trigger. You can also move the chat towards you and away from you by pressing up and down on the analog stick or trackpad on your controller. Finally, you can use the lock button in the corner of the chat to lock the chat position in place so you don't accidentally move it.
+A song request icon will appear on the upper right of the main menu. It will be green if there are song requests in the queue, but you can press it regardless. Don't forget to Open the queue for requests when you are ready. It will stay that way until you close it again. The Open Queue button is on the lower right of the song request panel.
 
 # Setup
 Needs more documentation
