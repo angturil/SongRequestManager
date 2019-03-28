@@ -64,16 +64,14 @@ namespace SongRequestManager
         string SONGLISTKEY = @"
 [blacklist last]/0'!block/current%CR%'
 
-[fun +]/20'!fun/current/toggle%CR%' [hard +]/20'!hard/current/toggle%CR%'
-[dance +]/20'!dance/current/toggle%CR%' [chill +]/20'!chill/current/toggle%CR%'
-[challenge +]/20'!challenge/current/toggle%CR%'
+[fun +]/25'!fun/current/toggle%CR%' [hard +]/25'!hard/current/toggle%CR%'
+[dance +]/25'!dance/current/toggle%CR%' [chill +]/25'!chill/current/toggle%CR%'
+[challenge +]/25'!challenge/current/toggle%CR%'
 
-[Random song!]/0'!decklist draw%CR%'
+[rock +]/25'!rock/current/toggle%CR%' [metal +]/25'!metal/current/toggle%CR%'  
+[anime +]/25'!anime/current/toggle%CR%' [kpop +]/25'!kpop/current/toggle%CR%' 
 
-[clear queue]/30'!clearqueue%CR%'/0#4040FF
-[restore queue]/30'!readdeck savedqueue%CR%'
-";
-
+[Random song!]/0'!decklist draw%CR%'";
 
         public void Awake()
         {

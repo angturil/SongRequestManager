@@ -1,6 +1,14 @@
 # Mod Info
 Song Request Manager is an integrated, fully Customizable song request bot and Console for BeatSaber. It started life as an extensive rewrite of the built in song request bot in https://github.com/brian91292/BeatSaber-EnhancedTwitchChat, but quickly grew in scope and features. Its now a separate but dependent module. We just split from Enhanced twitch chat.
 
+# TTS Notes
+If you're using TTS, you'll want to reduce the amount of spam the bot produces. You can do this a number of ways. Filtering out your Name from TTS, or 
+```
+in RequestBotSettings.ini
+BotPrefix="! "
+```
+then filter out the ! lines on your tts client.
+
 # Features
 Completely customizable, Full featured song request bot for Beatsaber, currently supports Twitch. 
 Over 80 commands, all with custom help, permissions and customization options.
@@ -32,7 +40,7 @@ For the rest of the config options, you will have to manually edit the config fi
 | **TwitchChannelName** | The name of the Twitch channel whos chat you want to join (this is your Twitch username if you want to join your own channel) |
 | **TwitchUsername** | Your twitch username for the account you want to send messages as in chat (only matters if you're using the request bot) |
 | **TwitchOAuthToken** | The oauth token corresponding to the TwitchUsername entered above ([Click here to generate an oauth token](https://twitchapps.com/tmi/))  |
-| **SongRequestBot** | When set to true, users can make song requests in chat. |
+| **RequestBotEnabled** | When set to true, users can make song requests in chat. |
 
 # Compiling
 To compile this mod simply clone the repo and update the project references to reference the corresponding assemblies in the `Beat Saber\Beat Saber_Data\Managed` and `Beat Saber\Plugins` folder, then compile. You may need to change the post build event if your Beat Saber directory isn't at the same location as mine.

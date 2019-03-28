@@ -12,7 +12,7 @@ namespace SongRequestManager
     public class Plugin : IPlugin
     {
         public string Name => "SongRequestManager";
-        public string Version => "1.0.0";
+        public string Version => "1.3.0";
 
 
         public bool IsAtMainMenu = true;
@@ -26,7 +26,7 @@ namespace SongRequestManager
                         [CallerMemberName] string member = "",
                         [CallerLineNumber] int line = 0)
         {
-            Console.WriteLine($"[EnhancedTwitchChat] {DateTime.UtcNow} {Path.GetFileName(file)}->{member}({line}): {text}");
+            Console.WriteLine($"[SongRequestManager] {DateTime.UtcNow} {Path.GetFileName(file)}->{member}({line}): {text}");
         }
 
         public void OnApplicationStart()
@@ -38,11 +38,7 @@ namespace SongRequestManager
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;
         }
 
-#if OLDVERSION
-        static string MenuSceneName = "Menu";
-#else
         static string MenuSceneName = "MenuCore";
-#endif
         
         private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {

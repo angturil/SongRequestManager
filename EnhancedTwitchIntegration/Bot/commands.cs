@@ -174,7 +174,7 @@ namespace SongRequestManager
             new COMMAND("!clearalreadyplayed").Action(ClearDuplicateList).Help(Broadcaster, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
             new COMMAND("!restore").Action(restoredeck).Help(Broadcaster, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
 
-            new COMMAND("!about").Help(Everyone, $"EnhancedTwitchChat Bot version {Plugin.Instance.Version}. Developed by brian91292 and angturil. Find us on github.", _fail); // Help commands have no code
+            new COMMAND("!about").Help(Everyone, $"Song Request Manager version {Plugin.Instance.Version}. Github angturil/SongRequestManager", _fail); // Help commands have no code
             new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
             new COMMAND("!commandlist").Action(showCommandlist).Help(Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
@@ -186,15 +186,7 @@ namespace SongRequestManager
 
             new COMMAND("!formatlist").Action(showFormatList).Help(Broadcaster, "Show a list of all the available customizable text format strings. Use caution, as this can make the output of some commands unusable. You can use /default to return a variable to its default setting.");
 
-            new COMMAND("AddSongToQueueText", AddSongToQueueText); // These variables are bound due to class reference assignment
-            new COMMAND("LookupSongDetail", LookupSongDetail);
-            new COMMAND("BsrSongDetail", BsrSongDetail);
-            new COMMAND("LinkSonglink", LinkSonglink);
-            new COMMAND("NextSonglink", NextSonglink);
-            new COMMAND("SongHintText", SongHintText);
-            new COMMAND("QueueTextFileFormat", QueueTextFileFormat);
-            new COMMAND("QueueListFormat", QueueListFormat);
-            new COMMAND("HistoryListFormat", HistoryListFormat);
+
             new COMMAND("!songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|% Assign a message to a songid, which will be visible to the player during song selection.", _atleast1);
 
             new COMMAND("!addsongs").Coroutine(addsongs).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria (up to 40) to the queue", _atleast1);
@@ -256,6 +248,19 @@ namespace SongRequestManager
 
 #endif
             #endregion
+
+            #region Text Format fields
+            new COMMAND("AddSongToQueueText", AddSongToQueueText); // These variables are bound due to class reference assignment
+            new COMMAND("LookupSongDetail", LookupSongDetail);
+            new COMMAND("BsrSongDetail", BsrSongDetail);
+            new COMMAND("LinkSonglink", LinkSonglink);
+            new COMMAND("NextSonglink", NextSonglink);
+            new COMMAND("SongHintText", SongHintText);
+            new COMMAND("QueueTextFileFormat", QueueTextFileFormat);
+            new COMMAND("QueueListFormat", QueueListFormat);
+            new COMMAND("HistoryListFormat", HistoryListFormat);
+            #endregion
+
             #region SUBCOMMAND Declarations
             // BEGIN SUBCOMMANDS - these modify the Properties of a command, or the current parse state. 
             // sub commands need to have at least one alias that does not begin with an illegal character, or you will not be able to alter them in twitch chat
@@ -690,7 +695,7 @@ namespace SongRequestManager
 
                 if (!File.Exists(filename))               
                     {
-                    RequestBot.Instance.QueueChatMessage($"Creating {filename}.ini");
+                    RequestBot.Instance.QueueChatMessage($"Creating {filename}");
 
                     commandsummary.Append("\r\n");
                     commandsummary.Append("// This is a summary of the current command states, these are for reference only. Use the uncommented section for your changes.\r\n\r\n");
@@ -704,7 +709,10 @@ namespace SongRequestManager
                         var cmdname = command.aliases[0];
                         cmdname += new string(' ', 20 - cmdname.Length);
 
-                        commandsummary.Append($"// {cmdname}= /alias {command.GetAliases()} /flags {command.GetFlags()} /sethelp {command.GetHelpText()}\r\n");
+                        if (command.Flags.HasFlag(CmdFlags.Variable))
+                            commandsummary.Append($"// {cmdname}= {command.userParameter.ToString()}\r\n");
+                        else
+                            commandsummary.Append($"// {cmdname}= /alias {command.GetAliases()} /flags {command.GetFlags()} /sethelp {command.GetHelpText()}\r\n");
                     }
 
                     // BUG: Ok, we should probably just use a text file. But I very 
