@@ -10,7 +10,20 @@ BotPrefix="! "
 then filter out the ! lines on your tts client.
 
 # Features
-Documentation needs work. Type !help.
+```
+  Full featured request bot with over 60 commands, and growing.
+  Completely customizable, Every commmand can have multiple aliases, permissions and custom help text.
+  Advanced filtering with Banlists, remapping, rating filters, mapper lists, and more.
+  Display your song request queue and status directly on the stream.
+  Different request limits based on the users subscription level.
+  A rich text of moderator commands to manage the queue.
+  An ingame console allowing the player to play the requested songs without having to search or downnload.
+  A full featured twitch keyboard allowing interaction with twitch chat!
+  Direct search of song directly from the console, without ever having to exit to song browser or downloader.
+  Pick and play any of the latest 40 posted songs off Beatsaver.com 
+  
+  Many more features are being tested and will be released soon!.
+```
   
 # Dependencies
 Enhanced Twitch Chat depends on [EnhancedTwitchChat](https://www.modsaber.org/mod/enhancedtwitchchat), [CustomUI](https://www.modsaber.org/mod/customui/), [SongLoader](https://www.modsaber.org/mod/song-loader/), and [AsyncTwitch](https://www.modsaber.org/mod/asynctwitchlib/). Make sure to install them, or Song Request Manager Chat won't work!
