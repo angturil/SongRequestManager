@@ -27,12 +27,21 @@ Needs more documentation
 # Config
 The configuration files are located under UserData\EnhancedTwitchChat. RequestBotSettings.ini and TwitchLoginInfo.ini are the two files you need to adjust. *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values (**NOTE:** You will need to setup your channel info to be able to receive song requests.)
 
+# # TwitchLoginInfo.ini
 | Option | Description |
 | - | - |
 | **TwitchChannelName** | The name of the Twitch channel whos chat you want to join (this is your Twitch username if you want to join your own channel) |
 | **TwitchUsername** | Your twitch username for the account you want to send messages as in chat (only matters if you're using the request bot) |
 | **TwitchOAuthToken** | The oauth token corresponding to the TwitchUsername entered above ([Click here to generate an oauth token](https://twitchapps.com/tmi/))  |
+
+RequestBotSettings.ini
+| Option | Description |
+| - | - |
 | **RequestBotEnabled** | When set to true, users can make song requests in chat. |
+| **UserRequestLimit=2 | Number of simulataneous song requests in the queue per tier
+| **SubRequestLimit=5 |
+| **ModRequestLimit=10 |
+| **VipBonusRequests=1 | VIP's are treated as a bonus over their regular level. A non subbed VIP would get 3 song requests.
 
 # Compiling
 To compile this mod simply clone the repo and update the project references to reference the corresponding assemblies in the `Beat Saber\Beat Saber_Data\Managed` and `Beat Saber\Plugins` folder, then compile. You may need to change the post build event if your Beat Saber directory isn't at the same location as mine.
