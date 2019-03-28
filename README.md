@@ -1,6 +1,14 @@
 # Mod Info
 Song Request Manager is an integrated, fully Customizable song request bot and Console for BeatSaber. It started life as an extensive rewrite of the built in song request bot in https://github.com/brian91292/BeatSaber-EnhancedTwitchChat, but quickly grew in scope and features. Its now a separate but dependent module. 
 
+#TTS Notes
+If you're using TTS, you'll want to reduce the amount of spam the bot produces. You can do this a number of ways. Filtering out your Name from TTS, or 
+```
+in RequestBotSettings.ini
+BotPrefix="! "
+```
+then filter out the ! lines on your tts client.
+
 # Features
 Documentation needs work. Type !help.
   
