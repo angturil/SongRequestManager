@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace SongRequestManager.Config
 {
@@ -12,11 +13,6 @@ namespace SongRequestManager.Config
     {
         private string FilePath = Path.Combine(Globals.DataPath, "RequestBotSettings.ini");
 
-        //public string RequestCommandAliases = "request,bsr,add,sr";
-
-#if !REQUEST_BOT
-        public string SongBlacklist = "";
-#endif
         
         public bool RequestQueueOpen = true;
         public bool PersistentRequestQueue = true;
@@ -28,11 +24,9 @@ namespace SongRequestManager.Config
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
         public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
-        //public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
+        public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
 
-        #if UNRELEASED
         public string DeckList = "fun hard challenge dance chill";
-        #endif
 
         public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
@@ -67,22 +61,28 @@ namespace SongRequestManager.Config
         {
             Instance = this;
 
-            if (!Directory.Exists(Path.GetDirectoryName(FilePath)))
-                Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
-
-            if (File.Exists(FilePath))
-            {
-                Load();
-            }
-            Save();
-
             _configWatcher = new FileSystemWatcher(Path.GetDirectoryName(FilePath))
             {
                 NotifyFilter = NotifyFilters.LastWrite,
                 Filter = "RequestBotSettings.ini",
                 EnableRaisingEvents = true
             };
-            _configWatcher.Changed += ConfigWatcherOnChanged;
+
+            Task.Run(() =>
+            {
+                while (!Directory.Exists(Path.GetDirectoryName(FilePath)))
+                    Thread.Sleep(100);
+
+                Plugin.Log("FilePath exists! Continuing initialization!");
+
+                if (File.Exists(FilePath))
+                {
+                    Load();
+                }
+                Save();
+
+                _configWatcher.Changed += ConfigWatcherOnChanged;
+            });
         }
 
         ~RequestBotConfig()
