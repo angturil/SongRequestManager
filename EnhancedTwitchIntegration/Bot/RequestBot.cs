@@ -1,11 +1,9 @@
 ﻿
 using CustomUI.BeatSaber;
-using EnhancedTwitchChat.Chat;
-using EnhancedTwitchChat.Textures;
-using EnhancedTwitchChat.UI;
-using EnhancedTwitchChat.Utils;
+using StreamCore.Chat;
+using StreamCore.Utils;
 using HMUI;
-using EnhancedTwitchChat.SimpleJSON;
+using StreamCore.SimpleJSON;
 
 using SongLoaderPlugin.OverrideClasses;
 using System;
@@ -31,7 +29,7 @@ using VRUI;
 using Image = UnityEngine.UI.Image;
 using Toggle = UnityEngine.UI.Toggle;
 using TMPro;
-using EnhancedTwitchChat.Config;
+using StreamCore.Config;
 using SongRequestManager.Config;
 using SongLoaderPlugin;
 
@@ -101,7 +99,7 @@ namespace SongRequestManager
 
                 _requestButton.ToggleWordWrapping(false);
                 _requestButton.SetButtonTextSize(2.0f);
-                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, $"{(!RequestBotConfig.Instance.RequestBotEnabled ? "To enable the song request bot, look in the Enhanced Twitch Chat settings menu." : "Manage the current request queue")}");
+                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, "Manage the current request queue");
 
                 UpdateRequestUI();
                 Plugin.Log("Created request button!");
@@ -247,7 +245,7 @@ namespace SongRequestManager
             UpdateRequestUI();
             InitializeCommands();
 
-            EnhancedTwitchChat.ChatHandler.ChatMessageFilters += MyChatMessageHandler;
+            //EnhancedTwitchChat.ChatHandler.ChatMessageFilters += MyChatMessageHandler;
 
 
             COMMAND.CommandConfiguration();
@@ -257,7 +255,7 @@ namespace SongRequestManager
             StartCoroutine(ProcessRequestQueue());
             StartCoroutine(ProcessBlacklistRequests());
 
-            MessageHandlers.PRIVMSG += PRIVMSG;
+            TwitchMessageHandlers.PRIVMSG += PRIVMSG;
 
 
 
@@ -274,8 +272,7 @@ namespace SongRequestManager
 
         private void PRIVMSG(TwitchMessage msg)
           {
-          if (RequestBotConfig.Instance.RequestBotEnabled)
-              RequestBot.COMMAND.Parse(msg.user, msg.message);
+            RequestBot.COMMAND.Parse(msg.user, msg.message);
         }
 
         private void OnConfigChangedEvent(RequestBotConfig config)
@@ -422,7 +419,7 @@ namespace SongRequestManager
                 TwitchWebSocketClient.SendMessage(message);
                 TwitchMessage tmpMessage = new TwitchMessage();
                 tmpMessage.user = TwitchWebSocketClient.OurTwitchUser;
-                MessageParser.Parse(new ChatMessage(message, tmpMessage));
+                //MessageParser.Parse(new ChatMessage(message, tmpMessage)); // This call is obsolete, when sending a message through TwitchWebSocketClient, the message should automatically appear in chat.
             }
             catch (Exception e)
             {
@@ -664,9 +661,9 @@ namespace SongRequestManager
                 if (writeSummary)
                     WriteQueueSummaryToFile(); // Write out queue status to file, do it first
 
-                _requestButton.interactable = RequestBotConfig.Instance.RequestBotEnabled;
+                _requestButton.interactable = true;
 
-                if (RequestQueue.Songs.Count == 0 || !RequestBotConfig.Instance.RequestBotEnabled)
+                if (RequestQueue.Songs.Count == 0)
                 {
                     _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
                 }

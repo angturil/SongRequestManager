@@ -16,8 +16,7 @@ namespace SongRequestManager.Config
 #if !REQUEST_BOT
         public string SongBlacklist = "";
 #endif
-
-        public bool RequestBotEnabled = false;
+        
         public bool RequestQueueOpen = true;
         public bool PersistentRequestQueue = true;
 

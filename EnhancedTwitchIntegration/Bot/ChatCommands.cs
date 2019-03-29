@@ -1,6 +1,6 @@
-﻿using EnhancedTwitchChat.Chat;
-using EnhancedTwitchChat.Config;
-using EnhancedTwitchChat.SimpleJSON;
+﻿using StreamCore.Chat;
+using StreamCore.Config;
+using StreamCore.SimpleJSON;
 using SongRequestManager.Config;
 using System;
 using System.Collections;
