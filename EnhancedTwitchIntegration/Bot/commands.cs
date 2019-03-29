@@ -633,7 +633,7 @@ namespace SongRequestManager
 
                 var UserSettings = new StringBuilder();
 
-                var filename = Path.Combine(SRMData, configfilename + ".ini");
+                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
 
                 SortedDictionary<string, COMMAND> unique = new SortedDictionary<string, COMMAND>();
 
