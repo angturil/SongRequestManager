@@ -302,7 +302,7 @@ namespace SongRequestManager
                     return;
                 }
 
-                string queuefile = Path.Combine(SRMData, request + ".deck");
+                string queuefile = Path.Combine(Globals.DataPath, request + ".deck");
                 StreamWriter fileWriter = new StreamWriter(queuefile);
 
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
@@ -326,7 +326,7 @@ namespace SongRequestManager
         {
             try
             {
-                string queuefile = Path.Combine(SRMData, request + ".deck");
+                string queuefile = Path.Combine(Globals.DataPath, request + ".deck");
                 string fileContent = File.ReadAllText(queuefile);
                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -875,7 +875,7 @@ namespace SongRequestManager
 
             try
             {
-                string statusfile = Path.Combine(RequestBot.SRMData, "queuelist.txt");
+                string statusfile = Path.Combine(Globals.DataPath, "queuelist.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
 
                 string queuesummary = "";
@@ -906,7 +906,7 @@ namespace SongRequestManager
         {
             try
             {
-                string statusfile = Path.Combine(SRMData, "queuestatus.txt");
+                string statusfile = Path.Combine(Globals.DataPath, "queuestatus.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
                 fileWriter.Write(status);
                 fileWriter.Close();
@@ -977,7 +977,7 @@ namespace SongRequestManager
 
             try
             {
-                string remapfile = Path.Combine(SRMData, "remap.list");
+                string remapfile = Path.Combine(Globals.DataPath, "remap.list");
 
                 StreamWriter fileWriter = new StreamWriter(remapfile);
 
@@ -996,7 +996,7 @@ namespace SongRequestManager
 
         private void ReadRemapList()
         {
-            string remapfile = Path.Combine(SRMData, "remap.list");
+            string remapfile = Path.Combine(Globals.DataPath, "remap.list");
 
             try
             {

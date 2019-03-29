@@ -36,7 +36,6 @@ using StreamCore;
 
 namespace SongRequestManager
 {
-
     public partial class RequestBot : MonoBehaviour
     {
         [Flags]
@@ -50,9 +49,6 @@ namespace SongRequestManager
             Wrongsong,
             SongSearch,
         }
-
-
-        public static string SRMData = ""; //"c:\\Beat saber\\userdata\\enhancedtwitchchat";
 
 
         public static RequestBot Instance;
@@ -89,10 +85,8 @@ namespace SongRequestManager
 
         public static string playedfilename = "";
 
-
         public static void OnLoad()
         {
- 
             var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelPackLevelsViewController>().First();
             if (_levelListViewController)
             {
@@ -215,16 +209,10 @@ namespace SongRequestManager
 
         private void Awake()
         {
-
             DontDestroyOnLoad(gameObject);
             Instance = this;
-
-            SRMData = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
-            if (!Directory.Exists(SRMData))
-                Directory.CreateDirectory(SRMData);
-
-
-            playedfilename = Path.Combine(SRMData, "played.json"); // Record of all the songs played in the current session
+            
+            playedfilename = Path.Combine(Globals.DataPath, "played.json"); // Record of all the songs played in the current session
 
             string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
             if (Directory.Exists(filesToDelete))
@@ -235,7 +223,7 @@ namespace SongRequestManager
             if (PlayedAge < TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
 
 
-            string blacklistMigrationFile = Path.Combine(SRMData, "SongBlacklistMigration.list");
+            string blacklistMigrationFile = Path.Combine(Globals.DataPath, "SongBlacklistMigration.list");
             if(File.Exists(blacklistMigrationFile))
             {
                 SongBlacklist.ConvertFromList(File.ReadAllText(blacklistMigrationFile).Split(','));

@@ -46,7 +46,7 @@ namespace SongRequestManager
     public class RequestQueue
     {
         public static List<SongRequest> Songs = new List<SongRequest>();
-        private static string requestsPath = Path.Combine(RequestBot.SRMData, "SongRequestQueue.json");
+        private static string requestsPath = Path.Combine(Globals.DataPath, "SongRequestQueue.json");
         public static void Read()
         {
             try
@@ -69,7 +69,7 @@ namespace SongRequestManager
     public class RequestHistory
     {
         public static List<SongRequest> Songs = new List<SongRequest>();
-        private static string historyPath = Path.Combine(RequestBot.SRMData, "SongRequestHistory.json");
+        private static string historyPath = Path.Combine(Globals.DataPath, "SongRequestHistory.json");
         public static void Read()
         {
             try
@@ -92,7 +92,7 @@ namespace SongRequestManager
     public class SongBlacklist
     {
         public static Dictionary<string, SongRequest> Songs = new Dictionary<string, SongRequest>();
-        private static string blacklistPath = Path.Combine(RequestBot.SRMData, "SongBlacklist.json");
+        private static string blacklistPath = Path.Combine(Globals.DataPath, "SongBlacklist.json");
         public static void Read()
         {
             try
