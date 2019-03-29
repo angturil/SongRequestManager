@@ -32,6 +32,7 @@ using TMPro;
 using StreamCore.Config;
 using SongRequestManager.Config;
 using SongLoaderPlugin;
+using StreamCore;
 
 namespace SongRequestManager
 {
@@ -74,9 +75,7 @@ namespace SongRequestManager
 
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         public static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
-
-        public static string datapath; // Location of all local data files
-
+        
         private static CustomMenu _songRequestMenu = null;
 
 
@@ -166,7 +165,7 @@ namespace SongRequestManager
 
 
             if (Instance) return;
-            new GameObject("EnhancedTwitchChatRequestBot").AddComponent<RequestBot>();
+            new GameObject("SongRequestManager").AddComponent<RequestBot>();
         }
 
 
@@ -212,12 +211,8 @@ namespace SongRequestManager
         {
             DontDestroyOnLoad(gameObject);
             Instance = this;
-
-            datapath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat");
-            if (!Directory.Exists(datapath))
-                Directory.CreateDirectory(datapath);
-
-            playedfilename = Path.Combine(datapath, "played.json"); // Record of all the songs played in the current session
+            
+            playedfilename = Path.Combine(Globals.DataPath, "played.json"); // Record of all the songs played in the current session
 
             string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
             if (Directory.Exists(filesToDelete))
@@ -228,13 +223,12 @@ namespace SongRequestManager
             if (PlayedAge < TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
 
 
-            /*            
-            var oldConfig = new OldBlacklistOption();
-            ConfigSerializer.LoadConfig(oldConfig, datapath);
-
-            if (oldConfig.SongBlacklist.Length > 0)
-                File.WriteAllText(Path.Combine("UserData", "EnhancedTwitchChat", "SongBlacklistMigration.list"), oldConfig.SongBlacklist);
-             */ 
+            string blacklistMigrationFile = Path.Combine(Globals.DataPath, "SongBlacklistMigration.list");
+            if(File.Exists(blacklistMigrationFile))
+            {
+                SongBlacklist.ConvertFromList(File.ReadAllText(blacklistMigrationFile).Split(','));
+                File.Delete(blacklistMigrationFile);
+            }
 
             RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
             RequestHistory.Read();
@@ -245,7 +239,7 @@ namespace SongRequestManager
             UpdateRequestUI();
             InitializeCommands();
 
-            //EnhancedTwitchChat.ChatHandler.ChatMessageFilters += MyChatMessageHandler;
+            //EnhancedTwitchChat.ChatHandler.ChatMessageFilters += MyChatMessageHandler; // TODO: Reimplement this filter maybe? Or maybe we put it directly into EnhancedStreamChat
 
 
             COMMAND.CommandConfiguration();
