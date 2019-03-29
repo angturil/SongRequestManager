@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SongRequestManager.Config
@@ -67,22 +68,28 @@ namespace SongRequestManager.Config
         {
             Instance = this;
 
-            if (!Directory.Exists(Path.GetDirectoryName(FilePath)))
-                Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
-
-            if (File.Exists(FilePath))
-            {
-                Load();
-            }
-            Save();
-
             _configWatcher = new FileSystemWatcher(Path.GetDirectoryName(FilePath))
             {
                 NotifyFilter = NotifyFilters.LastWrite,
                 Filter = "RequestBotSettings.ini",
                 EnableRaisingEvents = true
             };
-            _configWatcher.Changed += ConfigWatcherOnChanged;
+
+            Task.Run(() =>
+            {
+                while (!Directory.Exists(Path.GetDirectoryName(FilePath)))
+                    Thread.Sleep(100);
+
+                Plugin.Log("FilePath exists! Continuing initialization!");
+
+                if (File.Exists(FilePath))
+                {
+                    Load();
+                }
+                Save();
+
+                _configWatcher.Changed += ConfigWatcherOnChanged;
+            });
         }
 
         ~RequestBotConfig()
