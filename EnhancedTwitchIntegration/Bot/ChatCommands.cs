@@ -343,10 +343,10 @@ namespace SongRequestManager
         #endregion
 
         #region Dequeue Song
-        private void DequeueSong(TwitchUser requestor, string request)
+        private string DequeueSong(ParseState state)
         {
 
-            var songId = GetBeatSaverId(request);
+            var songId = GetBeatSaverId(state.parameter);
             for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
             {
                 bool dequeueSong = false;
@@ -356,7 +356,7 @@ namespace SongRequestManager
                 {
                     string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
 
-                    if (DoesContainTerms(request, ref terms))
+                    if (DoesContainTerms(state.parameter, ref terms))
                         dequeueSong = true;
                 }
                 else
@@ -369,10 +369,10 @@ namespace SongRequestManager
                 {
                     QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
                     RequestBot.Skip(i);
-                    return;
+                    return success;
                 }
             }
-            QueueChatMessage($"{request} was not found in the queue.");
+            return $"{state.parameter} was not found in the queue.";
         }
         #endregion
 
@@ -710,7 +710,7 @@ namespace SongRequestManager
             {
                 var botcmd = entry.Value;
                 // BUG: Please refactor this its getting too damn long
-                if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Var) && !botcmd.Flags.HasFlag(Subcmd)) msg.Add($"{entry.Key}", " "); // Only show commands you're allowed to use
+                if (HasRights(ref botcmd, ref requestor,0) && !botcmd.Flags.HasFlag(Var) && !botcmd.Flags.HasFlag(Subcmd)) msg.Add($"{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
         }
@@ -724,7 +724,7 @@ namespace SongRequestManager
             {
                 var botcmd = entry.Value;
                 // BUG: Please refactor this its getting too damn long
-                if (HasRights(ref botcmd, ref requestor) && botcmd.Flags.HasFlag(Var) ) msg.Add($"{entry.Key}", ", "); // Only show commands you're allowed to use
+                if (HasRights(ref botcmd, ref requestor,0) && botcmd.Flags.HasFlag(Var) ) msg.Add($"{entry.Key}", ", "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
         }
