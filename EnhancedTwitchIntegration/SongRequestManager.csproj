@@ -46,9 +46,6 @@
     <Reference Include="BeatSaverDownloader">
       <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\BeatSaverDownloader.dll</HintPath>
     </Reference>
-    <Reference Include="EnhancedTwitchChat">
-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\plugins\EnhancedTwitchChat.dll</HintPath>
-    </Reference>
     <Reference Include="IllusionPlugin">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IllusionPlugin.dll</HintPath>
     </Reference>
@@ -60,6 +57,10 @@
     </Reference>
     <Reference Include="SongLoaderPlugin">
       <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\plugins\SongLoaderPlugin.dll</HintPath>
+    </Reference>
+    <Reference Include="StreamCore, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\StreamCore.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

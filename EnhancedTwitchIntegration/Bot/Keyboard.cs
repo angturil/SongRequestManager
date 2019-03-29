@@ -1,5 +1,5 @@
 ﻿using CustomUI.BeatSaber;
-using EnhancedTwitchChat.Chat;
+using StreamCore.Chat;
 using SongRequestManager;
 using System;
 using System.Collections.Generic;
@@ -425,7 +425,7 @@ namespace SongRequestManager
                 }
                 else
                 {
-                    TwitchWebSocketClient.SendMessage(typedtext);
+                    TwitchWebSocketClient.SendCommand(typedtext);
                 }
 
                 key.kb.KeyboardText.text = "";

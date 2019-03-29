@@ -1,5 +1,5 @@
-using EnhancedTwitchChat.Chat;
-using EnhancedTwitchChat.SimpleJSON;
+using StreamCore.Chat;
+using StreamCore.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
+using StreamCore;
 // Feature requests: Add Reason for being banned to banlist
 
 namespace SongRequestManager
@@ -42,7 +43,7 @@ namespace SongRequestManager
             Timeout = 2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
             TimeoutSub = 4096, // Applies a timeout to Subs
             TimeoutVIP = 8192, // Applies a timeout to VIP's
-            TimeoutMod = 16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
+            Local = 16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
 
             NoLinks = 32768, // Turn off any links that the command may normally generate
 
@@ -146,19 +147,19 @@ namespace SongRequestManager
             new COMMAND("!remap").Action(Remap).Help(Mod, "usage: %alias%<songid1> , <songid2>%|%... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.", _RemapRegex);
             new COMMAND("!unmap").Action(Unmap).Help(Mod, "usage: %alias%<songid> %|%... Remove future remaps for songid.", _beatsaversongversion);
 
-            new COMMAND("!clearqueue").Action(Clearqueue).Help(Broadcaster, "usage: %alias%%|%... Clears the song request queue. You can still get it back from the JustCleared deck, or the history window", _nothing);
-            new COMMAND("!clearalreadyplayed").Action(ClearDuplicateList).Help(Broadcaster, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
-            new COMMAND("!restore").Action(restoredeck).Help(Broadcaster, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
+            new COMMAND("!clearqueue").Action(Clearqueue).Help(Mod, "usage: %alias%%|%... Clears the song request queue. You can still get it back from the JustCleared deck, or the history window", _nothing);
+            new COMMAND("!clearalreadyplayed").Action(ClearDuplicateList).Help(Mod, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
+            new COMMAND("!restore").Action(restoredeck).Help(Mod, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
 
             new COMMAND("!about").Help(Everyone, $"Song Request Manager version {Plugin.Instance.Version}. Github angturil/SongRequestManager", _fail); // Help commands have no code
             new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
             new COMMAND("!commandlist").Action(showCommandlist).Help(Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
-            new COMMAND("!readdeck").Action(Readdeck).Help(Broadcaster, "usage: %alias", _alphaNumericRegex);
+            new COMMAND("!readdeck").Action(Readdeck).Help(Mod, "usage: %alias", _alphaNumericRegex);
             new COMMAND("!writedeck").Action(Writedeck).Help(Broadcaster, "usage: %alias", _alphaNumericRegex);
 
-            new COMMAND("!chatmessage").Action(ChatMessage).Help(Broadcaster, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
-            new COMMAND("!runscript").Action(RunScript).Help(Broadcaster, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
+            new COMMAND("!chatmessage").Action(ChatMessage).Help(Mod, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
+            new COMMAND("!runscript").Action(RunScript).Help(Mod, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/StreamCore", _atleast1);
 
             new COMMAND("!formatlist").Action(showFormatList).Help(Broadcaster, "Show a list of all the available customizable text format strings. Use caution, as this can make the output of some commands unusable. You can use /default to return a variable to its default setting.");
 
@@ -198,6 +199,7 @@ namespace SongRequestManager
 
             // These commands will use a completely new format in future builds and rely on a slightly more flexible parser. Commands like userlist.add george, userlist1=userlist2 will be allowed. 
 
+            new COMMAND("!unqueuelist").Action(unqueuelist).Help(Mod, "usage %alias% <list name> %|% Remove any songs on a list from the queue",_atleast1);
             new COMMAND("!openlist").Action(OpenList); // BUG: this command makes  list available.
             new COMMAND("!unload").Action(UnloadList);
             new COMMAND("!clearlist").Action(ClearList);
@@ -626,12 +628,12 @@ namespace SongRequestManager
                 }
 
            // BUG: This is pass 1, refactoring will get done eventually.
-           public static void CommandConfiguration(string configfilename="srmcommands")
+           public static void CommandConfiguration(string configfilename="SRMCommands")
                 {
 
                 var UserSettings = new StringBuilder();
 
-                var filename = Path.Combine(datapath, configfilename + ".ini");
+                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
 
                 SortedDictionary<string, COMMAND> unique = new SortedDictionary<string, COMMAND>();
 
@@ -679,7 +681,7 @@ namespace SongRequestManager
                             // MAGICALLY configure the customized commands 
 
                             //if (line[0] != '!') line = '!' + line; // Insert the ! if needed.
-                            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser,line,CmdFlags.SilentResult);
+                            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser,line,CmdFlags.SilentResult | CmdFlags.Local);
 
                         }
                         sr.Close();
@@ -781,7 +783,7 @@ namespace SongRequestManager
                 if (!subcmd.Flags.HasFlag(CmdFlags.Subcommand)) return notsubcommand;
                 // BUG: Need to check subcmd permissions here.     
 
-                if (!HasRights(ref subcmd, ref user)) return error($"No permission to use {subcommand}");
+                if (!HasRights(ref subcmd, ref user,flags)) return error($"No permission to use {subcommand}");
 
                 if (subcmd.Flags.HasFlag(CmdFlags.NoParameter))
                     parameter = parameter.Substring(subcommandend).Trim(' ');
@@ -860,7 +862,7 @@ namespace SongRequestManager
                 // Check permissions first
 
 
-                bool allow = HasRights(ref botcmd, ref user);
+                bool allow = HasRights(ref botcmd, ref user,flags);
 
                 if (!allow && !botcmd.Flags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.displayName.ToLower()))
                 {
@@ -958,7 +960,7 @@ namespace SongRequestManager
                 foreach (var entry in COMMAND.aliaslist)
                 {
                     var botcmd = entry.Value;
-                    if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Subcmd) && !botcmd.Flags.HasFlag(Var))
+                    if (HasRights(ref botcmd, ref requestor,0) && !botcmd.Flags.HasFlag(Subcmd) && !botcmd.Flags.HasFlag(Var))
                                 
                         msg.Add($"{entry.Key.TrimStart('!')}", " "); // BUG: Removes the built in ! in the commands, letting it slide... for now 
                 }
@@ -982,8 +984,9 @@ namespace SongRequestManager
             }
         }
 
-        public static bool HasRights(ref COMMAND botcmd, ref TwitchUser user)
+        public static bool HasRights(ref COMMAND botcmd, ref TwitchUser user,CmdFlags flags)
         {
+            if (flags.HasFlag(CmdFlags.Local)) return true;
             if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return false;
             if (botcmd.Flags.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
             if (user.isBroadcaster & botcmd.Flags.HasFlag(CmdFlags.Broadcaster)) return true;

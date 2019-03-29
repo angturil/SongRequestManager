@@ -1,6 +1,7 @@
 
-using EnhancedTwitchChat.Chat;
-using EnhancedTwitchChat.SimpleJSON;
+using StreamCore;
+using StreamCore.Chat;
+using StreamCore.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -59,7 +60,7 @@ namespace SongRequestManager
 
             public StringListManager ClearOldList(string request, TimeSpan delta, ListFlags flags = ListFlags.Unchanged)
             {
-                string listfilename = Path.Combine(datapath, request);
+                string listfilename = Path.Combine(Globals.DataPath, request);
                 TimeSpan UpdatedAge = GetFileAgeDifference(listfilename);
 
                 StringListManager list = OpenList(request, flags);
@@ -197,7 +198,7 @@ namespace SongRequestManager
 
                 try
                 {
-                    string listfilename = Path.Combine(datapath, filename);
+                    string listfilename = Path.Combine(Globals.DataPath, filename);
                     string fileContent = File.ReadAllText(listfilename);
                     if (listfilename.EndsWith(".script"))
                         list = fileContent.Split(lineseparator, StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -236,7 +237,7 @@ namespace SongRequestManager
 
                 try
                 {
-                    string listfilename = Path.Combine(datapath, filename);
+                    string listfilename = Path.Combine(Globals.DataPath, filename);
 
                     var output = String.Join(separator, list.ToArray());
                     File.WriteAllText(listfilename, output);

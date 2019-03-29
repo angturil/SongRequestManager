@@ -1,5 +1,5 @@
 ﻿
-using EnhancedTwitchChat.Chat;
+using StreamCore.Chat;
 using System;
 using System.Collections.Generic;
 using System.Linq;

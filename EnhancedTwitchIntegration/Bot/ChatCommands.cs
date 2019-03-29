@@ -1,6 +1,6 @@
-﻿using EnhancedTwitchChat.Chat;
-using EnhancedTwitchChat.Config;
-using EnhancedTwitchChat.SimpleJSON;
+﻿using StreamCore.Chat;
+using StreamCore.Config;
+using StreamCore.SimpleJSON;
 using SongRequestManager.Config;
 using System;
 using System.Collections;
@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using StreamCore;
 
 namespace SongRequestManager
 {
@@ -249,13 +250,13 @@ namespace SongRequestManager
             if (isNotModerator(requestor)) return;
 
             var songId = GetBeatSaverId(request);
-            if (songId == "")
+            if (songId == "" && !silence)
             {
                 QueueChatMessage($"usage: !block <songid>, omit <>'s.");
                 return;
             }
 
-            if (SongBlacklist.Songs.ContainsKey(songId))
+            if (SongBlacklist.Songs.ContainsKey(songId) && !silence)
             {
                 QueueChatMessage($"{request} is already on the ban list.");
             }
@@ -301,7 +302,7 @@ namespace SongRequestManager
                     return;
                 }
 
-                string queuefile = Path.Combine(datapath, request + ".deck");
+                string queuefile = Path.Combine(Globals.DataPath, request + ".deck");
                 StreamWriter fileWriter = new StreamWriter(queuefile);
 
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
@@ -325,7 +326,7 @@ namespace SongRequestManager
         {
             try
             {
-                string queuefile = Path.Combine(datapath, request + ".deck");
+                string queuefile = Path.Combine(Globals.DataPath, request + ".deck");
                 string fileContent = File.ReadAllText(queuefile);
                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -343,10 +344,10 @@ namespace SongRequestManager
         #endregion
 
         #region Dequeue Song
-        private void DequeueSong(TwitchUser requestor, string request)
+        private string DequeueSong(ParseState state)
         {
 
-            var songId = GetBeatSaverId(request);
+            var songId = GetBeatSaverId(state.parameter);
             for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
             {
                 bool dequeueSong = false;
@@ -356,7 +357,7 @@ namespace SongRequestManager
                 {
                     string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
 
-                    if (DoesContainTerms(request, ref terms))
+                    if (DoesContainTerms(state.parameter, ref terms))
                         dequeueSong = true;
                 }
                 else
@@ -369,10 +370,10 @@ namespace SongRequestManager
                 {
                     QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
                     RequestBot.Skip(i);
-                    return;
+                    return success;
                 }
             }
-            QueueChatMessage($"{request} was not found in the queue.");
+            return $"{state.parameter} was not found in the queue.";
         }
         #endregion
 
@@ -710,7 +711,7 @@ namespace SongRequestManager
             {
                 var botcmd = entry.Value;
                 // BUG: Please refactor this its getting too damn long
-                if (HasRights(ref botcmd, ref requestor) && !botcmd.Flags.HasFlag(Var) && !botcmd.Flags.HasFlag(Subcmd)) msg.Add($"{entry.Key}", " "); // Only show commands you're allowed to use
+                if (HasRights(ref botcmd, ref requestor,0) && !botcmd.Flags.HasFlag(Var) && !botcmd.Flags.HasFlag(Subcmd)) msg.Add($"{entry.Key}", " "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
         }
@@ -724,7 +725,7 @@ namespace SongRequestManager
             {
                 var botcmd = entry.Value;
                 // BUG: Please refactor this its getting too damn long
-                if (HasRights(ref botcmd, ref requestor) && botcmd.Flags.HasFlag(Var) ) msg.Add($"{entry.Key}", ", "); // Only show commands you're allowed to use
+                if (HasRights(ref botcmd, ref requestor,0) && botcmd.Flags.HasFlag(Var) ) msg.Add($"{entry.Key}", ", "); // Only show commands you're allowed to use
             }
             msg.end("...", $"No commands available.");
         }
@@ -874,7 +875,7 @@ namespace SongRequestManager
 
             try
             {
-                string statusfile = Path.Combine(datapath, "queuelist.txt");
+                string statusfile = Path.Combine(Globals.DataPath, "queuelist.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
 
                 string queuesummary = "";
@@ -905,7 +906,7 @@ namespace SongRequestManager
         {
             try
             {
-                string statusfile = Path.Combine(datapath, "queuestatus.txt");
+                string statusfile = Path.Combine(Globals.DataPath, "queuestatus.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
                 fileWriter.Write(status);
                 fileWriter.Close();
@@ -976,7 +977,7 @@ namespace SongRequestManager
 
             try
             {
-                string remapfile = Path.Combine(datapath, "remap.list");
+                string remapfile = Path.Combine(Globals.DataPath, "remap.list");
 
                 StreamWriter fileWriter = new StreamWriter(remapfile);
 
@@ -995,7 +996,7 @@ namespace SongRequestManager
 
         private void ReadRemapList()
         {
-            string remapfile = Path.Combine(datapath, "remap.list");
+            string remapfile = Path.Combine(Globals.DataPath, "remap.list");
 
             try
             {
