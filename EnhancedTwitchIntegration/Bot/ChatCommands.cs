@@ -1,6 +1,6 @@
-﻿using EnhancedTwitchChat.Chat;
-using EnhancedTwitchChat.Config;
-using EnhancedTwitchChat.SimpleJSON;
+﻿using StreamCore.Chat;
+using StreamCore.Config;
+using StreamCore.SimpleJSON;
 using SongRequestManager.Config;
 using System;
 using System.Collections;
@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using StreamCore;
 
 namespace SongRequestManager
 {
@@ -249,13 +250,13 @@ namespace SongRequestManager
             if (isNotModerator(requestor)) return;
 
             var songId = GetBeatSaverId(request);
-            if (songId == "")
+            if (songId == "" && !silence)
             {
                 QueueChatMessage($"usage: !block <songid>, omit <>'s.");
                 return;
             }
 
-            if (SongBlacklist.Songs.ContainsKey(songId))
+            if (SongBlacklist.Songs.ContainsKey(songId) && !silence)
             {
                 QueueChatMessage($"{request} is already on the ban list.");
             }
@@ -301,7 +302,7 @@ namespace SongRequestManager
                     return;
                 }
 
-                string queuefile = Path.Combine(datapath, request + ".deck");
+                string queuefile = Path.Combine(Globals.DataPath, request + ".deck");
                 StreamWriter fileWriter = new StreamWriter(queuefile);
 
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
@@ -325,7 +326,7 @@ namespace SongRequestManager
         {
             try
             {
-                string queuefile = Path.Combine(datapath, request + ".deck");
+                string queuefile = Path.Combine(Globals.DataPath, request + ".deck");
                 string fileContent = File.ReadAllText(queuefile);
                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -874,7 +875,7 @@ namespace SongRequestManager
 
             try
             {
-                string statusfile = Path.Combine(datapath, "queuelist.txt");
+                string statusfile = Path.Combine(Globals.DataPath, "queuelist.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
 
                 string queuesummary = "";
@@ -905,7 +906,7 @@ namespace SongRequestManager
         {
             try
             {
-                string statusfile = Path.Combine(datapath, "queuestatus.txt");
+                string statusfile = Path.Combine(Globals.DataPath, "queuestatus.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
                 fileWriter.Write(status);
                 fileWriter.Close();
@@ -976,7 +977,7 @@ namespace SongRequestManager
 
             try
             {
-                string remapfile = Path.Combine(datapath, "remap.list");
+                string remapfile = Path.Combine(Globals.DataPath, "remap.list");
 
                 StreamWriter fileWriter = new StreamWriter(remapfile);
 
@@ -995,7 +996,7 @@ namespace SongRequestManager
 
         private void ReadRemapList()
         {
-            string remapfile = Path.Combine(datapath, "remap.list");
+            string remapfile = Path.Combine(Globals.DataPath, "remap.list");
 
             try
             {

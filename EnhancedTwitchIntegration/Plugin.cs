@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using UnityEngine.SceneManagement;
+using StreamCore.Chat;
 
 namespace SongRequestManager
 {
@@ -33,6 +34,8 @@ namespace SongRequestManager
         {
             if (Instance != null) return;
             Instance = this;
+
+            TwitchWebSocketClient.Initialize();
 
             SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
             SceneManager.sceneLoaded += SceneManager_sceneLoaded;

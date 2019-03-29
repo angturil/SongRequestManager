@@ -1,7 +1,7 @@
 ﻿using BeatSaverDownloader.UI;
 using CustomUI.BeatSaber;
 //using CustomUI.Utilities;
-using EnhancedTwitchChat.Utils;
+using StreamCore.Utils;
 using HMUI;
 using SongBrowserPlugin;
 using SongBrowserPlugin.DataAccess;

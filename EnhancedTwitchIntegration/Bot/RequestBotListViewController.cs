@@ -1,9 +1,8 @@
 ﻿//#define PRIVATE
 
 using CustomUI.BeatSaber;
-using EnhancedTwitchChat.Config;
-using EnhancedTwitchChat.UI;
-using EnhancedTwitchChat.Utils;
+using StreamCore.Config;
+using StreamCore.Utils;
 using HMUI;
 using SimpleJSON;
 using SongLoaderPlugin;
@@ -19,7 +18,7 @@ using UnityEngine.UI;
 using VRUI;
 using Image = UnityEngine.UI.Image;
 using System.IO;
-using EnhancedTwitchChat.Chat;
+using StreamCore.Chat;
 using SongRequestManager.Config;
 
 namespace SongRequestManager

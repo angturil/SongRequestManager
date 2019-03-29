@@ -1,5 +1,5 @@
-using EnhancedTwitchChat.Chat;
-using EnhancedTwitchChat.SimpleJSON;
+using StreamCore.Chat;
+using StreamCore.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
+using StreamCore;
 // Feature requests: Add Reason for being banned to banlist
 
 namespace SongRequestManager
@@ -158,7 +159,7 @@ namespace SongRequestManager
             new COMMAND("!writedeck").Action(Writedeck).Help(Broadcaster, "usage: %alias", _alphaNumericRegex);
 
             new COMMAND("!chatmessage").Action(ChatMessage).Help(Mod, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
-            new COMMAND("!runscript").Action(RunScript).Help(Mod, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/EnhancedTwitchChat", _atleast1);
+            new COMMAND("!runscript").Action(RunScript).Help(Mod, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/StreamCore", _atleast1);
 
             new COMMAND("!formatlist").Action(showFormatList).Help(Broadcaster, "Show a list of all the available customizable text format strings. Use caution, as this can make the output of some commands unusable. You can use /default to return a variable to its default setting.");
 
@@ -632,7 +633,7 @@ namespace SongRequestManager
 
                 var UserSettings = new StringBuilder();
 
-                var filename = Path.Combine(datapath, configfilename + ".ini");
+                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
 
                 SortedDictionary<string, COMMAND> unique = new SortedDictionary<string, COMMAND>();
 

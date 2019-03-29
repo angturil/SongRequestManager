@@ -1,4 +1,5 @@
-﻿using System;
+﻿using StreamCore;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,15 +10,14 @@ namespace SongRequestManager.Config
 {
     public class RequestBotConfig
     {
-        private string FilePath = Path.Combine(Environment.CurrentDirectory, "UserData", "EnhancedTwitchChat", "RequestBotSettings.ini");
+        private string FilePath = Path.Combine(Globals.DataPath, "RequestBotSettings.ini");
 
         //public string RequestCommandAliases = "request,bsr,add,sr";
 
 #if !REQUEST_BOT
         public string SongBlacklist = "";
 #endif
-
-        public bool RequestBotEnabled = false;
+        
         public bool RequestQueueOpen = true;
         public bool PersistentRequestQueue = true;
 
