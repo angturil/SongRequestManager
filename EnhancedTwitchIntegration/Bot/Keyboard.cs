@@ -180,6 +180,7 @@ namespace SongRequestManager
            return false;
            }
 
+
         // Very basic parser for the keyboard grammar - no doubt can be improved. Tricky to implement because of special characters.
         // It might possible to make grep do this, but it would be even harder to read than this!
         public KEYBOARD AddKeys(string Keyboard, float scale = 0.5f)
@@ -195,7 +196,6 @@ namespace SongRequestManager
             int color = 0xffffff;
             int p = 0; // P is for parser
 
-
             try
             {
 
@@ -204,6 +204,27 @@ namespace SongRequestManager
 
                     switch (Keyboard[p])
                     {
+                        case '@': // Position key
+                            EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
+                            p++;
+                            if (ReadFloat(ref Keyboard, ref p, ref currentposition.x))
+                            {
+                                if (p < Keyboard.Length && Keyboard[p] == ',')
+                                {
+                                    p++;
+                                    ReadFloat(ref Keyboard, ref p, ref currentposition.y);
+                                }
+                            }
+                            continue;
+
+                        case 'S': // Scale
+                            {
+                            EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
+                            p++;
+                            ReadFloat(ref Keyboard, ref p, ref this.scale);                            
+                            continue;
+                            }
+
                         case '\r':
                             space = true;
                             break;
