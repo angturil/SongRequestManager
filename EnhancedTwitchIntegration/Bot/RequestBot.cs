@@ -423,7 +423,7 @@ namespace SongRequestManager
 
         public void QueueChatMessage(string message)
         {
-            _botMessageQueue.Enqueue($"{RequestBotConfig.Instance.BotPrefix}{message}");
+            _botMessageQueue.Enqueue($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
         }
         
         private IEnumerator ProcessRequestQueue()
