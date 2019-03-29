@@ -425,7 +425,7 @@ namespace SongRequestManager
                 }
                 else
                 {
-                    TwitchWebSocketClient.SendMessage(typedtext);
+                    TwitchWebSocketClient.SendCommand(typedtext);
                 }
 
                 key.kb.KeyboardText.text = "";
