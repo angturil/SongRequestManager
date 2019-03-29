@@ -354,8 +354,8 @@ namespace SongRequestManager
             if (_configChanged)
                 OnConfigChanged();
 
-            if (_botMessageQueue.Count > 0)
-                SendChatMessage(_botMessageQueue.Dequeue());
+            //if (_botMessageQueue.Count > 0)
+              //  SendChatMessage(_botMessageQueue.Dequeue());
 
             if (_refreshQueue)
             {
@@ -423,7 +423,7 @@ namespace SongRequestManager
 
         public void QueueChatMessage(string message)
         {
-            _botMessageQueue.Enqueue($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
+            TwitchWebSocketClient.SendCommand($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
         }
         
         private IEnumerator ProcessRequestQueue()
