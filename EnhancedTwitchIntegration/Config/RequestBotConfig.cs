@@ -17,6 +17,8 @@ namespace SongRequestManager.Config
         public bool RequestQueueOpen = true;
         public bool PersistentRequestQueue = true;
 
+        public bool AutoplaySong = false; // Pressing play will automatically attempt to play the song you selected at the highest difficulty level it has
+
         public int RequestHistoryLimit = 40;
         public int UserRequestLimit = 2;
         public int SubRequestLimit = 5;
@@ -32,8 +34,7 @@ namespace SongRequestManager.Config
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
-        public int MaximumQueueTextEntries = 8;
-
+        public int MaximumQueueTextEntries = 8;          
         public string BotPrefix = "";
 
         public event Action<RequestBotConfig> ConfigChangedEvent;

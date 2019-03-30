@@ -95,7 +95,11 @@ namespace SongRequestManager
 
         static public SongRequest currentsong = null;
 
-
+        //static bool test(string x)
+        //{
+        //    File.AppendAllText("c:\\sehria\\objects.txt", x + "\r\n");
+        //    return false;
+        //}
         protected override void DidActivate(bool firstActivation, ActivationType type)
         {
             if (firstActivation)
@@ -104,6 +108,8 @@ namespace SongRequestManager
                     SongLoader.SongsLoadedEvent += SongLoader_SongsLoadedEvent;
 
                 InitConfirmationDialog();
+
+                //Resources.FindObjectsOfTypeAll<UnityEngine.Object>().Any(x => (test(x.name))); ;
 
                 _songListTableCellInstance = Resources.FindObjectsOfTypeAll<LevelListTableCell>().First(o => (o.name == "LevelListTableCell"));
                 _songPreviewPlayer = Resources.FindObjectsOfTypeAll<SongPreviewPlayer>().FirstOrDefault();
