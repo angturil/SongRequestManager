@@ -122,6 +122,9 @@ namespace SongRequestManager
                     Plugin.Log(ex.ToString());
                 }
 
+                CenterKeys = new KEYBOARD(container, "", false, -15, 15);
+
+
 #if UNRELEASED
 
                 // BUG: Need additional modes disabling one shot buttons
@@ -141,11 +144,16 @@ namespace SongRequestManager
                 _CurrentSongName2.enableWordWrapping = false;
                 _CurrentSongName2.text = "";
 
-
-                CenterKeys = new KEYBOARD(container, SONGLISTKEY,false, -15,15);
+                
+                //CenterKeys = new KEYBOARD(container, SONGLISTKEY,false, -15,15);
+                CenterKeys.AddKeys(SONGLISTKEY);
                 ColorDeckButtons(CenterKeys, Color.white, Color.magenta);
 
+
 #endif
+
+                RequestBot.AddKeyboard(CenterKeys, "CenterPanel.kbd");
+
 
                 // History button
                 _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
@@ -303,6 +311,7 @@ namespace SongRequestManager
 
         private void InitKeyboardDialog()
         {
+         
             _KeyboardDialog.Present();
         }
 

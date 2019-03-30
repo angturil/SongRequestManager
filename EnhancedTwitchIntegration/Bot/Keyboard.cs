@@ -169,7 +169,7 @@ namespace SongRequestManager
             while (Position<data.Length)
                 {
                 char c = data[Position];
-                if (!(c >= '0' && c <= '9' || c == '+' || c == '-' || c == '.')) break;
+                if (!((c >= '0' && c <= '9') || c == '+' || c == '-' || c == '.')) break;
                 Position++;
                 }
 
@@ -209,10 +209,12 @@ namespace SongRequestManager
                             p++;
                             if (ReadFloat(ref Keyboard, ref p, ref currentposition.x))
                             {
+                                baseposition.x = currentposition.x;
                                 if (p < Keyboard.Length && Keyboard[p] == ',')
                                 {
                                     p++;
                                     ReadFloat(ref Keyboard, ref p, ref currentposition.y);
+                                    baseposition.y = currentposition.y;
                                 }
                             }
                             continue;
