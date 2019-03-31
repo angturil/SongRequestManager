@@ -439,7 +439,7 @@ namespace SongRequestManager
 
         public void QueueChatMessage(string message)
         {
-            TwitchWebSocketClient.SendMessage($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
+            TwitchWebSocketClient.SendCommand($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
         }
         
         private IEnumerator ProcessRequestQueue()
