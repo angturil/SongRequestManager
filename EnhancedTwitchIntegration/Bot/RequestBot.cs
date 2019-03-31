@@ -125,12 +125,13 @@ namespace SongRequestManager
 
                 const string SEARCH = @"
 
-[CLEAR SEARCH]/0 /2 [NEWEST]/0 /2 [SEARCH]/0";
+[CLEAR SEARCH]/0 /2 [NEWEST]/0 /2 [UNFILTERED]/30 /2 [SEARCH]/0";
 
                 //mykeyboard.SetButtonType("QuitButton"); // Adding this alters button positions??! Why?
                 mykeyboard.AddKeys(SEARCH, 0.75f);
 
                 mykeyboard.SetAction("CLEAR SEARCH", ClearSearch);
+                mykeyboard.SetAction("UNFILTERED", UnfilteredSearch);
                 mykeyboard.SetAction("SEARCH", Search);
                 mykeyboard.SetAction("NEWEST", Newest);
 
@@ -201,6 +202,18 @@ namespace SongRequestManager
             RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}");
             key.kb.Clear(key);
         }
+
+        public static void UnfilteredSearch(KEYBOARD.KEY key)
+        {
+            if (key.kb.KeyboardText.text.StartsWith("!"))
+            {
+                key.kb.Enter(key);
+            }
+            ClearSearches();
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top/mod {key.kb.KeyboardText.text}");
+            key.kb.Clear(key);
+        }
+
 
         public static void ClearSearches()
         {
@@ -453,16 +466,52 @@ namespace SongRequestManager
                     yield return CheckRequest(requestInfo);
             }
         }
+        
 
-        private List<JSONObject> GetSongListFromResults(JSONNode result, ref string errorMessage)
+        int CompareSong(JSONObject song2, JSONObject song1, ref string [] sortorder)            
+            {
+            int result=0;
+
+            foreach (string s in sortorder)
+            {
+                string sortby = s.Substring(1);
+                switch (sortby.Substring(1))
+                {
+                    case "rating":
+                        //QueueChatMessage($"{song2[sortby].AsFloat} < {song1[sortby].AsFloat}");
+                        result=song2[sortby].AsInt.CompareTo(song1[sortby].AsInt);
+                        break;
+
+                    case "id":
+                    case "version":
+                        // BUG: This hack makes sorting by version and ID sort of work. In reality, we're comparing 1-2 numbers
+                        result=GetBeatSaverId(song2[sortby].Value).PadLeft(6).CompareTo(GetBeatSaverId(song1[sortby].Value).PadLeft(6));
+                        break;
+
+                    default:
+                        result= song2[sortby].Value.CompareTo(song1[sortby].Value);
+                        break;
+                }
+                if (result == 0) continue;
+
+                if (s[0] == '-') return -result;
+                
+                return result;
+            }
+            return result;
+        }
+
+        // sortby MUST have + or - in front of each field. 
+        private List<JSONObject> GetSongListFromResults(JSONNode result, ref string errorMessage,SongFilter filter=SongFilter.All, string sortby="-rating",int reverse=1)
         {
             List<JSONObject> songs = new List<JSONObject>(); 
             if (result["songs"].IsArray)
             {
-                // Might consider sorting the list by rating to improve quality of results            
+                // Might consider sorting the list by rating to improve quality of results        
+    
                 foreach (JSONObject currentSong in result["songs"].AsArray)
                 {
-                    errorMessage = SongSearchFilter(currentSong, false);
+                    errorMessage = SongSearchFilter(currentSong, false,filter);
                     if (errorMessage == "")
                         songs.Add(currentSong);
                 }
@@ -471,6 +520,22 @@ namespace SongRequestManager
             {
                 songs.Add(result["song"].AsObject);
             }
+
+            try
+            {
+            string[] sortorder = sortby.Split(' ');
+
+            songs.Sort(delegate (JSONObject c1, JSONObject c2)
+                {
+                    return reverse*CompareSong(c1, c2, ref sortorder);
+                });                    
+            }
+            catch (Exception e)
+            {
+                //QueueChatMessage($"Exception {e} sorting song list");
+                Plugin.Log($"Exception sorting a returned song list. {e.ToString()}");
+            }
+
             return songs;
         }
 
@@ -485,7 +550,7 @@ namespace SongRequestManager
                 // Remap song id if entry present. This is one time, and not correct as a result. No recursion right now, could be confusing to the end user.
                 string[] requestparts = request.Split(new char[] { '-' }, 2);
 
-                if (requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]) && isNotModerator(requestor))
+                if (requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]) && !requestInfo.flags.HasFlag(CmdFlags.NoFilter))
                 {
                     request = songremap[requestparts[0]];
                     QueueChatMessage($"Remapping request {requestInfo.request} to {request}");
@@ -522,10 +587,14 @@ namespace SongRequestManager
                 QueueChatMessage($"No results found for request \"{request}\"");
                 yield break;
             }
+
             yield return null;
 
             string errorMessage = "";
-            List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage);
+
+            SongFilter filter = SongFilter.All;
+            if (requestInfo.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
+            List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage,filter);
             // Filter out too many or too few results
             if (songs.Count == 0)
             {
@@ -546,7 +615,7 @@ namespace SongRequestManager
             }
             else
             {
-                if (isNotModerator(requestor) || !requestInfo.isBeatSaverId) errorMessage = SongSearchFilter(songs[0], false);
+                if (!requestInfo.flags.HasFlag(CmdFlags.NoFilter) || !requestInfo.isBeatSaverId) errorMessage = SongSearchFilter(songs[0], false);
             }
 
             // Display reason why chosen song was rejected, if filter is triggered. Do not add filtered songs
@@ -791,8 +860,14 @@ namespace SongRequestManager
 
         private void AddToTop(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
         {
-            ProcessSongRequest(requestor, request, CmdFlags.MoveToTop, "ATT");
+            ProcessSongRequest(requestor, request, flags | CmdFlags.MoveToTop | CmdFlags.NoFilter, "ATT");
         }
+
+        private void ModAdd(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
+        {
+            ProcessSongRequest(requestor, request, flags | CmdFlags.NoFilter, "Unfiltered");
+        }
+
 
         private void ProcessSongRequest(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
         {

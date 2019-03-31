@@ -34,7 +34,7 @@ namespace SongRequestManager
             ShowRestrictions = 64, // Using the command without the right access level will show permissions error. Mostly used for commands that can be unlocked at different tiers.
 
             BypassRights = 128, // Bypass right check on command, allowing error messages, and a later code based check. Often used for help only commands. 
-            xxxQuietFail = 256, // Return no results on failed preflight checks.
+            NoFilter = 256, // Return no results on failed preflight checks.
 
             HelpLink = 512, // Enable link to web documentation
 
@@ -134,6 +134,7 @@ namespace SongRequestManager
             new COMMAND("!history").Action(ShowHistory).Help(Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
             new COMMAND("!who").Action(Who).Help(Mod, "usage: %alias% <songid or name>%|%Find out who requested the song in the currently queue or recent history.", _atleast1);
 
+            new COMMAND ("!modadd").Action(ModAdd).Help(Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. This ignores ALL filters including bans.", _atleast1);
             new COMMAND("!mtt").Action(MoveRequestToTop).Help(Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the top of the request queue.", _atleast1);
             new COMMAND("!att").Action(AddToTop).Help(Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the top of the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
             new COMMAND(new string[] { "!last", "!demote", "!later" }).Action(MoveRequestToBottom).Help(Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the bottom of the request queue.", _atleast1);
@@ -195,7 +196,7 @@ namespace SongRequestManager
             new COMMAND("!allowmappers").Action(MapperAllowList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
             new COMMAND("!blockmappers").Action(MapperBanList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
 
-            new COMMAND("!mapper").Coroutine(addsongsBymapper).Help(Broadcaster, "usage: %alias%<mapperlist>");
+            new COMMAND("!mapper").Coroutine(AddmapperToDeck).Help(Broadcaster, "usage: %alias%<mapperlist>");
 
             // These commands will use a completely new format in future builds and rely on a slightly more flexible parser. Commands like userlist.add george, userlist1=userlist2 will be allowed. 
 
@@ -269,6 +270,8 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/oldest", "subcmdoldest" }).Help(Subcmd | Everyone); // BUG: Not implemented
 
             new COMMAND(new string[] { "/top", "subcmdtop" }).Action(SubcmdTop).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster, "%alias% sets a flag to move the request(s) to the top of the queue.");
+
+            new COMMAND(new string[] { "/mod","subcmdmod"}).Action(SubcmdMod).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster,"%alias% sets a flag to ignore all filtering");
   
             #endregion
         }
@@ -441,6 +444,13 @@ namespace SongRequestManager
             state.flags |= CmdFlags.MoveToTop;
             return success;
         }
+
+        public string SubcmdMod(ParseState state)
+        {
+            state.flags |= CmdFlags.NoFilter;
+            return success;
+        }
+
 
         public string SubcmdEqual(ParseState state)
         {
@@ -746,6 +756,20 @@ namespace SongRequestManager
             public COMMAND botcmd = null;
 
             public string subparameter="";
+
+            // Object clone constructor. Mostly used when spawning multiple threads against a single command
+            public ParseState(ParseState state)
+                {
+                // These are references
+                this.user = state.user; 
+                this.botcmd = state.botcmd;
+                 
+                this.flags = state.flags;
+                this.parameter = state.parameter;
+                this.subparameter = state.subparameter;
+                this.command = state.command;
+                this.info = state.info;
+                }
 
             public ParseState(ref TwitchUser user, ref string request, CmdFlags flags, ref string info)
             {

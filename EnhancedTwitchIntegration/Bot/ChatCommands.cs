@@ -31,6 +31,10 @@ namespace SongRequestManager
         static StringBuilder QueueListFormat= new StringBuilder("%songName% (%version%)");
         static StringBuilder HistoryListFormat = new StringBuilder("%songName% (%version%)");
 
+        static StringBuilder AddSortOrder = new StringBuilder("-rating +id");
+        static StringBuilder LookupSortOrder = new StringBuilder("-rating +id");
+        static StringBuilder AddSongsSortOrder = new StringBuilder("-rating +id");
+
         #region Utility functions
 
         public string Variable(ParseState state) // Basically show the value of a variable without parsing
@@ -191,9 +195,9 @@ namespace SongRequestManager
 
         // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
 
-        [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, all = -1 };
+        [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, All = -1 };
 
-        private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.all) // BUG: This could be nicer
+        private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.All) // BUG: This could be nicer
         {
             string songid = song["id"].Value;
             if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
@@ -235,7 +239,7 @@ namespace SongRequestManager
         private void ClearDuplicateList(TwitchUser requestor, string request)
         {
             QueueChatMessage("Session duplicate list is now clear.");
-            listcollection.ClearList(ref duplicatelist);
+            listcollection.ClearList(duplicatelist);
         }
         #endregion
 
@@ -505,6 +509,8 @@ namespace SongRequestManager
 
             bool found = true;
 
+            listcollection.ClearList("latest.deck");
+
             while (found && offset < 40) // MaxiumAddScanRange
             {
                 found = false;
@@ -535,7 +541,7 @@ namespace SongRequestManager
                             found = true;
                             JSONObject song = entry;
 
-                            if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
+                            if (mapperfiltered(song)) continue; // This forces the mapper filter
                             if (filtersong(song)) continue;
 
                             //if (state.flags.HasFlag(CmdFlags.ToQueue))
@@ -589,36 +595,20 @@ namespace SongRequestManager
                 }
 
                 JSONNode result = JSON.Parse(web.downloadHandler.text);
-                if (result["songs"].IsArray && result["total"].AsInt == 0)
-                {
-                    QueueChatMessage($"No results found for request \"{state.parameter}\"");
 
-                    yield break;
-                }
+                string errorMessage = "";
+                SongFilter filter = SongFilter.All;
+                if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
+                List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage, filter,"-rating",-1);
+
                 JSONObject song;
 
-                if (result["songs"].IsArray)
-                {
-                    int count = 0;
-                    foreach (JSONObject entry in result["songs"])
+                foreach (JSONObject entry in songs)
                     {
-                        song = entry;
-
-                        //if (filtersong(song)) continue;
-                        if (IsInQueue(song["id"].Value)) continue;
-                        QueueSong(state, song);
-                        count++;
-                        totalSongs++; ;
-                    }
-                }
-                else
-                {
-                    song = result["song"].AsObject;
-
+                    song = entry;
                     QueueSong(state, song);
-                    totalSongs++;
-                }
-
+                    }
+ 
                 UpdateRequestUI();
                 _refreshQueue = true;
 
@@ -746,30 +736,22 @@ namespace SongRequestManager
                 }
 
                 JSONNode result = JSON.Parse(web.downloadHandler.text);
-                if (result["songs"].IsArray && result["total"].AsInt == 0)
-                {
-                    QueueChatMessage($"No results found for request \"{state.parameter}\"");
-                    yield break;
-                }
+             
+                string errorMessage="";
+                SongFilter filter = SongFilter.none;
+                if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
+                List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage,filter);
+
                 JSONObject song;
 
                 var msg = new QueueLongMessage(1, 5); // One message maximum, 5 bytes reserved for the ...
-
-                if (result["songs"].IsArray)
+                foreach (JSONObject entry in songs)
                 {
-                    foreach (JSONObject entry in result["songs"])
-                    {
-                        song = entry;
-                        msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail), ", ");
-                    }
-                }
-                else
-                {
-                    song = result["song"].AsObject;
-                    msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail));
+                    song = entry;
+                    msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail), ", ");
                 }
 
-                msg.end("...", "No results for for request <request>");
+                msg.end("...", $"No results for {state.parameter}");
 
                 yield return null;
 
