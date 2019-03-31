@@ -231,6 +231,8 @@ namespace SongRequestManager
             #endregion
 
             #region Text Format fields
+            
+            //would be good to use reflections for these
             new COMMAND("AddSongToQueueText", AddSongToQueueText); // These variables are bound due to class reference assignment
             new COMMAND("LookupSongDetail", LookupSongDetail);
             new COMMAND("BsrSongDetail", BsrSongDetail);
@@ -240,6 +242,10 @@ namespace SongRequestManager
             new COMMAND("QueueTextFileFormat", QueueTextFileFormat);
             new COMMAND("QueueListFormat", QueueListFormat);
             new COMMAND("HistoryListFormat", HistoryListFormat);
+            new COMMAND("AddSortOrder", AddSortOrder);
+            new COMMAND("LookupSortOrder", LookupSortOrder); // -ranking +id , note that +/- are mandatory
+            new COMMAND("AddSongsSortOrder", AddSongsSortOrder);
+
             #endregion
 
             #region SUBCOMMAND Declarations
@@ -265,14 +271,12 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/alias", "subcmdalias" }).Action(SubcmdAlias).Help(Subcmd | Broadcaster, "usage: %alias% %|% Defines all the aliases a command can use");
             new COMMAND(new string[] { "/default", "subcmddefault" }).Action(SubcmdDefault).Help(Subcmd | Broadcaster, "usage: <formattext> %alias%");
 
-            new COMMAND(new string[] { "/newest", "subcmdnewest" }).Help(Subcmd | Everyone); // BUG: Not implemented
-            new COMMAND(new string[] { "/best", "subcmdbest" }).Help(Subcmd | Everyone); // BUG: Not implemented
-            new COMMAND(new string[] { "/oldest", "subcmdoldest" }).Help(Subcmd | Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/newest", "subcmdnewest" }).Action(SubcmdNewest).Help(Subcmd |CmdFlags.NoParameter| Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/best", "subcmdbest" }).Action(SubcmdBest).Help(Subcmd | CmdFlags.NoParameter | Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/oldest", "subcmdoldest" }).Action(SubcmdOldest).Help(Subcmd | CmdFlags.NoParameter | Everyone); // BUG: Not implemented
 
             new COMMAND(new string[] { "/top", "subcmdtop" }).Action(SubcmdTop).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster, "%alias% sets a flag to move the request(s) to the top of the queue.");
-
             new COMMAND(new string[] { "/mod","subcmdmod"}).Action(SubcmdMod).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster,"%alias% sets a flag to ignore all filtering");
-  
             #endregion
         }
 
@@ -290,6 +294,26 @@ namespace SongRequestManager
             Instance?.QueueChatMessage($"{state.command} Enabled.");
             return endcommand;
         }
+
+        public string SubcmdNewest(ParseState state)
+        {
+            state.sort = "-id -rating";
+            return success;
+        }
+
+        public string SubcmdBest(ParseState state)
+        {
+            state.sort = "-rating -id";
+            return success;
+        }
+
+        public string SubcmdOldest(ParseState state)
+        {
+            state.sort = "+id -rating";
+            return success;
+        }
+
+
 
         public string SubcmdDisable(ParseState state)
         {
@@ -360,6 +384,7 @@ namespace SongRequestManager
             }
             return endcommand;
         }
+
 
         public string SubcmdSetflags(ParseState state)
         {
@@ -752,6 +777,7 @@ namespace SongRequestManager
 
             public string command = null;
             public string parameter = "";
+            public string sort = "";
 
             public COMMAND botcmd = null;
 
@@ -769,6 +795,7 @@ namespace SongRequestManager
                 this.subparameter = state.subparameter;
                 this.command = state.command;
                 this.info = state.info;
+                this.sort = state.sort;
                 }
 
             public ParseState(ref TwitchUser user, ref string request, CmdFlags flags, ref string info)

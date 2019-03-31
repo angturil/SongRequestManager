@@ -475,11 +475,11 @@ namespace SongRequestManager
             foreach (string s in sortorder)
             {
                 string sortby = s.Substring(1);
-                switch (sortby.Substring(1))
+                switch (sortby)
                 {
                     case "rating":
                         //QueueChatMessage($"{song2[sortby].AsFloat} < {song1[sortby].AsFloat}");
-                        result=song2[sortby].AsInt.CompareTo(song1[sortby].AsInt);
+                        result=song2[sortby].AsFloat.CompareTo(song1[sortby].AsFloat);
                         break;
 
                     case "id":
@@ -523,7 +523,7 @@ namespace SongRequestManager
 
             try
             {
-            string[] sortorder = sortby.Split(' ');
+            string[] sortorder = sortby.Split(' ');         
 
             songs.Sort(delegate (JSONObject c1, JSONObject c2)
                 {
@@ -594,7 +594,7 @@ namespace SongRequestManager
 
             SongFilter filter = SongFilter.All;
             if (requestInfo.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
-            List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage,filter);
+            List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage,filter,AddSortOrder.ToString());
             // Filter out too many or too few results
             if (songs.Count == 0)
             {

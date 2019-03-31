@@ -599,7 +599,7 @@ namespace SongRequestManager
                 string errorMessage = "";
                 SongFilter filter = SongFilter.All;
                 if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
-                List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage, filter,"-rating",-1);
+                List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage, filter, state.sort != "" ? state.sort : LookupSortOrder.ToString(), -1);
 
                 JSONObject song;
 
@@ -740,7 +740,7 @@ namespace SongRequestManager
                 string errorMessage="";
                 SongFilter filter = SongFilter.none;
                 if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
-                List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage,filter);
+                List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage,filter,state.sort!="" ? state.sort : LookupSortOrder.ToString());
 
                 JSONObject song;
 
