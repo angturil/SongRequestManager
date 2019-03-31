@@ -75,7 +75,7 @@ namespace SongRequestManager
 
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         public static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
-        
+
         private static CustomMenu _songRequestMenu = null;
 
 
@@ -116,9 +116,9 @@ namespace SongRequestManager
                 KeyboardContainer.SetParent(_KeyboardViewController.rectTransform, false);
                 KeyboardContainer.sizeDelta = new Vector2(60f, 40f);
 
-                var mykeyboard = new KEYBOARD(KeyboardContainer,"");
+                var mykeyboard = new KEYBOARD(KeyboardContainer, "");
 #if UNRELEASED
-                mykeyboard.AddKeys(KEYBOARD.BOTKEYS,0.4f);
+                mykeyboard.AddKeys(KEYBOARD.BOTKEYS, 0.4f);
 #endif
                 mykeyboard.AddKeys(KEYBOARD.QWERTY); // You can replace this with DVORAK if you like
                 mykeyboard.DefaultActions();
@@ -128,7 +128,7 @@ namespace SongRequestManager
 [CLEAR SEARCH]/0 /2 [NEWEST]/0 /2 [SEARCH]/0";
 
                 //mykeyboard.SetButtonType("QuitButton"); // Adding this alters button positions??! Why?
-                mykeyboard.AddKeys(SEARCH,0.75f);
+                mykeyboard.AddKeys(SEARCH, 0.75f);
 
                 mykeyboard.SetAction("CLEAR SEARCH", ClearSearch);
                 mykeyboard.SetAction("SEARCH", Search);
@@ -136,9 +136,11 @@ namespace SongRequestManager
 
 
 #if UNRELEASED
-                mykeyboard.AddKeys(RequestBot.DECKS,0.4f);
+                mykeyboard.AddKeys(RequestBot.DECKS, 0.4f);
 #endif
                 // The UI for this might need a bit of work.
+
+                AddKeyboard(mykeyboard, "RightPanel.kbd");
 
             }
 
@@ -167,6 +169,20 @@ namespace SongRequestManager
             if (Instance) return;
             new GameObject("SongRequestManager").AddComponent<RequestBot>();
         }
+
+        public static  void AddKeyboard(KEYBOARD keyboard, string keyboardname)
+            {
+            try
+            {
+                string fileContent = File.ReadAllText(Path.Combine(Globals.DataPath, keyboardname));
+                if (fileContent.Length > 0) keyboard.AddKeys(fileContent);
+            }
+            catch           
+            {
+
+            }
+            }
+
 
 
         public static void Newest(KEYBOARD.KEY key)
@@ -354,8 +370,8 @@ namespace SongRequestManager
             if (_configChanged)
                 OnConfigChanged();
 
-            if (_botMessageQueue.Count > 0)
-                SendChatMessage(_botMessageQueue.Dequeue());
+            //if (_botMessageQueue.Count > 0)
+              //  SendChatMessage(_botMessageQueue.Dequeue());
 
             if (_refreshQueue)
             {
@@ -423,7 +439,7 @@ namespace SongRequestManager
 
         public void QueueChatMessage(string message)
         {
-            _botMessageQueue.Enqueue(RequestBotConfig.Instance.BotPrefix+message);
+            TwitchWebSocketClient.SendMessage($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
         }
         
         private IEnumerator ProcessRequestQueue()

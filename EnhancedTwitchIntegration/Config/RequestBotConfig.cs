@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace SongRequestManager.Config
 {
@@ -13,14 +14,11 @@ namespace SongRequestManager.Config
     {
         private string FilePath = Path.Combine(Globals.DataPath, "RequestBotSettings.ini");
 
-        //public string RequestCommandAliases = "request,bsr,add,sr";
-
-#if !REQUEST_BOT
-        public string SongBlacklist = "";
-#endif
         
         public bool RequestQueueOpen = true;
         public bool PersistentRequestQueue = true;
+
+        public bool AutoplaySong = false; // Pressing play will automatically attempt to play the song you selected at the highest difficulty level it has
 
         public int RequestHistoryLimit = 40;
         public int UserRequestLimit = 2;
@@ -29,18 +27,15 @@ namespace SongRequestManager.Config
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
         public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
-        //public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
+        public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
 
-        #if UNRELEASED
         public string DeckList = "fun hard challenge dance chill";
-        #endif
 
         public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
-        public int MaximumQueueTextEntries = 8;
-
+        public int MaximumQueueTextEntries = 8;          
         public string BotPrefix = "";
 
         public event Action<RequestBotConfig> ConfigChangedEvent;

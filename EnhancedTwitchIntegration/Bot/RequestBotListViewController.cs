@@ -94,6 +94,12 @@ namespace SongRequestManager
             }
 
         static public SongRequest currentsong = null;
+
+        //static bool test(string x)
+        //{
+        //    File.AppendAllText("c:\\sehria\\objects.txt", x + "\r\n");
+        //    return false;
+        //}
         protected override void DidActivate(bool firstActivation, ActivationType type)
         {
             if (firstActivation)
@@ -102,6 +108,8 @@ namespace SongRequestManager
                     SongLoader.SongsLoadedEvent += SongLoader_SongsLoadedEvent;
 
                 InitConfirmationDialog();
+
+                //Resources.FindObjectsOfTypeAll<UnityEngine.Object>().Any(x => (test(x.name))); ;
 
                 _songListTableCellInstance = Resources.FindObjectsOfTypeAll<LevelListTableCell>().First(o => (o.name == "LevelListTableCell"));
                 _songPreviewPlayer = Resources.FindObjectsOfTypeAll<SongPreviewPlayer>().FirstOrDefault();
@@ -119,6 +127,9 @@ namespace SongRequestManager
                 {
                     Plugin.Log(ex.ToString());
                 }
+
+                CenterKeys = new KEYBOARD(container, "", false, -15, 15);
+
 
 #if UNRELEASED
 
@@ -139,11 +150,16 @@ namespace SongRequestManager
                 _CurrentSongName2.enableWordWrapping = false;
                 _CurrentSongName2.text = "";
 
-
-                CenterKeys = new KEYBOARD(container, SONGLISTKEY,false, -15,15);
+                
+                //CenterKeys = new KEYBOARD(container, SONGLISTKEY,false, -15,15);
+                CenterKeys.AddKeys(SONGLISTKEY);
                 ColorDeckButtons(CenterKeys, Color.white, Color.magenta);
 
+
 #endif
+
+                RequestBot.AddKeyboard(CenterKeys, "CenterPanel.kbd");
+
 
                 // History button
                 _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
@@ -301,6 +317,7 @@ namespace SongRequestManager
 
         private void InitKeyboardDialog()
         {
+         
             _KeyboardDialog.Present();
         }
 

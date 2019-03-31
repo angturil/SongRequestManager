@@ -536,8 +536,7 @@ namespace SongRequestManager
                             JSONObject song = entry;
 
                             if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
-
-
+                            if (filtersong(song)) continue;
 
                             //if (state.flags.HasFlag(CmdFlags.ToQueue))
                             QueueSong(state, song);
@@ -553,13 +552,13 @@ namespace SongRequestManager
 
             if (totalSongs == 0)
             {
-                QueueChatMessage($"No new songs found.");
+                //QueueChatMessage($"No new songs found.");
             }
             else
             {
                 #if UNRELEASED
-                QueueChatMessage($"Added {totalSongs} to latest.deck");                
-                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest");
+                //QueueChatMessage($"Added {totalSongs} to latest.deck");                
+                //COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest");
                 #endif
 
                 UpdateRequestUI();
