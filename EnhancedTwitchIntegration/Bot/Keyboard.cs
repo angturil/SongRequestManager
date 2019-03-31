@@ -169,7 +169,7 @@ namespace SongRequestManager
             while (Position<data.Length)
                 {
                 char c = data[Position];
-                if (!(c >= '0' && c <= '9' || c == '+' || c == '-' || c == '.')) break;
+                if (!((c >= '0' && c <= '9') || c == '+' || c == '-' || c == '.')) break;
                 Position++;
                 }
 
@@ -179,6 +179,7 @@ namespace SongRequestManager
            Position = start;
            return false;
            }
+
 
         // Very basic parser for the keyboard grammar - no doubt can be improved. Tricky to implement because of special characters.
         // It might possible to make grep do this, but it would be even harder to read than this!
@@ -195,7 +196,6 @@ namespace SongRequestManager
             int color = 0xffffff;
             int p = 0; // P is for parser
 
-
             try
             {
 
@@ -204,6 +204,29 @@ namespace SongRequestManager
 
                     switch (Keyboard[p])
                     {
+                        case '@': // Position key
+                            EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
+                            p++;
+                            if (ReadFloat(ref Keyboard, ref p, ref currentposition.x))
+                            {
+                                baseposition.x = currentposition.x;
+                                if (p < Keyboard.Length && Keyboard[p] == ',')
+                                {
+                                    p++;
+                                    ReadFloat(ref Keyboard, ref p, ref currentposition.y);
+                                    baseposition.y = currentposition.y;
+                                }
+                            }
+                            continue;
+
+                        case 'S': // Scale
+                            {
+                            EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
+                            p++;
+                            ReadFloat(ref Keyboard, ref p, ref this.scale);                            
+                            continue;
+                            }
+
                         case '\r':
                             space = true;
                             break;

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading;
 
@@ -16,6 +17,8 @@ namespace SongRequestManager.Config
         
         public bool RequestQueueOpen = true;
         public bool PersistentRequestQueue = true;
+
+        public bool AutoplaySong = false; // Pressing play will automatically attempt to play the song you selected at the highest difficulty level it has
 
         public int RequestHistoryLimit = 40;
         public int UserRequestLimit = 2;
@@ -32,8 +35,7 @@ namespace SongRequestManager.Config
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
-        public int MaximumQueueTextEntries = 8;
-
+        public int MaximumQueueTextEntries = 8;          
         public string BotPrefix = "";
 
         public event Action<RequestBotConfig> ConfigChangedEvent;
@@ -61,12 +63,7 @@ namespace SongRequestManager.Config
         {
             Instance = this;
 
-            _configWatcher = new FileSystemWatcher(Path.GetDirectoryName(FilePath))
-            {
-                NotifyFilter = NotifyFilters.LastWrite,
-                Filter = "RequestBotSettings.ini",
-                EnableRaisingEvents = true
-            };
+            _configWatcher = new FileSystemWatcher();
 
             Task.Run(() =>
             {
@@ -80,6 +77,11 @@ namespace SongRequestManager.Config
                     Load();
                 }
                 Save();
+
+                _configWatcher.Path = Path.GetDirectoryName(FilePath);
+                _configWatcher.NotifyFilter = NotifyFilters.LastWrite;
+                _configWatcher.Filter = $"RequestBotSettings.ini";
+                _configWatcher.EnableRaisingEvents = true;
 
                 _configWatcher.Changed += ConfigWatcherOnChanged;
             });
