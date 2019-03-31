@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading;
 
@@ -62,12 +63,7 @@ namespace SongRequestManager.Config
         {
             Instance = this;
 
-            _configWatcher = new FileSystemWatcher(Path.GetDirectoryName(FilePath))
-            {
-                NotifyFilter = NotifyFilters.LastWrite,
-                Filter = "RequestBotSettings.ini",
-                EnableRaisingEvents = true
-            };
+            _configWatcher = new FileSystemWatcher();
 
             Task.Run(() =>
             {
@@ -81,6 +77,11 @@ namespace SongRequestManager.Config
                     Load();
                 }
                 Save();
+
+                _configWatcher.Path = Path.GetDirectoryName(FilePath);
+                _configWatcher.NotifyFilter = NotifyFilters.LastWrite;
+                _configWatcher.Filter = $"RequestBotSettings.ini";
+                _configWatcher.EnableRaisingEvents = true;
 
                 _configWatcher.Changed += ConfigWatcherOnChanged;
             });
