@@ -25,8 +25,6 @@ namespace SongRequestManager
 {
     public class RequestBotListViewController : CustomListViewController
     {
-
-
         public static RequestBotListViewController Instance;
 
         private CustomMenu _confirmationDialog;
@@ -68,7 +66,7 @@ namespace SongRequestManager
 [challenge +]/25'!challenge/current/toggle%CR%'
 
 [rock +]/25'!rock/current/toggle%CR%' [metal +]/25'!metal/current/toggle%CR%'  
-[anime +]/25'!anime/current/toggle%CR%' [kpop +]/25'!kpop/current/toggle%CR%' 
+[anime +]/25'!anime/current/toggle%CR%' [pop +]/25'!pop/current/toggle%CR%' 
 
 [Random song!]/0'!decklist draw%CR%'";
 
@@ -395,7 +393,7 @@ namespace SongRequestManager
 
         private void SetUIInteractivity(bool interactive)
         {
-            _backButton.interactable = interactive;
+            //_backButton.interactable = interactive;
             _playButton.interactable = interactive;
             _skipButton.interactable = interactive;
             _blacklistButton.interactable = interactive;
