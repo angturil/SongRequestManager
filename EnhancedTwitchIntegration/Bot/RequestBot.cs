@@ -50,7 +50,6 @@ namespace SongRequestManager
             SongSearch,
         }
 
-
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
         public static ConcurrentQueue<KeyValuePair<SongRequest, bool>> BlacklistQueue = new ConcurrentQueue<KeyValuePair<SongRequest, bool>>();
@@ -152,14 +151,6 @@ namespace SongRequestManager
                 _songRequestMenu.SetRightViewController(_KeyboardViewController, false);
             }
 
-            /*
-            if (_songRequestMenu == null)
-            {
-                _songRequestMenu = BeatSaberUI.CreateCustomMenu<CustomMenu>("Song Request Queue");
-                _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
-
-            }
-            */
 
             SongListUtils.Initialize();
 
@@ -246,6 +237,13 @@ namespace SongRequestManager
             string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
             if (Directory.Exists(filesToDelete))
                 Utilities.EmptyDirectory(filesToDelete);
+
+
+            TimeSpan TimeSinceBackup = DateTime.Now - DateTime.Parse(RequestBotConfig.Instance.LastBackup);
+            if (TimeSinceBackup> TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours))
+                {
+                Backup();
+                }
 
 
             TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);

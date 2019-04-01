@@ -747,6 +747,9 @@ namespace SongRequestManager
                 var msg = new QueueLongMessage(1, 5); // One message maximum, 5 bytes reserved for the ...
                 foreach (JSONObject entry in songs)
                 {
+                    //entry.Add("pp", 100);
+                    //SongBrowserPlugin.DataAccess.ScoreSaberDataFile
+
                     song = entry;
                     msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail), ", ");
                 }
@@ -1081,6 +1084,7 @@ namespace SongRequestManager
                 AddLinks();
 
                 DateTime Now = DateTime.Now; //"MM/dd/yyyy hh:mm:ss.fffffff";         
+                Add("SRM", "Song Request Manager");
                 Add("Time", Now.ToString("hh:mm"));
                 Add("LongTime", Now.ToString("hh:mm:ss"));
                 Add("Date", Now.ToString("yyyy/MM/dd"));
@@ -1090,7 +1094,14 @@ namespace SongRequestManager
 
             public DynamicText AddUser(ref TwitchUser user)
             {
-                Add("user", user.displayName);
+                try
+                {
+                    Add("user", user.displayName);
+                }
+                catch   
+                {
+                // Don't care. Twitch user doesn't HAVE to be defined.
+                }
                 return this;
             }
 

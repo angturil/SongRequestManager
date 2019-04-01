@@ -14,7 +14,7 @@ namespace SongRequestManager.Config
     {
         private string FilePath = Path.Combine(Globals.DataPath, "RequestBotSettings.ini");
 
-        
+
         public bool RequestQueueOpen = true;
         public bool PersistentRequestQueue = true;
 
@@ -35,8 +35,11 @@ namespace SongRequestManager.Config
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
-        public int MaximumQueueTextEntries = 8;          
-        public string BotPrefix = "";
+        public int MaximumQueueTextEntries = 8;
+        public string BotPrefix ="";
+
+        public string LastBackup = DateTime.MinValue.ToString();
+        public string backuppath = Path.Combine(Environment.CurrentDirectory, "userdata", "backup");
 
         public event Action<RequestBotConfig> ConfigChangedEvent;
 
