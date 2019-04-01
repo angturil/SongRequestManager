@@ -152,7 +152,7 @@ namespace SongRequestManager
             new COMMAND("!clearalreadyplayed").Action(ClearDuplicateList).Help(Mod, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
             new COMMAND("!restore").Action(restoredeck).Help(Mod, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
 
-            new COMMAND("!about").Help(Everyone, $"Song Request Manager version {Plugin.Instance.Version}. Github angturil/SongRequestManager", _fail); // Help commands have no code
+            new COMMAND("!about").Help(CmdFlags.Local | CmdFlags.SilentCheck , $"Song Request Manager version {Plugin.Instance.Version}. Github angturil/SongRequestManager", _fail); // Help commands have no code
             new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
             new COMMAND("!commandlist").Action(showCommandlist).Help(Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
@@ -933,7 +933,7 @@ namespace SongRequestManager
 
                 if (!botcmd.regexfilter.IsMatch(parameter))
                 {
-                    ShowHelpMessage(ref botcmd, ref user, parameter, false);
+                    if (!botcmd.Flags.HasFlag(CmdFlags.SilentCheck)) ShowHelpMessage(ref botcmd, ref user, parameter, false);
                     return;
                 }
 
@@ -996,44 +996,45 @@ namespace SongRequestManager
         // BUG: This is actually part of botcmd, please move
         public static void ShowHelpMessage(ref COMMAND botcmd, ref TwitchUser user, string param, bool showlong)
         {
-            if (botcmd.Flags.HasFlag(CmdFlags.SilentCheck) || botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Make sure we're allowed to show help
+            if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Make sure we're allowed to show help
 
             new DynamicText().AddUser(ref user).AddBotCmd(ref botcmd).QueueMessage(ref botcmd.ShortHelp, showlong);
             return;
         }
 
         // Get help on a command
-        private void help(TwitchUser requestor, string request)
+        private string help(ParseState state)
         {
-            if (request == "")
+            if (state.parameter == "")
             {
                 var msg = new QueueLongMessage();
                 msg.Header("Usage: help < ");
                 foreach (var entry in COMMAND.aliaslist)
                 {
                     var botcmd = entry.Value;
-                    if (HasRights(ref botcmd, ref requestor,0) && !botcmd.Flags.HasFlag(Subcmd) && !botcmd.Flags.HasFlag(Var))
+                    if (HasRights(ref botcmd, ref state.user,0) && !botcmd.Flags.HasFlag(Subcmd) && !botcmd.Flags.HasFlag(Var))
                                 
                         msg.Add($"{entry.Key.TrimStart('!')}", " "); // BUG: Removes the built in ! in the commands, letting it slide... for now 
                 }
                 msg.Add(">");
                 msg.end("...", $"No commands available >");
-                return;
+                return success;
             }
-            if (COMMAND.aliaslist.ContainsKey(request.ToLower()))
+            if (COMMAND.aliaslist.ContainsKey(state.parameter.ToLower()))
             {
-                var BotCmd = COMMAND.aliaslist[request.ToLower()];
-                ShowHelpMessage(ref BotCmd, ref requestor, request, true);
+                var BotCmd = COMMAND.aliaslist[state.parameter.ToLower()];
+                ShowHelpMessage(ref BotCmd, ref state.user, state.parameter, true);
             }
-            else if (COMMAND.aliaslist.ContainsKey("!" + request.ToLower())) // BUG: Ugly code, gets help on ! version of command
+            else if (COMMAND.aliaslist.ContainsKey("!" + state.parameter.ToLower())) // BUG: Ugly code, gets help on ! version of command
             {
-                var BotCmd = COMMAND.aliaslist["!" + request.ToLower()];
-                ShowHelpMessage(ref BotCmd, ref requestor, request, true);
+                var BotCmd = COMMAND.aliaslist["!" + state.parameter.ToLower()];
+                ShowHelpMessage(ref BotCmd, ref state.user, state.parameter, true);
             }
             else
             {
-                QueueChatMessage($"Unable to find help for {request}.");
+                QueueChatMessage($"Unable to find help for {state.parameter}.");
             }
+            return success;
         }
 
         public static bool HasRights(ref COMMAND botcmd, ref TwitchUser user,CmdFlags flags)

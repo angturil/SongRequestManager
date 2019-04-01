@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace SongRequestManager.Config
+namespace SongRequestManager.RequestBotConfig
 {
     public class RequestBotConfig
     {

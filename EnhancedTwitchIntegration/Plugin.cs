@@ -1,6 +1,6 @@
 ﻿
 using SongRequestManager;
-using SongRequestManager.Config;
+using SongRequestManager.RequestBotConfig;
 using IllusionPlugin;
 using System;
 using System.IO;
@@ -20,7 +20,7 @@ namespace SongRequestManager
         public bool IsApplicationExiting = false;
         public static Plugin Instance { get; private set; }
         
-        private readonly RequestBotConfig RequestBotConfig = new RequestBotConfig();
+        private readonly RequestBotConfig.RequestBotConfig RequestBotConfig = new RequestBotConfig.RequestBotConfig();
 
         public static void Log(string text,
                         [CallerFilePath] string file = "",
@@ -47,9 +47,9 @@ namespace SongRequestManager
         {
             if (arg0.name == MenuSceneName)
             {
-                //Settings.OnLoad();
+                Settings.OnLoad();
                 RequestBot.OnLoad();
-                
+
                 RequestBotConfig.Save(true);
             }
         }

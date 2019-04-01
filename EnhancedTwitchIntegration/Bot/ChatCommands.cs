@@ -1,7 +1,7 @@
 ﻿using StreamCore.Chat;
 using StreamCore.Config;
 using StreamCore.SimpleJSON;
-using SongRequestManager.Config;
+using SongRequestManager.RequestBotConfig;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -47,13 +47,13 @@ namespace SongRequestManager
             {
             get
                 {
-                return 498-RequestBotConfig.Instance.BotPrefix.Length;
+                return 498- RequestBotConfig.RequestBotConfig.Instance.BotPrefix.Length;
                 }
             }
 
-        public void ChatMessage(TwitchUser requestor, string request)
+        public string ChatMessage(ParseState state)
         {
-            var dt = new DynamicText().AddUser(ref requestor);
+            var dt = new DynamicText().AddUser(ref state.user);
             try
             {
                 dt.AddSong(RequestHistory.Songs[0].song); // Exposing the current song 
@@ -63,7 +63,8 @@ namespace SongRequestManager
                 Plugin.Log(ex.ToString());
             }
 
-            dt.QueueMessage(request);
+            dt.QueueMessage(state.parameter);
+            return success;
         }
 
         public void RunScript(TwitchUser requestor, string request)
@@ -210,7 +211,7 @@ namespace SongRequestManager
 
             if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"no permitted results found!";
 
-            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below {RequestBotConfig.Instance.LowestAllowedRating}% rating!";
+            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below {RequestBotConfig.RequestBotConfig.Instance.LowestAllowedRating}% rating!";
 
             return "";
         }
@@ -577,8 +578,6 @@ namespace SongRequestManager
         // General search version
         private IEnumerator addsongs(ParseState state)
         {
-            int totalSongs = 0;
-
             bool isBeatSaverId = _digitRegex.IsMatch(state.parameter) || _beatSaverRegex.IsMatch(state.parameter);
 
             string requestUrl = isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
@@ -845,8 +844,8 @@ namespace SongRequestManager
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
         {
-            RequestBotConfig.Instance.RequestQueueOpen = state;
-            RequestBotConfig.Instance.Save();
+            RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen = state;
+            RequestBotConfig.RequestBotConfig.Instance.Save();
 
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
             WriteQueueStatusToFile(QueueMessage(state));
@@ -855,7 +854,7 @@ namespace SongRequestManager
         private static void WriteQueueSummaryToFile()
         {
 
-            if (!RequestBotConfig.Instance.UpdateQueueStatusFiles) return;
+            if (!RequestBotConfig.RequestBotConfig.Instance.UpdateQueueStatusFiles) return;
 
             try
             {
@@ -870,7 +869,7 @@ namespace SongRequestManager
                     var song = req.song;
                     queuesummary += new DynamicText().AddSong(song).Parse(QueueTextFileFormat);  // Format of Queue is now user configurable
 
-                    if (++count > RequestBotConfig.Instance.MaximumQueueTextEntries)
+                    if (++count > RequestBotConfig.RequestBotConfig.Instance.MaximumQueueTextEntries)
                     {
                         queuesummary += "...\n";
                         break;

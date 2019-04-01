@@ -337,7 +337,7 @@ namespace SongRequestManager
             this.container = container;
             baseposition = new Vector2(-50+x, 23+y);
             currentposition = baseposition;
-            bool addhint = true;
+            //bool addhint = true;
 
             SetButtonType();
 

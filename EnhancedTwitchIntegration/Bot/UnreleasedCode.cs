@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using SongRequestManager.Config;
+using SongRequestManager.RequestBotConfig;
 using StreamCore.Utils;
 // Feature requests: Add Reason for being banned to banlist
 //  
