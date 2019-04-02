@@ -19,7 +19,7 @@ using VRUI;
 using Image = UnityEngine.UI.Image;
 using System.IO;
 using StreamCore.Chat;
-using SongRequestManager.RequestBotConfig;
+using SongRequestManager;
 
 namespace SongRequestManager
 {
@@ -253,16 +253,16 @@ namespace SongRequestManager
                 _queueButton.ToggleWordWrapping(false);
                 _queueButton.SetButtonTextSize(3.5f);
                 (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -30f);
-                _queueButton.SetButtonText(RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen ? "Queue Open" : "Queue Closed");
-                _queueButton.GetComponentInChildren<Image>().color = RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red; ;
+                _queueButton.SetButtonText(RequestBotConfig.Instance.RequestQueueOpen ? "Queue Open" : "Queue Closed");
+                _queueButton.GetComponentInChildren<Image>().color = RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red; ;
                 _queueButton.interactable = true;
                 _queueButton.onClick.RemoveAllListeners();
                 _queueButton.onClick.AddListener(delegate ()
                 {
-                    RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen = !RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen;
-                    RequestBotConfig.RequestBotConfig.Instance.Save();
-                    RequestBot.WriteQueueStatusToFile(RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
-                    RequestBot.Instance.QueueChatMessage(RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
+                    RequestBotConfig.Instance.RequestQueueOpen = !RequestBotConfig.Instance.RequestQueueOpen;
+                    RequestBotConfig.Instance.Save();
+                    RequestBot.WriteQueueStatusToFile(RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
+                    RequestBot.Instance.QueueChatMessage(RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
                     UpdateRequestUI();
                 });
                 BeatSaberUI.AddHintText(_queueButton.transform as RectTransform, "Open/Close the queue.");
@@ -284,8 +284,8 @@ namespace SongRequestManager
         {
             _skipButton.interactable = !isShowingHistory;
             _playButton.GetComponentInChildren<Image>().color = ((isShowingHistory && RequestHistory.Songs.Count > 0) || (!isShowingHistory && RequestQueue.Songs.Count > 0)) ? Color.green : Color.red;
-            _queueButton.SetButtonText(RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen ? "Queue Open" : "Queue Closed");
-            _queueButton.GetComponentInChildren<Image>().color = RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red; ;
+            _queueButton.SetButtonText(RequestBotConfig.Instance.RequestQueueOpen ? "Queue Open" : "Queue Closed");
+            _queueButton.GetComponentInChildren<Image>().color = RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red; ;
             _historyHintText.text = isShowingHistory ? "Go back to your current song request queue." : "View the history of song requests from the current session.";
             _historyButton.SetButtonText(isShowingHistory ? "Requests" : "History");
             _playButton.SetButtonText(isShowingHistory ? "Replay" : "Play");

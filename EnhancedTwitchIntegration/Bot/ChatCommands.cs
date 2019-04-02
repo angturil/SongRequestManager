@@ -1,7 +1,7 @@
 ﻿using StreamCore.Chat;
 using StreamCore.Config;
 using StreamCore.SimpleJSON;
-using SongRequestManager.RequestBotConfig;
+using SongRequestManager;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -47,7 +47,7 @@ namespace SongRequestManager
             {
             get
                 {
-                return 498- RequestBotConfig.RequestBotConfig.Instance.BotPrefix.Length;
+                return 498- RequestBotConfig.Instance.BotPrefix.Length;
                 }
             }
 
@@ -205,13 +205,13 @@ namespace SongRequestManager
 
             if (filter.HasFlag(SongFilter.Blacklist) && SongBlacklist.Songs.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is banned!";
 
-            if (filter.HasFlag(SongFilter.Mapper) && _mapperWhitelist && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
+            if (filter.HasFlag(SongFilter.Mapper) &&  mapperfiltered(song,_mapperWhitelist)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
             if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist, songid)) return fast ? "X" : $"{song["songName"].Value} by  {song["authorName"].Value} already requested this session!";
 
             if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"no permitted results found!";
 
-            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below {RequestBotConfig.RequestBotConfig.Instance.LowestAllowedRating}% rating!";
+            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below {RequestBotConfig.Instance.LowestAllowedRating}% rating!";
 
             return "";
         }
@@ -394,15 +394,15 @@ namespace SongRequestManager
         private void MapperBanList(TwitchUser requestor, string request)
         {
             string key = request.ToLower();
-            mapperBanlist = listcollection.ListCollection[key];
+            mapperBanlist = listcollection.OpenList(key);
             QueueChatMessage($"Mapper ban list set to {request}.");
         }
 
         // Not super efficient, but what can you do
-        private bool mapperfiltered(JSONObject song)
+        private bool mapperfiltered(JSONObject song,bool white)
         {
             string normalizedauthor = song["authorName"].Value.ToLower();
-            if (mapperwhitelist.list.Count > 0)
+            if (white && mapperwhitelist.list.Count > 0)
             {
                 foreach (var mapper in mapperwhitelist.list)
                 {
@@ -512,7 +512,7 @@ namespace SongRequestManager
 
             listcollection.ClearList("latest.deck");
 
-            while (found && offset < 40) // MaxiumAddScanRange
+            while (offset < RequestBotConfig.Instance.MaxiumAddScanRange) // MaxiumAddScanRange
             {
                 found = false;
 
@@ -542,7 +542,7 @@ namespace SongRequestManager
                             found = true;
                             JSONObject song = entry;
 
-                            if (mapperfiltered(song)) continue; // This forces the mapper filter
+                            if (mapperfiltered(song,true)) continue; // This forces the mapper filter
                             if (filtersong(song)) continue;
 
                             //if (state.flags.HasFlag(CmdFlags.ToQueue))
@@ -564,8 +564,8 @@ namespace SongRequestManager
             else
             {
                 #if UNRELEASED
-                //QueueChatMessage($"Added {totalSongs} to latest.deck");                
-                //COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest");
+                QueueChatMessage($"Added {totalSongs} to latest.deck");                
+                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest");
                 #endif
 
                 UpdateRequestUI();
@@ -844,8 +844,8 @@ namespace SongRequestManager
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
         {
-            RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen = state;
-            RequestBotConfig.RequestBotConfig.Instance.Save();
+            RequestBotConfig.Instance.RequestQueueOpen = state;
+            RequestBotConfig.Instance.Save();
 
             QueueChatMessage(state ? "Queue is now open." : "Queue is now closed.");
             WriteQueueStatusToFile(QueueMessage(state));
@@ -854,7 +854,7 @@ namespace SongRequestManager
         private static void WriteQueueSummaryToFile()
         {
 
-            if (!RequestBotConfig.RequestBotConfig.Instance.UpdateQueueStatusFiles) return;
+            if (!RequestBotConfig.Instance.UpdateQueueStatusFiles) return;
 
             try
             {
@@ -869,7 +869,7 @@ namespace SongRequestManager
                     var song = req.song;
                     queuesummary += new DynamicText().AddSong(song).Parse(QueueTextFileFormat);  // Format of Queue is now user configurable
 
-                    if (++count > RequestBotConfig.RequestBotConfig.Instance.MaximumQueueTextEntries)
+                    if (++count > RequestBotConfig.Instance.MaximumQueueTextEntries)
                     {
                         queuesummary += "...\n";
                         break;

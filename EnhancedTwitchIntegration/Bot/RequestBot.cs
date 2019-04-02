@@ -30,7 +30,7 @@ using Image = UnityEngine.UI.Image;
 using Toggle = UnityEngine.UI.Toggle;
 using TMPro;
 using StreamCore.Config;
-using SongRequestManager.RequestBotConfig;
+using SongRequestManager;
 using SongLoaderPlugin;
 using StreamCore;
 
@@ -86,21 +86,28 @@ namespace SongRequestManager
 
         public static void OnLoad()
         {
-            var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelPackLevelsViewController>().First();
-            if (_levelListViewController)
+            try
             {
-                _requestButton = BeatSaberUI.CreateUIButton(_levelListViewController.rectTransform, "QuitButton", new Vector2(63, -3.5f),
-                    new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
+                var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelPackLevelsViewController>().First();
+                if (_levelListViewController)
+                {
+                    _requestButton = BeatSaberUI.CreateUIButton(_levelListViewController.rectTransform, "QuitButton", new Vector2(63, -3.5f),
+                        new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
 
-                (_requestButton.transform as RectTransform).anchorMin = new Vector2(1, 1);
-                (_requestButton.transform as RectTransform).anchorMax = new Vector2(1, 1);
+                    (_requestButton.transform as RectTransform).anchorMin = new Vector2(1, 1);
+                    (_requestButton.transform as RectTransform).anchorMax = new Vector2(1, 1);
 
-                _requestButton.ToggleWordWrapping(false);
-                _requestButton.SetButtonTextSize(2.0f);
-                BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, "Manage the current request queue");
+                    _requestButton.ToggleWordWrapping(false);
+                    _requestButton.SetButtonTextSize(2.0f);
+                    BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, "Manage the current request queue");
 
-                UpdateRequestUI();
-                Plugin.Log("Created request button!");
+                    UpdateRequestUI();
+                    Plugin.Log("Created request button!");
+                }
+            }
+            catch
+            {
+                Plugin.Log("Unable to create request button");
             }
 
             if (_songRequestListViewController == null)
@@ -126,7 +133,7 @@ namespace SongRequestManager
 
 [CLEAR SEARCH]/0 /2 [NEWEST]/0 /2 [UNFILTERED]/30 /2 [SEARCH]/0";
 
-                //mykeyboard.SetButtonType("QuitButton"); // Adding this alters button positions??! Why?
+                mykeyboard.SetButtonType("QuitButton"); // Adding this alters button positions??! Why?
                 mykeyboard.AddKeys(SEARCH, 0.75f);
 
                 mykeyboard.SetAction("CLEAR SEARCH", ClearSearch);
@@ -155,7 +162,7 @@ namespace SongRequestManager
             SongListUtils.Initialize();
 
             WriteQueueSummaryToFile();
-            WriteQueueStatusToFile(QueueMessage(RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen));
+            WriteQueueStatusToFile(QueueMessage(RequestBotConfig.Instance.RequestQueueOpen));
 
 
             if (Instance) return;
@@ -239,15 +246,15 @@ namespace SongRequestManager
                 Utilities.EmptyDirectory(filesToDelete);
 
 
-            TimeSpan TimeSinceBackup = DateTime.Now - DateTime.Parse(RequestBotConfig.RequestBotConfig.Instance.LastBackup);
-            if (TimeSinceBackup > TimeSpan.FromHours(RequestBotConfig.RequestBotConfig.Instance.SessionResetAfterXHours))
+            TimeSpan TimeSinceBackup = DateTime.Now - DateTime.Parse(RequestBotConfig.Instance.LastBackup);
+            if (TimeSinceBackup > TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours))
                 {
                 Backup();
                 }
 
 
             TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
-            if (PlayedAge < TimeSpan.FromHours(RequestBotConfig.RequestBotConfig.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
+            if (PlayedAge < TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
 
 
             string blacklistMigrationFile = Path.Combine(Globals.DataPath, "SongBlacklistMigration.list");
@@ -261,7 +268,7 @@ namespace SongRequestManager
             RequestHistory.Read();
             SongBlacklist.Read();
 
-            listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(RequestBotConfig.RequestBotConfig.Instance.SessionResetAfterXHours));
+            listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours));
 
             UpdateRequestUI();
             InitializeCommands();
@@ -280,7 +287,7 @@ namespace SongRequestManager
 
 
 
-            RequestBotConfig.RequestBotConfig.Instance.ConfigChangedEvent += OnConfigChangedEvent;
+            RequestBotConfig.Instance.ConfigChangedEvent += OnConfigChangedEvent;
         }
 
 
@@ -296,7 +303,7 @@ namespace SongRequestManager
             RequestBot.COMMAND.Parse(msg.user, msg.message);
         }
 
-        private void OnConfigChangedEvent(RequestBotConfig.RequestBotConfig config)
+        private void OnConfigChangedEvent(RequestBotConfig config)
         {
             _configChanged = true;
         }
@@ -369,6 +376,7 @@ namespace SongRequestManager
 
             OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
             MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
+            MapperBanList(TwitchWebSocketClient.OurTwitchUser, "mapperban.list");
             loaddecks(TwitchWebSocketClient.OurTwitchUser, ""); // Load our default deck collection
             // BUG: Command failure observed once, no permission to use /chatcommand. Possible cause: Ourtwitchuser isn't authenticated yet.
 
@@ -450,7 +458,7 @@ namespace SongRequestManager
 
         public void QueueChatMessage(string message)
         {
-            TwitchWebSocketClient.SendCommand($"{RequestBotConfig.RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
+            TwitchWebSocketClient.SendCommand($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
         }
         
         private IEnumerator ProcessRequestQueue()
@@ -599,11 +607,11 @@ namespace SongRequestManager
                 if (errorMessage == "")
                     errorMessage = $"No results found for request \"{request}\"";
             }
-            else if (!RequestBotConfig.RequestBotConfig.Instance.AutopickFirstSong && songs.Count >= 4)
+            else if (!RequestBotConfig.Instance.AutopickFirstSong && songs.Count >= 4)
             {
                 errorMessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
             }
-            else if (!RequestBotConfig.RequestBotConfig.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
+            else if (!RequestBotConfig.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
             {
                 var msg = new QueueLongMessage(1, 5);
                 msg.Header($"@{requestor.displayName}, please choose: ");
@@ -613,7 +621,7 @@ namespace SongRequestManager
             }
             else
             {
-                if (!requestInfo.flags.HasFlag(CmdFlags.NoFilter) || !requestInfo.isBeatSaverId) errorMessage = SongSearchFilter(songs[0], false);
+                if (!requestInfo.flags.HasFlag(CmdFlags.NoFilter)) errorMessage = SongSearchFilter(songs[0], false);
             }
 
             // Display reason why chosen song was rejected, if filter is triggered. Do not add filtered songs
@@ -759,9 +767,9 @@ namespace SongRequestManager
         {
             if (request.status!=RequestStatus.Wrongsong && request.status!=RequestStatus.SongSearch) RequestHistory.Songs.Insert(0, request); // Wrong song requests are not logged into history, is it possible that other status states shouldn't be moved either?
 
-            if (RequestHistory.Songs.Count > RequestBotConfig.RequestBotConfig.Instance.RequestHistoryLimit)
+            if (RequestHistory.Songs.Count > RequestBotConfig.Instance.RequestHistoryLimit)
             {
-                int diff = RequestHistory.Songs.Count - RequestBotConfig.RequestBotConfig.Instance.RequestHistoryLimit;
+                int diff = RequestHistory.Songs.Count - RequestBotConfig.Instance.RequestHistoryLimit;
                 RequestHistory.Songs.RemoveRange(RequestHistory.Songs.Count - diff - 1, diff);
             }
             RequestQueue.Songs.Remove(request);
@@ -788,7 +796,7 @@ namespace SongRequestManager
             // If the queue is empty, Execute a custom command, the could be a chat message, a deck request, or nothing
             try
             {
-                if (RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen && updateUI == true && RequestQueue.Songs.Count == 0) RequestBot.listcollection.runscript("emptyqueue.script");
+                if (RequestBotConfig.Instance.RequestQueueOpen && updateUI == true && RequestQueue.Songs.Count == 0) RequestBot.listcollection.runscript("emptyqueue.script");
             }
             catch (Exception ex) { Plugin.Log(ex.ToString()); }
 #endif
@@ -871,7 +879,7 @@ namespace SongRequestManager
         {
             try
             {
-                if (RequestBotConfig.RequestBotConfig.Instance.RequestQueueOpen == false && isNotModerator(requestor)) // BUG: Complex permission, Queue state message needs to be handled higher up
+                if (RequestBotConfig.Instance.RequestQueueOpen == false && isNotModerator(requestor)) // BUG: Complex permission, Queue state message needs to be handled higher up
                 {
                     QueueChatMessage($"Queue is currently closed.");
                     return;
@@ -881,10 +889,10 @@ namespace SongRequestManager
                 if (!RequestTracker.ContainsKey(requestor.id))
                     RequestTracker.Add(requestor.id, new RequestUserTracker());
 
-                int limit = RequestBotConfig.RequestBotConfig.Instance.UserRequestLimit;
-                if (requestor.isSub) limit = Math.Max(limit, RequestBotConfig.RequestBotConfig.Instance.SubRequestLimit);
-                if (requestor.isMod) limit = Math.Max(limit, RequestBotConfig.RequestBotConfig.Instance.ModRequestLimit);
-                if (requestor.isVip) limit += RequestBotConfig.RequestBotConfig.Instance.VipBonusRequests; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
+                int limit = RequestBotConfig.Instance.UserRequestLimit;
+                if (requestor.isSub) limit = Math.Max(limit, RequestBotConfig.Instance.SubRequestLimit);
+                if (requestor.isMod) limit = Math.Max(limit, RequestBotConfig.Instance.ModRequestLimit);
+                if (requestor.isVip) limit += RequestBotConfig.Instance.VipBonusRequests; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
 
                 /*
                 // Currently using simultaneous request limits, will be introduced later / or activated if time mode is on.
@@ -910,7 +918,7 @@ namespace SongRequestManager
                     if (RequestTracker[requestor.id].numRequests >= limit)
                     {
 
-                        new DynamicText().Add("Requests", RequestTracker[requestor.id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
+                        new DynamicText().Add("Requests", RequestTracker[requestor.id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
 
                         return;
                     }

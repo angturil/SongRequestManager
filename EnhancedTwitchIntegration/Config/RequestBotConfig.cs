@@ -6,9 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading;
 
-namespace SongRequestManager.RequestBotConfig
+namespace SongRequestManager
 {
     public class RequestBotConfig
     {
@@ -27,7 +26,7 @@ namespace SongRequestManager.RequestBotConfig
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
         public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
-        public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
+        public int MaxiumAddScanRange = 120; // How far down the list to scan , currently in use by unpublished commands
 
         public string DeckList = "fun hard challenge dance chill";
 

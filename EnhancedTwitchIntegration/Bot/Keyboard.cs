@@ -520,6 +520,10 @@ namespace SongRequestManager
 
                 name = text;
                 mybutton = Button.Instantiate(kb.BaseButton, kb.container, false);
+
+                (mybutton.transform as RectTransform).anchorMin = new Vector2(0.5f,0.5f);
+                (mybutton.transform as RectTransform).anchorMax = new Vector2(0.5f,0.5f);
+
                 TMP_Text txt = mybutton.GetComponentInChildren<TMP_Text>();
                 mybutton.ToggleWordWrapping(false);
 

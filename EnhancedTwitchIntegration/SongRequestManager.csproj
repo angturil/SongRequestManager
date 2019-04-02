@@ -40,8 +40,9 @@
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
-    <Reference Include="BeatSaberCustomUI">
-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\plugins\BeatSaberCustomUI.dll</HintPath>
+    <Reference Include="BeatSaberCustomUI, Version=1.3.9.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\BeatSaberCustomUI.dll</HintPath>
     </Reference>
     <Reference Include="BeatSaverDownloader">
       <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\BeatSaverDownloader.dll</HintPath>

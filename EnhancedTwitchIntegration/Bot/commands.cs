@@ -181,7 +181,6 @@ namespace SongRequestManager
             // These comments contain forward looking statement that are absolutely subject to change. I make no commitment to following through
             // on any specific feature,interface or implementation. I do not promise to make them generally available. Its probably best to avoid using or making assumptions based on these.
 
-            COMMAND.InitializeCommands(); // BUG: Currently empty
 
 
 
@@ -225,7 +224,7 @@ namespace SongRequestManager
 
             new COMMAND("!updatemappers").Coroutine(UpdateMappers).Help(Broadcaster, "usage: %alias% %|% Update mapper lists/decks. This may take a while, don't do live.");
             new COMMAND("!joinrooms").Coroutine(GetRooms).Help(Broadcaster, "usage: %alias% %|% This is not fully functional, allows the bot to accept commands from your other rooms.") ;
-
+            new COMMAND("!savecommands").Action(SaveCommands);
 #endif
             #endregion
 
@@ -277,9 +276,17 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/top", "subcmdtop" }).Action(SubcmdTop).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster, "%alias% sets a flag to move the request(s) to the top of the queue.");
             new COMMAND(new string[] { "/mod","subcmdmod"}).Action(SubcmdMod).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster,"%alias% sets a flag to ignore all filtering");
             #endregion
+
+            COMMAND.InitializeCommands(); // BUG: Currently empty
+            COMMAND.SummarizeCommands(); // Save original command states string.
         }
 
 
+        public string SaveCommands(ParseState state)
+            {
+            COMMAND.WriteCommandConfiguration();
+            return success;
+            }
         
 
         const string success = "";
@@ -290,6 +297,7 @@ namespace SongRequestManager
         public string SubcmdEnable(ParseState state)
         {
             state.botcmd.Flags &= ~CmdFlags.Disabled;
+            state.botcmd.UpdateCommand(COMMAND.ChangedFlags.Flags);
             Instance?.QueueChatMessage($"{state.command} Enabled.");
             return endcommand;
         }
@@ -317,6 +325,7 @@ namespace SongRequestManager
         public string SubcmdDisable(ParseState state)
         {
             state.botcmd.Flags |= CmdFlags.Disabled;
+            state.botcmd.UpdateCommand(COMMAND.ChangedFlags.Flags);
             Instance?.QueueChatMessage($"{state.command} Disabled.");
             return endcommand;
         }
@@ -394,6 +403,7 @@ namespace SongRequestManager
 
                 CmdFlags flag = (CmdFlags)Enum.Parse(typeof(CmdFlags), state.subparameter);
                 state.botcmd.Flags |= flag;
+                state.botcmd.UpdateCommand(COMMAND.ChangedFlags.Flags);
 
                 if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
 
@@ -414,6 +424,7 @@ namespace SongRequestManager
 
             state.botcmd.Flags &= ~flag;
 
+            state.botcmd.UpdateCommand(COMMAND.ChangedFlags.Flags);
             if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"{state.command} flags: {state.botcmd.Flags.ToString()}");
 
             return endcommand;
@@ -439,7 +450,9 @@ namespace SongRequestManager
                 foreach (var alias in state.botcmd.aliases) COMMAND.aliaslist.Remove(alias);
                 state.botcmd.aliases = state.subparameter.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
                 state.botcmd.AddAliases();
-                }
+                state.botcmd.UpdateCommand(COMMAND.ChangedFlags.Aliases);
+
+            }
             else
                 {
                 return $"Unable to set {state.command} aliases to {state.subparameter}";    
@@ -452,6 +465,8 @@ namespace SongRequestManager
         public string SubcmdSethelp(ParseState state)
         {
             state.botcmd.ShortHelp = state.subparameter + state.parameter; // This one's different
+            state.botcmd.UpdateCommand(COMMAND.ChangedFlags.Help);
+
             if (!state.flags.HasFlag(CmdFlags.SilentResult)) Instance?.QueueChatMessage($"{state.command} help: {state.botcmd.ShortHelp}");
             return endcommand;
         }
@@ -483,7 +498,9 @@ namespace SongRequestManager
             if (state.botcmd.Flags.HasFlag(CmdFlags.Variable)) 
                 {
                 state.botcmd.userParameter.Clear().Append(state.subparameter+state.parameter);
-                }
+                state.botcmd.UpdateCommand(COMMAND.ChangedFlags.Variable);
+
+            }
 
             return endcommand; // This is an assignment, we're not executing the object.
         }
@@ -494,6 +511,7 @@ namespace SongRequestManager
             if (state.botcmd.Flags.HasFlag(CmdFlags.Variable))
             {
                 state.botcmd.userParameter.Clear().Append(state.botcmd.UserString);
+                state.botcmd.UpdateCommand(COMMAND.ChangedFlags.Variable);
                 return state.msg($"{state.command} has been reset to its original value.",endcommand);
             }
 
@@ -505,6 +523,9 @@ namespace SongRequestManager
             #region COMMAND Class
         public partial class COMMAND
         {
+            public static StringBuilder commandsummary=new StringBuilder();
+            private static bool Loading = false;
+
             public static Dictionary<string, COMMAND> aliaslist = new Dictionary<string, COMMAND>(); // There can be only one (static)!
 
             // BUG: Extra methods will be removed after the offending code is migrated, There will likely always be 2-3.
@@ -527,7 +548,30 @@ namespace SongRequestManager
             public string UserString = "";
             public int userNumber = 0;
             public int UseCount = 0;  // Number of times command has been used, sadly without references, updating this is costly.
+            public ChangedFlags ChangedParameters=0; // Indicates if any prameters were changed by the user
 
+            public void UpdateCommand(ChangedFlags changed)
+                {
+                ChangedParameters |= changed;
+                ChangedParameters &= ~ChangedFlags.Saved;
+                }   
+
+                
+
+            [Flags]
+            public enum ChangedFlags
+                {
+                none=0,
+                Aliases=1,
+                Flags=2,
+                Help=4,
+                Allow=8,
+                Any=15,
+                Variable=16,
+
+                Saved=1<<30, // These changes were saved
+                All=-1
+                }
             public void SetPermittedUsers(string listname)
             {
                 // BUG: Needs additional checking
@@ -663,27 +707,19 @@ namespace SongRequestManager
                 return String.Join(",", aliases.ToArray());
                 }
 
-           // BUG: This is pass 1, refactoring will get done eventually.
-           public static void CommandConfiguration(string configfilename="SRMCommands")
+            public static void SummarizeCommands(StringBuilder target=null,bool everything=true)
                 {
-
-                var UserSettings = new StringBuilder();
-
-                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
-
                 SortedDictionary<string, COMMAND> unique = new SortedDictionary<string, COMMAND>();
 
-                var commandsummary = new StringBuilder();
+                if (target == null) target = commandsummary;
 
                 foreach (var alias in aliaslist)
-                    {
+                {
                     var BaseKey = alias.Value.aliases[0];
                     if (!unique.ContainsKey(BaseKey)) unique.Add(BaseKey, alias.Value); // Create a sorted dictionary of each unique command object
-                    }
+                }
 
-                commandsummary.Append("\r\n");
-                commandsummary.Append("// This is a summary of the current command states, these are for reference only. Use the uncommented section for your changes.\r\n\r\n");
-
+ 
                 foreach (var entry in unique)
                 {
                     var command = entry.Value;
@@ -691,50 +727,41 @@ namespace SongRequestManager
                     if (command.Flags.HasFlag(CmdFlags.Dynamic) || command.Flags.HasFlag(CmdFlags.Subcommand)) continue; // we do not allow customization of Subcommands or dynamic commands at this time
 
                     var cmdname = command.aliases[0];
-                    cmdname += new string(' ', 20 - cmdname.Length);
+                    if (everything) cmdname += new string(' ', 20 - cmdname.Length);
 
-                    if (command.Flags.HasFlag(CmdFlags.Variable))
-                        commandsummary.Append($"// {cmdname}= {command.userParameter.ToString()}\r\n");
-                    else
-                        commandsummary.Append($"// {cmdname}= /alias {command.GetAliases()} /flags {command.GetFlags()} /sethelp {command.GetHelpText()}\r\n");
-
-                }
-
-                UserSettings.Append("// This section contains ONLY commands that have changed.\r\n\r\n");
-
-                try
-                {
- 
-                    using (StreamReader sr = new StreamReader(filename))
-                    {
-                        while (sr.Peek() >= 0)
+                    if (command.Flags.HasFlag(CmdFlags.Variable) && (everything | command.ChangedParameters.HasFlag(ChangedFlags.Variable)))
                         {
-                            string line = sr.ReadLine();
-                            line.Trim(' ');
-                            if (line.Length < 2 || line.StartsWith("//")) continue;
-
-                            UserSettings.Append(line).Append("\r\n");
-                            // MAGICALLY configure the customized commands 
-
-                            //if (line[0] != '!') line = '!' + line; // Insert the ! if needed.
-                            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser,line,CmdFlags.SilentResult | CmdFlags.Local);
-
+                        if (everything) target.Append("// ");
+                        target.Append($"{cmdname}= {command.userParameter.ToString()}\r\n");
                         }
-                        sr.Close();
+                    else
+                    {
+                        if (everything || (command.ChangedParameters & ChangedFlags.Any) != 0)
+                        {
+                            if (everything) target.Append("// ");
+                            target.Append($"{cmdname} =");
+                            if (everything || command.ChangedParameters.HasFlag(ChangedFlags.Aliases)) target.Append($" /alias {command.GetAliases()}");
+                            if (everything || command.ChangedParameters.HasFlag(ChangedFlags.Flags)) target.Append($" /flags {command.GetFlags()}");
+                            if (everything || command.ChangedParameters.HasFlag(ChangedFlags.Help)) target.Append($" /sethelp {command.GetHelpText()}");
+                            target.Append("\r\n");
+                        }
                     }
-                    
                 }
-                catch       
+            }
+
+            public static void WriteCommandConfiguration(string configfilename = "SRMCommands")
                 {
-                // If it doesn't exist, or ends early, that's fine.
-                }
+                var UserSettings = new StringBuilder("// This section contains ONLY commands that have changed.\r\n\r\n");
 
-                   UserSettings.Append(commandsummary.ToString());
+                SummarizeCommands(UserSettings, false);
 
+                UserSettings.Append("\r\n");
+                UserSettings.Append("// This is a summary of the current command states, these are for reference only. Use the uncommented section for your changes.\r\n\r\n");
 
-                    // BUG: Ok, we should probably just use a text file. But I very 
+                UserSettings.Append(commandsummary.ToString());
+                // BUG: Ok, we should probably just use a text file. But I very 
 
-                    UserSettings.Append(
+                UserSettings.Append(
 @"//
 // The Command name or FIRST alias in the alias list is considered the Base name of the command, and absolutely should not be changed through code. Choose this first name wisely
 // We use the Base name to allow user command Customization, it is how the command is identified to the user. You can alter the alias list of the commands in
@@ -755,12 +782,49 @@ namespace SongRequestManager
 // !block /alias block, Ban 
 // !lookup /disable
 //");
-
-                    File.WriteAllText(filename, UserSettings.ToString());
-                
+                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
+                File.WriteAllText(filename, UserSettings.ToString());
             }
 
+            // BUG: This is pass 1, refactoring will get done eventually.
+            public static void CommandConfiguration(string configfilename="SRMCommands")
+                {
 
+                var UserSettings = new StringBuilder("// This section contains ONLY commands that have changed.\r\n\r\n");
+
+                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
+
+                Loading = true; // Prevents file updates during command load.
+
+                // This is probably just runscript
+
+                try
+                {
+                    using (StreamReader sr = new StreamReader(filename))
+                    {
+                        while (sr.Peek() >= 0)
+                        {
+                            string line = sr.ReadLine();
+                            line.Trim(' ');
+                            if (line.Length < 2 || line.StartsWith("//")) continue;
+
+                            UserSettings.Append(line).Append("\r\n");
+                            // MAGICALLY configure the customized commands 
+
+                            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser,line,CmdFlags.SilentResult | CmdFlags.Local);
+                        }
+                        sr.Close();
+                    }
+                    
+                }
+                catch       
+                {
+                // If it doesn't exist, or ends early, that's fine.
+                }
+                Loading = false;
+
+                WriteCommandConfiguration();
+            }
 
             #endregion
 
@@ -907,12 +971,18 @@ namespace SongRequestManager
                     }
                         return;
                     }
-                }            
+                }
+
+                if (botcmd.ChangedParameters != 0 && !botcmd.ChangedParameters.HasFlag(COMMAND.ChangedFlags.Saved))
+                {
+                    COMMAND.WriteCommandConfiguration();
+                    botcmd.ChangedParameters |= COMMAND.ChangedFlags.Saved;
+                }
 
                 if (botcmd.Flags.HasFlag(CmdFlags.Disabled) || flags.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
 
-                // Check permissions first
 
+                // Check permissions first
 
                 bool allow = HasRights(ref botcmd, ref user,flags);
 
@@ -922,7 +992,7 @@ namespace SongRequestManager
                     if (!botcmd.Flags.HasFlag(CmdFlags.SilentCheck)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
                     return;
                 }
-
+                
                 if (parameter == "?") // Handle per command help requests - If permitted.
                 {
                     ShowHelpMessage(ref botcmd, ref user, parameter, true);
