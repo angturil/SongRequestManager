@@ -69,7 +69,7 @@ namespace SongRequestManager
 
 
         public const string BOTKEYS =
-@"[ADD]/0'!bsr ' [UPTIME]/0' !uptime%CR%' [sehriaCat1]/0' sehriaCat1' [sehriaCat2]/0' sehriaCat2' [sehriaXD]/0' sehriaXD' [tohruSway]/0' tohruSway' [RainbowDance]/0' RainbowDance' 
+@"[ADD]/0'!bsr ' [UPTIME]/0' !uptime%CR%' [Cat1]/0' sehriaCat1' [Cat2]/0' sehriaCat2' [sehriaXD]/0' sehriaXD' [tohruSway]/0' tohruSway' [Rainbow]/0' RainbowDance' [Love]/0' sehriaLove' [Wink]/0' sehriaWink'
 ";
 
         
@@ -337,7 +337,7 @@ namespace SongRequestManager
             this.container = container;
             baseposition = new Vector2(-50+x, 23+y);
             currentposition = baseposition;
-            bool addhint = true;
+            //bool addhint = true;
 
             SetButtonType();
 
@@ -520,6 +520,10 @@ namespace SongRequestManager
 
                 name = text;
                 mybutton = Button.Instantiate(kb.BaseButton, kb.container, false);
+
+                (mybutton.transform as RectTransform).anchorMin = new Vector2(0.5f,0.5f);
+                (mybutton.transform as RectTransform).anchorMax = new Vector2(0.5f,0.5f);
+
                 TMP_Text txt = mybutton.GetComponentInChildren<TMP_Text>();
                 mybutton.ToggleWordWrapping(false);
 

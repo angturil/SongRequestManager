@@ -1,6 +1,6 @@
 ﻿
 using SongRequestManager;
-using SongRequestManager.Config;
+using SongRequestManager;
 using IllusionPlugin;
 using System;
 using System.IO;
@@ -47,9 +47,9 @@ namespace SongRequestManager
         {
             if (arg0.name == MenuSceneName)
             {
-                //Settings.OnLoad();
+                Settings.OnLoad();
                 RequestBot.OnLoad();
-                
+
                 RequestBotConfig.Save(true);
             }
         }

@@ -1,7 +1,7 @@
 ﻿using StreamCore.Chat;
 using StreamCore.Config;
 using StreamCore.SimpleJSON;
-using SongRequestManager.Config;
+using SongRequestManager;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -31,6 +31,10 @@ namespace SongRequestManager
         static StringBuilder QueueListFormat= new StringBuilder("%songName% (%version%)");
         static StringBuilder HistoryListFormat = new StringBuilder("%songName% (%version%)");
 
+        static StringBuilder AddSortOrder = new StringBuilder("-rating +id");
+        static StringBuilder LookupSortOrder = new StringBuilder("-rating +id");
+        static StringBuilder AddSongsSortOrder = new StringBuilder("-rating +id");
+
         #region Utility functions
 
         public string Variable(ParseState state) // Basically show the value of a variable without parsing
@@ -43,13 +47,13 @@ namespace SongRequestManager
             {
             get
                 {
-                return 498-RequestBotConfig.Instance.BotPrefix.Length;
+                return 498- RequestBotConfig.Instance.BotPrefix.Length;
                 }
             }
 
-        public void ChatMessage(TwitchUser requestor, string request)
+        public string ChatMessage(ParseState state)
         {
-            var dt = new DynamicText().AddUser(ref requestor);
+            var dt = new DynamicText().AddUser(ref state.user);
             try
             {
                 dt.AddSong(RequestHistory.Songs[0].song); // Exposing the current song 
@@ -59,7 +63,8 @@ namespace SongRequestManager
                 Plugin.Log(ex.ToString());
             }
 
-            dt.QueueMessage(request);
+            dt.QueueMessage(state.parameter);
+            return success;
         }
 
         public void RunScript(TwitchUser requestor, string request)
@@ -191,16 +196,16 @@ namespace SongRequestManager
 
         // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
 
-        [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, all = -1 };
+        [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, All = -1 };
 
-        private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.all) // BUG: This could be nicer
+        private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.All) // BUG: This could be nicer
         {
             string songid = song["id"].Value;
             if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
 
             if (filter.HasFlag(SongFilter.Blacklist) && SongBlacklist.Songs.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is banned!";
 
-            if (filter.HasFlag(SongFilter.Mapper) && _mapperWhitelist && mapperfiltered(song)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
+            if (filter.HasFlag(SongFilter.Mapper) &&  mapperfiltered(song,_mapperWhitelist)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
             if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist, songid)) return fast ? "X" : $"{song["songName"].Value} by  {song["authorName"].Value} already requested this session!";
 
@@ -235,7 +240,7 @@ namespace SongRequestManager
         private void ClearDuplicateList(TwitchUser requestor, string request)
         {
             QueueChatMessage("Session duplicate list is now clear.");
-            listcollection.ClearList(ref duplicatelist);
+            listcollection.ClearList(duplicatelist);
         }
         #endregion
 
@@ -389,15 +394,15 @@ namespace SongRequestManager
         private void MapperBanList(TwitchUser requestor, string request)
         {
             string key = request.ToLower();
-            mapperBanlist = listcollection.ListCollection[key];
+            mapperBanlist = listcollection.OpenList(key);
             QueueChatMessage($"Mapper ban list set to {request}.");
         }
 
         // Not super efficient, but what can you do
-        private bool mapperfiltered(JSONObject song)
+        private bool mapperfiltered(JSONObject song,bool white)
         {
             string normalizedauthor = song["authorName"].Value.ToLower();
-            if (mapperwhitelist.list.Count > 0)
+            if (white && mapperwhitelist.list.Count > 0)
             {
                 foreach (var mapper in mapperwhitelist.list)
                 {
@@ -505,7 +510,9 @@ namespace SongRequestManager
 
             bool found = true;
 
-            while (found && offset < 40) // MaxiumAddScanRange
+            listcollection.ClearList("latest.deck");
+
+            while (offset < RequestBotConfig.Instance.MaxiumAddScanRange) // MaxiumAddScanRange
             {
                 found = false;
 
@@ -535,7 +542,7 @@ namespace SongRequestManager
                             found = true;
                             JSONObject song = entry;
 
-                            if (mapperfiltered(song)) continue; // This ignores the mapper filter flags.
+                            if (mapperfiltered(song,true)) continue; // This forces the mapper filter
                             if (filtersong(song)) continue;
 
                             //if (state.flags.HasFlag(CmdFlags.ToQueue))
@@ -557,8 +564,8 @@ namespace SongRequestManager
             else
             {
                 #if UNRELEASED
-                //QueueChatMessage($"Added {totalSongs} to latest.deck");                
-                //COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest");
+                QueueChatMessage($"Added {totalSongs} to latest.deck");                
+                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest");
                 #endif
 
                 UpdateRequestUI();
@@ -571,8 +578,6 @@ namespace SongRequestManager
         // General search version
         private IEnumerator addsongs(ParseState state)
         {
-            int totalSongs = 0;
-
             bool isBeatSaverId = _digitRegex.IsMatch(state.parameter) || _beatSaverRegex.IsMatch(state.parameter);
 
             string requestUrl = isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
@@ -589,36 +594,20 @@ namespace SongRequestManager
                 }
 
                 JSONNode result = JSON.Parse(web.downloadHandler.text);
-                if (result["songs"].IsArray && result["total"].AsInt == 0)
-                {
-                    QueueChatMessage($"No results found for request \"{state.parameter}\"");
 
-                    yield break;
-                }
+                string errorMessage = "";
+                SongFilter filter = SongFilter.All;
+                if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
+                List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage, filter, state.sort != "" ? state.sort : LookupSortOrder.ToString(), -1);
+
                 JSONObject song;
 
-                if (result["songs"].IsArray)
-                {
-                    int count = 0;
-                    foreach (JSONObject entry in result["songs"])
+                foreach (JSONObject entry in songs)
                     {
-                        song = entry;
-
-                        //if (filtersong(song)) continue;
-                        if (IsInQueue(song["id"].Value)) continue;
-                        QueueSong(state, song);
-                        count++;
-                        totalSongs++; ;
-                    }
-                }
-                else
-                {
-                    song = result["song"].AsObject;
-
+                    song = entry;
                     QueueSong(state, song);
-                    totalSongs++;
-                }
-
+                    }
+ 
                 UpdateRequestUI();
                 _refreshQueue = true;
 
@@ -746,30 +735,25 @@ namespace SongRequestManager
                 }
 
                 JSONNode result = JSON.Parse(web.downloadHandler.text);
-                if (result["songs"].IsArray && result["total"].AsInt == 0)
-                {
-                    QueueChatMessage($"No results found for request \"{state.parameter}\"");
-                    yield break;
-                }
+             
+                string errorMessage="";
+                SongFilter filter = SongFilter.none;
+                if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
+                List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage,filter,state.sort!="" ? state.sort : LookupSortOrder.ToString());
+
                 JSONObject song;
 
                 var msg = new QueueLongMessage(1, 5); // One message maximum, 5 bytes reserved for the ...
+                foreach (JSONObject entry in songs)
+                {
+                    //entry.Add("pp", 100);
+                    //SongBrowserPlugin.DataAccess.ScoreSaberDataFile
 
-                if (result["songs"].IsArray)
-                {
-                    foreach (JSONObject entry in result["songs"])
-                    {
-                        song = entry;
-                        msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail), ", ");
-                    }
-                }
-                else
-                {
-                    song = result["song"].AsObject;
-                    msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail));
+                    song = entry;
+                    msg.Add(new DynamicText().AddSong(ref song).Parse(LookupSongDetail), ", ");
                 }
 
-                msg.end("...", "No results for for request <request>");
+                msg.end("...", $"No results for {state.parameter}");
 
                 yield return null;
 
@@ -1099,6 +1083,7 @@ namespace SongRequestManager
                 AddLinks();
 
                 DateTime Now = DateTime.Now; //"MM/dd/yyyy hh:mm:ss.fffffff";         
+                Add("SRM", "Song Request Manager");
                 Add("Time", Now.ToString("hh:mm"));
                 Add("LongTime", Now.ToString("hh:mm:ss"));
                 Add("Date", Now.ToString("yyyy/MM/dd"));
@@ -1108,7 +1093,14 @@ namespace SongRequestManager
 
             public DynamicText AddUser(ref TwitchUser user)
             {
-                Add("user", user.displayName);
+                try
+                {
+                    Add("user", user.displayName);
+                }
+                catch   
+                {
+                // Don't care. Twitch user doesn't HAVE to be defined.
+                }
                 return this;
             }
 

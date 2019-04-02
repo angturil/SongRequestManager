@@ -161,7 +161,7 @@ namespace SongRequestManager
                 catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
             }
             
-            public void ClearList(ref string listname, ListFlags flags = ListFlags.Unchanged)
+            public void ClearList(string listname, ListFlags flags = ListFlags.Unchanged)
             {
                 try
                 {

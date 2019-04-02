@@ -19,7 +19,7 @@ using VRUI;
 using Image = UnityEngine.UI.Image;
 using System.IO;
 using StreamCore.Chat;
-using SongRequestManager.Config;
+using SongRequestManager;
 
 namespace SongRequestManager
 {
@@ -452,7 +452,7 @@ namespace SongRequestManager
 
             BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
 
-            _tableCell.SetText(request.song["songName"].Value);
+            _tableCell.SetText($"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)}</size>");
             _tableCell.SetSubText(request.song["authorName"].Value+" ("+request.song["version"].Value+")");
             if (SongLoader.AreSongsLoaded)
             {

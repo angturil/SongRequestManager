@@ -157,7 +157,7 @@ namespace SongRequestManager
         public static int GetLevelIndex(LevelPackLevelsViewController table, string levelID)
         {
             for (int i = 0; i < table.levelPack.beatmapLevelCollection.beatmapLevels.Length; i++)
-            {
+            {         
                 if (table.levelPack.beatmapLevelCollection.beatmapLevels[i].levelID == levelID)
                 {
                     return i + 1;
