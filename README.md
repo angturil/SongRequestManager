@@ -3,7 +3,8 @@ Song Request Manager is an integrated, fully Customizable song request bot and C
 
 # Current State
 
-Because of the April fools patch, this build will only work with the previous .13p01 release. We will update it as soon as all the plugins are working.
+The current bot is now compatible with the April fools' release 0.13.1. You will need to grab the latest support files from modsaber.
+If they're not available, you may Temporarily grab streamcore and enhancedstreamchat here. These are not guaranteed current.
 
 # TTS Notes
 If you're using TTS, you'll want to reduce the amount of spam the bot produces. You can do this a number of ways. Filtering out your Name from TTS, or 
