@@ -13,7 +13,7 @@ namespace SongRequestManager
     public class Plugin : IPlugin
     {
         public string Name => "SongRequestManager";
-        public string Version => "1.3.0";
+        public string Version => "1.3.1";
 
 
         public bool IsAtMainMenu = true;
