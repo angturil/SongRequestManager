@@ -1,6 +1,6 @@
 ﻿
 using SongRequestManager;
-using SongRequestManager.Config;
+using SongRequestManager;
 using IllusionPlugin;
 using System;
 using System.IO;
@@ -13,7 +13,7 @@ namespace SongRequestManager
     public class Plugin : IPlugin
     {
         public string Name => "SongRequestManager";
-        public string Version => "1.3.0";
+        public string Version => "1.3.1";
 
 
         public bool IsAtMainMenu = true;
@@ -47,9 +47,9 @@ namespace SongRequestManager
         {
             if (arg0.name == MenuSceneName)
             {
-                //Settings.OnLoad();
+                Settings.OnLoad();
                 RequestBot.OnLoad();
-                
+
                 RequestBotConfig.Save(true);
             }
         }

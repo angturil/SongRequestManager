@@ -6,15 +6,14 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading;
 
-namespace SongRequestManager.Config
+namespace SongRequestManager
 {
     public class RequestBotConfig
     {
         private string FilePath = Path.Combine(Globals.DataPath, "RequestBotSettings.ini");
 
-        
+
         public bool RequestQueueOpen = true;
         public bool PersistentRequestQueue = true;
 
@@ -27,7 +26,7 @@ namespace SongRequestManager.Config
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
         public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
-        public int MaxiumAddScanRange = 40; // How far down the list to scan , currently in use by unpublished commands
+        public int MaxiumAddScanRange = 120; // How far down the list to scan , currently in use by unpublished commands
 
         public string DeckList = "fun hard challenge dance chill";
 
@@ -35,8 +34,11 @@ namespace SongRequestManager.Config
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
-        public int MaximumQueueTextEntries = 8;          
-        public string BotPrefix = "";
+        public int MaximumQueueTextEntries = 8;
+        public string BotPrefix ="";
+
+        public string LastBackup = DateTime.MinValue.ToString();
+        public string backuppath = Path.Combine(Environment.CurrentDirectory, "userdata", "backup");
 
         public event Action<RequestBotConfig> ConfigChangedEvent;
 

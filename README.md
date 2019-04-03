@@ -1,6 +1,13 @@
 # Mod Info
 Song Request Manager is an integrated, fully Customizable song request bot and Console for BeatSaber. It started life as an extensive rewrite of the built in song request bot in https://github.com/brian91292/BeatSaber-EnhancedTwitchChat, but quickly grew in scope and features. Its now a separate but dependent module. This mod and its companions, EnhancedStreamChat and StreamCore, are direct upgrades from the original EnhancedTwitchChat release, by the original authors. 
 
+This mod has been in use for many months, and is constantly updated. While this is a first official release as a standalone mod, its been in continuous use for months now, and is extensively tested. The bot is compatible with release 0.13.1. 
+
+# Current State
+
+The current bot is now compatible with the April fools' release 0.13.1. You will need to grab the latest support files from modsaber.
+If they're not available, you may Temporarily grab streamcore and enhancedstreamchat here. These are not guaranteed current.
+
 # TTS Notes
 If you're using TTS, you'll want to reduce the amount of spam the bot produces. You can do this a number of ways. Filtering out your Name from TTS, or 
 ```
@@ -16,11 +23,12 @@ then filter out the ! lines on your tts client.
   Advanced filtering with Banlists, remapping, rating filters, mapper lists, and more.
   Display your song request queue and status directly on the stream.
   Different request limits based on the users subscription level.
-  A rich text of moderator commands to manage the queue.
+  A full set of moderator commands to manage the queue.
   An ingame console allowing the player to play the requested songs without having to search or downnload.
   A full featured twitch keyboard allowing interaction with twitch chat!
   Direct search of song directly from the console, without ever having to exit to song browser or downloader.
-  Pick and play any of the latest 40 posted songs off Beatsaver.com 
+  Pick and play any of the latest 40 posted songs off Beatsaver.com.
+  Configuration Backup.
   
   Many more features are being tested and will be released soon!.
 ```
@@ -73,4 +81,4 @@ This plugin is free. If you wish to help us out though, tips to
 [our Paypal](https://paypal.me/sehria) are always appreciated.
 
 # Download
-[Click here to download the latest SongRequestManager.dll](https://github.com/angturil/SongRequestManager/releases/download/1.3.0/SongRequestManager.dll)
+[Click here to download the latest SongRequestManager.dll](https://github.com/angturil/SongRequestManager/releases/download/1.3.2/SongRequestManager.dll)
