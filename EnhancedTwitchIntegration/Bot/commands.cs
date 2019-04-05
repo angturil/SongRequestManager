@@ -43,7 +43,7 @@ namespace SongRequestManager
             Timeout = 2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
             TimeoutSub = 4096, // Applies a timeout to Subs
             TimeoutVIP = 8192, // Applies a timeout to VIP's
-            Local = 16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
+            Local = 16384, 
 
             NoLinks = 32768, // Turn off any links that the command may normally generate
 
@@ -225,6 +225,9 @@ namespace SongRequestManager
             new COMMAND("!updatemappers").Coroutine(UpdateMappers).Help(Broadcaster, "usage: %alias% %|% Update mapper lists/decks. This may take a while, don't do live.");
             new COMMAND("!joinrooms").Coroutine(GetRooms).Help(Broadcaster, "usage: %alias% %|% This is not fully functional, allows the bot to accept commands from your other rooms.") ;
             new COMMAND("!savecommands").Action(SaveCommands);
+
+            new COMMAND("!search").Coroutine(TestSearch);
+
 #endif
             #endregion
 

@@ -99,7 +99,7 @@ namespace SongRequestManager
                 {
                     found = true;
                     key.value = value;
-                    key.shifted = value;
+                    //key.shifted = value;
                 }
 
             if (!found) Plugin.Log($"Keyboard: Unable to set property of Key  [{keylabel}]");
@@ -444,7 +444,7 @@ namespace SongRequestManager
             {
                 if (typedtext[0] == '!')
                 {
-                    RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, typedtext);
+                    RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, typedtext,RequestBot.CmdFlags.Local);
                 }
                 else
                 {
@@ -463,8 +463,13 @@ namespace SongRequestManager
         void SHIFT(KEY key)
         {
             key.kb.Shift = !key.kb.Shift;
+
             foreach (KEY k in key.kb.keys)
             {
+                string x = key.kb.Shift ? k.shifted : k.value;
+                //if (key.kb.Caps) x = k.value.ToUpper();
+                if (k.shifted!="") k.mybutton.SetButtonText(x);
+
                 if (k.name=="SHIFT") k.mybutton.GetComponentInChildren<Image>().color = key.kb.Shift ? Color.green : Color.white;
             }
         }
@@ -503,7 +508,7 @@ namespace SongRequestManager
                 if (Value != "")
                 {
                     this.value = Value;
-                    this.shifted = Value;
+                    //this.shifted = Value;
                 }
                 return this;
             }

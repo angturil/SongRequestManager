@@ -582,26 +582,24 @@ namespace SongRequestManager
 
             string requestUrl = isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
 
+            string errorMessage = "";
+
             using (var web = UnityWebRequest.Get($"{requestUrl}/{state.parameter}"))
             {
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)
                 {
                     Plugin.Log($"Error {web.error} occured when trying to request song {state.parameter}!");
-                    QueueChatMessage($"Invalid BeatSaver ID \"{state.parameter}\" specified.");
-
-                    yield break;
+                    errorMessage=$"Invalid BeatSaver ID \"{state.parameter}\" specified.";
                 }
 
                 JSONNode result = JSON.Parse(web.downloadHandler.text);
 
-                string errorMessage = "";
                 SongFilter filter = SongFilter.All;
                 if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
-                List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage, filter, state.sort != "" ? state.sort : LookupSortOrder.ToString(), -1);
+                List<JSONObject> songs = GetSongListFromResults(result,state.parameter, ref errorMessage, filter, state.sort != "" ? state.sort : LookupSortOrder.ToString(), -1);
 
                 JSONObject song;
-
                 foreach (JSONObject entry in songs)
                     {
                     song = entry;
@@ -730,8 +728,8 @@ namespace SongRequestManager
                 if (web.isNetworkError || web.isHttpError)
                 {
                     Plugin.Log($"Error {web.error} occured when trying to request song {state.parameter}!");
-                    QueueChatMessage($"Invalid BeatSaver ID \"{state.parameter}\" specified.");
-                    yield break;
+                    //QueueChatMessage($"Invalid BeatSaver ID \"{state.parameter}\" specified.");
+                    //yield break;
                 }
 
                 JSONNode result = JSON.Parse(web.downloadHandler.text);
@@ -739,11 +737,12 @@ namespace SongRequestManager
                 string errorMessage="";
                 SongFilter filter = SongFilter.none;
                 if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
-                List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage,filter,state.sort!="" ? state.sort : LookupSortOrder.ToString());
+                List<JSONObject> songs = GetSongListFromResults(result,state.parameter, ref errorMessage,filter,state.sort!="" ? state.sort : LookupSortOrder.ToString());
 
                 JSONObject song;
 
                 var msg = new QueueLongMessage(1, 5); // One message maximum, 5 bytes reserved for the ...
+                msg.Header($"{songs.Count} found: ");
                 foreach (JSONObject entry in songs)
                 {
                     //entry.Add("pp", 100);

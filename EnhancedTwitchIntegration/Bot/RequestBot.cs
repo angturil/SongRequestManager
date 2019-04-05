@@ -510,13 +510,16 @@ namespace SongRequestManager
         // sortby MUST have + or - in front of each field. 
         private List<JSONObject> GetSongListFromResults(JSONNode result, ref string errorMessage,SongFilter filter=SongFilter.All, string sortby="-rating",int reverse=1)
         {
-            List<JSONObject> songs = new List<JSONObject>(); 
+            List<JSONObject> songs = new List<JSONObject>();
+            if (result == null) return songs; 
+
             if (result["songs"].IsArray)
             {
                 // Might consider sorting the list by rating to improve quality of results        
     
                 foreach (JSONObject currentSong in result["songs"].AsArray)
                 {
+                    new SongMap(currentSong);
                     errorMessage = SongSearchFilter(currentSong, false,filter);
                     if (errorMessage == "")
                         songs.Add(currentSong);
@@ -571,6 +574,9 @@ namespace SongRequestManager
             }
 
             JSONNode result = null;
+
+            string errorMessage = "";
+
             // Get song query results from beatsaver.com
             string requestUrl = requestInfo.isBeatSaverId ? $"https://beatsaver.com/api/songs/detail/{request}" : $"https://beatsaver.com/api/songs/search/song/{request}";
             yield return Utilities.Download(requestUrl, Utilities.DownloadType.Raw, null,
@@ -582,25 +588,15 @@ namespace SongRequestManager
                 // Download failed,  song probably doesn't exist on beatsaver
                 (web) =>
                 {
-                    QueueChatMessage($"Invalid BeatSaver ID \"{request}\" specified. {requestUrl}");
+                    errorMessage=$"Invalid BeatSaver ID \"{request}\" specified. {requestUrl}";
                 }
             );
-            if (result == null) yield break;
-
-            // Make sure we actually found 1+ songs
-            if (result["songs"].IsArray && result["total"].AsInt == 0)
-            {
-                QueueChatMessage($"No results found for request \"{request}\"");
-                yield break;
-            }
-
+ 
             yield return null;
-
-            string errorMessage = "";
 
             SongFilter filter = SongFilter.All;
             if (requestInfo.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
-            List<JSONObject> songs = GetSongListFromResults(result, ref errorMessage,filter,AddSortOrder.ToString());
+            List<JSONObject> songs = GetSongListFromResults(result,request, ref errorMessage,filter,AddSortOrder.ToString());
             // Filter out too many or too few results
             if (songs.Count == 0)
             {
@@ -879,7 +875,7 @@ namespace SongRequestManager
         {
             try
             {
-                if (RequestBotConfig.Instance.RequestQueueOpen == false && isNotModerator(requestor)) // BUG: Complex permission, Queue state message needs to be handled higher up
+                if (RequestBotConfig.Instance.RequestQueueOpen == false && !flags.HasFlag(CmdFlags.NoFilter) && !flags.HasFlag(CmdFlags.Local)) // BUG: Complex permission, Queue state message needs to be handled higher up
                 {
                     QueueChatMessage($"Queue is currently closed.");
                     return;
@@ -939,6 +935,6 @@ namespace SongRequestManager
             }
         }
 
-
+ 
     }
 }
