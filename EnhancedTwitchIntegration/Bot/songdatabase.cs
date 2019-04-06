@@ -34,7 +34,7 @@ namespace SongRequestManager
     {
         enum MapField { id, version, songName, songSubName, authorName, rating, hashMd5, hashSha1 };
 
-        const int partialhash = 4; // Do Not ever set this below 4. It will cause severe performance loss
+        const int partialhash = 3; // Do Not ever set this below 4. It will cause severe performance loss
 
         public class SongMap
         {
@@ -96,12 +96,14 @@ namespace SongRequestManager
                 if (LevelId == "")
                 {
                     LevelId = string.Join("∎", song["hashMd5"].Value.ToUpper(), song["songName"].Value, song["songSubName"].Value, song["authorName"], song["bpm"].AsFloat.ToString()) + "∎";
-                    if (MapDatabase.MapLibrary.ContainsKey(LevelId))
+                    if (MapDatabase.LevelId.ContainsKey(LevelId))
                     {
-                        MapDatabase.MapLibrary[LevelId].song = song;
+                        MapDatabase.LevelId[LevelId].song = song;
                         return;
                     }
                 }
+
+       
                 this.song = song;
                 this.path = path;
                 this.LevelId = LevelId;
@@ -115,7 +117,7 @@ namespace SongRequestManager
                 MapDatabase.MapLibrary.TryRemove(Fields[0], out temp);
                 MapDatabase.MapLibrary.TryRemove(Fields[1], out temp);
                 MapDatabase.MapLibrary.TryRemove(song["hashMd5"].Value.ToUpper(), out temp);
-                MapDatabase.MapLibrary.TryRemove(LevelId, out temp);
+                MapDatabase.LevelId.TryRemove(LevelId, out temp);
             }
 
             void IndexSong(JSONObject song)
@@ -133,7 +135,7 @@ namespace SongRequestManager
                     MapDatabase.MapLibrary.TryAdd(Fields[0], this);
                     MapDatabase.MapLibrary.TryAdd(Fields[1], this);
                     MapDatabase.MapLibrary.TryAdd(song["hashMd5"].Value.ToUpper(), this);
-                    MapDatabase.MapLibrary.TryAdd(LevelId, this);
+                    MapDatabase.LevelId.TryAdd(LevelId, this);
                 }
                 catch (Exception ex)
                 {
@@ -146,6 +148,7 @@ namespace SongRequestManager
         public class MapDatabase
         {
             public static ConcurrentDictionary<string, SongMap> MapLibrary = new ConcurrentDictionary<string, SongMap>();
+            public static ConcurrentDictionary<string, SongMap> LevelId = new ConcurrentDictionary<string, SongMap>();
             public static ConcurrentDictionary<string, HashSet<SongMap>> SearchDictionary = new ConcurrentDictionary<string, HashSet<SongMap>>();
 
             static int tempid = 100000; // For now, we use these for local ID less songs
@@ -155,10 +158,9 @@ namespace SongRequestManager
 
 
             // Fast? Full Text Search
-            public static List<SongMap> Search(string SearchKey,bool loaddb=true)
+            public static List<SongMap> Search(string SearchKey)
             {
-
-                if (!DatabaseImported && loaddb)
+                if (!DatabaseImported && RequestBotConfig.Instance.LocalSearch )
                 {
                     LoadDatabase();                  
                 }
@@ -250,109 +252,116 @@ namespace SongRequestManager
 
 
             // Update Database from Directory
-            public static void LoadDatabase(string folder = "")
+            public static async void LoadDatabase(string folder = "")
             {
                 if (MapDatabase.DatabaseLoading) return;
 
-                DatabaseLoading = true;
-                
-                Instance.QueueChatMessage("Starting song indexing");
-                var StarTime = DateTime.UtcNow;
-
-                if (folder == "") folder = Path.Combine(Environment.CurrentDirectory, "customsongs");
-
-                List<FileInfo> files = new List<FileInfo>();  // List that will hold the files and subfiles in path
-                List<DirectoryInfo> folders = new List<DirectoryInfo>(); // List that hold direcotries that cannot be accessed
-
-                DirectoryInfo di = new DirectoryInfo(folder);
-                FullDirList(di, "*");
-
-                //di = new DirectoryInfo(@"d:\beatsaber\customsongs");
-                //FullDirList(di, "*");
-
-                void FullDirList(DirectoryInfo dir, string searchPattern)
+                await Task.Run(() =>
                 {
-                    try
+
+                    DatabaseLoading = true;
+
+                    Instance.QueueChatMessage("Starting song indexing");
+                    var StarTime = DateTime.UtcNow;
+
+                    if (folder == "") folder = Path.Combine(Environment.CurrentDirectory, "customsongs");
+
+                    List<FileInfo> files = new List<FileInfo>();  // List that will hold the files and subfiles in path
+                    List<DirectoryInfo> folders = new List<DirectoryInfo>(); // List that hold direcotries that cannot be accessed
+
+                    DirectoryInfo di = new DirectoryInfo(folder);
+                    FullDirList(di, "*");
+
+                    //di = new DirectoryInfo(@"d:\beatsaber\customsongs");
+                    //FullDirList(di, "*");
+
+                    void FullDirList(DirectoryInfo dir, string searchPattern)
                     {
-                        foreach (FileInfo f in dir.GetFiles(searchPattern))
+                        try
                         {
-                            if (f.FullName.EndsWith("info.json"))
-                                files.Add(f);
+                            foreach (FileInfo f in dir.GetFiles(searchPattern))
+                            {
+                                if (f.FullName.EndsWith("info.json"))
+                                    files.Add(f);
+                            }
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Directory {0}  \n could not be accessed!!!!", dir.FullName);
+                            return;
+                        }
+
+                        foreach (DirectoryInfo d in dir.GetDirectories())
+                        {
+                            folders.Add(d);
+                            FullDirList(d, searchPattern);
                         }
                     }
-                    catch
-                    {
-                        Console.WriteLine("Directory {0}  \n could not be accessed!!!!", dir.FullName);
-                        return;
-                    }
 
-                    foreach (DirectoryInfo d in dir.GetDirectories())
-                    {
-                        folders.Add(d);
-                        FullDirList(d, searchPattern);
-                    }
-                }
-
-                // This might need some optimization
+                    // This might need some optimization
 
 
-                Instance.QueueChatMessage($"Processing {files.Count} maps. ");
-                foreach (var item in files)
-                {
-
-                    //msg.Add(item.FullName,", ");
-
-                    string id="", version="0";
-
-                    GetIdFromPath(item.DirectoryName, ref id, ref version);
-
-                    try
+                    Instance.QueueChatMessage($"Processing {files.Count} maps. ");
+                    foreach (var item in files)
                     {
 
-                        JSONObject song = JSONObject.Parse(File.ReadAllText(item.FullName)).AsObject;
+                        //msg.Add(item.FullName,", ");
 
-                        string hash;
+                        string id = "", version = "0";
 
-                        JSONNode difficultylevels = song["difficultyLevels"].AsArray;
-                        var FileAccumulator = new StringBuilder();
-                        foreach (var level in difficultylevels)
+                        GetIdFromPath(item.DirectoryName, ref id, ref version);
+
+                        try
                         {
-                            //Instance.QueueChatMessage($"key={level.Key} value={level.Value}");
-                            try
-                            {
-                                FileAccumulator.Append(File.ReadAllText($"{item.DirectoryName}\\{level.Value["jsonPath"].Value}"));
-                            }
-                            catch
+
+                            JSONObject song = JSONObject.Parse(File.ReadAllText(item.FullName)).AsObject;
+
+                            string hash;
+
+                            JSONNode difficultylevels = song["difficultyLevels"].AsArray;
+                            var FileAccumulator = new StringBuilder();
+                            foreach (var level in difficultylevels)
                             {
                                 //Instance.QueueChatMessage($"key={level.Key} value={level.Value}");
-                                //throw;
+                                try
+                                {
+                                    FileAccumulator.Append(File.ReadAllText($"{item.DirectoryName}\\{level.Value["jsonPath"].Value}"));
+                                }
+                                catch
+                                {
+                                    //Instance.QueueChatMessage($"key={level.Key} value={level.Value}");
+                                    //throw;
+                                }
                             }
 
+                            hash = Utils.CreateMD5FromString(FileAccumulator.ToString());
+
+                            string levelId = string.Join("∎", hash, song["songName"].Value, song["songSubName"].Value, song["authorName"], song["beatsPerMinute"].AsFloat.ToString()) + "∎";
+
+                            if (LevelId.ContainsKey(levelId))
+                            {
+                                LevelId[levelId].path = item.DirectoryName;
+                                continue;
+                            }
+
+                            song.Add("id", id);
+                            song.Add("version", version);
+                            song.Add("hashMd5", hash);
+
+                            new SongMap(song, levelId, item.DirectoryName);
+                        }
+                        catch (Exception e)
+                        {
+                            Instance.QueueChatMessage($"Failed to process {item}.");
                         }
 
-                        hash = Utils.CreateMD5FromString(FileAccumulator.ToString());
-
-                        string levelId = string.Join("∎", hash, song["songName"].Value, song["songSubName"].Value, song["authorName"], song["beatsPerMinute"].AsFloat.ToString()) + "∎";
-
-                        if (MapLibrary.ContainsKey(levelId)) continue;
-
-                        song.Add("id", id);
-                        song.Add("version", version);
-                        song.Add("hashMd5", hash);
-
-                        new SongMap(song, levelId, item.DirectoryName);
                     }
-                    catch (Exception e)
-                    {
-                        Instance.QueueChatMessage($"Failed to process {item}.");
-                    }
+                    var duration = DateTime.UtcNow - StarTime;
+                    Instance.QueueChatMessage($"Song indexing done. ({duration.TotalSeconds} secs.");
 
-                }
-                var duration = DateTime.UtcNow - StarTime;
-                Instance.QueueChatMessage($"Song indexing done. ({duration.TotalSeconds} secs.");
-
-                DatabaseImported = true;
-                DatabaseLoading = false;
+                    DatabaseImported = true;
+                    DatabaseLoading = false;
+                });
             }
 
             static bool GetIdFromPath(string path, ref string id, ref string version)
@@ -404,19 +413,83 @@ namespace SongRequestManager
         }
 
 
-        public IEnumerator TestSearch(ParseState state)
+        #if UNRELEASED
+        // BUG: Not production ready, will probably never be released. Takes hours, and puts a load on beatsaver.com. DO NOT USE
+        public IEnumerator DownloadEverything(ParseState state)
         {
-            var list = MapDatabase.Search(state.parameter);
-           
-             
-            foreach(var song in list)
+        Instance.QueueChatMessage("Starting Beatsaver scan");
+        var StarTime = DateTime.UtcNow;
+ 
+        
+        int totalSongs = 0;
+
+        string requestUrl = "https://beatsaver.com/api/songs/new";
+
+        int offset = 0;
+        while (true) // MaxiumAddScanRange
+        {
+       
+            using (var web = UnityWebRequest.Get($"{requestUrl}/{offset}"))
+            {
+                yield return web.SendWebRequest();
+                if (web.isNetworkError || web.isHttpError)
                 {
-                state.msg($"{song.Fields[1]} {song.Fields[2]} {song.Fields[3]}/{song.Fields[4]} {song.song["rating"].Value}");
+                   break;
                 }
 
 
-            yield break;
+
+                    JSONNode result = JSON.Parse(web.downloadHandler.text);
+
+                    if (result == null || result["songs"].Count==0) break;
+
+                    foreach (JSONObject entry in result["songs"].AsArray)
+                {
+                    JSONObject song = entry;
+
+                        //Instance.QueueChatMessage(entry.ToString().Substring(350));
+
+                        new SongMap(song);
+                        totalSongs++;
+
+                
+
+                        if ((totalSongs & 127) == 0) Instance.QueueChatMessage($"Processed {totalSongs}");
+                    //QueueSong(state, song);
+                }
         }
+            offset += 20; // Magic beatsaver.com skip constant.
+        }
+
+            var duration = DateTime.UtcNow - StarTime;
+            Instance.QueueChatMessage($"BeatSaver Database Scan done. ({duration.TotalSeconds} secs.");
+
+            
+            StarTime = DateTime.UtcNow;
+
+            Instance.QueueChatMessage("Starting Full Download");
+            var msg = new QueueLongMessage(9999);
+            Instance.QueueChatMessage($"Attempting to download up to {MapDatabase.LevelId.Count} files.");
+            foreach (var song in MapDatabase.LevelId)
+                {
+                if (song.Value.path == "")
+                {
+                    string localPath = $"d:\\beatsaver\\{song.Value.Fields[1]}.zip";
+                    if (File.Exists(localPath)) continue;
+                    msg.Add($"{song.Value.song["id"].Value}", ",");
+
+                    yield return Utilities.DownloadFile(song.Value.song["downloadUrl"].Value, localPath);
+                }
+            }
+
+            msg.end();
+            duration = DateTime.UtcNow - StarTime;
+            Instance.QueueChatMessage($"BeatSaver Download Done. ({duration.TotalSeconds} secs.");
+
+            yield return null;           
+        }
+
+        #endif
 
         private List<JSONObject> GetSongListFromResults(JSONNode result,string SearchString, ref string errorMessage, SongFilter filter = SongFilter.All, string sortby = "-rating", int reverse = 1)
         {

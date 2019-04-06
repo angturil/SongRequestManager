@@ -226,7 +226,7 @@ namespace SongRequestManager
             new COMMAND("!joinrooms").Coroutine(GetRooms).Help(Broadcaster, "usage: %alias% %|% This is not fully functional, allows the bot to accept commands from your other rooms.") ;
             new COMMAND("!savecommands").Action(SaveCommands);
 
-            new COMMAND("!search").Coroutine(TestSearch);
+            new COMMAND("!search").Coroutine(DownloadEverything);
 
 #endif
             #endregion

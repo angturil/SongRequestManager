@@ -465,7 +465,7 @@ namespace SongRequestManager
             string[] parts = state.parameter.Split(new char[] { ' ', ',' }, 2);
 
             if (!float.TryParse(parts[0], out period)) return state.error($"You must specify a time in minutes after {state.command}.");
-            if (period < 1) return state.error($"You must specify a period of at least 1 minute");
+            if (period < 0) return state.error($"You must specify a period of at least 0 minutes");
             new BotEvent(TimeSpan.FromMinutes(period), parts[1], false);
             return success;
         }
@@ -508,13 +508,12 @@ namespace SongRequestManager
 
             int offset = 0;
 
-            bool found = true;
-
             listcollection.ClearList("latest.deck");
+
+            //state.msg($"Flags: {state.flags}");
 
             while (offset < RequestBotConfig.Instance.MaxiumAddScanRange) // MaxiumAddScanRange
             {
-                found = false;
 
                 using (var web = UnityWebRequest.Get($"{requestUrl}/{offset}"))
                 {
@@ -522,16 +521,12 @@ namespace SongRequestManager
                     if (web.isNetworkError || web.isHttpError)
                     {
                         Plugin.Log($"Error {web.error} occured when trying to request song {requestUrl}!");
-                        QueueChatMessage($"Invalid BeatSaver ID \"{requestUrl}\" specified.");
-
                         yield break;
                     }
 
                     JSONNode result = JSON.Parse(web.downloadHandler.text);
                     if (result["songs"].IsArray && result["total"].AsInt == 0)
                     {
-                        QueueChatMessage($"No results found for request \"{requestUrl}\"");
-
                         yield break;
                     }
 
@@ -539,16 +534,13 @@ namespace SongRequestManager
                     {
                         foreach (JSONObject entry in result["songs"])
                         {
-                            found = true;
                             JSONObject song = entry;
+                            new SongMap(song);
 
                             if (mapperfiltered(song,true)) continue; // This forces the mapper filter
                             if (filtersong(song)) continue;
 
-                            //if (state.flags.HasFlag(CmdFlags.ToQueue))
-                            QueueSong(state, song);
-
-                            //ProcessSongRequest(requestor, song["version"].Value);
+                            if (state.flags.HasFlag(CmdFlags.Local))  QueueSong(state, song);
                             listcollection.add("latest.deck", song["id"].Value);
                             totalSongs++;
                         }
@@ -564,13 +556,14 @@ namespace SongRequestManager
             else
             {
                 #if UNRELEASED
-                QueueChatMessage($"Added {totalSongs} to latest.deck");                
-                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest");
+                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest",state.flags);
                 #endif
 
-                UpdateRequestUI();
-                _refreshQueue = true;
-
+                if (state.flags.HasFlag(CmdFlags.Local))
+                    {
+                    UpdateRequestUI();
+                    _refreshQueue = true;
+                    }
             }
             yield return null;
         }

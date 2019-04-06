@@ -394,7 +394,7 @@ namespace SongRequestManager
         void Newest(KEY key)
             {
             ClearSearches();
-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top");
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top",RequestBot.CmdFlags.Local);
             }
 
         void Search(KEY key)
@@ -406,7 +406,7 @@ namespace SongRequestManager
 
             #if UNRELEASED
             ClearSearches();
-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}");
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}",RequestBot.CmdFlags.Local);
             Clear(key);
             #endif
             }

@@ -187,7 +187,7 @@ namespace SongRequestManager
         public static void Newest(KEYBOARD.KEY key)
         {
             ClearSearches();
-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top");
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top",CmdFlags.Local);
         }
 
         public static void Search(KEYBOARD.KEY key)
@@ -197,7 +197,7 @@ namespace SongRequestManager
                 key.kb.Enter(key);
             }
             ClearSearches();
-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}");
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}",CmdFlags.Local);
             key.kb.Clear(key);
         }
 
@@ -208,7 +208,7 @@ namespace SongRequestManager
                 key.kb.Enter(key);
             }
             ClearSearches();
-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top/mod {key.kb.KeyboardText.text}");
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top/mod {key.kb.KeyboardText.text}",CmdFlags.Local);
             key.kb.Clear(key);
         }
 
@@ -263,6 +263,8 @@ namespace SongRequestManager
                 SongBlacklist.ConvertFromList(File.ReadAllText(blacklistMigrationFile).Split(','));
                 File.Delete(blacklistMigrationFile);
             }
+
+            if (RequestBotConfig.Instance.LocalSearch) MapDatabase.LoadDatabase(); // This is a background process
 
             RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
             RequestHistory.Read();
