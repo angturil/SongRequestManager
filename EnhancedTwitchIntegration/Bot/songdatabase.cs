@@ -47,7 +47,7 @@ namespace SongRequestManager
             {
                 foreach (var field in Fields)
                 {
-                    string[] parts = field.ToLower().Split(new char[] { ' ', '/' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] parts = field.ToLower().Split(MapDatabase.wordseparator , StringSplitOptions.RemoveEmptyEntries);
                     foreach (var part in parts)
                     {
                         string mypart = (part.Length > partialhash) ? part.Substring(0, partialhash) : part;
@@ -66,7 +66,7 @@ namespace SongRequestManager
 
                 foreach (var field in Fields)
                 {
-                    string[] parts = field.ToLower().Split(new char[] { ' ', '/' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] parts = field.ToLower().Split(MapDatabase.wordseparator, StringSplitOptions.RemoveEmptyEntries);
                     foreach (var part in parts)
                     {
                         if (part.StartsWith(match)) return true;
@@ -95,15 +95,22 @@ namespace SongRequestManager
             {
                 if (LevelId == "")
                 {
-                    LevelId = string.Join("∎", song["hashMd5"].Value.ToUpper(), song["songName"].Value, song["songSubName"].Value, song["authorName"], song["bpm"].AsFloat.ToString()) + "∎";
-                    if (MapDatabase.LevelId.ContainsKey(LevelId))
-                    {
-                        MapDatabase.LevelId[LevelId].song = song;
-                        return;
-                    }
+                    LevelId = string.Join("∎", song["hashMd5"].Value.ToUpper(), song["songName"].Value, song["songSubName"].Value, song["authorName"], song["bpm"].AsFloat.ToString()) + "∎";             
                 }
 
-       
+                SongMap oldmap;
+                if (MapDatabase.MapLibrary.TryGetValue(song["id"].Value,out oldmap))
+                {
+
+                    if (LevelId == oldmap.LevelId && song["version"].Value == oldmap.Fields[1])
+                    {
+                        oldmap.song = song;
+                        return;
+                    }
+                    oldmap.UnIndexSong();                    
+                }
+
+
                 this.song = song;
                 this.path = path;
                 this.LevelId = LevelId;
@@ -125,6 +132,7 @@ namespace SongRequestManager
                 try
                 {
                     this.song = song;
+                    Fields.Clear();
                     Fields.Add(song["id"].Value);
                     Fields.Add(song["version"].Value);
                     Fields.Add(song["songName"].Value);
@@ -151,6 +159,8 @@ namespace SongRequestManager
             public static ConcurrentDictionary<string, SongMap> LevelId = new ConcurrentDictionary<string, SongMap>();
             public static ConcurrentDictionary<string, HashSet<SongMap>> SearchDictionary = new ConcurrentDictionary<string, HashSet<SongMap>>();
 
+            static public char [] wordseparator=new char[] {'&','/','-','[',']','(',')','.',' ','<','>',',','*'};
+
             static int tempid = 100000; // For now, we use these for local ID less songs
 
             static bool DatabaseImported = false;
@@ -162,7 +172,7 @@ namespace SongRequestManager
             {
                 if (!DatabaseImported && RequestBotConfig.Instance.LocalSearch )
                 {
-                    LoadDatabase();                  
+                    LoadCustomSongs();                  
                 }
 
  
@@ -179,7 +189,7 @@ namespace SongRequestManager
                     }
                 }
 
-                string[] SearchParts = SearchKey.ToLower().Split(new char[] { ' ','/' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] SearchParts = SearchKey.ToLower().Split(wordseparator, StringSplitOptions.RemoveEmptyEntries);
 
                 foreach (var part in SearchParts)
                 {
@@ -251,8 +261,29 @@ namespace SongRequestManager
             }
 
 
-            // Update Database from Directory
-            public static async void LoadDatabase(string folder = "")
+            public static async void LoadZIPDirectory(string folder = @"d:\beatsaver")
+            {
+                if (MapDatabase.DatabaseLoading) return;
+
+
+                await Task.Run(() =>
+                {
+
+                    var di = new DirectoryInfo(folder);
+
+                    foreach (FileInfo f in di.GetFiles("*.zip"))
+                    {
+                        
+                    }
+
+                });
+
+                MapDatabase.DatabaseLoading = false;
+            }
+
+
+                    // Update Database from Directory
+            public static async void LoadCustomSongs(string folder = "")
             {
                 if (MapDatabase.DatabaseLoading) return;
 
@@ -272,8 +303,11 @@ namespace SongRequestManager
                     DirectoryInfo di = new DirectoryInfo(folder);
                     FullDirList(di, "*");
 
-                    //di = new DirectoryInfo(@"d:\beatsaber\customsongs");
-                    //FullDirList(di, "*");
+                    if (RequestBotConfig.Instance.additionalsongpath!="")
+                    {
+                        di = new DirectoryInfo(RequestBotConfig.Instance.additionalsongpath);
+                        FullDirList(di, "*");
+                    }
 
                     void FullDirList(DirectoryInfo dir, string searchPattern)
                     {

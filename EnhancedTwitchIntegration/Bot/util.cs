@@ -20,7 +20,22 @@ namespace SongRequestManager
     public partial class RequestBot : MonoBehaviour
     {
 
-
+        public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
+        {
+            foreach (DirectoryInfo dir in source.GetDirectories())
+                CopyFilesRecursively(dir, target.CreateSubdirectory(dir.Name));
+            foreach (FileInfo file in source.GetFiles())
+            {
+                string newFilePath = Path.Combine(target.FullName, file.Name);
+                    try
+                    {
+                        file.CopyTo(newFilePath);
+                    }
+                    catch (Exception)
+                    {
+                    }
+            }
+        }
 
         public static string Backup(ParseState state)
         {

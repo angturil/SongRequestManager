@@ -264,7 +264,7 @@ namespace SongRequestManager
                 File.Delete(blacklistMigrationFile);
             }
 
-            if (RequestBotConfig.Instance.LocalSearch) MapDatabase.LoadDatabase(); // This is a background process
+            if (RequestBotConfig.Instance.LocalSearch) MapDatabase.LoadCustomSongs(); // This is a background process
 
             RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
             RequestHistory.Read();
@@ -684,7 +684,29 @@ namespace SongRequestManager
                 CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
                 if (levels.Length == 0)
                 {
+
                     Utilities.EmptyDirectory(".requestcache", false);
+
+
+                    SongMap map;
+                    if (MapDatabase.MapLibrary.TryGetValue(songIndex, out map))
+                    {
+                        if (map.path != "")
+                        {
+                            songIndex = map.song["version"].Value;
+                            songName = map.song["songName"].Value;
+                            currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
+                            songHash = map.song["hashMd5"].Value.ToUpper();
+
+                            Directory.CreateDirectory(currentSongDirectory);
+                            // HACK to allow playing alternate songs not in custom song directory
+                            CopyFilesRecursively(new DirectoryInfo(map.path),new DirectoryInfo( currentSongDirectory));                           
+
+                            goto here;
+                        }
+                    }
+
+                    Plugin.Log("Downloading");
 
                     if (Directory.Exists(currentSongDirectory))
                     {
@@ -692,11 +714,12 @@ namespace SongRequestManager
                         Plugin.Log($"Deleting {currentSongDirectory}");
                     }
 
-                    Plugin.Log("Downloading");
-
                     string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
                     yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
                     yield return Utilities.ExtractZip(localPath, currentSongDirectory);
+                    
+                    here:
+
                     yield return new WaitUntil(() => SongLoader.AreSongsLoaded && !SongLoader.AreSongsLoading);
                     yield return SongListUtils.RetrieveNewSong(songIndex, true);
                     
