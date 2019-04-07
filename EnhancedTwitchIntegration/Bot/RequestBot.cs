@@ -555,6 +555,8 @@ namespace SongRequestManager
             TwitchUser requestor = requestInfo.requestor;
             string request = requestInfo.request;
 
+            string normalrequest= normalize.NormalizeBeatSaverString(requestInfo.request);
+
             // Special code for numeric searches
             if (requestInfo.isBeatSaverId)
             {
@@ -564,10 +566,10 @@ namespace SongRequestManager
                 if (requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]) && !requestInfo.flags.HasFlag(CmdFlags.NoFilter))
                 {
                     request = songremap[requestparts[0]];
-                    QueueChatMessage($"Remapping request {requestInfo.request} to {request}");
+                    QueueChatMessage($"Remapping request {requestInfo.request} to {normalrequest}");
                 }
 
-                string requestcheckmessage = IsRequestInQueue(request);               // Check if requested ID is in Queue  
+                string requestcheckmessage = IsRequestInQueue(normalrequest);               // Check if requested ID is in Queue  
                 if (requestcheckmessage != "")
                 {
                     QueueChatMessage(requestcheckmessage);
@@ -580,7 +582,7 @@ namespace SongRequestManager
             string errorMessage = "";
 
             // Get song query results from beatsaver.com
-            string requestUrl = requestInfo.isBeatSaverId ? $"https://beatsaver.com/api/songs/detail/{request}" : $"https://beatsaver.com/api/songs/search/song/{request}";
+            string requestUrl = requestInfo.isBeatSaverId ? $"https://beatsaver.com/api/songs/detail/{normalrequest}" : $"https://beatsaver.com/api/songs/search/song/{normalrequest}";
             yield return Utilities.Download(requestUrl, Utilities.DownloadType.Raw, null,
                 // Download success
                 (web) =>
@@ -945,11 +947,14 @@ namespace SongRequestManager
                     }
                 }
 
-                RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(request) || _beatSaverRegex.IsMatch(request), flags, info);
+                // BUG: Need to clean up the new request pipeline
+                string testrequest = normalize.NormalizeBeatSaverString(request);
+
+                RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(testrequest) || _beatSaverRegex.IsMatch(testrequest), flags, info);
 
                 if (!newRequest.isBeatSaverId && request.Length < 3)
                     QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
-                else if (!UnverifiedRequestQueue.Contains(newRequest))
+                 if (!UnverifiedRequestQueue.Contains(newRequest))
                     UnverifiedRequestQueue.Enqueue(newRequest);
 
             }

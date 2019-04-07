@@ -47,7 +47,9 @@ namespace SongRequestManager
             {
                 foreach (var field in Fields)
                 {
-                    string[] parts = field.ToLower().Split(MapDatabase.wordseparator , StringSplitOptions.RemoveEmptyEntries);
+                    //string[] parts = field.ToLower().Split(MapDatabase.wordseparator , StringSplitOptions.RemoveEmptyEntries);
+                    string[] parts = normalize.Split(field);
+
                     foreach (var part in parts)
                     {
                         string mypart = (part.Length > partialhash) ? part.Substring(0, partialhash) : part;
@@ -66,7 +68,8 @@ namespace SongRequestManager
 
                 foreach (var field in Fields)
                 {
-                    string[] parts = field.ToLower().Split(MapDatabase.wordseparator, StringSplitOptions.RemoveEmptyEntries);
+                    //string[] parts = field.ToLower().Split(MapDatabase.wordseparator, StringSplitOptions.RemoveEmptyEntries);
+                    string[] parts = normalize.Split(field);
                     foreach (var part in parts)
                     {
                         if (part.StartsWith(match)) return true;
@@ -138,6 +141,7 @@ namespace SongRequestManager
                     Fields.Add(song["songName"].Value);
                     Fields.Add(song["songSubName"].Value);
                     Fields.Add(song["authorName"].Value);
+                    Fields.Add(song["uploader"].Value);
 
                     IndexFields(Fields);
                     MapDatabase.MapLibrary.TryAdd(Fields[0], this);
@@ -159,7 +163,7 @@ namespace SongRequestManager
             public static ConcurrentDictionary<string, SongMap> LevelId = new ConcurrentDictionary<string, SongMap>();
             public static ConcurrentDictionary<string, HashSet<SongMap>> SearchDictionary = new ConcurrentDictionary<string, HashSet<SongMap>>();
 
-            static public char [] wordseparator=new char[] {'&','/','-','[',']','(',')','.',' ','<','>',',','*'};
+            //static public char [] wordseparator=new char[] {'&','/','-','[',']','(',')','.',' ','<','>',',','*'};
 
             static int tempid = 100000; // For now, we use these for local ID less songs
 
@@ -189,7 +193,8 @@ namespace SongRequestManager
                     }
                 }
 
-                string[] SearchParts = SearchKey.ToLower().Split(wordseparator, StringSplitOptions.RemoveEmptyEntries);
+                //string[] SearchParts = SearchKey.ToLower().Split(wordseparator, StringSplitOptions.RemoveEmptyEntries);
+                string [] SearchParts = normalize.Split(SearchKey);
 
                 foreach (var part in SearchParts)
                 {
@@ -447,88 +452,10 @@ namespace SongRequestManager
         }
 
 
-        #if UNRELEASED
-        // BUG: Not production ready, will probably never be released. Takes hours, and puts a load on beatsaver.com. DO NOT USE
-        public IEnumerator DownloadEverything(ParseState state)
-        {
-        Instance.QueueChatMessage("Starting Beatsaver scan");
-        var StarTime = DateTime.UtcNow;
- 
-        
-        int totalSongs = 0;
-
-        string requestUrl = "https://beatsaver.com/api/songs/new";
-
-        int offset = 0;
-        while (true) // MaxiumAddScanRange
-        {
-       
-            using (var web = UnityWebRequest.Get($"{requestUrl}/{offset}"))
-            {
-                yield return web.SendWebRequest();
-                if (web.isNetworkError || web.isHttpError)
-                {
-                   break;
-                }
-
-
-
-                    JSONNode result = JSON.Parse(web.downloadHandler.text);
-
-                    if (result == null || result["songs"].Count==0) break;
-
-                    foreach (JSONObject entry in result["songs"].AsArray)
-                {
-                    JSONObject song = entry;
-
-                        //Instance.QueueChatMessage(entry.ToString().Substring(350));
-
-                        new SongMap(song);
-                        totalSongs++;
-
-                
-
-                        if ((totalSongs & 127) == 0) Instance.QueueChatMessage($"Processed {totalSongs}");
-                    //QueueSong(state, song);
-                }
-        }
-            offset += 20; // Magic beatsaver.com skip constant.
-        }
-
-            var duration = DateTime.UtcNow - StarTime;
-            Instance.QueueChatMessage($"BeatSaver Database Scan done. ({duration.TotalSeconds} secs.");
-
-            
-            StarTime = DateTime.UtcNow;
-
-            Instance.QueueChatMessage("Starting Full Download");
-            var msg = new QueueLongMessage(9999);
-            Instance.QueueChatMessage($"Attempting to download up to {MapDatabase.LevelId.Count} files.");
-            foreach (var song in MapDatabase.LevelId)
-                {
-                if (song.Value.path == "")
-                {
-                    string localPath = $"d:\\beatsaver\\{song.Value.Fields[1]}.zip";
-                    if (File.Exists(localPath)) continue;
-                    msg.Add($"{song.Value.song["id"].Value}", ",");
-
-                    yield return Utilities.DownloadFile(song.Value.song["downloadUrl"].Value, localPath);
-                }
-            }
-
-            msg.end();
-            duration = DateTime.UtcNow - StarTime;
-            Instance.QueueChatMessage($"BeatSaver Download Done. ({duration.TotalSeconds} secs.");
-
-            yield return null;           
-        }
-
-        #endif
 
         private List<JSONObject> GetSongListFromResults(JSONNode result,string SearchString, ref string errorMessage, SongFilter filter = SongFilter.All, string sortby = "-rating", int reverse = 1)
         {
             List<JSONObject> songs = new List<JSONObject>();
-
 
             if (result != null)
             {
@@ -648,7 +575,79 @@ namespace SongRequestManager
          {
              StartCoroutine(RequestSongByLevelIDCoroutine(levelId, callback));
          }
+
+         // Beatsaver.com filtered characters
+         '@', '*', '+', '-', '<', '~', '>', '(', ')'
+
+         
+
          */
 
+        public class StringNormalization
+        {
+
+            public static HashSet<string> BeatsaverBadWords = new HashSet<string>();
+
+            public void RemoveSymbols(StringBuilder text)
+                {
+                for (int i=0;i<text.Length;i++)
+                    {
+                    char c = text[i];
+                    if (c < 128) text[i] = _SymbolsMap[c];
+                    }
+                }
+
+
+            // This function takes a user search string, and fixes it for beatsaber.
+            public string NormalizeBeatSaverString (string text)
+                {
+                var words = Split(text);
+                StringBuilder result=new StringBuilder();
+                foreach (var word in words) 
+                    {
+                    if (word.Length < 3) continue;
+                    if (BeatsaverBadWords.Contains(word.ToLower())) continue;
+                    result.Append(word);
+                    result.Append(' ');
+                    }
+
+                //RequestBot.Instance.QueueChatMessage($"Search string: {result.ToString()}");
+
+
+                if (result.Length == 0) return "qwesartysasasdsdaa";
+                return result.ToString().Trim();
+                }
+
+
+              public string [] Split(string text)
+                {
+                var sb = new StringBuilder(text);
+                RemoveSymbols(sb);
+                string [] result=sb.ToString().ToLower().Split(new char [] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                return result;       
+                }
+
+        public static char [] _SymbolsMap=new char [128];
+
+        public StringNormalization()
+            {
+            for (char i=(char) 0;i<128;i++)
+                {
+                    _SymbolsMap[i] = i;
+                }
+            foreach (var c in new char[] { '@', '*', '+', '<', '~', '>', '(', ')','[',']','/','\\','.',',' }) if (c<128) _SymbolsMap[c] = ' ';
+
+
+                foreach (var word in new string[] {
+            "the","this","from","will","when","with","what","who","why","how"
+
+            }) BeatsaverBadWords.Add(word.ToLower());
+
+            }        
+        }
+
+        public static StringNormalization normalize = new StringNormalization();
+
+    
     }
 }
