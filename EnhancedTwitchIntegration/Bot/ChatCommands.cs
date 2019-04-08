@@ -712,21 +712,23 @@ namespace SongRequestManager
 
         private IEnumerator LookupSongs(ParseState state)
         {                
-            bool isBeatSaverId = _digitRegex.IsMatch(state.parameter) || _beatSaverRegex.IsMatch(state.parameter);
+   
+            var id = GetBeatSaverId(state.parameter);
 
-            string requestUrl = isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";            
-            using (var web = UnityWebRequest.Get($"{requestUrl}/{normalize.NormalizeBeatSaverString(state.parameter)}"))
+            JSONNode result = null;
+            string requestUrl = (id!="") ? $"https://beatsaver.com/api/songs/detail/{normalize.RemoveSymbols(ref state.parameter,normalize._SymbolsNoDash)}" : $"https://beatsaver.com/api/songs/search/song/{normalize.NormalizeBeatSaverString(state.parameter)}";            
+            using (var web = UnityWebRequest.Get($"{requestUrl}"))
             {
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)
                 {
-                    Plugin.Log($"Error {web.error} occured when trying to request song {state.parameter}!");
-                    //QueueChatMessage($"Invalid BeatSaver ID \"{state.parameter}\" specified.");
-                    //yield break;
+                    Plugin.Log($"Error {web.error} occured when trying to request song {requestUrl}!");
+                }
+                else
+                {
+                result = JSON.Parse(web.downloadHandler.text);
                 }
 
-                JSONNode result = JSON.Parse(web.downloadHandler.text);
-             
                 string errorMessage="";
                 SongFilter filter = SongFilter.none;
                 if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;

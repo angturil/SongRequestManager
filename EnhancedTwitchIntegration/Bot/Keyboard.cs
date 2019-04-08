@@ -68,9 +68,6 @@ namespace SongRequestManager
 /23 (!!) (@@) [SPACE]/40 (##) (__)";
 
 
-        public const string BOTKEYS =
-@"[ADD]/0'!bsr ' [UPTIME]/0' !uptime%CR%' [Cat1]/0' sehriaCat1' [Cat2]/0' sehriaCat2' [sehriaXD]/0' sehriaXD' [tohruSway]/0' tohruSway' [Rainbow]/0' RainbowDance' [Love]/0' sehriaLove' [Wink]/0' sehriaWink'
-";
 
         
 

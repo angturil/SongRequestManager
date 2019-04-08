@@ -124,7 +124,7 @@ namespace SongRequestManager
 
                 var mykeyboard = new KEYBOARD(KeyboardContainer, "");
 #if UNRELEASED
-                mykeyboard.AddKeys(KEYBOARD.BOTKEYS, 0.4f);
+                mykeyboard.AddKeys(BOTKEYS, 0.4f);
 #endif
                 mykeyboard.AddKeys(KEYBOARD.QWERTY); // You can replace this with DVORAK if you like
                 mykeyboard.DefaultActions();
@@ -148,7 +148,6 @@ namespace SongRequestManager
                 // The UI for this might need a bit of work.
 
                 AddKeyboard(mykeyboard, "RightPanel.kbd");
-
             }
 
             if (_songRequestMenu == null)
@@ -157,7 +156,6 @@ namespace SongRequestManager
                 _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
                 _songRequestMenu.SetRightViewController(_KeyboardViewController, false);
             }
-
 
             SongListUtils.Initialize();
 
@@ -550,6 +548,34 @@ namespace SongRequestManager
             return songs;
         }
 
+        private IEnumerator UpdateSongMap(JSONObject song)
+            {
+
+            yield return Utilities.Download($"https://beatsaver.com/api/songs/detail/{song["id"].Value.ToString()}", Utilities.DownloadType.Raw, null,
+            // Download success
+            (web) =>
+            {
+                var result = JSON.Parse(web.downloadHandler.text);
+
+                QueueChatMessage($"{result.AsObject}");
+
+                if (result != null && result["id"].Value != "")
+                {
+                    song = result.AsObject;
+                    new SongMap(result.AsObject);
+                }
+            },
+            // Download failed,  song probably doesn't exist on beatsaver
+            (web) =>
+            {
+
+                ; //errorMessage = $"Invalid BeatSaver ID \"{request}\" specified. {requestUrl}";
+            });
+
+        }
+
+
+        // BUG: Testing major changes. This will get seriously refactored soon.
         private IEnumerator CheckRequest(RequestInfo requestInfo)
         {
             TwitchUser requestor = requestInfo.requestor;
@@ -558,18 +584,21 @@ namespace SongRequestManager
             string normalrequest= normalize.NormalizeBeatSaverString(requestInfo.request);
 
             // Special code for numeric searches
-            if (requestInfo.isBeatSaverId)
+
+            var id = GetBeatSaverId(normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash));
+
+            //QueueChatMessage($"id={id} , request={normalrequest}");
+
+            if (id!="")
             {
                 // Remap song id if entry present. This is one time, and not correct as a result. No recursion right now, could be confusing to the end user.
-                string[] requestparts = request.Split(new char[] { '-' }, 2);
-
-                if (requestparts.Length > 0 && songremap.ContainsKey(requestparts[0]) && !requestInfo.flags.HasFlag(CmdFlags.NoFilter))
+                if (songremap.ContainsKey(id) && !requestInfo.flags.HasFlag(CmdFlags.NoFilter))
                 {
-                    request = songremap[requestparts[0]];
-                    QueueChatMessage($"Remapping request {requestInfo.request} to {normalrequest}");
+                    request = songremap[id];
+                    QueueChatMessage($"Remapping request {requestInfo.request} to {request}");
                 }
 
-                string requestcheckmessage = IsRequestInQueue(normalrequest);               // Check if requested ID is in Queue  
+                string requestcheckmessage = IsRequestInQueue(normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash));               // Check if requested ID is in Queue  
                 if (requestcheckmessage != "")
                 {
                     QueueChatMessage(requestcheckmessage);
@@ -582,7 +611,7 @@ namespace SongRequestManager
             string errorMessage = "";
 
             // Get song query results from beatsaver.com
-            string requestUrl = requestInfo.isBeatSaverId ? $"https://beatsaver.com/api/songs/detail/{normalrequest}" : $"https://beatsaver.com/api/songs/search/song/{normalrequest}";
+            string requestUrl = (id!="") ? $"https://beatsaver.com/api/songs/detail/{normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash)}" : $"https://beatsaver.com/api/songs/search/song/{normalrequest}";
             yield return Utilities.Download(requestUrl, Utilities.DownloadType.Raw, null,
                 // Download success
                 (web) =>
@@ -630,8 +659,41 @@ namespace SongRequestManager
                 QueueChatMessage(errorMessage);
                 yield break;
             }
+
+            JSONObject song = songs[0];
+
+
+
+            // Song requests should try to be current 
+
+            if ((song["downloadUrl"].Value==""))
+                {
+                //QueueChatMessage($"song:  {song["id"].Value.ToString()} ,{song["songName"].Value}");
+
+                yield return Utilities.Download($"https://beatsaver.com/api/songs/detail/{song["id"].Value.ToString()}", Utilities.DownloadType.Raw, null,
+                 // Download success
+                 (web) =>
+                 {
+                     result = JSON.Parse(web.downloadHandler.text);
+                     var newsong = result["song"].AsObject;
+
+                     if (result != null && newsong["version"].Value != "")
+                     {
+                         new SongMap(newsong);
+                         song = newsong;
+                     }
+                 },
+                 // Download failed,  song probably doesn't exist on beatsaver
+                 (web) =>
+                 {  
+                     // Let player know that the song is not current on BeatSaver
+                     requestInfo.requestInfo += " *LOCAL ONLY*";
+                     ; //errorMessage = $"Invalid BeatSaver ID \"{request}\" specified. {requestUrl}";
+                 });
+
+            //    //UpdateSongMap(song);
+                }            
             
-            var song = songs[0];
 
             RequestTracker[requestor.id].numRequests++;
 
@@ -877,6 +939,7 @@ namespace SongRequestManager
 
         private string GetBeatSaverId(string request)
         {
+            request=normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash);
             if (_digitRegex.IsMatch(request)) return request;
             if (_beatSaverRegex.IsMatch(request))
             {
@@ -907,7 +970,6 @@ namespace SongRequestManager
                     QueueChatMessage($"Queue is currently closed.");
                     return;
                 }
-
 
                 if (!RequestTracker.ContainsKey(requestor.id))
                     RequestTracker.Add(requestor.id, new RequestUserTracker());
@@ -948,7 +1010,7 @@ namespace SongRequestManager
                 }
 
                 // BUG: Need to clean up the new request pipeline
-                string testrequest = normalize.NormalizeBeatSaverString(request);
+                string testrequest = normalize.RemoveSymbols(ref request,normalize._SymbolsNoDash);
 
                 RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(testrequest) || _beatSaverRegex.IsMatch(testrequest), flags, info);
 

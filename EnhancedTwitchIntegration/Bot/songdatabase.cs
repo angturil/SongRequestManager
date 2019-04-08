@@ -52,15 +52,25 @@ namespace SongRequestManager
 
                     foreach (var part in parts)
                     {
-                        string mypart = (part.Length > partialhash) ? part.Substring(0, partialhash) : part;
-                        if (Add)
-                            MapDatabase.SearchDictionary.AddOrUpdate(mypart, (k) => { HashSet<SongMap> va = new HashSet<SongMap>(); va.Add(this); return va; }, (k, va) => { va.Add(this); return va; });
-                        else
-                        {
-                            MapDatabase.SearchDictionary[mypart].Remove(this); // An empty keyword is fine, and actually uncommon
-                        }
+                        //string mypart = (part.Length > partialhash) ? part.Substring(0, partialhash) : part;
+                        if (part.Length<partialhash) UpdateSearchEntry(part, Add);
+                        for (int i= partialhash;i<=part.Length;i++)
+                            {
+                            UpdateSearchEntry(part.Substring(0,i), Add);  
+                            }
                     }
                 }
+            }
+
+            void UpdateSearchEntry(string key, bool Add = true)
+            {
+            if (Add)
+                MapDatabase.SearchDictionary.AddOrUpdate(key, (k) => { HashSet<SongMap> va = new HashSet<SongMap>(); va.Add(this); return va; }, (k, va) => { va.Add(this); return va; });
+            else
+            {
+                MapDatabase.SearchDictionary[key].Remove(this); // An empty keyword is fine, and actually uncommon
+            }
+
             }
 
             public bool isKeyPresent(string match)
@@ -104,7 +114,6 @@ namespace SongRequestManager
                 SongMap oldmap;
                 if (MapDatabase.MapLibrary.TryGetValue(song["id"].Value,out oldmap))
                 {
-
                     if (LevelId == oldmap.LevelId && song["version"].Value == oldmap.Fields[1])
                     {
                         oldmap.song = song;
@@ -186,7 +195,7 @@ namespace SongRequestManager
                 if (RequestBot.Instance.GetBeatSaverId(SearchKey) != "")
                 {
                     SongMap song;
-                    if (MapDatabase.MapLibrary.TryGetValue(SearchKey, out song))
+                    if (MapDatabase.MapLibrary.TryGetValue(normalize.RemoveSymbols(ref SearchKey,normalize._SymbolsNoDash), out song))
                     {
                         result.Add(song);
                         return result;
@@ -200,9 +209,9 @@ namespace SongRequestManager
                 {
                     HashSet<SongMap> partresult;
 
-                    string subhash = (part.Length > partialhash) ? part.Substring(0, partialhash) : part;  
+                    //string subhash = (part.Length > partialhash) ? part.Substring(0, partialhash) : part;  
 
-                    if (!SearchDictionary.TryGetValue(subhash, out partresult)) return result; // Keyword must be found
+                    if (!SearchDictionary.TryGetValue(part, out partresult)) return result; // Keyword must be found
                     resultlist.Add(partresult);
                 }
 
@@ -220,10 +229,10 @@ namespace SongRequestManager
                         if (!resultlist[i].Contains(map)) goto next; // We can't continue from here :(    
                     }
 
-                foreach (var part in SearchParts) // This is costly
-                    {
-                        if (part.Length > partialhash && !map.isKeyPresent(part)) goto next;
-                    }
+                //foreach (var part in SearchParts) // This is costly
+                  //  {
+                    //    if (part.Length > partialhash && !map.isKeyPresent(part)) goto next;
+                    //}
                 result.Add(map);
 
                 next:
@@ -352,6 +361,7 @@ namespace SongRequestManager
 
                         try
                         {
+                            if (MapDatabase.MapLibrary.ContainsKey(id)) continue;
 
                             JSONObject song = JSONObject.Parse(File.ReadAllText(item.FullName)).AsObject;
 
@@ -499,155 +509,97 @@ namespace SongRequestManager
             return songs;
         }
 
-
-        /*
-		public static string CreateMD5FromString(string input)
-		{
-			// Use input string to calculate MD5 hash
-			using (var md5 = MD5.Create())
-			{
-				var inputBytes = Encoding.ASCII.GetBytes(input);
-				var hashBytes = md5.ComputeHash(inputBytes);
-
-				// Convert the byte array to hexadecimal string
-				var sb = new StringBuilder();
-				for (int i = 0; i < hashBytes.Length; i++)
-				{
-					sb.Append(hashBytes[i].ToString("X2"));
-				}
-				return sb.ToString();
-			}
-		}
- 
-         public string GetIdentifier()
-         {
-             var combinedJson = "";
-             foreach (var diffLevel in difficultyLevels)
-             {
-                 if (!File.Exists(path + "/" + diffLevel.jsonPath))
-                 {
-                     continue;
-                 }
-
-                 diffLevel.json = File.ReadAllText(path + "/" + diffLevel.jsonPath);
-                 combinedJson += diffLevel.json;
-             }
-
-             var hash = Utils.CreateMD5FromString(combinedJson);
-             levelId = hash + "∎" + string.Join("∎", songName, songSubName, GetSongAuthor(), beatsPerMinute.ToString()) + "∎";
-             return levelId;
-         }
-
-         public static string GetLevelID(Song song)
-         {
-             string[] values = new string[] { song.hash, song.songName, song.songSubName, song.authorName, song.beatsPerMinute };
-             return string.Join("∎", values) + "∎";
-         }
-
-         public static BeatmapLevelSO GetLevel(string levelId)
-         {
-             return SongLoader.CustomLevelCollectionSO.beatmapLevels.FirstOrDefault(x => x.levelID == levelId) as BeatmapLevelSO;
-         }
-
-         public static bool CreateMD5FromFile(string path, out string hash)
-         {
-             hash = "";
-             if (!File.Exists(path)) return false;
-             using (MD5 md5 = MD5.Create())
-             {
-                 using (var stream = File.OpenRead(path))
-                 {
-                     byte[] hashBytes = md5.ComputeHash(stream);
-
-                     StringBuilder sb = new StringBuilder();
-                     foreach (byte hashByte in hashBytes)
-                     {
-                         sb.Append(hashByte.ToString("X2"));
-                     }
-
-                     hash = sb.ToString();
-                     return true;
-                 }
-             }
-         }
-
-         public void RequestSongByLevelID(string levelId, Action<Song> callback)
-         {
-             StartCoroutine(RequestSongByLevelIDCoroutine(levelId, callback));
-         }
-
-         // Beatsaver.com filtered characters
-         '@', '*', '+', '-', '<', '~', '>', '(', ')'
-
-         
-
-         */
-
-        public class StringNormalization
+        public IEnumerator RefreshSongs(ParseState state)
         {
 
-            public static HashSet<string> BeatsaverBadWords = new HashSet<string>();
-
-            public void RemoveSymbols(StringBuilder text)
-                {
-                for (int i=0;i<text.Length;i++)
-                    {
-                    char c = text[i];
-                    if (c < 128) text[i] = _SymbolsMap[c];
-                    }
-                }
-
-
-            // This function takes a user search string, and fixes it for beatsaber.
-            public string NormalizeBeatSaverString (string text)
-                {
-                var words = Split(text);
-                StringBuilder result=new StringBuilder();
-                foreach (var word in words) 
-                    {
-                    if (word.Length < 3) continue;
-                    if (BeatsaverBadWords.Contains(word.ToLower())) continue;
-                    result.Append(word);
-                    result.Append(' ');
-                    }
-
-                //RequestBot.Instance.QueueChatMessage($"Search string: {result.ToString()}");
-
-
-                if (result.Length == 0) return "qwesartysasasdsdaa";
-                return result.ToString().Trim();
-                }
-
-
-              public string [] Split(string text)
-                {
-                var sb = new StringBuilder(text);
-                RemoveSymbols(sb);
-                string [] result=sb.ToString().ToLower().Split(new char [] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                return result;       
-                }
-
-        public static char [] _SymbolsMap=new char [128];
-
-        public StringNormalization()
-            {
-            for (char i=(char) 0;i<128;i++)
-                {
-                    _SymbolsMap[i] = i;
-                }
-            foreach (var c in new char[] { '@', '*', '+', '<', '~', '>', '(', ')','[',']','/','\\','.',',' }) if (c<128) _SymbolsMap[c] = ' ';
-
-
-                foreach (var word in new string[] {
-            "the","this","from","will","when","with","what","who","why","how"
-
-            }) BeatsaverBadWords.Add(word.ToLower());
-
-            }        
+            MapDatabase.LoadCustomSongs();
+            yield break ;
         }
 
-        public static StringNormalization normalize = new StringNormalization();
+            /*
+            public static string CreateMD5FromString(string input)
+            {
+                // Use input string to calculate MD5 hash
+                using (var md5 = MD5.Create())
+                {
+                    var inputBytes = Encoding.ASCII.GetBytes(input);
+                    var hashBytes = md5.ComputeHash(inputBytes);
 
-    
-    }
+                    // Convert the byte array to hexadecimal string
+                    var sb = new StringBuilder();
+                    for (int i = 0; i < hashBytes.Length; i++)
+                    {
+                        sb.Append(hashBytes[i].ToString("X2"));
+                    }
+                    return sb.ToString();
+                }
+            }
+
+             public string GetIdentifier()
+             {
+                 var combinedJson = "";
+                 foreach (var diffLevel in difficultyLevels)
+                 {
+                     if (!File.Exists(path + "/" + diffLevel.jsonPath))
+                     {
+                         continue;
+                     }
+
+                     diffLevel.json = File.ReadAllText(path + "/" + diffLevel.jsonPath);
+                     combinedJson += diffLevel.json;
+                 }
+
+                 var hash = Utils.CreateMD5FromString(combinedJson);
+                 levelId = hash + "∎" + string.Join("∎", songName, songSubName, GetSongAuthor(), beatsPerMinute.ToString()) + "∎";
+                 return levelId;
+             }
+
+             public static string GetLevelID(Song song)
+             {
+                 string[] values = new string[] { song.hash, song.songName, song.songSubName, song.authorName, song.beatsPerMinute };
+                 return string.Join("∎", values) + "∎";
+             }
+
+             public static BeatmapLevelSO GetLevel(string levelId)
+             {
+                 return SongLoader.CustomLevelCollectionSO.beatmapLevels.FirstOrDefault(x => x.levelID == levelId) as BeatmapLevelSO;
+             }
+
+             public static bool CreateMD5FromFile(string path, out string hash)
+             {
+                 hash = "";
+                 if (!File.Exists(path)) return false;
+                 using (MD5 md5 = MD5.Create())
+                 {
+                     using (var stream = File.OpenRead(path))
+                     {
+                         byte[] hashBytes = md5.ComputeHash(stream);
+
+                         StringBuilder sb = new StringBuilder();
+                         foreach (byte hashByte in hashBytes)
+                         {
+                             sb.Append(hashByte.ToString("X2"));
+                         }
+
+                         hash = sb.ToString();
+                         return true;
+                     }
+                 }
+             }
+
+             public void RequestSongByLevelID(string levelId, Action<Song> callback)
+             {
+                 StartCoroutine(RequestSongByLevelIDCoroutine(levelId, callback));
+             }
+
+             // Beatsaver.com filtered characters
+             '@', '*', '+', '-', '<', '~', '>', '(', ')'
+
+
+
+             */
+
+
+
+        }
 }

@@ -124,7 +124,7 @@ namespace SongRequestManager
             new COMMAND(new string[] { "!request", "!bsr", "!add", "!sr","!srm" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
             new COMMAND(new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
-            new COMMAND("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias%|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
+            new COMMAND("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias% %|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
 
             new COMMAND("!open").Action(OpenQueue).Help(Mod, "usage: %alias%%|%... Opens the queue allowing song requests.", _nothing);
             new COMMAND("!close").Action(CloseQueue).Help(Mod, "usage: %alias%%|%... Closes the request queue.", _nothing);
@@ -132,7 +132,7 @@ namespace SongRequestManager
             new COMMAND("!queue").Action(ListQueue).Help(Everyone, "usage: %alias%%|% ... Displays a list of the currently requested songs.", _nothing);
             new COMMAND("!played").Action(ShowSongsplayed).Help(Mod, "usage: %alias%%|%... Displays all the songs already played this session.", _nothing);
             new COMMAND("!history").Action(ShowHistory).Help(Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
-            new COMMAND("!who").Action(Who).Help(Mod, "usage: %alias% <songid or name>%|%Find out who requested the song in the currently queue or recent history.", _atleast1);
+            new COMMAND("!who").Action(Who).Help(Sub | VIP | Mod, "usage: %alias% <songid or name>%|%Find out who requested the song in the currently queue or recent history.", _atleast1);
 
             new COMMAND ("!modadd").Action(ModAdd).Help(Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. This ignores ALL filters including bans.", _atleast1);
             new COMMAND("!mtt").Action(MoveRequestToTop).Help(Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the top of the request queue.", _atleast1);
@@ -152,7 +152,7 @@ namespace SongRequestManager
             new COMMAND("!clearalreadyplayed").Action(ClearDuplicateList).Help(Mod, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
             new COMMAND("!restore").Action(restoredeck).Help(Mod, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
 
-            new COMMAND("!about").Help(CmdFlags.Local | CmdFlags.SilentCheck , $"Song Request Manager version {Plugin.Instance.Version}. Github angturil/SongRequestManager", _fail); // Help commands have no code
+            new COMMAND("!about").Help(CmdFlags.Broadcaster | CmdFlags.SilentCheck , $"Song Request Manager version {Plugin.Instance.Version}. Github angturil/SongRequestManager", _fail); // Help commands have no code
             new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
             new COMMAND("!commandlist").Action(showCommandlist).Help(Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
@@ -175,8 +175,13 @@ namespace SongRequestManager
             new COMMAND(new string[] { "!addnew", "!addlatest" }).Coroutine(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
             new COMMAND("!backup").Action(Backup).Help(CmdFlags.Broadcaster, "Backup %SRM% directory.", _anything);
 
+            new COMMAND("!refreshsongs").Coroutine(RefreshSongs).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
+
+
 #if UNRELEASED
 
+
+            new COMMAND("!downloadsongs").Coroutine(DownloadEverything).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
 
             // These comments contain forward looking statement that are absolutely subject to change. I make no commitment to following through
             // on any specific feature,interface or implementation. I do not promise to make them generally available. Its probably best to avoid using or making assumptions based on these.
@@ -226,13 +231,12 @@ namespace SongRequestManager
             new COMMAND("!joinrooms").Coroutine(GetRooms).Help(Broadcaster, "usage: %alias% %|% This is not fully functional, allows the bot to accept commands from your other rooms.") ;
             new COMMAND("!savecommands").Action(SaveCommands);
 
-            new COMMAND("!updatesongs").Coroutine(DownloadEverything).Help(Broadcaster,"test");
 
 #endif
             #endregion
 
             #region Text Format fields
-            
+
             //would be good to use reflections for these
             new COMMAND("AddSongToQueueText", AddSongToQueueText); // These variables are bound due to class reference assignment
             new COMMAND("LookupSongDetail", LookupSongDetail);

@@ -13,7 +13,7 @@ namespace SongRequestManager
     public class Plugin : IPlugin
     {
         public string Name => "SongRequestManager";
-        public string Version => "1.3.1";
+        public string Version => "1.3.2";
 
 
         public bool IsAtMainMenu = true;
@@ -47,7 +47,15 @@ namespace SongRequestManager
         {
             if (arg0.name == MenuSceneName)
             {
-                Settings.OnLoad();
+                try
+                {
+                    Settings.OnLoad();
+                }
+                catch (Exception ex)       
+                {
+                    Plugin.Log($"{ex}");
+                }
+
                 RequestBot.OnLoad();
 
                 RequestBotConfig.Save(true);
