@@ -5,7 +5,7 @@ This mod has been in use for many months, and is constantly updated. While this 
 
 # Current State
 
-The current bot is now compatible with the April fools' release 0.13.1. You will need to grab the latest support files from modsaber.
+The current bot is compatible with Release 0.13. You will need to grab the latest support files from Beatmods.
 If they're not available, you may Temporarily grab streamcore and enhancedstreamchat here. These are not guaranteed current.
 
 # TTS Notes
