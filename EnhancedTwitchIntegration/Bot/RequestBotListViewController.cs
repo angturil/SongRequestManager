@@ -1,6 +1,4 @@
-﻿//#define PRIVATE
-
-using CustomUI.BeatSaber;
+﻿using CustomUI.BeatSaber;
 using StreamCore.Config;
 using StreamCore.Utils;
 using HMUI;
@@ -23,7 +21,8 @@ using SongRequestManager;
 
 namespace SongRequestManager
 {
-    public class RequestBotListViewController : CustomListViewController
+ 
+   public class RequestBotListViewController : CustomListViewController
     {
         public static RequestBotListViewController Instance;
 
@@ -452,7 +451,11 @@ namespace SongRequestManager
 
             BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
 
-            _tableCell.SetText($"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)}</size>");
+            bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
+
+            string msg = highlight ? "MSG" : "";
+
+            _tableCell.SetText($"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)}</size> <color=#ff00ff>{msg}</color>");
             _tableCell.SetSubText(request.song["authorName"].Value+" ("+request.song["version"].Value+")");
             if (SongLoader.AreSongsLoaded)
             {

@@ -165,7 +165,7 @@ namespace SongRequestManager
             {
                 try
                 {
-                    ListCollection[listname].Clear();
+                    OpenList(listname).Clear();
                 }
                 catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
             }

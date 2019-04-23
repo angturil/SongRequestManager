@@ -34,13 +34,18 @@ namespace SongRequestManager
         {
             var menu = SettingsUI.CreateSubMenu("Song Request Manager");
 
-            var AutopickFirstSong = menu.AddBool("Autopick First Song", "Automatically pick the first song when searching");
+            var AutopickFirstSong = menu.AddBool("Autopick First Song", "Automatically pick the first song with sr!");
             AutopickFirstSong.SetValue += (requests) => { RequestBotConfig.Instance.AutopickFirstSong = requests; };
             AutopickFirstSong.GetValue += () => { return RequestBotConfig.Instance.AutopickFirstSong; };
 
             var MiniumSongRating = menu.AddSlider("Minimum rating", "Minimum allowed song rating", 0, 100, 0.5f, false);
             MiniumSongRating.SetValue += (scale) => { RequestBotConfig.Instance.LowestAllowedRating = scale; };
             MiniumSongRating.GetValue += () => { return RequestBotConfig.Instance.LowestAllowedRating; };
+
+            var TTSSupport = menu.AddBool("TTS Support", "Add ! to all command outputs for TTS Filtering");
+            TTSSupport.SetValue += (requests) => { RequestBotConfig.Instance.BotPrefix = requests ? "! " : ""; };
+            TTSSupport.GetValue += () => { return RequestBotConfig.Instance.BotPrefix!=""; };
+
         }
     }
 }
