@@ -171,6 +171,9 @@ namespace SongRequestManager
             if (_standardLevelListViewController)
             {
                 // Make sure our custom songpack is selected
+
+                Plugin.Log($"Scrolling to {levelID}! Retry={isRetry}");
+
                 SelectCustomSongPack();
 
                 TableView tableView = _standardLevelListViewController.GetComponentInChildren<TableView>();
@@ -180,7 +183,11 @@ namespace SongRequestManager
 
                 if (levels.Length > 0)
                 {
+
                     int row = GetLevelIndex(_standardLevelListViewController, levelID);
+
+                    Plugin.Log($"Row={row}");
+
                     if (row != -1)
                     {
                         tableView.SelectCellWithIdx(row, true);

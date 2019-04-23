@@ -176,7 +176,9 @@ namespace SongRequestManager
             new COMMAND("!backup").Action(Backup).Help(CmdFlags.Broadcaster, "Backup %SRM% directory.", _anything);
 
             new COMMAND("!refreshsongs").Coroutine(RefreshSongs).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
+            new COMMAND("!savesongdatabase").Coroutine(SaveSongDatabase).Help(Broadcaster);
 
+            new COMMAND("!queuestatus").Action(QueueStatus).Help(Mod, "usage: %alias% %|% Show current queue status", _nothing);
 
 #if UNRELEASED
 
@@ -186,6 +188,8 @@ namespace SongRequestManager
             // These comments contain forward looking statement that are absolutely subject to change. I make no commitment to following through
             // on any specific feature,interface or implementation. I do not promise to make them generally available. Its probably best to avoid using or making assumptions based on these.
 
+
+            new COMMAND("!readarchive").Coroutine(ReadArchive).Help(Broadcaster, "Adds archived sngs to bot");
 
 
 
@@ -231,6 +235,7 @@ namespace SongRequestManager
             new COMMAND("!joinrooms").Coroutine(GetRooms).Help(Broadcaster, "usage: %alias% %|% This is not fully functional, allows the bot to accept commands from your other rooms.") ;
             new COMMAND("!savecommands").Action(SaveCommands);
 
+            new COMMAND("gccount").Action(GetGCCount).Help(Broadcaster);
 
 #endif
             #endregion

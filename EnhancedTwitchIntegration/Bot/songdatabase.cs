@@ -1,4 +1,7 @@
-﻿using StreamCore.Chat;
+﻿using System;
+using StreamCore;
+using System.Runtime;
+using StreamCore.Chat;
 using StreamCore.SimpleJSON;
 using System;
 using System.Collections;
@@ -24,6 +27,7 @@ using System.Security.Cryptography;
 using SongBrowserPlugin;
 using SongBrowserPlugin.DataAccess;
 using SongLoaderPlugin;
+
 //
 // NOTE: Any unreleased code structure, dependencies, or files are subject to change without notice. Any dependencies you create around this code 
 // are virtually guaranteed not to work in future builds. If I thought the code was release ready, it wouldn't be here.
@@ -38,69 +42,49 @@ namespace SongRequestManager
 
         public class SongMap
         {
-            public List<string> Fields = new List<string>(); // For performance, we need to extract these from the JSON.
             public JSONObject song;
             public string path;
             public string LevelId;
+            float pp = 0;
 
-            void IndexFields(List<string> Fields, bool Add = true)
-            {
-                foreach (var field in Fields)
+
+            public static int hashcount = 0;
+
+            void IndexFields(bool Add,int id,params string[] parameters)
                 {
-                    //string[] parts = field.ToLower().Split(MapDatabase.wordseparator , StringSplitOptions.RemoveEmptyEntries);
-                    string[] parts = normalize.Split(field);
-
-                    foreach (var part in parts)
+                    foreach (var field in parameters)
                     {
-                        //string mypart = (part.Length > partialhash) ? part.Substring(0, partialhash) : part;
-                        if (part.Length<partialhash) UpdateSearchEntry(part, Add);
-                        for (int i= partialhash;i<=part.Length;i++)
+                        string[] parts = normalize.Split(field);
+                        foreach (var part in parts)
+                        {
+                            if (part.Length < partialhash) UpdateSearchEntry(part,id, Add);
+                            for (int i = partialhash; i <= part.Length; i++)
                             {
-                            UpdateSearchEntry(part.Substring(0,i), Add);  
+                                UpdateSearchEntry(part.Substring(0, i), id,Add);
                             }
+                        }
                     }
                 }
-            }
 
-            void UpdateSearchEntry(string key, bool Add = true)
+            void UpdateSearchEntry(string key, int id,bool Add = true)
             {
+
+            if (Add) hashcount++; else hashcount--;
+
             if (Add)
-                MapDatabase.SearchDictionary.AddOrUpdate(key, (k) => { HashSet<SongMap> va = new HashSet<SongMap>(); va.Add(this); return va; }, (k, va) => { va.Add(this); return va; });
+                MapDatabase.SearchDictionary.AddOrUpdate(key, (k) => { HashSet<int> va = new HashSet<int>(); va.Add(id); return va; }, (k, va) => { va.Add(id); return va; });
             else
             {
-                MapDatabase.SearchDictionary[key].Remove(this); // An empty keyword is fine, and actually uncommon
+                MapDatabase.SearchDictionary[key].Remove(id); // An empty keyword is fine, and actually uncommon
             }
 
             }
-
-            public bool isKeyPresent(string match)
-            {
-
-                foreach (var field in Fields)
-                {
-                    //string[] parts = field.ToLower().Split(MapDatabase.wordseparator, StringSplitOptions.RemoveEmptyEntries);
-                    string[] parts = normalize.Split(field);
-                    foreach (var part in parts)
-                    {
-                        if (part.StartsWith(match)) return true;
-                    }
-                }
-                return false;
-            }
-
 
             public SongMap(string id, string version, string songName, string songSubName, string authorName, string duration, string rating)
             {
-                JSONObject song = new JSONObject();
-                song.Add("id", id);
-                song.Add("version", version);
-                song.Add("songName", songName);
-                song.Add("songSubName", songSubName);
-                song.Add("authorName", authorName);
-                song.Add("duration", duration);
-                song.Add("rating", rating);
+                //JSONObject song = new JSONObject();
 
-                IndexSong(song);
+                //IndexSong(song);
             }
 
 
@@ -114,28 +98,30 @@ namespace SongRequestManager
                 SongMap oldmap;
                 if (MapDatabase.MapLibrary.TryGetValue(song["id"].Value,out oldmap))
                 {
-                    if (LevelId == oldmap.LevelId && song["version"].Value == oldmap.Fields[1])
+                    if (LevelId == oldmap.LevelId && song["version"].Value == oldmap.song["version"].Value)
                     {
                         oldmap.song = song;
                         return;
                     }
-                    oldmap.UnIndexSong();                    
+
+                    int id = song["id"].AsInt;
+
+                    oldmap.UnIndexSong(id);                    
                 }
 
-
-                this.song = song;
                 this.path = path;
                 this.LevelId = LevelId;
                 IndexSong(song);
             }
 
-            void UnIndexSong()
+            void UnIndexSong(int id)
             {
                 SongMap temp;
-                IndexFields(Fields, false);
-                MapDatabase.MapLibrary.TryRemove(Fields[0], out temp);
-                MapDatabase.MapLibrary.TryRemove(Fields[1], out temp);
-                MapDatabase.MapLibrary.TryRemove(song["hashMd5"].Value.ToUpper(), out temp);
+ 
+                IndexFields(false,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value);
+
+                MapDatabase.MapLibrary.TryRemove(song["id"].Value, out temp);
+                MapDatabase.MapLibrary.TryRemove(song["version"].Value, out temp);
                 MapDatabase.LevelId.TryRemove(LevelId, out temp);
             }
 
@@ -144,18 +130,11 @@ namespace SongRequestManager
                 try
                 {
                     this.song = song;
-                    Fields.Clear();
-                    Fields.Add(song["id"].Value);
-                    Fields.Add(song["version"].Value);
-                    Fields.Add(song["songName"].Value);
-                    Fields.Add(song["songSubName"].Value);
-                    Fields.Add(song["authorName"].Value);
-                    Fields.Add(song["uploader"].Value);
 
-                    IndexFields(Fields);
-                    MapDatabase.MapLibrary.TryAdd(Fields[0], this);
-                    MapDatabase.MapLibrary.TryAdd(Fields[1], this);
-                    MapDatabase.MapLibrary.TryAdd(song["hashMd5"].Value.ToUpper(), this);
+                    IndexFields(true,song["id"].AsInt, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value);
+
+                    MapDatabase.MapLibrary.TryAdd(song["id"].Value, this);
+                    MapDatabase.MapLibrary.TryAdd(song["version"].Value, this);
                     MapDatabase.LevelId.TryAdd(LevelId, this);
                 }
                 catch (Exception ex)
@@ -165,12 +144,14 @@ namespace SongRequestManager
             }
         }
 
+           
+
         // Song primary key can be song ID, or level hashes. This dictionary is many:1
         public class MapDatabase
         {
             public static ConcurrentDictionary<string, SongMap> MapLibrary = new ConcurrentDictionary<string, SongMap>();
             public static ConcurrentDictionary<string, SongMap> LevelId = new ConcurrentDictionary<string, SongMap>();
-            public static ConcurrentDictionary<string, HashSet<SongMap>> SearchDictionary = new ConcurrentDictionary<string, HashSet<SongMap>>();
+            public static ConcurrentDictionary<string, HashSet<int>> SearchDictionary = new ConcurrentDictionary<string, HashSet<int>>();
 
             //static public char [] wordseparator=new char[] {'&','/','-','[',']','(',')','.',' ','<','>',',','*'};
 
@@ -188,9 +169,7 @@ namespace SongRequestManager
                     LoadCustomSongs();                  
                 }
 
- 
                 List<SongMap> result = new List<SongMap>();
-                List<HashSet<SongMap>> resultlist = new List<HashSet<SongMap>>();
 
                 if (RequestBot.Instance.GetBeatSaverId(SearchKey) != "")
                 {
@@ -202,17 +181,18 @@ namespace SongRequestManager
                     }
                 }
 
-                //string[] SearchParts = SearchKey.ToLower().Split(wordseparator, StringSplitOptions.RemoveEmptyEntries);
-                string [] SearchParts = normalize.Split(SearchKey);
+                List<HashSet<int>> resultlist = new List<HashSet<int>>();
+
+                string[] SearchParts = normalize.Split(SearchKey);
 
                 foreach (var part in SearchParts)
                 {
-                    HashSet<SongMap> partresult;
+                    //HashSet<SongMap> partresult;
 
-                    //string subhash = (part.Length > partialhash) ? part.Substring(0, partialhash) : part;  
+                    HashSet<int>  idset;
 
-                    if (!SearchDictionary.TryGetValue(part, out partresult)) return result; // Keyword must be found
-                    resultlist.Add(partresult);
+                    if (!SearchDictionary.TryGetValue(part, out idset)) return result; // Keyword must be found
+                    resultlist.Add(idset);
                 }
 
                 // We now have n lists of candidates
@@ -229,11 +209,7 @@ namespace SongRequestManager
                         if (!resultlist[i].Contains(map)) goto next; // We can't continue from here :(    
                     }
 
-                //foreach (var part in SearchParts) // This is costly
-                  //  {
-                    //    if (part.Length > partialhash && !map.isKeyPresent(part)) goto next;
-                    //}
-                result.Add(map);
+                result.Add(MapDatabase.MapLibrary[map.ToString()]);
 
                 next:
                     ;
@@ -241,7 +217,6 @@ namespace SongRequestManager
 
                 return result;
             }
-
 
 
             public void RemoveMap(JSONObject song)
@@ -259,39 +234,174 @@ namespace SongRequestManager
 
             }
 
-            public void SaveDatabase()
+            public static  void SaveDatabase()
             {
+            try
+            {
+                DateTime start = DateTime.Now;
+                JSONArray arr = new JSONArray();
+                foreach (var entry in LevelId)
+                arr.Add(entry.Value.song);
+                File.WriteAllText(Path.Combine(Globals.DataPath, "SongDatabase.json"), arr.ToString());
+                Instance.QueueChatMessage($"Saved Song Databse in  {(DateTime.Now - start).Seconds} secs.");
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log(ex.ToString());
+            }
 
             }
 
-           
+            public static void LoadDatabase()
+            {
 
+                try
+                {
+
+                    DateTime start = DateTime.Now;
+                    string path = Path.Combine(Globals.DataPath, "SongDatabase.json");
+
+                    if (File.Exists(path))
+                    {
+   
+                        JSONNode json = JSON.Parse(File.ReadAllText(path));
+                        if (!json.IsNull)
+                        {
+                            
+                            int Count = json.Count;
+                            foreach (JSONObject j in json.AsArray)
+                            {                                    
+                                new SongMap(j);
+                            }
+
+                            json = 0;
+                            // This is a big heap operation, compact things.
+                            Instance.QueueChatMessage($"Finished reading {Count} in {(DateTime.Now - start).Seconds} secs.");
+                        }
+                }
+                }
+            catch (Exception ex)
+                {
+                    Plugin.Log(ex.ToString());
+                    Instance.QueueChatMessage($"{ex.ToString()}");
+                }
+
+
+            }
+
+ 
             public static void ImportLoaderDatabase()
             {
                 foreach (var level in SongLoader.CustomLevels)
                 {
-                 //   new SongMap(level.customSongInfo.path);
+                    //new SongMap(level.customSongInfo.path);
                 }
             }
 
+            public static string readzipjson(ZipArchive archive,string filename="info.json")
+                {
+                var info = archive.Entries.First<ZipArchiveEntry>(e => (e.Name.EndsWith(filename)));
+                if (info == null) return "";
 
+                StreamReader reader = new StreamReader(info.Open());
+                string result=reader.ReadToEnd();
+                reader.Close();
+                return result;
+            }
+
+
+            // Early code... index a full zip archive.
             public static async void LoadZIPDirectory(string folder = @"d:\beatsaver")
             {
                 if (MapDatabase.DatabaseLoading) return;
 
-
                 await Task.Run(() =>
                 {
+
+                    var startingmem = GC.GetTotalMemory(true);
+
+                    Instance.QueueChatMessage($"Starting to read archive.");
+                    int addcount = 0;
+                    var StarTime = DateTime.Now;
 
                     var di = new DirectoryInfo(folder);
 
                     foreach (FileInfo f in di.GetFiles("*.zip"))
                     {
-                        
+ 
+                        try
+                        {
+                            var x = System.IO.Compression.ZipFile.OpenRead(f.FullName);
+                            var info = x.Entries.First<ZipArchiveEntry>(e => (e.Name.EndsWith("info.json")));
+
+                             string id = "";
+                            string version = "";
+                            GetIdFromPath(f.Name.TrimEnd(".zip"), ref id, ref version);
+
+                            if (MapDatabase.MapLibrary.ContainsKey(id))
+                                {
+                                if (MapLibrary[id].path!="") MapLibrary[id].path = f.FullName;
+                                continue;
+                                }
+
+                           JSONObject song = JSONObject.Parse(readzipjson(x)).AsObject;
+
+                            string hash;
+
+                            JSONNode difficultylevels = song["difficultyLevels"].AsArray;
+                            var FileAccumulator = new StringBuilder();
+                            foreach (var level in difficultylevels)
+                            {
+                                try
+                                {
+                                    FileAccumulator.Append(readzipjson(x,level.Value));
+                                }
+                                catch
+                                {
+                                    //Instance.QueueChatMessage($"key={level.Key} value={level.Value}");
+                                    //throw;
+                                }
+                            }
+
+                            hash = Utils.CreateMD5FromString(FileAccumulator.ToString());
+
+                            string levelId = string.Join("∎", hash, song["songName"].Value, song["songSubName"].Value, song["authorName"], song["beatsPerMinute"].AsFloat.ToString()) + "∎";
+
+                            if (LevelId.ContainsKey(levelId))
+                            {
+
+                                LevelId[levelId].path = f.FullName;
+                                continue;
+                            }
+
+                            addcount++;
+
+                            song.Add("id", id);
+                            song.Add("version", version);
+                            song.Add("hashMd5", hash);
+
+                            new SongMap(song, levelId, f.FullName);
+
+                            x = null;
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Instance.QueueChatMessage($"Failed to process {f.FullName}");   
+                            //Instance.QueueChatMessage(ex.ToString());
+                        }
+
+ 
                     }
+                    Instance.QueueChatMessage($"Archive indexing done, {addcount} files added. ({(DateTime.Now-StarTime).TotalSeconds} secs.");
+                    GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                    GC.Collect();
+                    Instance.QueueChatMessage($"hashentries: {SongMap.hashcount} memory: {(GC.GetTotalMemory(false) - startingmem) / 1048576} MB");
+
 
                 });
 
+ 
                 MapDatabase.DatabaseLoading = false;
             }
 
@@ -299,14 +409,17 @@ namespace SongRequestManager
                     // Update Database from Directory
             public static async void LoadCustomSongs(string folder = "")
             {
+
+
                 if (MapDatabase.DatabaseLoading) return;
 
                 await Task.Run(() =>
                 {
 
+                    Instance.QueueChatMessage("Starting song indexing");
+
                     DatabaseLoading = true;
 
-                    Instance.QueueChatMessage("Starting song indexing");
                     var StarTime = DateTime.UtcNow;
 
                     if (folder == "") folder = Path.Combine(Environment.CurrentDirectory, "customsongs");
@@ -462,6 +575,9 @@ namespace SongRequestManager
         }
 
 
+     
+
+
 
         private List<JSONObject> GetSongListFromResults(JSONNode result,string SearchString, ref string errorMessage, SongFilter filter = SongFilter.All, string sortby = "-rating", int reverse = 1)
         {
@@ -470,9 +586,12 @@ namespace SongRequestManager
             if (result != null)
             {
                 // Add query results to out song database.
-                if (result["songs"].IsArray)
+                if (result["songs"].IsArray)    
                 {
-                     foreach (JSONObject currentSong in result["songs"].AsArray)
+                    var downloadedsongs = result["songs"].AsArray;
+                    for (int i = 0; i < downloadedsongs.Count; i++) new SongMap(downloadedsongs[i].AsObject);
+                        
+                    foreach (JSONObject currentSong in result["songs"].AsArray)
                     {
                         new SongMap(currentSong);
                     }
@@ -513,93 +632,117 @@ namespace SongRequestManager
         {
 
             MapDatabase.LoadCustomSongs();
-            yield break ;
+
+            yield break;
         }
 
-            /*
-            public static string CreateMD5FromString(string input)
+        public string GetGCCount(ParseState state)
+        {
+
+            state.msg($"Gc0:{GC.CollectionCount(0)} GC1:{GC.CollectionCount(1)} GC2:{GC.CollectionCount(2)}");
+            state.msg($"{GC.GetTotalMemory(false)}");
+            return success;     
+        }
+
+
+        public IEnumerator ReadArchive(ParseState state)
+        {
+
+            MapDatabase.LoadZIPDirectory();
+            yield break;
+        }
+
+        public IEnumerator SaveSongDatabase(ParseState state)
+        {
+            MapDatabase.SaveDatabase();
+            yield break;
+        }
+
+
+        /*
+        public static string CreateMD5FromString(string input)
+        {
+            // Use input string to calculate MD5 hash
+            using (var md5 = MD5.Create())
             {
-                // Use input string to calculate MD5 hash
-                using (var md5 = MD5.Create())
+                var inputBytes = Encoding.ASCII.GetBytes(input);
+                var hashBytes = md5.ComputeHash(inputBytes);
+
+                // Convert the byte array to hexadecimal string
+                var sb = new StringBuilder();
+                for (int i = 0; i < hashBytes.Length; i++)
                 {
-                    var inputBytes = Encoding.ASCII.GetBytes(input);
-                    var hashBytes = md5.ComputeHash(inputBytes);
-
-                    // Convert the byte array to hexadecimal string
-                    var sb = new StringBuilder();
-                    for (int i = 0; i < hashBytes.Length; i++)
-                    {
-                        sb.Append(hashBytes[i].ToString("X2"));
-                    }
-                    return sb.ToString();
+                    sb.Append(hashBytes[i].ToString("X2"));
                 }
+                return sb.ToString();
             }
-
-             public string GetIdentifier()
-             {
-                 var combinedJson = "";
-                 foreach (var diffLevel in difficultyLevels)
-                 {
-                     if (!File.Exists(path + "/" + diffLevel.jsonPath))
-                     {
-                         continue;
-                     }
-
-                     diffLevel.json = File.ReadAllText(path + "/" + diffLevel.jsonPath);
-                     combinedJson += diffLevel.json;
-                 }
-
-                 var hash = Utils.CreateMD5FromString(combinedJson);
-                 levelId = hash + "∎" + string.Join("∎", songName, songSubName, GetSongAuthor(), beatsPerMinute.ToString()) + "∎";
-                 return levelId;
-             }
-
-             public static string GetLevelID(Song song)
-             {
-                 string[] values = new string[] { song.hash, song.songName, song.songSubName, song.authorName, song.beatsPerMinute };
-                 return string.Join("∎", values) + "∎";
-             }
-
-             public static BeatmapLevelSO GetLevel(string levelId)
-             {
-                 return SongLoader.CustomLevelCollectionSO.beatmapLevels.FirstOrDefault(x => x.levelID == levelId) as BeatmapLevelSO;
-             }
-
-             public static bool CreateMD5FromFile(string path, out string hash)
-             {
-                 hash = "";
-                 if (!File.Exists(path)) return false;
-                 using (MD5 md5 = MD5.Create())
-                 {
-                     using (var stream = File.OpenRead(path))
-                     {
-                         byte[] hashBytes = md5.ComputeHash(stream);
-
-                         StringBuilder sb = new StringBuilder();
-                         foreach (byte hashByte in hashBytes)
-                         {
-                             sb.Append(hashByte.ToString("X2"));
-                         }
-
-                         hash = sb.ToString();
-                         return true;
-                     }
-                 }
-             }
-
-             public void RequestSongByLevelID(string levelId, Action<Song> callback)
-             {
-                 StartCoroutine(RequestSongByLevelIDCoroutine(levelId, callback));
-             }
-
-             // Beatsaver.com filtered characters
-             '@', '*', '+', '-', '<', '~', '>', '(', ')'
-
-
-
-             */
-
-
-
         }
+
+         public string GetIdentifier()
+         {
+             var combinedJson = "";
+             foreach (var diffLevel in difficultyLevels)
+             {
+                 if (!File.Exists(path + "/" + diffLevel.jsonPath))
+                 {
+                     continue;
+                 }
+
+                 diffLevel.json = File.ReadAllText(path + "/" + diffLevel.jsonPath);
+                 combinedJson += diffLevel.json;
+             }
+
+             var hash = Utils.CreateMD5FromString(combinedJson);
+             levelId = hash + "∎" + string.Join("∎", songName, songSubName, GetSongAuthor(), beatsPerMinute.ToString()) + "∎";
+             return levelId;
+         }
+
+         public static string GetLevelID(Song song)
+         {
+             string[] values = new string[] { song.hash, song.songName, song.songSubName, song.authorName, song.beatsPerMinute };
+             return string.Join("∎", values) + "∎";
+         }
+
+         public static BeatmapLevelSO GetLevel(string levelId)
+         {
+             return SongLoader.CustomLevelCollectionSO.beatmapLevels.FirstOrDefault(x => x.levelID == levelId) as BeatmapLevelSO;
+         }
+
+         public static bool CreateMD5FromFile(string path, out string hash)
+         {
+             hash = "";
+             if (!File.Exists(path)) return false;
+             using (MD5 md5 = MD5.Create())
+             {
+                 using (var stream = File.OpenRead(path))
+                 {
+                     byte[] hashBytes = md5.ComputeHash(stream);
+
+                     StringBuilder sb = new StringBuilder();
+                     foreach (byte hashByte in hashBytes)
+                     {
+                         sb.Append(hashByte.ToString("X2"));
+                     }
+
+                     hash = sb.ToString();
+                     return true;
+                 }
+             }
+         }
+
+         public void RequestSongByLevelID(string levelId, Action<Song> callback)
+         {
+             StartCoroutine(RequestSongByLevelIDCoroutine(levelId, callback));
+         }
+
+         // Beatsaver.com filtered characters
+         '@', '*', '+', '-', '<', '~', '>', '(', ')'
+
+
+
+         */
+
+
+
+    }
 }

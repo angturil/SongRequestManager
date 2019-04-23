@@ -420,9 +420,13 @@ namespace SongRequestManager
         }
 
         // return a songrequest match in a SongRequest list. Good for scanning Queue or History
-        SongRequest FindMatch(List<SongRequest> queue, string request)
+        SongRequest FindMatch(List<SongRequest> queue, string request,QueueLongMessage qm)
         {
             var songId = GetBeatSaverId(request);
+
+            SongRequest result = null;
+
+            string lastuser = "";
             foreach (var entry in queue)
             {
                 var song = entry.song;
@@ -431,14 +435,26 @@ namespace SongRequestManager
                 {
                     string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, entry.requestor.displayName };
 
-                    if (DoesContainTerms(request, ref terms)) return entry;
+                    if (DoesContainTerms(request, ref terms))
+                        {
+                        result = entry;
+
+                        if (lastuser != result.requestor.displayName) qm.Add($"{result.requestor.displayName}: ");
+                        qm.Add($"{result.song["songName"].Value} ({result.song["version"].Value})", ",");
+                        lastuser = result.requestor.displayName;
+                        }
                 }
                 else
                 {
-                    if (song["id"].Value == songId) return entry;
+                    if (song["id"].Value == songId)
+                    {
+                        result = entry;
+                        qm.Add($"{result.requestor.displayName}: {result.song["songName"].Value} ({result.song["version"].Value})");
+                        return entry;
+                    }
                 }
             }
-            return null;
+            return result;
         }
 
         public string ClearEvents(ParseState state)
@@ -471,11 +487,14 @@ namespace SongRequestManager
         }
         public string Who(ParseState state)
         {
-            SongRequest result = null;
-            result = FindMatch(RequestQueue.Songs, state.parameter);
-            if (result == null) result = FindMatch(RequestHistory.Songs, state.parameter);
 
-            if (result != null) QueueChatMessage($"{result.song["songName"].Value} requested by {result.requestor.displayName}.");
+            var qm = new QueueLongMessage();
+            SongRequest result = null;
+            result = FindMatch(RequestQueue.Songs, state.parameter,qm);
+            if (result == null) result = FindMatch(RequestHistory.Songs, state.parameter, qm);
+
+            //if (result != null) QueueChatMessage($"{result.song["songName"].Value} requested by {result.requestor.displayName}.");
+            if (result != null) qm.end("...");
             return "";
         }
 
@@ -491,7 +510,7 @@ namespace SongRequestManager
 
                 if (song["id"].Value == songId)
                 {
-                    entry.requestInfo = parts[1];
+                    entry.requestInfo = "!"+parts[1];
                     QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
                     return success;
                 }
@@ -614,8 +633,6 @@ namespace SongRequestManager
             else
                 RequestQueue.Songs.Add(new SongRequest(song, state.user, DateTime.UtcNow, RequestStatus.SongSearch, "search result"));
         }
-
-
 
         #region Move Request To Top/Bottom
 
@@ -1031,6 +1048,13 @@ namespace SongRequestManager
          return success;
 
         }
+
+        private string QueueStatus(ParseState state)
+           {
+            string queuestate = RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open. " : "Queue is closed. ";
+            QueueChatMessage($"{queuestate} There are {RequestQueue.Songs.Count} maps in the queue.");
+            return success;
+           }
 
         public static string GetStarRating(ref JSONObject song, bool mode = true)
         {
