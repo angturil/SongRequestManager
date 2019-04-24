@@ -241,7 +241,7 @@ namespace SongRequestManager
             #if UNRELEASED
             var startingmem = GC.GetTotalMemory(true);
 
-            NOTJSON.UNITTEST();
+            //NOTJSON.UNITTEST();
             #endif
 
 
@@ -303,9 +303,9 @@ namespace SongRequestManager
                 SongBlacklist.Read();
 
 #if UNRELEASED
-            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-            GC.Collect();
-            Instance.QueueChatMessage($"hashentries: {SongMap.hashcount} memory: {(GC.GetTotalMemory(false) - startingmem) / 1048576} MB");
+            //GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+            //GC.Collect();
+            //Instance.QueueChatMessage($"hashentries: {SongMap.hashcount} memory: {(GC.GetTotalMemory(false) - startingmem) / 1048576} MB");
 #endif
 
                 listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours));

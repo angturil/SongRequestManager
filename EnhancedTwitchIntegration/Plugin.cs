@@ -12,7 +12,7 @@ namespace SongRequestManager
 {
     public class Plugin : IPlugin
     {
-        public string Name => "SongRequestManager";
+        public string Name => "Song Request Manager";
         public string Version => "1.3.3";
 
 
@@ -27,7 +27,7 @@ namespace SongRequestManager
                         [CallerMemberName] string member = "",
                         [CallerLineNumber] int line = 0)
         {
-            Console.WriteLine($"[SongRequestManager] {DateTime.UtcNow} {Path.GetFileName(file)}->{member}({line}): {text}");
+            Console.WriteLine($"[SongRequestManager] {Path.GetFileName(file)}->{member}({line}): {text}");
         }
 
         public void OnApplicationStart()
