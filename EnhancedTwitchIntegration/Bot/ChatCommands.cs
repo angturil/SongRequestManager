@@ -24,7 +24,7 @@ namespace SongRequestManager
         static StringBuilder LookupSongDetail= new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%)");
         static StringBuilder BsrSongDetail=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%)");
         static StringBuilder LinkSonglink=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%");
-        static StringBuilder NextSonglink=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%) is next. %BeatsaberLink%");
+        static StringBuilder NextSonglink=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%) requested by %user% is next.");
         static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>");
         static StringBuilder QueueTextFileFormat=new StringBuilder ("%songName%%LF%");         // Don't forget to include %LF% for these. 
 
@@ -171,12 +171,6 @@ namespace SongRequestManager
             return false;
         }
 
-        bool isNotBroadcaster(TwitchUser requestor, string message = "")
-        {
-            if (requestor.isBroadcaster) return false;
-            if (message != "") QueueChatMessage($"{message} is broadcaster only.");
-            return true;
-        }
 
         bool isNotModerator(TwitchUser requestor, string message = "")
         {
@@ -291,9 +285,9 @@ namespace SongRequestManager
         #endregion
 
         #region Deck Commands
-        private void restoredeck(TwitchUser requestor, string request)
+        private string restoredeck(ParseState state)
         {
-            Readdeck(requestor, "savedqueue");
+            return Readdeck(new ParseState(state,"savedqueue"));
         }
 
         private void Writedeck(TwitchUser requestor, string request)
@@ -327,24 +321,29 @@ namespace SongRequestManager
             }
         }
 
-        private void Readdeck(TwitchUser requestor, string request)
+        private string Readdeck(ParseState state)
         {
             try
             {
-                string queuefile = Path.Combine(Globals.DataPath, request + ".deck");
+                string queuefile = Path.Combine(Globals.DataPath, state.parameter + ".deck");
                 string fileContent = File.ReadAllText(queuefile);
                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
                 for (int n = 0; n < integerStrings.Length; n++)
                 {
                     if (IsInQueue(integerStrings[n])) continue;
-                    ProcessSongRequest(requestor, integerStrings[n]);
+
+                    ParseState newstate = new ParseState(state); // Must use copies here, since these are all threads
+                    newstate.parameter = integerStrings[n];
+                    ProcessSongRequest(newstate);
                 }
             }
             catch
             {
                 QueueChatMessage("Unable to read deck {request}.");
             }
+
+        return success;
         }
         #endregion
 
@@ -775,7 +774,7 @@ namespace SongRequestManager
         private void ListQueue(TwitchUser requestor, string request)
         {
 
-            var msg = new QueueLongMessage();
+            var msg = new QueueLongMessage(RequestBotConfig.Instance.maximumqueuemessages);
 
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
@@ -947,7 +946,7 @@ namespace SongRequestManager
                 return;
             }
 
-
+            if (songremap.ContainsKey(parts[0])) songremap.Remove(parts[0]);
             songremap.Add(parts[0], parts[1]);
             QueueChatMessage($"Song {parts[0]} remapped to {parts[1]}");
             WriteRemapList();
@@ -1172,13 +1171,24 @@ namespace SongRequestManager
             {
                 AddJSON(ref song, prefix); // Add the song JSON
 
+                //SongMap map;
+                //if (MapDatabase.MapLibrary.TryGetValue(song["version"].Value, out map) && map.pp>0)
+                //{
+                //    Add("pp", map.pp.ToString());
+                //}
+                //else
+                //{
+                //    Add("pp", "");
+                //}
+
+                if (song["pp"].AsFloat > 0) Add("PP", song["pp"].AsInt.ToString() + " PP"); else Add("PP", "");
+
                 Add("StarRating", GetStarRating(ref song)); // Add additional dynamic properties
                 Add("Rating", GetRating(ref song));
                 Add("BeatsaverLink", $"https://beatsaver.com/browse/detail/{song["version"].Value}");
                 Add("BeatsaberLink", $"https://bsaber.com/songs/{song["id"].Value}");
                 return this;
             }
-
 
             public string Parse(string text, bool parselong = false) // We implement a path for ref or nonref
             {

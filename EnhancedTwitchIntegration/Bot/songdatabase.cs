@@ -24,13 +24,12 @@ using System.Security.Cryptography;
 // Feature requests: Add Reason for being banned to banlist
 //  
 
-using SongBrowserPlugin;
-using SongBrowserPlugin.DataAccess;
-using SongLoaderPlugin;
+using SongBrowser;
+using SongBrowser.DataAccess;
+using SongCore;
 
-//
-// NOTE: Any unreleased code structure, dependencies, or files are subject to change without notice. Any dependencies you create around this code 
-// are virtually guaranteed not to work in future builds. If I thought the code was release ready, it wouldn't be here.
+using System.Runtime.InteropServices;
+
 
 namespace SongRequestManager
 {
@@ -45,8 +44,7 @@ namespace SongRequestManager
             public JSONObject song;
             public string path;
             public string LevelId;
-            float pp = 0;
-
+            public float pp = 0;
 
             public static int hashcount = 0;
 
@@ -95,9 +93,16 @@ namespace SongRequestManager
                     LevelId = string.Join("∎", song["hashMd5"].Value.ToUpper(), song["songName"].Value, song["songSubName"].Value, song["authorName"], song["bpm"].AsFloat.ToString()) + "∎";             
                 }
 
+                float songpp = 0;
+                if (ppmap.TryGetValue(song["id"].Value,out songpp))
+                    {
+                    song.Add("pp", songpp);
+                    }
+
                 SongMap oldmap;
                 if (MapDatabase.MapLibrary.TryGetValue(song["id"].Value,out oldmap))
                 {
+                
                     if (LevelId == oldmap.LevelId && song["version"].Value == oldmap.song["version"].Value)
                     {
                         oldmap.song = song;
@@ -117,8 +122,9 @@ namespace SongRequestManager
             void UnIndexSong(int id)
             {
                 SongMap temp;
- 
-                IndexFields(false,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value);
+                string indexpp = (song["pp"].AsFloat > 0) ? "PP" : "";
+
+                IndexFields(false,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value,indexpp);
 
                 MapDatabase.MapLibrary.TryRemove(song["id"].Value, out temp);
                 MapDatabase.MapLibrary.TryRemove(song["version"].Value, out temp);
@@ -130,8 +136,9 @@ namespace SongRequestManager
                 try
                 {
                     this.song = song;
+                    string indexpp = (song["pp"].AsFloat > 0) ? "PP" : "";
 
-                    IndexFields(true,song["id"].AsInt, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value);
+                    IndexFields(true,song["id"].AsInt, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value,indexpp);
 
                     MapDatabase.MapLibrary.TryAdd(song["id"].Value, this);
                     MapDatabase.MapLibrary.TryAdd(song["version"].Value, this);
@@ -146,14 +153,12 @@ namespace SongRequestManager
 
            
 
-        // Song primary key can be song ID, or level hashes. This dictionary is many:1
+        // Song primary key can be song ID/version , or level hashes. This dictionary is many:1
         public class MapDatabase
         {
             public static ConcurrentDictionary<string, SongMap> MapLibrary = new ConcurrentDictionary<string, SongMap>();
             public static ConcurrentDictionary<string, SongMap> LevelId = new ConcurrentDictionary<string, SongMap>();
             public static ConcurrentDictionary<string, HashSet<int>> SearchDictionary = new ConcurrentDictionary<string, HashSet<int>>();
-
-            //static public char [] wordseparator=new char[] {'&','/','-','[',']','(',')','.',' ','<','>',',','*'};
 
             static int tempid = 100000; // For now, we use these for local ID less songs
 
@@ -187,9 +192,7 @@ namespace SongRequestManager
 
                 foreach (var part in SearchParts)
                 {
-                    //HashSet<SongMap> partresult;
-
-                    HashSet<int>  idset;
+                     HashSet<int>  idset;
 
                     if (!SearchDictionary.TryGetValue(part, out idset)) return result; // Keyword must be found
                     resultlist.Add(idset);
@@ -255,6 +258,7 @@ namespace SongRequestManager
             public static void LoadDatabase()
             {
 
+
                 try
                 {
 
@@ -274,8 +278,8 @@ namespace SongRequestManager
                                 new SongMap(j);
                             }
 
-                            json = 0;
-                            // This is a big heap operation, compact things.
+                            json = 0; // BUG: This doesn't actually help. The problem is that the json object is still being referenced.
+
                             Instance.QueueChatMessage($"Finished reading {Count} in {(DateTime.Now - start).Seconds} secs.");
                         }
                 }
@@ -292,7 +296,7 @@ namespace SongRequestManager
  
             public static void ImportLoaderDatabase()
             {
-                foreach (var level in SongLoader.CustomLevels)
+                //foreach (var level in SongLoader.CustomLevels)
                 {
                     //new SongMap(level.customSongInfo.path);
                 }
@@ -336,7 +340,7 @@ namespace SongRequestManager
 
                              string id = "";
                             string version = "";
-                            GetIdFromPath(f.Name.TrimEnd(".zip"), ref id, ref version);
+                            GetIdFromPath(f.Name, ref id, ref version);
 
                             if (MapDatabase.MapLibrary.ContainsKey(id))
                                 {
@@ -363,7 +367,7 @@ namespace SongRequestManager
                                 }
                             }
 
-                            hash = Utils.CreateMD5FromString(FileAccumulator.ToString());
+                            hash = CreateMD5FromString(FileAccumulator.ToString());
 
                             string levelId = string.Join("∎", hash, song["songName"].Value, song["songSubName"].Value, song["authorName"], song["beatsPerMinute"].AsFloat.ToString()) + "∎";
 
@@ -496,7 +500,7 @@ namespace SongRequestManager
                                 }
                             }
 
-                            hash = Utils.CreateMD5FromString(FileAccumulator.ToString());
+                            hash = CreateMD5FromString(FileAccumulator.ToString());
 
                             string levelId = string.Join("∎", hash, song["songName"].Value, song["songSubName"].Value, song["authorName"], song["beatsPerMinute"].AsFloat.ToString()) + "∎";
 
@@ -660,23 +664,6 @@ namespace SongRequestManager
 
 
         /*
-        public static string CreateMD5FromString(string input)
-        {
-            // Use input string to calculate MD5 hash
-            using (var md5 = MD5.Create())
-            {
-                var inputBytes = Encoding.ASCII.GetBytes(input);
-                var hashBytes = md5.ComputeHash(inputBytes);
-
-                // Convert the byte array to hexadecimal string
-                var sb = new StringBuilder();
-                for (int i = 0; i < hashBytes.Length; i++)
-                {
-                    sb.Append(hashBytes[i].ToString("X2"));
-                }
-                return sb.ToString();
-            }
-        }
 
          public string GetIdentifier()
          {
@@ -742,7 +729,107 @@ namespace SongRequestManager
 
          */
 
+        public static string CreateMD5FromString(string input)
+        {
+            // Use input string to calculate MD5 hash
+            using (var md5 = MD5.Create())
+            {
+                var inputBytes = Encoding.ASCII.GetBytes(input);
+                var hashBytes = md5.ComputeHash(inputBytes);
 
+                // Convert the byte array to hexadecimal string
+                var sb = new StringBuilder();
+                for (int i = 0; i < hashBytes.Length; i++)
+                {
+                    sb.Append(hashBytes[i].ToString("X2"));
+                }
+                return sb.ToString();
+            }
+        }
+
+
+        //SongLoader.Instance.RemoveSongWithLevelID(level.levelID);
+        //SongLoader.CustomLevelCollectionSO.beatmapLevels.FirstOrDefault(x => x.levelID == levelId) as BeatmapLevelSO;
+
+        public static  ConcurrentDictionary<String, float> ppmap=new ConcurrentDictionary<string, float>();
+            public static bool pploading=false;
+            public IEnumerator GetPPData()
+            {
+
+            if (pploading) yield break;
+
+            pploading = true;            
+
+            //Instance.QueueChatMessage("Getting PP Data");
+            var StarTime = DateTime.UtcNow;
+
+
+            string requestUrl = "https://wes.ams3.digitaloceanspaces.com/beatstar/bssb.json";
+            string result;
+
+            System.Globalization.NumberStyles style = System.Globalization.NumberStyles.AllowDecimalPoint;
+
+
+            using (var web = UnityWebRequest.Get($"{requestUrl}"))
+                {
+                    yield return web.SendWebRequest();
+                    if (web.isNetworkError || web.isHttpError)
+                    {
+                        pploading = false;
+                        yield break;
+                    }
+
+                result = web.downloadHandler.text;
+                }
+
+            //Instance.QueueChatMessage($"Parsing PP Data {result.Length}");
+
+            JSONNode rootNode = JSON.Parse(result);
+
+            listcollection.ClearList("pp.deck");
+
+            foreach (KeyValuePair<string, JSONNode> kvp in rootNode)
+                {
+                    JSONNode difficultyNodes = kvp.Value;
+
+                    string version = "";
+                    float maxpp = 0;
+                    float maxstar = 0;
+ 
+                foreach (KeyValuePair<string, JSONNode> innerKvp in difficultyNodes)
+                    {
+                    JSONNode node = innerKvp.Value;
+                    version = node["key"];
+                 
+                    float pp = 0;
+                    float.TryParse(node["pp"], style, System.Globalization.CultureInfo.InvariantCulture, out pp);
+                    if (pp > maxpp) maxpp = pp;
+
+                    float starDifficulty = 0;
+                    float.TryParse(node["star"], style, System.Globalization.CultureInfo.InvariantCulture, out starDifficulty);
+                    if (starDifficulty > maxstar) maxstar = starDifficulty;
+                    }
+
+                if (maxpp > 0)
+                {
+                    SongMap map;
+
+                    string id = GetBeatSaverId(version);
+                    ppmap.TryAdd(id, (int)(maxpp));
+
+                    if (id != "" && maxpp >150) listcollection.add("pp.deck", id);
+
+                    if (MapDatabase.MapLibrary.TryGetValue(version, out map))
+                    {
+                        map.pp=(int) (maxpp);
+                    }
+                }
+            }
+
+            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck pp");
+            Instance.QueueChatMessage("PP Data indexed");
+            pploading = false;
+        }
 
     }
 }

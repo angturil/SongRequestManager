@@ -53,11 +53,17 @@
     <Reference Include="ProBuilderCore">
       <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\ProBuilderCore.dll</HintPath>
     </Reference>
-    <Reference Include="SongBrowserPlugin">
-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\SongBrowserPlugin.dll</HintPath>
+    <Reference Include="SongBrowser, Version=3.0.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\plugins\SongBrowser.dll</HintPath>
     </Reference>
-    <Reference Include="SongLoaderPlugin">
-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\plugins\SongLoaderPlugin.dll</HintPath>
+    <Reference Include="SongCore, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\beatsaber\plugins\SongCore.dll</HintPath>
+    </Reference>
+    <Reference Include="SongLoader, Version=7.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\beatsaber\plugins\SongLoader.dll</HintPath>
     </Reference>
     <Reference Include="StreamCore, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

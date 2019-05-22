@@ -42,8 +42,8 @@ namespace SongRequestManager
 
             Timeout = 2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
             TimeoutSub = 4096, // Applies a timeout to Subs
-            TimeoutVIP = 8192, // Applies a timeout to VIP's
-            Local = 16384, 
+            Autopick = 8192, // Auto pick first song when adding
+            Local = 16384, // The command is being executed from console and therefore always full priveledge
 
             NoLinks = 32768, // Turn off any links that the command may normally generate
 
@@ -183,6 +183,8 @@ namespace SongRequestManager
 #if UNRELEASED
 
 
+            //new COMMAND("!getpp").Coroutine(GetPPData).Help(Broadcaster, "Get PP Data");
+
             new COMMAND("!downloadsongs").Coroutine(DownloadEverything).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
 
             // These comments contain forward looking statement that are absolutely subject to change. I make no commitment to following through
@@ -281,9 +283,11 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/alias", "subcmdalias" }).Action(SubcmdAlias).Help(Subcmd | Broadcaster, "usage: %alias% %|% Defines all the aliases a command can use");
             new COMMAND(new string[] { "/default", "subcmddefault" }).Action(SubcmdDefault).Help(Subcmd | Broadcaster, "usage: <formattext> %alias%");
 
-            new COMMAND(new string[] { "/newest", "subcmdnewest" }).Action(SubcmdNewest).Help(Subcmd |CmdFlags.NoParameter| Everyone); // BUG: Not implemented
-            new COMMAND(new string[] { "/best", "subcmdbest" }).Action(SubcmdBest).Help(Subcmd | CmdFlags.NoParameter | Everyone); // BUG: Not implemented
-            new COMMAND(new string[] { "/oldest", "subcmdoldest" }).Action(SubcmdOldest).Help(Subcmd | CmdFlags.NoParameter | Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/newest", "subcmdnewest" }).Action(SubcmdNewest).Help(Subcmd |CmdFlags.NoParameter| Everyone); 
+            new COMMAND(new string[] { "/best", "subcmdbest" }).Action(SubcmdBest).Help(Subcmd | CmdFlags.NoParameter | Everyone); 
+            new COMMAND(new string[] { "/oldest", "subcmdoldest" }).Action(SubcmdOldest).Help(Subcmd | CmdFlags.NoParameter | Everyone); 
+            new COMMAND(new string[] { "/pp", "subcmdpp" }).Action(SubcmdPP).Help(Subcmd | CmdFlags.NoParameter | Everyone); 
+
 
             new COMMAND(new string[] { "/top", "subcmdtop" }).Action(SubcmdTop).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster, "%alias% sets a flag to move the request(s) to the top of the queue.");
             new COMMAND(new string[] { "/mod","subcmdmod"}).Action(SubcmdMod).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster,"%alias% sets a flag to ignore all filtering");
@@ -316,18 +320,29 @@ namespace SongRequestManager
 
         public string SubcmdNewest(ParseState state)
         {
+            state.flags |= CmdFlags.Autopick;
             state.sort = "-id -rating";
             return success;
         }
 
+        public string SubcmdPP(ParseState state)
+        {
+            state.flags |= CmdFlags.Autopick;
+            state.sort = "-pp -rating -id";
+            return success;
+        }
+
+
         public string SubcmdBest(ParseState state)
         {
+            state.flags |= CmdFlags.Autopick;
             state.sort = "-rating -id";
             return success;
         }
 
         public string SubcmdOldest(ParseState state)
         {
+            state.flags |= CmdFlags.Autopick;
             state.sort = "+id -rating";
             return success;
         }
@@ -536,7 +551,7 @@ namespace SongRequestManager
         public partial class COMMAND
         {
             public static StringBuilder commandsummary=new StringBuilder();
-            private static bool Loading = false;
+            public static bool Loading = false;
 
             public static Dictionary<string, COMMAND> aliaslist = new Dictionary<string, COMMAND>(); // There can be only one (static)!
 
@@ -859,7 +874,7 @@ namespace SongRequestManager
             public string subparameter="";
 
             // Object clone constructor. Mostly used when spawning multiple threads against a single command
-            public ParseState(ParseState state)
+            public ParseState(ParseState state,string parameter=null)
                 {
                 // These are references
                 this.user = state.user; 
@@ -867,6 +882,7 @@ namespace SongRequestManager
                  
                 this.flags = state.flags;
                 this.parameter = state.parameter;
+                if (parameter != null) this.parameter = parameter;
                 this.subparameter = state.subparameter;
                 this.command = state.command;
                 this.info = state.info;
@@ -987,7 +1003,7 @@ namespace SongRequestManager
 
                 if (botcmd.ChangedParameters != 0 && !botcmd.ChangedParameters.HasFlag(COMMAND.ChangedFlags.Saved))
                 {
-                    COMMAND.WriteCommandConfiguration();
+                    if (COMMAND.Loading==false) COMMAND.WriteCommandConfiguration();
                     botcmd.ChangedParameters |= COMMAND.ChangedFlags.Saved;
                 }
 
@@ -1035,6 +1051,14 @@ namespace SongRequestManager
             }
 
 
+            public static string GetCommand(ref string request)
+                {
+                int commandlength = 0;
+                // This is a replacement for the much simpler Split code. It was changed to support /fakerest parameters, and sloppy users ... ie: !add4334-333 should now work, so should !command/flags
+                while (commandlength < request.Length && (request[commandlength] != '=' && request[commandlength] != '/' && request[commandlength] != ' ')) commandlength++;  // Command name ends with #... for now, I'll clean up some more later    
+                if (commandlength == 0) return "";       
+                return request.Substring(0, commandlength).ToLower();
+                }   
 
             public ParseState ParseCommand()
             {

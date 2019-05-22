@@ -138,7 +138,7 @@ namespace SongRequestManager
                 foreach (var c in new char[] { '@', '*', '+', ':',  '<', '~', '>', '(', ')', '[', ']', '/', '\\', '.', ',' }) if (c < 128) _SymbolsNoDash[c] = ' ';
 
                 // Incomplete list of words that BeatSaver.com filters out for no good reason.
-                foreach (var word in new string[] { "the", "this", "from", "will", "when", "with", "what", "who", "why", "how", "was" })
+                foreach (var word in new string[] { "and","the", "this", "from", "will", "when", "with", "what", "who", "why", "how", "was" })
                 {
                     BeatsaverBadWords.Add(word.ToLower());
                 }

@@ -439,7 +439,7 @@ namespace SongRequestManager
             var typedtext = key.kb.KeyboardText.text;
             if (typedtext != "")
             {
-                if (typedtext[0] == '!')
+                if (RequestBot.COMMAND.aliaslist.ContainsKey(RequestBot.ParseState.GetCommand(ref typedtext)))
                 {
                     RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, typedtext,RequestBot.CmdFlags.Local);
                 }

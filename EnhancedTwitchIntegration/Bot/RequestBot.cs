@@ -124,15 +124,27 @@ namespace SongRequestManager
                 KeyboardContainer.sizeDelta = new Vector2(60f, 40f);
 
                 var mykeyboard = new KEYBOARD(KeyboardContainer, "");
+
 #if UNRELEASED
                 mykeyboard.AddKeys(BOTKEYS, 0.4f);
 #endif
                 mykeyboard.AddKeys(KEYBOARD.QWERTY); // You can replace this with DVORAK if you like
                 mykeyboard.DefaultActions();
 
+
+
+#if UNRELEASED
+                const string SEARCH = @"
+
+[CLEAR SEARCH]/0 /2 [NEWEST]/0 /2 [UNFILTERED]/30 /2 [PP]/0'!addsongs/top/pp pp%CR%' /2 [SEARCH]/0";
+
+#else
                 const string SEARCH = @"
 
 [CLEAR SEARCH]/0 /2 [NEWEST]/0 /2 [UNFILTERED]/30 /2 [SEARCH]/0";
+
+#endif
+
 
                 mykeyboard.SetButtonType("QuitButton"); // Adding this alters button positions??! Why?
                 mykeyboard.AddKeys(SEARCH, 0.75f);
@@ -177,7 +189,7 @@ namespace SongRequestManager
             }
             catch           
             {
-
+            // This is a silent fail since custom keyboards are optional
             }
             }
 
@@ -274,7 +286,6 @@ namespace SongRequestManager
 
                 try
                 {
-
                     TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
                 if (PlayedAge < TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
                 }
@@ -294,6 +305,9 @@ namespace SongRequestManager
                     File.Delete(blacklistMigrationFile);
                 }
 
+#if UNRELEASED
+                StartCoroutine(GetPPData());
+#endif
                 MapDatabase.LoadDatabase();
 
                 if (RequestBotConfig.Instance.LocalSearch) MapDatabase.LoadCustomSongs(); // This is a background process
@@ -313,7 +327,7 @@ namespace SongRequestManager
                 UpdateRequestUI();
                 InitializeCommands();
 
-                //EnhancedTwitchChat.ChatHandler.ChatMessageFilters += MyChatMessageHandler; // TODO: Reimplement this filter maybe? Or maybe we put it directly into EnhancedStreamChat
+                //EnhancedStreamChat.ChatHandler.ChatMessageFilters += MyChatMessageHandler; // TODO: Reimplement this filter maybe? Or maybe we put it directly into EnhancedStreamChat
 
 
                 COMMAND.CommandConfiguration();
@@ -530,8 +544,10 @@ namespace SongRequestManager
                 switch (sortby)
                 {
                     case "rating":
+                    case "pp":
+
                         //QueueChatMessage($"{song2[sortby].AsFloat} < {song1[sortby].AsFloat}");
-                        result=song2[sortby].AsFloat.CompareTo(song1[sortby].AsFloat);
+                        result = song2[sortby].AsFloat.CompareTo(song1[sortby].AsFloat);
                         break;
 
                     case "id":
@@ -673,20 +689,23 @@ namespace SongRequestManager
  
                 SongFilter filter = SongFilter.All;
                 if (requestInfo.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
-                List<JSONObject> songs = GetSongListFromResults(result, request, ref errorMessage, filter, AddSortOrder.ToString());
+                List<JSONObject> songs = GetSongListFromResults(result, request, ref errorMessage, filter, requestInfo.state.sort != "" ? requestInfo.state.sort : AddSortOrder.ToString());
 
-                yield return null;
+            yield return null;
+
+            bool autopick = RequestBotConfig.Instance.AutopickFirstSong || requestInfo.flags.HasFlag(CmdFlags.Autopick);
+
             // Filter out too many or too few results
             if (songs.Count == 0)
                 {
                     if (errorMessage == "")
                         errorMessage = $"No results found for request \"{request}\"";
                 }
-                else if (!RequestBotConfig.Instance.AutopickFirstSong && songs.Count >= 4)
+                else if (!autopick && songs.Count >= 4)
                 {
                     errorMessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
                 }
-                else if (!RequestBotConfig.Instance.AutopickFirstSong && songs.Count > 1 && songs.Count < 4)
+                else if (!autopick && songs.Count > 1 && songs.Count < 4)
                 {
                     var msg = new QueueLongMessage(1, 5);
                     msg.Header($"@{requestor.displayName}, please choose: ");
@@ -708,7 +727,7 @@ namespace SongRequestManager
 
                 JSONObject song = songs[0];
 
-                // Song requests should try to be current 
+                // Song requests should try to be current. If the song was local, we double check for a newer version
 
                 if ((song["downloadUrl"].Value == ""))
                 {
@@ -864,11 +883,11 @@ namespace SongRequestManager
                     Plugin.Log("Failed to find new level!");
                 }
 
-                if (!request.song.IsNull) new DynamicText().AddSong(request.song).QueueMessage(NextSonglink.ToString()); // Display next song message
+                if (!request.song.IsNull) new DynamicText().AddUser(ref request.requestor).AddSong(request.song).QueueMessage(NextSonglink.ToString()); // Display next song message
+
             }
         }
 
-        
 
         public static void UpdateRequestUI(bool writeSummary = true)
         {
@@ -996,72 +1015,59 @@ namespace SongRequestManager
         }
 
 
-        private void AddToTop(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
+        private string AddToTop(ParseState state)
         {
-            ProcessSongRequest(requestor, request, flags | CmdFlags.MoveToTop | CmdFlags.NoFilter, "!ATT");
+            ParseState newstate = new ParseState(state); // Must use copies here, since these are all threads
+            newstate.flags |= CmdFlags.MoveToTop | CmdFlags.NoFilter;
+            newstate.info = "!ATT";
+            return ProcessSongRequest(newstate);
         }
 
-        private void ModAdd(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
+        private string ModAdd(ParseState state)
         {
-            ProcessSongRequest(requestor, request, flags | CmdFlags.NoFilter, "Unfiltered");
+            ParseState newstate = new ParseState(state); // Must use copies here, since these are all threads
+            newstate.flags |= CmdFlags.NoFilter;
+            newstate.info = "Unfiltered";
+            return ProcessSongRequest(newstate);
         }
 
 
-        private void ProcessSongRequest(TwitchUser requestor, string request, CmdFlags flags = 0, string info = "")
+        private string ProcessSongRequest(ParseState state)
         {
             try
             {
-                if (RequestBotConfig.Instance.RequestQueueOpen == false && !flags.HasFlag(CmdFlags.NoFilter) && !flags.HasFlag(CmdFlags.Local)) // BUG: Complex permission, Queue state message needs to be handled higher up
+                if (RequestBotConfig.Instance.RequestQueueOpen == false && !state.flags.HasFlag(CmdFlags.NoFilter) && !state.flags.HasFlag(CmdFlags.Local)) // BUG: Complex permission, Queue state message needs to be handled higher up
                 {
                     QueueChatMessage($"Queue is currently closed.");
-                    return;
+                    return success;
                 }
 
-                if (!RequestTracker.ContainsKey(requestor.id))
-                    RequestTracker.Add(requestor.id, new RequestUserTracker());
+                if (!RequestTracker.ContainsKey(state.user.id))
+                    RequestTracker.Add(state.user.id, new RequestUserTracker());
 
                 int limit = RequestBotConfig.Instance.UserRequestLimit;
-                if (requestor.isSub) limit = Math.Max(limit, RequestBotConfig.Instance.SubRequestLimit);
-                if (requestor.isMod) limit = Math.Max(limit, RequestBotConfig.Instance.ModRequestLimit);
-                if (requestor.isVip) limit += RequestBotConfig.Instance.VipBonusRequests; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
+                if (state.user.isSub) limit = Math.Max(limit, RequestBotConfig.Instance.SubRequestLimit);
+                if (state.user.isMod) limit = Math.Max(limit, RequestBotConfig.Instance.ModRequestLimit);
+                if (state.user.isVip) limit += RequestBotConfig.Instance.VipBonusRequests; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
 
-                /*
-                // Currently using simultaneous request limits, will be introduced later / or activated if time mode is on.
-                // Only rate limit users who aren't mods or the broadcaster - 
-                if (!requestor.isMod && !requestor.isBroadcaster)
+                if (!state.user.isBroadcaster)
                 {
-                    if (_requestTracker[requestor.id].resetTime <= DateTime.Now)
-                    {
-                        _requestTracker[requestor.id].resetTime = DateTime.Now.AddMinutes(Config.Instance.RequestCooldownMinutes);
-                        _requestTracker[requestor.id].numRequests = 0;
-                    }
-                    if (_requestTracker[requestor.id].numRequests >= Config.Instance.RequestLimit)
-                    {
-                        var time = (_requestTracker[requestor.id].resetTime - DateTime.Now);
-                        QueueChatMessage($"{requestor.displayName}, you can make another request in{(time.Minutes > 0 ? $" {time.Minutes} minute{(time.Minutes > 1 ? "s" : "")}" : "")} {time.Seconds} second{(time.Seconds > 1 ? "s" : "")}.");
-                        return;
-                    }
-                }
-                */
-
-                if (!requestor.isBroadcaster)
-                {
-                    if (RequestTracker[requestor.id].numRequests >= limit)
+                    if (RequestTracker[state.user.id].numRequests >= limit)
                     {
 
-                        new DynamicText().Add("Requests", RequestTracker[requestor.id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
+                        new DynamicText().Add("Requests", RequestTracker[state.user.id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
 
-                        return;
+                        return success;
                     }
                 }
 
                 // BUG: Need to clean up the new request pipeline
-                string testrequest = normalize.RemoveSymbols(ref request,normalize._SymbolsNoDash);
+                string testrequest = normalize.RemoveSymbols(ref state.parameter,normalize._SymbolsNoDash);
 
-                RequestInfo newRequest = new RequestInfo(requestor, request, DateTime.UtcNow, _digitRegex.IsMatch(testrequest) || _beatSaverRegex.IsMatch(testrequest), flags, info);
+                RequestInfo newRequest = new RequestInfo(state.user, state.parameter, DateTime.UtcNow, _digitRegex.IsMatch(testrequest) || _beatSaverRegex.IsMatch(testrequest),state, state.flags, state.info);
 
-                if (!newRequest.isBeatSaverId && request.Length < 3)
-                    QueueChatMessage($"Request \"{request}\" is too short- Beat Saver searches must be at least 3 characters!");
+                if (!newRequest.isBeatSaverId && state.parameter.Length < 2)
+                    QueueChatMessage($"Request \"{state.parameter}\" is too short- Beat Saver searches must be at least 3 characters!");
                  if (!UnverifiedRequestQueue.Contains(newRequest))
                     UnverifiedRequestQueue.Enqueue(newRequest);
 
@@ -1071,6 +1077,7 @@ namespace SongRequestManager
                 Plugin.Log(ex.ToString());
 
             }
+        return success;
         }
 
  

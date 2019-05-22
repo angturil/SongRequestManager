@@ -24,10 +24,10 @@ using System.Security.Cryptography;
 // Feature requests: Add Reason for being banned to banlist
 //  
 
-using SongBrowserPlugin;
-using SongBrowserPlugin.DataAccess;
+using SongBrowser;
+using SongBrowser.DataAccess;
+using SongCore;
 using SongLoaderPlugin;
-
 //
 // NOTE: Any unreleased code structure, dependencies, or files are subject to change without notice. Any dependencies you create around this code 
 // are virtually guaranteed not to work in future builds. If I thought the code was release ready, it wouldn't be here.
@@ -37,6 +37,5 @@ namespace SongRequestManager
     public partial class RequestBot : MonoBehaviour
     {
 
- 
     }
 }

@@ -62,12 +62,19 @@ namespace SongRequestManager
 
 [fun +]/25'!fun/current/toggle%CR%' [hard +]/25'!hard/current/toggle%CR%'
 [dance +]/25'!dance/current/toggle%CR%' [chill +]/25'!chill/current/toggle%CR%'
-[challenge +]/25'!challenge/current/toggle%CR%'
+[challenge +]/25'!challenge/current/toggle%CR%' [sehria +]/25'!sehria/current/toggle%CR%'
 
 [rock +]/25'!rock/current/toggle%CR%' [metal +]/25'!metal/current/toggle%CR%'  
 [anime +]/25'!anime/current/toggle%CR%' [pop +]/25'!pop/current/toggle%CR%' 
 
 [Random song!]/0'!decklist draw%CR%'";
+
+        public static void InvokeBeatSaberButton(String buttonName)
+        {
+            Button buttonInstance = Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == buttonName));
+            buttonInstance.onClick.Invoke();
+        }
+
 
         public void Awake()
         {
@@ -447,7 +454,7 @@ namespace SongRequestManager
             var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
             dt.Add("Status", request.status.ToString());
             dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
-            dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString());
+            dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
 
             BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
 
@@ -455,13 +462,18 @@ namespace SongRequestManager
 
             string msg = highlight ? "MSG" : "";
 
-            _tableCell.SetText($"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)}</size> <color=#ff00ff>{msg}</color>");
+            string pp = "";
+            int ppvalue = request.song["pp"].AsInt;
+            if (ppvalue > 0) pp = $" {ppvalue} PP";
+
+            _tableCell.SetText($"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>");
             _tableCell.SetSubText(request.song["authorName"].Value+" ("+request.song["version"].Value+")");
             if (SongLoader.AreSongsLoaded)
             {
                 CustomLevel level = CustomLevelForRow(row);
-                if (level)
-                    _tableCell.SetIcon(level.coverImage);
+                // BUG: Fix cell image -> should be texture
+                //if (level)
+                    //_tableCell.SetIcon(level.coverImage);
             }
             if (_tableCell.GetPrivateField<Image>("_coverImage").sprite == null)
             {

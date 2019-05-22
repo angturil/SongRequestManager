@@ -37,6 +37,9 @@ namespace SongRequestManager
         public int MaximumQueueTextEntries = 8;
         public string BotPrefix ="";
 
+        public int maximumqueuemessages = 1;
+        public int maximumlookupmessages = 1;
+
         public string LastBackup = DateTime.MinValue.ToString();
         public string backuppath = Path.Combine(Environment.CurrentDirectory, "userdata", "backup");
 

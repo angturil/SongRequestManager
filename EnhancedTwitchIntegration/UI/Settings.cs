@@ -46,6 +46,24 @@ namespace SongRequestManager
             TTSSupport.SetValue += (requests) => { RequestBotConfig.Instance.BotPrefix = requests ? "! " : ""; };
             TTSSupport.GetValue += () => { return RequestBotConfig.Instance.BotPrefix!=""; };
 
+            var UserRequestLimit = menu.AddSlider("User Request limit", "Maximum requests in queue at one time", 0, 10, 1f, true);
+            UserRequestLimit.SetValue += (scale) => { RequestBotConfig.Instance.UserRequestLimit= (int ) scale; };
+            UserRequestLimit.GetValue += () => { return RequestBotConfig.Instance.UserRequestLimit; };
+
+            var SubRequestLimit = menu.AddSlider("Sub Request limit", "Maximum requests in queue at one time", 0, 10, 1f, true);
+            SubRequestLimit.SetValue += (scale) => { RequestBotConfig.Instance.SubRequestLimit = (int)scale; };
+            SubRequestLimit.GetValue += () => { return RequestBotConfig.Instance.SubRequestLimit; };
+
+            var ModRequestLimit = menu.AddSlider("Moderator Request limit", "Maximum requests in queue at one time", 0, 100, 1f, true);
+            ModRequestLimit.SetValue += (scale) => { RequestBotConfig.Instance.ModRequestLimit = (int)scale; };
+            ModRequestLimit.GetValue += () => { return RequestBotConfig.Instance.ModRequestLimit; };
+
+            var VIPBonus = menu.AddSlider("VIP Request bonus", "Additional requests allowed in queue", 0, 10, 1f, true);
+            VIPBonus.SetValue += (scale) => { RequestBotConfig.Instance.VipBonusRequests = (int)scale; };
+            VIPBonus.GetValue += () => { return RequestBotConfig.Instance.VipBonusRequests; };
+
+
+
         }
     }
 }
