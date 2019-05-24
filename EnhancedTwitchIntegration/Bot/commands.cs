@@ -809,7 +809,7 @@ namespace SongRequestManager
 // !block /alias block, Ban 
 // !lookup /disable
 //");
-                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
+                var filename = Path.Combine(Plugin.DataPath, configfilename + ".ini");
                 File.WriteAllText(filename, UserSettings.ToString());
             }
 
@@ -819,7 +819,7 @@ namespace SongRequestManager
 
                 var UserSettings = new StringBuilder("// This section contains ONLY commands that have changed.\r\n\r\n");
 
-                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
+                var filename = Path.Combine(Plugin.DataPath, configfilename + ".ini");
 
                 Loading = true; // Prevents file updates during command load.
 

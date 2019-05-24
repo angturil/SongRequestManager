@@ -11,7 +11,7 @@ namespace SongRequestManager
 {
     public class RequestBotConfig
     {
-        private string FilePath = Path.Combine(Globals.DataPath, "RequestBotSettings.ini");
+        private string FilePath = Path.Combine(Plugin.DataPath, "RequestBotSettings.ini");
 
 
         public bool RequestQueueOpen = true;

@@ -2,7 +2,6 @@
 using CustomUI.BeatSaber;
 using StreamCore.Chat;
 using StreamCore.Utils;
-using HMUI;
 using StreamCore.SimpleJSON;
 
 using SongLoaderPlugin.OverrideClasses;
@@ -10,12 +9,8 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Runtime;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Timers;
 
 #if OLDVERSION
@@ -23,15 +18,9 @@ using TMPro;
 #endif
 
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-using VRUI;
 using Image = UnityEngine.UI.Image;
-using Toggle = UnityEngine.UI.Toggle;
-using TMPro;
-using StreamCore.Config;
-using SongRequestManager;
 using SongLoaderPlugin;
 using StreamCore;
 
@@ -92,7 +81,7 @@ namespace SongRequestManager
                 var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelPackLevelsViewController>().First();
                 if (_levelListViewController)
                     {
-                    _requestButton = BeatSaberUI.CreateUIButton(_levelListViewController.rectTransform, "QuitButton", new Vector2(63, -3.5f),
+                    _requestButton = BeatSaberUI.CreateUIButton(_levelListViewController.rectTransform, "OkButton", new Vector2(63, -3.5f),
                         new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
 
                     (_requestButton.transform as RectTransform).anchorMin = new Vector2(1, 1);
@@ -146,7 +135,7 @@ namespace SongRequestManager
 #endif
 
 
-                mykeyboard.SetButtonType("QuitButton"); // Adding this alters button positions??! Why?
+                mykeyboard.SetButtonType("OkButton"); // Adding this alters button positions??! Why?
                 mykeyboard.AddKeys(SEARCH, 0.75f);
 
                 mykeyboard.SetAction("CLEAR SEARCH", ClearSearch);
@@ -184,7 +173,7 @@ namespace SongRequestManager
             {
             try
             {
-                string fileContent = File.ReadAllText(Path.Combine(Globals.DataPath, keyboardname));
+                string fileContent = File.ReadAllText(Path.Combine(Plugin.DataPath, keyboardname));
                 if (fileContent.Length > 0) keyboard.AddKeys(fileContent);
             }
             catch           
@@ -257,7 +246,7 @@ namespace SongRequestManager
             #endif
 
 
-            playedfilename = Path.Combine(Globals.DataPath, "played.json"); // Record of all the songs played in the current session
+            playedfilename = Path.Combine(Plugin.DataPath, "played.json"); // Record of all the songs played in the current session
 
             try
             {
@@ -298,7 +287,7 @@ namespace SongRequestManager
 
 
 
-                string blacklistMigrationFile = Path.Combine(Globals.DataPath, "SongBlacklistMigration.list");
+                string blacklistMigrationFile = Path.Combine(Plugin.DataPath, "SongBlacklistMigration.list");
                 if (File.Exists(blacklistMigrationFile))
                 {
                     SongBlacklist.ConvertFromList(File.ReadAllText(blacklistMigrationFile).Split(','));

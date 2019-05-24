@@ -48,13 +48,13 @@ namespace SongRequestManager
             DateTime Now = DateTime.Now;
             string BackupName = Path.Combine(RequestBotConfig.Instance.backuppath, $"SRMBACKUP-{Now.ToString("yyyy-MM-dd-HHmm")}.zip");
 
-            Plugin.Log($"Backing up {Globals.DataPath}");
+            Plugin.Log($"Backing up {Plugin.DataPath}");
             try
             {
                 if (!Directory.Exists(RequestBotConfig.Instance.backuppath))
                     Directory.CreateDirectory(RequestBotConfig.Instance.backuppath);
 
-                ZipFile.CreateFromDirectory(Globals.DataPath, BackupName, System.IO.Compression.CompressionLevel.Fastest, true);
+                ZipFile.CreateFromDirectory(Plugin.DataPath, BackupName, System.IO.Compression.CompressionLevel.Fastest, true);
                 RequestBotConfig.Instance.LastBackup = DateTime.Now.ToString();
                 RequestBotConfig.Instance.Save();
 

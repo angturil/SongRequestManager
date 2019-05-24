@@ -301,7 +301,7 @@ namespace SongRequestManager
                     return;
                 }
 
-                string queuefile = Path.Combine(Globals.DataPath, request + ".deck");
+                string queuefile = Path.Combine(Plugin.DataPath, request + ".deck");
                 StreamWriter fileWriter = new StreamWriter(queuefile);
 
                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
@@ -325,7 +325,7 @@ namespace SongRequestManager
         {
             try
             {
-                string queuefile = Path.Combine(Globals.DataPath, state.parameter + ".deck");
+                string queuefile = Path.Combine(Plugin.DataPath, state.parameter + ".deck");
                 string fileContent = File.ReadAllText(queuefile);
                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -868,7 +868,7 @@ namespace SongRequestManager
 
             try
             {
-                string statusfile = Path.Combine(Globals.DataPath, "queuelist.txt");
+                string statusfile = Path.Combine(Plugin.DataPath, "queuelist.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
 
                 string queuesummary = "";
@@ -899,7 +899,7 @@ namespace SongRequestManager
         {
             try
             {
-                string statusfile = Path.Combine(Globals.DataPath, "queuestatus.txt");
+                string statusfile = Path.Combine(Plugin.DataPath, "queuestatus.txt");
                 StreamWriter fileWriter = new StreamWriter(statusfile);
                 fileWriter.Write(status);
                 fileWriter.Close();
@@ -970,7 +970,7 @@ namespace SongRequestManager
 
             try
             {
-                string remapfile = Path.Combine(Globals.DataPath, "remap.list");
+                string remapfile = Path.Combine(Plugin.DataPath, "remap.list");
 
                 StreamWriter fileWriter = new StreamWriter(remapfile);
 
@@ -989,7 +989,7 @@ namespace SongRequestManager
 
         private void ReadRemapList()
         {
-            string remapfile = Path.Combine(Globals.DataPath, "remap.list");
+            string remapfile = Path.Combine(Plugin.DataPath, "remap.list");
 
             try
             {

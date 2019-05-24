@@ -1,7 +1,5 @@
-﻿
-using SongRequestManager;
-using SongRequestManager;
-using IllusionPlugin;
+﻿using IPA;
+using IPALogger = IPA.Logging.Logger;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -10,11 +8,12 @@ using StreamCore.Chat;
 
 namespace SongRequestManager
 {
-    public class Plugin : IPlugin
+    public class Plugin : IBeatSaberPlugin
     {
         public string Name => "Song Request Manager";
-        public string Version => "1.3.4";
+        public string Version => "2.0.0";
 
+        public static IPALogger Logger { get; internal set; }
 
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
@@ -22,12 +21,19 @@ namespace SongRequestManager
         
         private readonly RequestBotConfig RequestBotConfig = new RequestBotConfig();
 
+        public static string DataPath = Path.Combine(Environment.CurrentDirectory, "UserData", "StreamCore");
+
+        public void Init(object thisIsNull, IPALogger log)
+        {
+            Logger = log;
+        }
+
         public static void Log(string text,
                         [CallerFilePath] string file = "",
                         [CallerMemberName] string member = "",
                         [CallerLineNumber] int line = 0)
         {
-            Console.WriteLine($"[SongRequestManager] {Path.GetFileName(file)}->{member}({line}): {text}");
+            Logger.Info($"[SongRequestManager] {Path.GetFileName(file)}->{member}({line}): {text}");
         }
 
         public void OnApplicationStart()
@@ -36,14 +42,11 @@ namespace SongRequestManager
             Instance = this;
 
             TwitchWebSocketClient.Initialize();
-
-            SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
-            SceneManager.sceneLoaded += SceneManager_sceneLoaded;
         }
 
         static string MenuSceneName = "MenuCore";
         
-        private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
+        public void OnSceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
             if (arg0.name == MenuSceneName)
             {
@@ -67,7 +70,7 @@ namespace SongRequestManager
             IsApplicationExiting = true;
         }
 
-        private void SceneManager_activeSceneChanged(Scene from, Scene to)
+        public void OnActiveSceneChanged(Scene from, Scene to)
         {
             if (to.name == MenuSceneName)
                 IsAtMainMenu = true;
@@ -88,6 +91,10 @@ namespace SongRequestManager
         }
 
         public void OnUpdate()
+        {
+        }
+
+        public void OnSceneUnloaded(Scene scene)
         {
         }
     }

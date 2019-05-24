@@ -1,19 +1,11 @@
 ﻿using BeatSaverDownloader.UI;
-using CustomUI.BeatSaber;
 //using CustomUI.Utilities;
 using StreamCore.Utils;
 using HMUI;
-using SongBrowser;
-using SongBrowser.DataAccess;
-using SongCore;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using SongCore;
 using SongLoaderPlugin;
 
 namespace SongRequestManager
@@ -61,14 +53,14 @@ namespace SongRequestManager
         private enum SongBrowserAction { ResetFilter = 1 }
         private static void ExecuteSongBrowserAction(SongBrowserAction action)
         {
-            var _songBrowserUI = SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
-            if (_songBrowserUI)
-            {
-                if (action.HasFlag(SongBrowserAction.ResetFilter))
-                {
-                    _songBrowserUI.Model.Settings.filterMode = SongFilterMode.None;
-                }
-            }
+            //var _songBrowserUI = SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
+            //if (_songBrowserUI)
+            //{
+            //    if (action.HasFlag(SongBrowserAction.ResetFilter))
+            //    {
+            //        _songBrowserUI.Model.Settings.filterMode = SongFilterMode.None;
+            //    }
+            //}
         }
 
         private enum SongDownloaderAction { ResetFilter = 1 }
@@ -93,16 +85,16 @@ namespace SongRequestManager
             
             SongLoader.Instance.RetrieveNewSong(songFolderName);
             
-            // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
-            if (resetFilterMode)
-            {
-                // If song browser is installed, update/refresh it
-                if (_songBrowserInstalled)
-                    ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
-                // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
-                else if (_songDownloaderInstalled)
-                    ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
-            }
+            //// If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+            //if (resetFilterMode)
+            //{
+            //    // If song browser is installed, update/refresh it
+            //    if (_songBrowserInstalled)
+            //        ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
+            //    // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+                //if (_songDownloaderInstalled)
+                  //  ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
+            //}
 
             //// Set the row index to the previously selected song
             //if (selectOldLevel)
@@ -115,7 +107,7 @@ namespace SongRequestManager
             if (!_standardLevelListViewController) yield break;
 
             // // Grab the currently selected level id so we can restore it after refreshing
-            // string selectedLevelId = _standardLevelListViewController.selectedLevel?.levelID;
+           // string selectedLevelId = _standardLevelListViewController.selectedLevel?.levelID;
 
             // Wait until song loader is finished loading, then refresh the song list
             while (SongLoader.AreSongsLoading) yield return null;
@@ -147,12 +139,12 @@ namespace SongRequestManager
                     tableView.PageScrollDown();
             }
 
-            // If song browser is installed, update/refresh it
-            if (_songBrowserInstalled)
-                ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
-            // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
-            else if (_songDownloaderInstalled)
-                ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
+            //// If song browser is installed, update/refresh it
+            //if (_songBrowserInstalled)
+            //    ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
+            //// If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+            //else if (_songDownloaderInstalled)
+            //    ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
         }
         
         public static int GetLevelIndex(LevelPackLevelsViewController table, string levelID)

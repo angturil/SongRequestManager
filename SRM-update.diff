@@ -1,0 +1,912 @@
+diff --git a/EnhancedTwitchIntegration/Bot/ChatCommands.cs b/EnhancedTwitchIntegration/Bot/ChatCommands.cs
+index 2b39463..c94f5d7 100644
+--- a/EnhancedTwitchIntegration/Bot/ChatCommands.cs
++++ b/EnhancedTwitchIntegration/Bot/ChatCommands.cs
+@@ -301,7 +301,7 @@ namespace SongRequestManager
+                     return;
+                 }
+ 
+-                string queuefile = Path.Combine(Globals.DataPath, request + ".deck");
++                string queuefile = Path.Combine(Plugin.DataPath, request + ".deck");
+                 StreamWriter fileWriter = new StreamWriter(queuefile);
+ 
+                 foreach (SongRequest req in RequestQueue.Songs.ToArray())
+@@ -325,7 +325,7 @@ namespace SongRequestManager
+         {
+             try
+             {
+-                string queuefile = Path.Combine(Globals.DataPath, state.parameter + ".deck");
++                string queuefile = Path.Combine(Plugin.DataPath, state.parameter + ".deck");
+                 string fileContent = File.ReadAllText(queuefile);
+                 string[] integerStrings = fileContent.Split(new char[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+ 
+@@ -868,7 +868,7 @@ namespace SongRequestManager
+ 
+             try
+             {
+-                string statusfile = Path.Combine(Globals.DataPath, "queuelist.txt");
++                string statusfile = Path.Combine(Plugin.DataPath, "queuelist.txt");
+                 StreamWriter fileWriter = new StreamWriter(statusfile);
+ 
+                 string queuesummary = "";
+@@ -899,7 +899,7 @@ namespace SongRequestManager
+         {
+             try
+             {
+-                string statusfile = Path.Combine(Globals.DataPath, "queuestatus.txt");
++                string statusfile = Path.Combine(Plugin.DataPath, "queuestatus.txt");
+                 StreamWriter fileWriter = new StreamWriter(statusfile);
+                 fileWriter.Write(status);
+                 fileWriter.Close();
+@@ -970,7 +970,7 @@ namespace SongRequestManager
+ 
+             try
+             {
+-                string remapfile = Path.Combine(Globals.DataPath, "remap.list");
++                string remapfile = Path.Combine(Plugin.DataPath, "remap.list");
+ 
+                 StreamWriter fileWriter = new StreamWriter(remapfile);
+ 
+@@ -989,7 +989,7 @@ namespace SongRequestManager
+ 
+         private void ReadRemapList()
+         {
+-            string remapfile = Path.Combine(Globals.DataPath, "remap.list");
++            string remapfile = Path.Combine(Plugin.DataPath, "remap.list");
+ 
+             try
+             {
+diff --git a/EnhancedTwitchIntegration/Bot/ListManager.cs b/EnhancedTwitchIntegration/Bot/ListManager.cs
+index b9958d1..78111f6 100644
+--- a/EnhancedTwitchIntegration/Bot/ListManager.cs
++++ b/EnhancedTwitchIntegration/Bot/ListManager.cs
+@@ -60,7 +60,7 @@ namespace SongRequestManager
+ 
+             public StringListManager ClearOldList(string request, TimeSpan delta, ListFlags flags = ListFlags.Unchanged)
+             {
+-                string listfilename = Path.Combine(Globals.DataPath, request);
++                string listfilename = Path.Combine(Plugin.DataPath, request);
+                 TimeSpan UpdatedAge = GetFileAgeDifference(listfilename);
+ 
+                 StringListManager list = OpenList(request, flags);
+@@ -198,7 +198,7 @@ namespace SongRequestManager
+ 
+                 try
+                 {
+-                    string listfilename = Path.Combine(Globals.DataPath, filename);
++                    string listfilename = Path.Combine(Plugin.DataPath, filename);
+                     string fileContent = File.ReadAllText(listfilename);
+                     if (listfilename.EndsWith(".script"))
+                         list = fileContent.Split(lineseparator, StringSplitOptions.RemoveEmptyEntries).ToList();
+@@ -237,7 +237,7 @@ namespace SongRequestManager
+ 
+                 try
+                 {
+-                    string listfilename = Path.Combine(Globals.DataPath, filename);
++                    string listfilename = Path.Combine(Plugin.DataPath, filename);
+ 
+                     var output = String.Join(separator, list.ToArray());
+                     File.WriteAllText(listfilename, output);
+diff --git a/EnhancedTwitchIntegration/Bot/RequestBot.cs b/EnhancedTwitchIntegration/Bot/RequestBot.cs
+index 7ba1d40..1280647 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestBot.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestBot.cs
+@@ -2,7 +2,6 @@
+ using CustomUI.BeatSaber;
+ using StreamCore.Chat;
+ using StreamCore.Utils;
+-using HMUI;
+ using StreamCore.SimpleJSON;
+ 
+ using SongLoaderPlugin.OverrideClasses;
+@@ -10,12 +9,8 @@ using System;
+ using System.Collections;
+ using System.Collections.Concurrent;
+ using System.Collections.Generic;
+-using System.Runtime;
+ using System.IO;
+ using System.Linq;
+-using System.Text;
+-using System.Text.RegularExpressions;
+-using System.Threading.Tasks;
+ using System.Timers;
+ 
+ #if OLDVERSION
+@@ -23,15 +18,9 @@ using TMPro;
+ #endif
+ 
+ using UnityEngine;
+-using UnityEngine.EventSystems;
+ using UnityEngine.Networking;
+ using UnityEngine.UI;
+-using VRUI;
+ using Image = UnityEngine.UI.Image;
+-using Toggle = UnityEngine.UI.Toggle;
+-using TMPro;
+-using StreamCore.Config;
+-using SongRequestManager;
+ using SongLoaderPlugin;
+ using StreamCore;
+ 
+@@ -92,7 +81,7 @@ namespace SongRequestManager
+                 var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelPackLevelsViewController>().First();
+                 if (_levelListViewController)
+                     {
+-                    _requestButton = BeatSaberUI.CreateUIButton(_levelListViewController.rectTransform, "QuitButton", new Vector2(63, -3.5f),
++                    _requestButton = BeatSaberUI.CreateUIButton(_levelListViewController.rectTransform, "OkButton", new Vector2(63, -3.5f),
+                         new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
+ 
+                     (_requestButton.transform as RectTransform).anchorMin = new Vector2(1, 1);
+@@ -184,7 +173,7 @@ namespace SongRequestManager
+             {
+             try
+             {
+-                string fileContent = File.ReadAllText(Path.Combine(Globals.DataPath, keyboardname));
++                string fileContent = File.ReadAllText(Path.Combine(Plugin.DataPath, keyboardname));
+                 if (fileContent.Length > 0) keyboard.AddKeys(fileContent);
+             }
+             catch           
+@@ -257,7 +246,7 @@ namespace SongRequestManager
+             #endif
+ 
+ 
+-            playedfilename = Path.Combine(Globals.DataPath, "played.json"); // Record of all the songs played in the current session
++            playedfilename = Path.Combine(Plugin.DataPath, "played.json"); // Record of all the songs played in the current session
+ 
+             try
+             {
+@@ -298,7 +287,7 @@ namespace SongRequestManager
+ 
+ 
+ 
+-                string blacklistMigrationFile = Path.Combine(Globals.DataPath, "SongBlacklistMigration.list");
++                string blacklistMigrationFile = Path.Combine(Plugin.DataPath, "SongBlacklistMigration.list");
+                 if (File.Exists(blacklistMigrationFile))
+                 {
+                     SongBlacklist.ConvertFromList(File.ReadAllText(blacklistMigrationFile).Split(','));
+diff --git a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+index cf2d27e..732a2e0 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+@@ -166,7 +166,7 @@ namespace SongRequestManager
+ 
+ 
+                 // History button
+-                _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
++                _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
+                 _historyButton.ToggleWordWrapping(false);
+                 (_historyButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 30f);
+                 _historyButton.SetButtonText("History");
+@@ -181,7 +181,7 @@ namespace SongRequestManager
+                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
+                 
+                 // Blacklist button
+-                _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
++                _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
+                 _blacklistButton.ToggleWordWrapping(false);
+                 (_blacklistButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 10f);
+                 _blacklistButton.SetButtonText("Blacklist");
+@@ -207,7 +207,7 @@ namespace SongRequestManager
+                 BeatSaberUI.AddHintText(_blacklistButton.transform as RectTransform, "Block the selected request from being queued in the future.");
+ 
+                 // Skip button
+-                _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
++                _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
+                 _skipButton.ToggleWordWrapping(false);
+                 (_skipButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 0f);
+                 _skipButton.SetButtonText("Skip");
+@@ -234,7 +234,7 @@ namespace SongRequestManager
+                 BeatSaberUI.AddHintText(_skipButton.transform as RectTransform, "Remove the selected request from the queue.");
+ 
+                 // Play button
+-                _playButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
++                _playButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
+                 _playButton.ToggleWordWrapping(false);
+                 (_playButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -10f);
+                 _playButton.SetButtonText("Play");
+@@ -255,7 +255,7 @@ namespace SongRequestManager
+                 BeatSaberUI.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");
+ 
+                 // Queue button
+-                _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
++                _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
+                 _queueButton.ToggleWordWrapping(false);
+                 _queueButton.SetButtonTextSize(3.5f);
+                 (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -30f);
+@@ -442,22 +442,81 @@ namespace SongRequestManager
+ 
+         public override TableCell CellForIdx(int row)
+         {
+-            LevelListTableCell _tableCell = GetTableCell(row);
++            LevelListTableCell _tableCell = GetTableCell();
+ 
+-
+-            _tableCell.GetPrivateField<Image>("_coverImage").sprite = null;
++            //_tableCell.GetPrivateField<Image>("_coverImage").sprite = null;
+ 
+             SongRequest request = SongInfoForRow(row);
++            SetDataFromLevelAsync(request, _tableCell, row);
++
++            //bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
++
++            //string msg = highlight ? "MSG" : "";
++
++            //string pp = "";
++            //int ppvalue = request.song["pp"].AsInt;
++            //if (ppvalue > 0) pp = $" {ppvalue} PP";
++
++            //var songName = _tableCell.GetPrivateField<TextMeshProUGUI>("_songNameText");
++            //songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>";
++
++            //var author = _tableCell.GetPrivateField<TextMeshProUGUI>("_authorText");
++            //author.text = request.song["authorName"].Value + " (" + request.song["version"].Value + ")";
++
++            //var image = _tableCell.GetPrivateField<RawImage>("_coverRawImage");
++
++            //if (SongLoader.AreSongsLoaded)
++            //{
++            //    CustomLevel level = CustomLevelForRow(row);
++            //    if (level)
++            //        image.texture = level.coverImageTexture2D;
++            //    // BUG: Fix cell image -> should be texture
++            //    //if (level)
++            //    //_tableCell.SetIcon(level.coverImage);
++            //}
++            //if (image.texture == null)
++            //{
++            //    string url = request.song["coverUrl"].Value;
++            //    var s = GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); });
++            //    image.texture = s.texture;
++            //}
++
++            ////BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
++
++            //var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
++            //dt.Add("Status", request.status.ToString());
++            //dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
++            //dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
++
++            //BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
++
++            //bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
++
++            //string msg = highlight ? "MSG" : "";
++
++            //string pp = "";
++            //int ppvalue = request.song["pp"].AsInt;
++            //if (ppvalue > 0) pp = $" {ppvalue} PP";
++
++            //_tableCell.SetText($"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>");
++            //_tableCell.SetSubText(request.song["authorName"].Value+" ("+request.song["version"].Value+")");
++            //if (SongLoader.AreSongsLoaded)
++            //{
++            //    CustomLevel level = CustomLevelForRow(row);
++            //    // BUG: Fix cell image -> should be texture
++            //    //if (level)
++            //    //_tableCell.SetIcon(level.coverImage);
++            //}
++            //if (_tableCell.GetPrivateField<RawImage>("_coverRawImage").texture == null)
++            //{
++            //    string url = request.song["coverUrl"].Value;
++            //    _tableCell.SetIcon(GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); }));
++            //}
++            return _tableCell;
++        }
+ 
+-            //BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
+-
+-            var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
+-            dt.Add("Status", request.status.ToString());
+-            dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
+-            dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
+-
+-            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
+-
++        private async void SetDataFromLevelAsync(SongRequest request, LevelListTableCell _tableCell, int row)
++        {
+             bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
+ 
+             string msg = highlight ? "MSG" : "";
+@@ -466,21 +525,39 @@ namespace SongRequestManager
+             int ppvalue = request.song["pp"].AsInt;
+             if (ppvalue > 0) pp = $" {ppvalue} PP";
+ 
+-            _tableCell.SetText($"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>");
+-            _tableCell.SetSubText(request.song["authorName"].Value+" ("+request.song["version"].Value+")");
++            var songName = _tableCell.GetPrivateField<TextMeshProUGUI>("_songNameText");
++            songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>";
++
++            var author = _tableCell.GetPrivateField<TextMeshProUGUI>("_authorText");
++            author.text = request.song["authorName"].Value + " (" + request.song["version"].Value + ")";
++
++            var image = _tableCell.GetPrivateField<RawImage>("_coverRawImage");
++            var imageSet = false;
++
+             if (SongLoader.AreSongsLoaded)
+             {
+                 CustomLevel level = CustomLevelForRow(row);
+-                // BUG: Fix cell image -> should be texture
+-                //if (level)
+-                    //_tableCell.SetIcon(level.coverImage);
++                if (level)
++                {
++                    var tkn = new System.Threading.CancellationToken();
++                    image.texture = await level.GetCoverImageTexture2DAsync(tkn);
++                    imageSet = true;
++                }
+             }
+-            if (_tableCell.GetPrivateField<Image>("_coverImage").sprite == null)
++
++            if (!imageSet)
+             {
+                 string url = request.song["coverUrl"].Value;
+-                _tableCell.SetIcon(GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); }));
++                var s = GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); });
++                image.texture = s.texture;
+             }
+-            return _tableCell;
++
++            var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
++            dt.Add("Status", request.status.ToString());
++            dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
++            dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
++
++            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
+         }
+     }
+ }
+\ No newline at end of file
+diff --git a/EnhancedTwitchIntegration/Bot/RequestManager.cs b/EnhancedTwitchIntegration/Bot/RequestManager.cs
+index e5aea8a..c1e53cf 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestManager.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestManager.cs
+@@ -46,7 +46,7 @@ namespace SongRequestManager
+     public class RequestQueue
+     {
+         public static List<SongRequest> Songs = new List<SongRequest>();
+-        private static string requestsPath = Path.Combine(Globals.DataPath, "SongRequestQueue.json");
++        private static string requestsPath = Path.Combine(Plugin.DataPath, "SongRequestQueue.json");
+         public static void Read()
+         {
+             try
+@@ -69,7 +69,7 @@ namespace SongRequestManager
+     public class RequestHistory
+     {
+         public static List<SongRequest> Songs = new List<SongRequest>();
+-        private static string historyPath = Path.Combine(Globals.DataPath, "SongRequestHistory.json");
++        private static string historyPath = Path.Combine(Plugin.DataPath, "SongRequestHistory.json");
+         public static void Read()
+         {
+             try
+@@ -92,7 +92,7 @@ namespace SongRequestManager
+     public class SongBlacklist
+     {
+         public static Dictionary<string, SongRequest> Songs = new Dictionary<string, SongRequest>();
+-        private static string blacklistPath = Path.Combine(Globals.DataPath, "SongBlacklist.json");
++        private static string blacklistPath = Path.Combine(Plugin.DataPath, "SongBlacklist.json");
+         public static void Read()
+         {
+             try
+diff --git a/EnhancedTwitchIntegration/Bot/commands.cs b/EnhancedTwitchIntegration/Bot/commands.cs
+index ae3dc06..c17bc51 100644
+--- a/EnhancedTwitchIntegration/Bot/commands.cs
++++ b/EnhancedTwitchIntegration/Bot/commands.cs
+@@ -809,7 +809,7 @@ namespace SongRequestManager
+ // !block /alias block, Ban 
+ // !lookup /disable
+ //");
+-                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
++                var filename = Path.Combine(Plugin.DataPath, configfilename + ".ini");
+                 File.WriteAllText(filename, UserSettings.ToString());
+             }
+ 
+@@ -819,7 +819,7 @@ namespace SongRequestManager
+ 
+                 var UserSettings = new StringBuilder("// This section contains ONLY commands that have changed.\r\n\r\n");
+ 
+-                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
++                var filename = Path.Combine(Plugin.DataPath, configfilename + ".ini");
+ 
+                 Loading = true; // Prevents file updates during command load.
+ 
+diff --git a/EnhancedTwitchIntegration/Bot/notjson.cs b/EnhancedTwitchIntegration/Bot/notjson.cs
+deleted file mode 100644
+index fee6283..0000000
+--- a/EnhancedTwitchIntegration/Bot/notjson.cs
++++ /dev/null
+@@ -1,41 +0,0 @@
+-﻿using System;
+-using StreamCore;
+-using System.Runtime;
+-using StreamCore.Chat;
+-using StreamCore.SimpleJSON;
+-using System;
+-using System.Collections;
+-using System.Collections.Generic;
+-using System.IO;
+-using System.IO.MemoryMappedFiles;
+-using System.IO.Compression;
+-using System.Linq;
+-using System.Text;
+-using System.Threading.Tasks;
+-using UnityEngine;
+-using UnityEngine.Networking;
+-using SongRequestManager;
+-using StreamCore.Utils;
+-using System.Collections;
+-using System.Collections.Concurrent;
+-using System.Collections.Generic;
+-
+-using System.Security.Cryptography;
+-// Feature requests: Add Reason for being banned to banlist
+-//  
+-
+-using SongBrowser;
+-using SongBrowser.DataAccess;
+-using SongCore;
+-using SongLoaderPlugin;
+-//
+-// NOTE: Any unreleased code structure, dependencies, or files are subject to change without notice. Any dependencies you create around this code 
+-// are virtually guaranteed not to work in future builds. If I thought the code was release ready, it wouldn't be here.
+-
+-namespace SongRequestManager
+-{
+-    public partial class RequestBot : MonoBehaviour
+-    {
+-
+-    }
+-}
+\ No newline at end of file
+diff --git a/EnhancedTwitchIntegration/Bot/songdatabase.cs b/EnhancedTwitchIntegration/Bot/songdatabase.cs
+index 6695676..f82f396 100644
+--- a/EnhancedTwitchIntegration/Bot/songdatabase.cs
++++ b/EnhancedTwitchIntegration/Bot/songdatabase.cs
+@@ -3,32 +3,21 @@ using StreamCore;
+ using System.Runtime;
+ using StreamCore.Chat;
+ using StreamCore.SimpleJSON;
+-using System;
+ using System.Collections;
+ using System.Collections.Generic;
+ using System.IO;
+-using System.IO.MemoryMappedFiles;
+ using System.IO.Compression;
+ using System.Linq;
+ using System.Text;
+ using System.Threading.Tasks;
+ using UnityEngine;
+ using UnityEngine.Networking;
+-using SongRequestManager;
+-using StreamCore.Utils;
+-using System.Collections;
+ using System.Collections.Concurrent;
+-using System.Collections.Generic;
+ 
+ using System.Security.Cryptography;
+ // Feature requests: Add Reason for being banned to banlist
+ //  
+ 
+-using SongBrowser;
+-using SongBrowser.DataAccess;
+-using SongCore;
+-
+-using System.Runtime.InteropServices;
+ 
+ 
+ namespace SongRequestManager
+@@ -245,7 +234,7 @@ namespace SongRequestManager
+                 JSONArray arr = new JSONArray();
+                 foreach (var entry in LevelId)
+                 arr.Add(entry.Value.song);
+-                File.WriteAllText(Path.Combine(Globals.DataPath, "SongDatabase.json"), arr.ToString());
++                File.WriteAllText(Path.Combine(Plugin.DataPath, "SongDatabase.json"), arr.ToString());
+                 Instance.QueueChatMessage($"Saved Song Databse in  {(DateTime.Now - start).Seconds} secs.");
+             }
+             catch (Exception ex)
+@@ -263,7 +252,7 @@ namespace SongRequestManager
+                 {
+ 
+                     DateTime start = DateTime.Now;
+-                    string path = Path.Combine(Globals.DataPath, "SongDatabase.json");
++                    string path = Path.Combine(Plugin.DataPath, "SongDatabase.json");
+ 
+                     if (File.Exists(path))
+                     {
+diff --git a/EnhancedTwitchIntegration/Bot/util.cs b/EnhancedTwitchIntegration/Bot/util.cs
+index f539b7f..aa6fe5e 100644
+--- a/EnhancedTwitchIntegration/Bot/util.cs
++++ b/EnhancedTwitchIntegration/Bot/util.cs
+@@ -48,13 +48,13 @@ namespace SongRequestManager
+             DateTime Now = DateTime.Now;
+             string BackupName = Path.Combine(RequestBotConfig.Instance.backuppath, $"SRMBACKUP-{Now.ToString("yyyy-MM-dd-HHmm")}.zip");
+ 
+-            Plugin.Log($"Backing up {Globals.DataPath}");
++            Plugin.Log($"Backing up {Plugin.DataPath}");
+             try
+             {
+                 if (!Directory.Exists(RequestBotConfig.Instance.backuppath))
+                     Directory.CreateDirectory(RequestBotConfig.Instance.backuppath);
+ 
+-                ZipFile.CreateFromDirectory(Globals.DataPath, BackupName, System.IO.Compression.CompressionLevel.Fastest, true);
++                ZipFile.CreateFromDirectory(Plugin.DataPath, BackupName, System.IO.Compression.CompressionLevel.Fastest, true);
+                 RequestBotConfig.Instance.LastBackup = DateTime.Now.ToString();
+                 RequestBotConfig.Instance.Save();
+ 
+diff --git a/EnhancedTwitchIntegration/Config/RequestBotConfig.cs b/EnhancedTwitchIntegration/Config/RequestBotConfig.cs
+index 9800ce3..841805a 100644
+--- a/EnhancedTwitchIntegration/Config/RequestBotConfig.cs
++++ b/EnhancedTwitchIntegration/Config/RequestBotConfig.cs
+@@ -11,7 +11,7 @@ namespace SongRequestManager
+ {
+     public class RequestBotConfig
+     {
+-        private string FilePath = Path.Combine(Globals.DataPath, "RequestBotSettings.ini");
++        private string FilePath = Path.Combine(Plugin.DataPath, "RequestBotSettings.ini");
+ 
+ 
+         public bool RequestQueueOpen = true;
+diff --git a/EnhancedTwitchIntegration/Plugin.cs b/EnhancedTwitchIntegration/Plugin.cs
+index 4fc7443..363dcdc 100644
+--- a/EnhancedTwitchIntegration/Plugin.cs
++++ b/EnhancedTwitchIntegration/Plugin.cs
+@@ -1,7 +1,5 @@
+-﻿
+-using SongRequestManager;
+-using SongRequestManager;
+-using IllusionPlugin;
++﻿using IPA;
++using IPALogger = IPA.Logging.Logger;
+ using System;
+ using System.IO;
+ using System.Runtime.CompilerServices;
+@@ -10,11 +8,12 @@ using StreamCore.Chat;
+ 
+ namespace SongRequestManager
+ {
+-    public class Plugin : IPlugin
++    public class Plugin : IBeatSaberPlugin
+     {
+         public string Name => "Song Request Manager";
+         public string Version => "1.3.4";
+ 
++        public static IPALogger Logger { get; internal set; }
+ 
+         public bool IsAtMainMenu = true;
+         public bool IsApplicationExiting = false;
+@@ -22,12 +21,19 @@ namespace SongRequestManager
+         
+         private readonly RequestBotConfig RequestBotConfig = new RequestBotConfig();
+ 
++        public static string DataPath = Path.Combine(Environment.CurrentDirectory, "UserData", "StreamCore");
++
++        public void Init(object thisIsNull, IPALogger log)
++        {
++            Logger = log;
++        }
++
+         public static void Log(string text,
+                         [CallerFilePath] string file = "",
+                         [CallerMemberName] string member = "",
+                         [CallerLineNumber] int line = 0)
+         {
+-            Console.WriteLine($"[SongRequestManager] {Path.GetFileName(file)}->{member}({line}): {text}");
++            Logger.Info($"[SongRequestManager] {Path.GetFileName(file)}->{member}({line}): {text}");
+         }
+ 
+         public void OnApplicationStart()
+@@ -36,14 +42,11 @@ namespace SongRequestManager
+             Instance = this;
+ 
+             TwitchWebSocketClient.Initialize();
+-
+-            SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
+-            SceneManager.sceneLoaded += SceneManager_sceneLoaded;
+         }
+ 
+         static string MenuSceneName = "MenuCore";
+         
+-        private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
++        public void OnSceneLoaded(Scene arg0, LoadSceneMode arg1)
+         {
+             if (arg0.name == MenuSceneName)
+             {
+@@ -67,7 +70,7 @@ namespace SongRequestManager
+             IsApplicationExiting = true;
+         }
+ 
+-        private void SceneManager_activeSceneChanged(Scene from, Scene to)
++        public void OnActiveSceneChanged(Scene from, Scene to)
+         {
+             if (to.name == MenuSceneName)
+                 IsAtMainMenu = true;
+@@ -90,5 +93,9 @@ namespace SongRequestManager
+         public void OnUpdate()
+         {
+         }
++
++        public void OnSceneUnloaded(Scene scene)
++        {
++        }
+     }
+ }
+diff --git a/EnhancedTwitchIntegration/SongRequestManager.csproj b/EnhancedTwitchIntegration/SongRequestManager.csproj
+index f3608bc..1666b6d 100644
+--- a/EnhancedTwitchIntegration/SongRequestManager.csproj
++++ b/EnhancedTwitchIntegration/SongRequestManager.csproj
+@@ -35,115 +35,103 @@
+   </PropertyGroup>
+   <ItemGroup>
+     <Reference Include="Assembly-CSharp">
+-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Assembly-CSharp.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Assembly-CSharp.dll</HintPath>
+     </Reference>
+     <Reference Include="Assembly-CSharp-firstpass">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+     </Reference>
+     <Reference Include="BeatSaberCustomUI, Version=1.3.9.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\BeatSaberCustomUI.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\BeatSaberCustomUI.dll</HintPath>
+     </Reference>
+     <Reference Include="BeatSaverDownloader">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\BeatSaverDownloader.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\BeatSaverDownloader.dll</HintPath>
+     </Reference>
+-    <Reference Include="IllusionPlugin">
+-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IllusionPlugin.dll</HintPath>
+-    </Reference>
+-    <Reference Include="ProBuilderCore">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\ProBuilderCore.dll</HintPath>
+-    </Reference>
+-    <Reference Include="SongBrowser, Version=3.0.5.0, Culture=neutral, processorArchitecture=MSIL">
+-      <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\plugins\SongBrowser.dll</HintPath>
++    <Reference Include="IPA.Loader">
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
+     </Reference>
+     <Reference Include="SongCore, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\beatsaber\plugins\SongCore.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\SongCore.dll</HintPath>
+     </Reference>
+     <Reference Include="SongLoader, Version=7.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\beatsaber\plugins\SongLoader.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\SongLoader.dll</HintPath>
+     </Reference>
+-    <Reference Include="StreamCore, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
++    <Reference Include="StreamCore, Version=1.0.5.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\StreamCore.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\StreamCore.dll</HintPath>
+     </Reference>
+     <Reference Include="System" />
+     <Reference Include="System.Core" />
+-    <Reference Include="System.IO.Compression, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL" />
+-    <Reference Include="System.IO.Compression.FileSystem, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+-      <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\System.IO.Compression.FileSystem.dll</HintPath>
+-    </Reference>
+-    <Reference Include="System.IO.Compression.ZipFile, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+-      <HintPath>..\packages\System.IO.Compression.ZipFile.4.3.0\lib\net46\System.IO.Compression.ZipFile.dll</HintPath>
+-      <Private>True</Private>
+-      <Private>True</Private>
+-    </Reference>
++    <Reference Include="System.IO.Compression" />
++    <Reference Include="System.IO.Compression.FileSystem" />
+     <Reference Include="System.Xml.Linq" />
+     <Reference Include="System.Data.DataSetExtensions" />
+     <Reference Include="System.Data" />
+     <Reference Include="System.Xml" />
++    <Reference Include="Unity.ProBuilder">
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Unity.ProBuilder.dll</HintPath>
++    </Reference>
+     <Reference Include="Unity.TextMeshPro">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Unity.TextMeshPro.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.AnimationModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.AssetBundleModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.AudioModule">
+-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.CoreModule">
+-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.ImageConversionModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.JSONSerializeModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.Networking">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.Networking.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.Networking.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.TextRenderingModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UI">
+-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UI.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UI.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UIElementsModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UIModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UnityWebRequestAssetBundleModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestAssetBundleModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestAssetBundleModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UnityWebRequestAudioModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UnityWebRequestModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UnityWebRequestTextureModule">
+-      <HintPath>..\..\..\..\..\..\beatsaber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UnityWebRequestWWWModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.VideoModule">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.VideoModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.VideoModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.VRModule">
+-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.VRModule.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.VRModule.dll</HintPath>
+     </Reference>
+   </ItemGroup>
+   <ItemGroup>
+@@ -151,7 +139,6 @@
+     <Compile Include="Bot\commands.cs" />
+     <Compile Include="Bot\Keyboard.cs" />
+     <Compile Include="Bot\ListManager.cs" />
+-    <Compile Include="Bot\notjson.cs" />
+     <Compile Include="Bot\RequestBot.cs" />
+     <Compile Include="Bot\RequestBotListViewController.cs" />
+     <Compile Include="Bot\RequestInfo.cs" />
+@@ -168,6 +155,7 @@
+     <Compile Include="UI\SongListUtils.cs" />
+   </ItemGroup>
+   <ItemGroup>
++    <EmbeddedResource Include="manifest.json" />
+     <None Include="packages.config" />
+   </ItemGroup>
+   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+@@ -175,7 +163,6 @@
+     <PreBuildEvent>::"$(ProjectDir)..\..\PluginVersionSetter.exe" "$(ProjectDir)Properties\AssemblyInfo.cs" "$(ProjectDir)Plugin.cs"</PreBuildEvent>
+   </PropertyGroup>
+   <PropertyGroup>
+-    <PostBuildEvent>::copy /Y "$(TargetDir)$(TargetFileName)" "C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins"
+-copy /Y "$(TargetDir)$(TargetFileName)" "C:\Beat Saber\Plugins"</PostBuildEvent>
++    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Games\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
+   </PropertyGroup>
+ </Project>
+\ No newline at end of file
+diff --git a/EnhancedTwitchIntegration/UI/SongListUtils.cs b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+index 8b1ef6a..6323e89 100644
+--- a/EnhancedTwitchIntegration/UI/SongListUtils.cs
++++ b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+@@ -1,19 +1,11 @@
+ ﻿using BeatSaverDownloader.UI;
+-using CustomUI.BeatSaber;
+ //using CustomUI.Utilities;
+ using StreamCore.Utils;
+ using HMUI;
+-using SongBrowser;
+-using SongBrowser.DataAccess;
+-using SongCore;
+ using System;
+ using System.Collections;
+-using System.Collections.Generic;
+ using System.Linq;
+-using System.Text;
+-using System.Threading.Tasks;
+ using UnityEngine;
+-using SongCore;
+ using SongLoaderPlugin;
+ 
+ namespace SongRequestManager
+@@ -61,14 +53,14 @@ namespace SongRequestManager
+         private enum SongBrowserAction { ResetFilter = 1 }
+         private static void ExecuteSongBrowserAction(SongBrowserAction action)
+         {
+-            var _songBrowserUI = SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
+-            if (_songBrowserUI)
+-            {
+-                if (action.HasFlag(SongBrowserAction.ResetFilter))
+-                {
+-                    _songBrowserUI.Model.Settings.filterMode = SongFilterMode.None;
+-                }
+-            }
++            //var _songBrowserUI = SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
++            //if (_songBrowserUI)
++            //{
++            //    if (action.HasFlag(SongBrowserAction.ResetFilter))
++            //    {
++            //        _songBrowserUI.Model.Settings.filterMode = SongFilterMode.None;
++            //    }
++            //}
+         }
+ 
+         private enum SongDownloaderAction { ResetFilter = 1 }
+@@ -93,16 +85,16 @@ namespace SongRequestManager
+             
+             SongLoader.Instance.RetrieveNewSong(songFolderName);
+             
+-            // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+-            if (resetFilterMode)
+-            {
+-                // If song browser is installed, update/refresh it
+-                if (_songBrowserInstalled)
+-                    ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
+-                // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+-                else if (_songDownloaderInstalled)
+-                    ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
+-            }
++            //// If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
++            //if (resetFilterMode)
++            //{
++            //    // If song browser is installed, update/refresh it
++            //    if (_songBrowserInstalled)
++            //        ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
++            //    // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
++            //    else if (_songDownloaderInstalled)
++            //        ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
++            //}
+ 
+             //// Set the row index to the previously selected song
+             //if (selectOldLevel)
+@@ -147,12 +139,12 @@ namespace SongRequestManager
+                     tableView.PageScrollDown();
+             }
+ 
+-            // If song browser is installed, update/refresh it
+-            if (_songBrowserInstalled)
+-                ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
+-            // If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+-            else if (_songDownloaderInstalled)
+-                ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
++            //// If song browser is installed, update/refresh it
++            //if (_songBrowserInstalled)
++            //    ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
++            //// If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
++            //else if (_songDownloaderInstalled)
++            //    ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
+         }
+         
+         public static int GetLevelIndex(LevelPackLevelsViewController table, string levelID)
+diff --git a/StreamCore b/StreamCore
+deleted file mode 160000
+index 57c402e..0000000
+--- a/StreamCore
++++ /dev/null
+@@ -1 +0,0 @@
+-Subproject commit 57c402e880c53ff7f9e8ed388aba975213bbed5d

@@ -166,7 +166,7 @@ namespace SongRequestManager
 
 
                 // History button
-                _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
+                _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
                 _historyButton.ToggleWordWrapping(false);
                 (_historyButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 30f);
                 _historyButton.SetButtonText("History");
@@ -181,7 +181,7 @@ namespace SongRequestManager
                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
                 
                 // Blacklist button
-                _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
+                _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
                 _blacklistButton.ToggleWordWrapping(false);
                 (_blacklistButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 10f);
                 _blacklistButton.SetButtonText("Blacklist");
@@ -207,7 +207,7 @@ namespace SongRequestManager
                 BeatSaberUI.AddHintText(_blacklistButton.transform as RectTransform, "Block the selected request from being queued in the future.");
 
                 // Skip button
-                _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
+                _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
                 _skipButton.ToggleWordWrapping(false);
                 (_skipButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 0f);
                 _skipButton.SetButtonText("Skip");
@@ -234,7 +234,7 @@ namespace SongRequestManager
                 BeatSaberUI.AddHintText(_skipButton.transform as RectTransform, "Remove the selected request from the queue.");
 
                 // Play button
-                _playButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
+                _playButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
                 _playButton.ToggleWordWrapping(false);
                 (_playButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -10f);
                 _playButton.SetButtonText("Play");
@@ -255,7 +255,7 @@ namespace SongRequestManager
                 BeatSaberUI.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");
 
                 // Queue button
-                _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "QuitButton")), container, false);
+                _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
                 _queueButton.ToggleWordWrapping(false);
                 _queueButton.SetButtonTextSize(3.5f);
                 (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -30f);
@@ -442,22 +442,81 @@ namespace SongRequestManager
 
         public override TableCell CellForIdx(int row)
         {
-            LevelListTableCell _tableCell = GetTableCell(row);
+            LevelListTableCell _tableCell = GetTableCell();
 
-
-            _tableCell.GetPrivateField<Image>("_coverImage").sprite = null;
+            //_tableCell.GetPrivateField<Image>("_coverImage").sprite = null;
 
             SongRequest request = SongInfoForRow(row);
+            SetDataFromLevelAsync(request, _tableCell, row);
 
-            //BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
+            //bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
 
-            var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
-            dt.Add("Status", request.status.ToString());
-            dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
-            dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
+            //string msg = highlight ? "MSG" : "";
 
-            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
+            //string pp = "";
+            //int ppvalue = request.song["pp"].AsInt;
+            //if (ppvalue > 0) pp = $" {ppvalue} PP";
 
+            //var songName = _tableCell.GetPrivateField<TextMeshProUGUI>("_songNameText");
+            //songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>";
+
+            //var author = _tableCell.GetPrivateField<TextMeshProUGUI>("_authorText");
+            //author.text = request.song["authorName"].Value + " (" + request.song["version"].Value + ")";
+
+            //var image = _tableCell.GetPrivateField<RawImage>("_coverRawImage");
+
+            //if (SongLoader.AreSongsLoaded)
+            //{
+            //    CustomLevel level = CustomLevelForRow(row);
+            //    if (level)
+            //        image.texture = level.coverImageTexture2D;
+            //    // BUG: Fix cell image -> should be texture
+            //    //if (level)
+            //    //_tableCell.SetIcon(level.coverImage);
+            //}
+            //if (image.texture == null)
+            //{
+            //    string url = request.song["coverUrl"].Value;
+            //    var s = GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); });
+            //    image.texture = s.texture;
+            //}
+
+            ////BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
+
+            //var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
+            //dt.Add("Status", request.status.ToString());
+            //dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
+            //dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
+
+            //BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
+
+            //bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
+
+            //string msg = highlight ? "MSG" : "";
+
+            //string pp = "";
+            //int ppvalue = request.song["pp"].AsInt;
+            //if (ppvalue > 0) pp = $" {ppvalue} PP";
+
+            //_tableCell.SetText($"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>");
+            //_tableCell.SetSubText(request.song["authorName"].Value+" ("+request.song["version"].Value+")");
+            //if (SongLoader.AreSongsLoaded)
+            //{
+            //    CustomLevel level = CustomLevelForRow(row);
+            //    // BUG: Fix cell image -> should be texture
+            //    //if (level)
+            //    //_tableCell.SetIcon(level.coverImage);
+            //}
+            //if (_tableCell.GetPrivateField<RawImage>("_coverRawImage").texture == null)
+            //{
+            //    string url = request.song["coverUrl"].Value;
+            //    _tableCell.SetIcon(GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); }));
+            //}
+            return _tableCell;
+        }
+
+        private async void SetDataFromLevelAsync(SongRequest request, LevelListTableCell _tableCell, int row)
+        {
             bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
 
             string msg = highlight ? "MSG" : "";
@@ -466,21 +525,39 @@ namespace SongRequestManager
             int ppvalue = request.song["pp"].AsInt;
             if (ppvalue > 0) pp = $" {ppvalue} PP";
 
-            _tableCell.SetText($"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>");
-            _tableCell.SetSubText(request.song["authorName"].Value+" ("+request.song["version"].Value+")");
+            var songName = _tableCell.GetPrivateField<TextMeshProUGUI>("_songNameText");
+            songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>";
+
+            var author = _tableCell.GetPrivateField<TextMeshProUGUI>("_authorText");
+            author.text = request.song["authorName"].Value + " (" + request.song["version"].Value + ")";
+
+            var image = _tableCell.GetPrivateField<RawImage>("_coverRawImage");
+            var imageSet = false;
+
             if (SongLoader.AreSongsLoaded)
             {
                 CustomLevel level = CustomLevelForRow(row);
-                // BUG: Fix cell image -> should be texture
-                //if (level)
-                    //_tableCell.SetIcon(level.coverImage);
+                if (level)
+                {
+                    var tkn = new System.Threading.CancellationToken();
+                    image.texture = await level.GetCoverImageTexture2DAsync(tkn);
+                    imageSet = true;
+                }
             }
-            if (_tableCell.GetPrivateField<Image>("_coverImage").sprite == null)
+
+            if (!imageSet)
             {
                 string url = request.song["coverUrl"].Value;
-                _tableCell.SetIcon(GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); }));
+                var s = GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); });
+                image.texture = s.texture;
             }
-            return _tableCell;
+
+            var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
+            dt.Add("Status", request.status.ToString());
+            dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
+            dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
+
+            BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
         }
     }
 }

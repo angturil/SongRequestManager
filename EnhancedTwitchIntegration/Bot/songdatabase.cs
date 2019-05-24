@@ -3,32 +3,21 @@ using StreamCore;
 using System.Runtime;
 using StreamCore.Chat;
 using StreamCore.SimpleJSON;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.MemoryMappedFiles;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using SongRequestManager;
-using StreamCore.Utils;
-using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 using System.Security.Cryptography;
 // Feature requests: Add Reason for being banned to banlist
 //  
 
-using SongBrowser;
-using SongBrowser.DataAccess;
-using SongCore;
-
-using System.Runtime.InteropServices;
 
 
 namespace SongRequestManager
@@ -245,7 +234,7 @@ namespace SongRequestManager
                 JSONArray arr = new JSONArray();
                 foreach (var entry in LevelId)
                 arr.Add(entry.Value.song);
-                File.WriteAllText(Path.Combine(Globals.DataPath, "SongDatabase.json"), arr.ToString());
+                File.WriteAllText(Path.Combine(Plugin.DataPath, "SongDatabase.json"), arr.ToString());
                 Instance.QueueChatMessage($"Saved Song Databse in  {(DateTime.Now - start).Seconds} secs.");
             }
             catch (Exception ex)
@@ -263,7 +252,7 @@ namespace SongRequestManager
                 {
 
                     DateTime start = DateTime.Now;
-                    string path = Path.Combine(Globals.DataPath, "SongDatabase.json");
+                    string path = Path.Combine(Plugin.DataPath, "SongDatabase.json");
 
                     if (File.Exists(path))
                     {
@@ -765,6 +754,7 @@ namespace SongRequestManager
 
 
             string requestUrl = "https://wes.ams3.digitaloceanspaces.com/beatstar/bssb.json";
+                                 
             string result;
 
             System.Globalization.NumberStyles style = System.Globalization.NumberStyles.AllowDecimalPoint;
