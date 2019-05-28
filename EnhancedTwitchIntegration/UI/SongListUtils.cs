@@ -128,7 +128,7 @@ namespace SongRequestManager
             var packsCollection = levelPacksTableView.GetPrivateField<IBeatmapLevelPackCollection>("_levelPackCollection");
             int customSongPackIndex = -1;
             for(int i=0; i< packsCollection.beatmapLevelPacks.Length; i++)
-                if(packsCollection.beatmapLevelPacks[i].packName == "Custom Maps")
+                if(packsCollection.beatmapLevelPacks[i].packName == "Modded Custom Maps")
                     customSongPackIndex = i;
 
             if (customSongPackIndex != -1 && levelPacksTableView.GetPrivateField<int>("_selectedColumn") != customSongPackIndex)
@@ -140,11 +140,11 @@ namespace SongRequestManager
             }
 
             //// If song browser is installed, update/refresh it
-            //if (_songBrowserInstalled)
-            //    ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
+            if (_songBrowserInstalled)
+                ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
             //// If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
-            //else if (_songDownloaderInstalled)
-            //    ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
+            else if (_songDownloaderInstalled)
+                ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
         }
         
         public static int GetLevelIndex(LevelPackLevelsViewController table, string levelID)
