@@ -5,8 +5,7 @@ This mod has been in use for many months, and is constantly updated. While this 
 
 # Current State
 
-The current bot is compatible with Release 0.13. You will need to grab the latest support files from Beatmods.
-If they're not available, you may Temporarily grab streamcore and enhancedstreamchat here. These are not guaranteed current.
+The current bot is compatible with Release 1.0.0. Use the latest installer.
 
 # TTS Notes
 If you're using TTS, you'll want to reduce the amount of spam the bot produces. You can do this a number of ways. Filtering out your Name from TTS, or 
