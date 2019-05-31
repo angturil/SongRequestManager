@@ -68,9 +68,6 @@ namespace SongRequestManager
 /23 (!!) (@@) [SPACE]/40 (##) (__)";
 
 
-        public const string BOTKEYS =
-@"[ADD]/0'!bsr ' [UPTIME]/0' !uptime%CR%' [Cat1]/0' sehriaCat1' [Cat2]/0' sehriaCat2' [sehriaXD]/0' sehriaXD' [tohruSway]/0' tohruSway' [Rainbow]/0' RainbowDance' [Love]/0' sehriaLove' [Wink]/0' sehriaWink'
-";
 
         
 
@@ -99,7 +96,7 @@ namespace SongRequestManager
                 {
                     found = true;
                     key.value = value;
-                    key.shifted = value;
+                    //key.shifted = value;
                 }
 
             if (!found) Plugin.Log($"Keyboard: Unable to set property of Key  [{keylabel}]");
@@ -394,7 +391,7 @@ namespace SongRequestManager
         void Newest(KEY key)
             {
             ClearSearches();
-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top");
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top",RequestBot.CmdFlags.Local);
             }
 
         void Search(KEY key)
@@ -406,7 +403,7 @@ namespace SongRequestManager
 
             #if UNRELEASED
             ClearSearches();
-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}");
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}",RequestBot.CmdFlags.Local);
             Clear(key);
             #endif
             }
@@ -442,9 +439,9 @@ namespace SongRequestManager
             var typedtext = key.kb.KeyboardText.text;
             if (typedtext != "")
             {
-                if (typedtext[0] == '!')
+                if (RequestBot.COMMAND.aliaslist.ContainsKey(RequestBot.ParseState.GetCommand(ref typedtext)))
                 {
-                    RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, typedtext);
+                    RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, typedtext,RequestBot.CmdFlags.Local);
                 }
                 else
                 {
@@ -463,8 +460,13 @@ namespace SongRequestManager
         void SHIFT(KEY key)
         {
             key.kb.Shift = !key.kb.Shift;
+
             foreach (KEY k in key.kb.keys)
             {
+                string x = key.kb.Shift ? k.shifted : k.value;
+                //if (key.kb.Caps) x = k.value.ToUpper();
+                if (k.shifted!="") k.mybutton.SetButtonText(x);
+
                 if (k.name=="SHIFT") k.mybutton.GetComponentInChildren<Image>().color = key.kb.Shift ? Color.green : Color.white;
             }
         }
@@ -503,7 +505,7 @@ namespace SongRequestManager
                 if (Value != "")
                 {
                     this.value = Value;
-                    this.shifted = Value;
+                    //this.shifted = Value;
                 }
                 return this;
             }

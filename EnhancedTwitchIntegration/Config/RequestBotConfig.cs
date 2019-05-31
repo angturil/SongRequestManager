@@ -11,7 +11,7 @@ namespace SongRequestManager
 {
     public class RequestBotConfig
     {
-        private string FilePath = Path.Combine(Globals.DataPath, "RequestBotSettings.ini");
+        private string FilePath = Path.Combine(Plugin.DataPath, "RequestBotSettings.ini");
 
 
         public bool RequestQueueOpen = true;
@@ -26,7 +26,7 @@ namespace SongRequestManager
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
         public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
-        public int MaxiumAddScanRange = 120; // How far down the list to scan , currently in use by unpublished commands
+        public int MaxiumAddScanRange = 20; // How far down the list to scan for new songs
 
         public string DeckList = "fun hard challenge dance chill";
 
@@ -37,8 +37,16 @@ namespace SongRequestManager
         public int MaximumQueueTextEntries = 8;
         public string BotPrefix ="";
 
+        public int maximumqueuemessages = 1;
+        public int maximumlookupmessages = 1;
+
         public string LastBackup = DateTime.MinValue.ToString();
         public string backuppath = Path.Combine(Environment.CurrentDirectory, "userdata", "backup");
+
+        public bool OfflineMode = false;
+        public bool LocalSearch = false;
+        public string additionalsongpath = "";
+        public string songdownloadpath = "";
 
         public event Action<RequestBotConfig> ConfigChangedEvent;
 

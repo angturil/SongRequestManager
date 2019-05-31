@@ -1,0 +1,205 @@
+diff --git a/EnhancedTwitchIntegration/SongRequestManager.csproj b/EnhancedTwitchIntegration/SongRequestManager.csproj
+index 2ba0721..7e790e1 100644
+--- a/EnhancedTwitchIntegration/SongRequestManager.csproj
++++ b/EnhancedTwitchIntegration/SongRequestManager.csproj
+@@ -50,6 +50,9 @@
+     <Reference Include="IPA.Loader">
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
+     </Reference>
++    <Reference Include="SongBrowser">
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
++    </Reference>
+     <Reference Include="SongCore, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\SongCore.dll</HintPath>
+diff --git a/EnhancedTwitchIntegration/UI/SongListUtils.cs b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+index 9c1382f..54f587b 100644
+--- a/EnhancedTwitchIntegration/UI/SongListUtils.cs
++++ b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+@@ -6,7 +6,7 @@ using System;
+ using System.Collections;
+ using System.Linq;
+ using UnityEngine;
+-using SongLoaderPlugin;
++using IPA.Utilities;
+ 
+ namespace SongRequestManager
+ {
+@@ -53,14 +53,18 @@ namespace SongRequestManager
+         private enum SongBrowserAction { ResetFilter = 1 }
+         private static void ExecuteSongBrowserAction(SongBrowserAction action)
+         {
+-            //var _songBrowserUI = SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
+-            //if (_songBrowserUI)
+-            //{
+-            //    if (action.HasFlag(SongBrowserAction.ResetFilter))
+-            //    {
+-            //        _songBrowserUI.Model.Settings.filterMode = SongFilterMode.None;
+-            //    }
+-            //}
++            var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
++            if (_songBrowserUI)
++            {
++                if (action.HasFlag(SongBrowserAction.ResetFilter))
++                {
++                    // if filter mode is set, clear it
++                    if (_songBrowserUI.Model.Settings.filterMode != SongBrowser.DataAccess.SongFilterMode.None)
++                    {
++                        _songBrowserUI.InvokePrivateMethod("OnClearButtonClickEvent");
++                    }
++                }
++            }
+         }
+ 
+         private enum SongDownloaderAction { ResetFilter = 1 }
+@@ -79,11 +83,11 @@ namespace SongRequestManager
+ 
+         public static IEnumerator RetrieveNewSong(string songFolderName, bool resetFilterMode = false)
+         {
+-            if (!SongLoader.AreSongsLoaded) yield break;
++            if (!SongLoaderPlugin.SongLoader.AreSongsLoaded) yield break;
+ 
+             if (!_standardLevelListViewController) yield break;
+-            
+-            SongLoader.Instance.RetrieveNewSong(songFolderName);
++
++            SongLoaderPlugin.SongLoader.Instance.RetrieveNewSong(songFolderName);
+             
+             //// If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+             //if (resetFilterMode)
+@@ -103,16 +107,16 @@ namespace SongRequestManager
+ 
+         public static IEnumerator RefreshSongs(bool fullRefresh = false, bool selectOldLevel = true)
+         {
+-            if (!SongLoader.AreSongsLoaded) yield break;
++            if (!SongLoaderPlugin.SongLoader.AreSongsLoaded) yield break;
+             if (!_standardLevelListViewController) yield break;
+ 
+             // // Grab the currently selected level id so we can restore it after refreshing
+            // string selectedLevelId = _standardLevelListViewController.selectedLevel?.levelID;
+ 
+             // Wait until song loader is finished loading, then refresh the song list
+-            while (SongLoader.AreSongsLoading) yield return null;
+-            SongLoader.Instance.RefreshSongs(fullRefresh);
+-            while (SongLoader.AreSongsLoading) yield return null;
++            while (SongLoaderPlugin.SongLoader.AreSongsLoading) yield return null;
++            SongLoaderPlugin.SongLoader.Instance.RefreshSongs(fullRefresh);
++            while (SongLoaderPlugin.SongLoader.AreSongsLoading) yield return null;
+             
+ 
+             //// Set the row index to the previously selected song
+@@ -120,16 +124,13 @@ namespace SongRequestManager
+             //    ScrollToLevel(selectedLevelId);
+         }
+ 
+-        public static void SelectCustomSongPack(bool resetFilters = true)
++        public static int SelectCustomSongPack(bool resetFilters = true)
+         {
+             var levelPacksTableView = Resources.FindObjectsOfTypeAll<LevelPacksTableView>().First();
+             var tableView = levelPacksTableView.GetPrivateField<TableView>("_tableView");
+             
+             var packsCollection = levelPacksTableView.GetPrivateField<IBeatmapLevelPackCollection>("_levelPackCollection");
+-            int customSongPackIndex = -1;
+-            for(int i=0; i< packsCollection.beatmapLevelPacks.Length; i++)
+-                if(packsCollection.beatmapLevelPacks[i].packName == "Modded Custom Maps")
+-                    customSongPackIndex = i;
++            var customSongPackIndex = Array.FindIndex(packsCollection.beatmapLevelPacks, x => x.packID == "ModdedCustomMaps");
+ 
+             if (customSongPackIndex != -1 && levelPacksTableView.GetPrivateField<int>("_selectedColumn") != customSongPackIndex)
+             {
+@@ -141,12 +142,29 @@ namespace SongRequestManager
+ 
+             //// If song browser is installed, update/refresh it
+             if (_songBrowserInstalled)
++            {
+                 ExecuteSongBrowserAction(SongBrowserAction.ResetFilter);
++            }
+             //// If beatsaver downloader is installed and songbrowser isnt, then we need to change the filter mode through it
+             else if (_songDownloaderInstalled)
+-                ExecuteSongDownloaderAction(SongDownloaderAction.ResetFilter);
++            {
++                // get levels for selected pack
++                var packWithLevels = BeatSaverDownloaderGetLevelPackWithLevels();
++
++                // force an update to the levels
++                _standardLevelListViewController.SetData(packWithLevels);
++            }
++
++            return customSongPackIndex;
+         }
+-        
++
++        private static BeatmapLevelPackSO BeatSaverDownloaderGetLevelPackWithLevels()
++        {
++            var levels = SongLoaderPlugin.SongLoader.CustomBeatmapLevelPackSO.beatmapLevelCollection.beatmapLevels.Cast<BeatmapLevelSO>().ToArray();
++            var pack = SongLoaderPlugin.SongLoader.CustomBeatmapLevelPackCollectionSO.beatmapLevelPacks.First(x => x.packID == "ModdedCustomMaps");
++            return BeatSaverDownloader.Misc.CustomHelpers.GetLevelPackWithLevels(levels, "Custom Songs", pack.coverImage);
++        }
++
+         public static int GetLevelIndex(LevelPackLevelsViewController table, string levelID)
+         {
+             for (int i = 0; i < table.levelPack.beatmapLevelCollection.beatmapLevels.Length; i++)
+@@ -167,27 +185,37 @@ namespace SongRequestManager
+ 
+                 Plugin.Log($"Scrolling to {levelID}! Retry={isRetry}");
+ 
+-                SelectCustomSongPack();
++                var packIndex = SelectCustomSongPack();
+ 
+-                TableView tableView = _standardLevelListViewController.GetComponentInChildren<TableView>();
+-                tableView.ReloadData();
++                yield return null;
+ 
+-                var levels = _standardLevelListViewController.levelPack.beatmapLevelCollection.beatmapLevels.Where(l => l.levelID == levelID).ToArray();
++                // get the table view
++                var levelsTableView = _standardLevelListViewController.GetPrivateField<LevelPackLevelsTableView>("_levelPackLevelsTableView");
+ 
+-                if (levels.Length > 0)
+-                {
+-
+-                    int row = GetLevelIndex(_standardLevelListViewController, levelID);
++                // get the table view
++                var tableView = levelsTableView.GetPrivateField<TableView>("_tableView");
+ 
+-                    Plugin.Log($"Row={row}");
++                // get the row number for the song we want
++                var songIndex = Array.FindIndex(SongLoaderPlugin.SongLoader.CustomBeatmapLevelPackCollectionSO.beatmapLevelPacks[packIndex].beatmapLevelCollection.beatmapLevels, x => x.levelID == levelID);
+ 
+-                    if (row != -1)
++                // bail if song is not found, shouldn't happen
++                if (songIndex >= 0)
++                {
++                    // if header is being shown, increment row
++                    if (levelsTableView.GetPrivateField<bool>("_showLevelPackHeader"))
+                     {
+-                        tableView.SelectCellWithIdx(row, true);
+-                        tableView.ScrollToCellWithIdx(row, TableView.ScrollPositionType.Beginning, animated);
+-                        callback?.Invoke(true);
+-                        yield break;
++                        songIndex++;
+                     }
++
++                    // scroll to song
++                    tableView.ScrollToCellWithIdx(songIndex, TableView.ScrollPositionType.Beginning, animated);
++
++                    // select song, and fire the event
++                    tableView.SelectCellWithIdx(songIndex, true);
++
++                    Plugin.Log("Selected song with index " + songIndex);
++                    callback?.Invoke(true);
++                    yield break;
+                 }
+             }
+ 
+@@ -198,9 +226,9 @@ namespace SongRequestManager
+                 yield break;
+             }
+ 
+-            var tempLevels = SongLoader.CustomLevels.Where(l => l.levelID == levelID).ToArray();
++            var tempLevels = SongLoaderPlugin.SongLoader.CustomLevels.Where(l => l.levelID == levelID).ToArray();
+             foreach (var l in tempLevels)
+-                SongLoader.CustomLevels.Remove(l);
++                SongLoaderPlugin.SongLoader.CustomLevels.Remove(l);
+ 
+             Plugin.Log($"Failed to scroll to {levelID}!");
+             callback?.Invoke(false);

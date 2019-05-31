@@ -5,8 +5,7 @@ This mod has been in use for many months, and is constantly updated. While this 
 
 # Current State
 
-The current bot is now compatible with the April fools' release 0.13.1. You will need to grab the latest support files from modsaber.
-If they're not available, you may Temporarily grab streamcore and enhancedstreamchat here. These are not guaranteed current.
+The current bot is compatible with Release 1.0.0. Use the latest installer.
 
 # TTS Notes
 If you're using TTS, you'll want to reduce the amount of spam the bot produces. You can do this a number of ways. Filtering out your Name from TTS, or 
@@ -81,4 +80,4 @@ This plugin is free. If you wish to help us out though, tips to
 [our Paypal](https://paypal.me/sehria) are always appreciated.
 
 # Download
-[Click here to download the latest SongRequestManager.dll](https://github.com/angturil/SongRequestManager/releases/download/1.3.2/SongRequestManager.dll)
+[Click here to download the latest SongRequestManager.dll](https://github.com/angturil/SongRequestManager/releases/download/1.3.1/SongRequestManager.dll)

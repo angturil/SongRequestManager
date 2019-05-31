@@ -42,8 +42,8 @@ namespace SongRequestManager
 
             Timeout = 2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
             TimeoutSub = 4096, // Applies a timeout to Subs
-            TimeoutVIP = 8192, // Applies a timeout to VIP's
-            Local = 16384, // Applies a timeout to MOD's. A way to slow spamming of channel for overused commands. 
+            Autopick = 8192, // Auto pick first song when adding
+            Local = 16384, // The command is being executed from console and therefore always full priveledge
 
             NoLinks = 32768, // Turn off any links that the command may normally generate
 
@@ -124,7 +124,7 @@ namespace SongRequestManager
             new COMMAND(new string[] { "!request", "!bsr", "!add", "!sr","!srm" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
             new COMMAND(new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
-            new COMMAND("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias%|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
+            new COMMAND("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias% %|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
 
             new COMMAND("!open").Action(OpenQueue).Help(Mod, "usage: %alias%%|%... Opens the queue allowing song requests.", _nothing);
             new COMMAND("!close").Action(CloseQueue).Help(Mod, "usage: %alias%%|%... Closes the request queue.", _nothing);
@@ -132,7 +132,7 @@ namespace SongRequestManager
             new COMMAND("!queue").Action(ListQueue).Help(Everyone, "usage: %alias%%|% ... Displays a list of the currently requested songs.", _nothing);
             new COMMAND("!played").Action(ShowSongsplayed).Help(Mod, "usage: %alias%%|%... Displays all the songs already played this session.", _nothing);
             new COMMAND("!history").Action(ShowHistory).Help(Mod, "usage: %alias% %|% Shows a list of the recently played songs, starting from the most recent.", _nothing);
-            new COMMAND("!who").Action(Who).Help(Mod, "usage: %alias% <songid or name>%|%Find out who requested the song in the currently queue or recent history.", _atleast1);
+            new COMMAND("!who").Action(Who).Help(Sub | VIP | Mod, "usage: %alias% <songid or name>%|%Find out who requested the song in the currently queue or recent history.", _atleast1);
 
             new COMMAND ("!modadd").Action(ModAdd).Help(Mod, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. This ignores ALL filters including bans.", _atleast1);
             new COMMAND("!mtt").Action(MoveRequestToTop).Help(Mod, "usage: %alias%<songname>,<username>,<song id> %|%... Moves a song to the top of the request queue.", _atleast1);
@@ -152,7 +152,7 @@ namespace SongRequestManager
             new COMMAND("!clearalreadyplayed").Action(ClearDuplicateList).Help(Mod, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
             new COMMAND("!restore").Action(restoredeck).Help(Mod, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
 
-            new COMMAND("!about").Help(CmdFlags.Local | CmdFlags.SilentCheck , $"Song Request Manager version {Plugin.Instance.Version}. Github angturil/SongRequestManager", _fail); // Help commands have no code
+            new COMMAND("!about").Help(CmdFlags.Broadcaster | CmdFlags.SilentCheck , $"Song Request Manager version {Plugin.Instance.Version}. Github angturil/SongRequestManager", _fail); // Help commands have no code
             new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
             new COMMAND("!commandlist").Action(showCommandlist).Help(Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
@@ -175,12 +175,23 @@ namespace SongRequestManager
             new COMMAND(new string[] { "!addnew", "!addlatest" }).Coroutine(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
             new COMMAND("!backup").Action(Backup).Help(CmdFlags.Broadcaster, "Backup %SRM% directory.", _anything);
 
+            new COMMAND("!refreshsongs").Coroutine(RefreshSongs).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
+            new COMMAND("!savesongdatabase").Coroutine(SaveSongDatabase).Help(Broadcaster);
+
+            new COMMAND("!queuestatus").Action(QueueStatus).Help(Mod, "usage: %alias% %|% Show current queue status", _nothing);
+
 #if UNRELEASED
 
+
+            //new COMMAND("!getpp").Coroutine(GetPPData).Help(Broadcaster, "Get PP Data");
+
+            new COMMAND("!downloadsongs").Coroutine(DownloadEverything).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
 
             // These comments contain forward looking statement that are absolutely subject to change. I make no commitment to following through
             // on any specific feature,interface or implementation. I do not promise to make them generally available. Its probably best to avoid using or making assumptions based on these.
 
+
+            new COMMAND("!readarchive").Coroutine(ReadArchive).Help(Broadcaster, "Adds archived sngs to bot");
 
 
 
@@ -225,11 +236,14 @@ namespace SongRequestManager
             new COMMAND("!updatemappers").Coroutine(UpdateMappers).Help(Broadcaster, "usage: %alias% %|% Update mapper lists/decks. This may take a while, don't do live.");
             new COMMAND("!joinrooms").Coroutine(GetRooms).Help(Broadcaster, "usage: %alias% %|% This is not fully functional, allows the bot to accept commands from your other rooms.") ;
             new COMMAND("!savecommands").Action(SaveCommands);
+
+            new COMMAND("gccount").Action(GetGCCount).Help(Broadcaster);
+
 #endif
             #endregion
 
             #region Text Format fields
-            
+
             //would be good to use reflections for these
             new COMMAND("AddSongToQueueText", AddSongToQueueText); // These variables are bound due to class reference assignment
             new COMMAND("LookupSongDetail", LookupSongDetail);
@@ -269,9 +283,11 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/alias", "subcmdalias" }).Action(SubcmdAlias).Help(Subcmd | Broadcaster, "usage: %alias% %|% Defines all the aliases a command can use");
             new COMMAND(new string[] { "/default", "subcmddefault" }).Action(SubcmdDefault).Help(Subcmd | Broadcaster, "usage: <formattext> %alias%");
 
-            new COMMAND(new string[] { "/newest", "subcmdnewest" }).Action(SubcmdNewest).Help(Subcmd |CmdFlags.NoParameter| Everyone); // BUG: Not implemented
-            new COMMAND(new string[] { "/best", "subcmdbest" }).Action(SubcmdBest).Help(Subcmd | CmdFlags.NoParameter | Everyone); // BUG: Not implemented
-            new COMMAND(new string[] { "/oldest", "subcmdoldest" }).Action(SubcmdOldest).Help(Subcmd | CmdFlags.NoParameter | Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/newest", "subcmdnewest" }).Action(SubcmdNewest).Help(Subcmd |CmdFlags.NoParameter| Everyone); 
+            new COMMAND(new string[] { "/best", "subcmdbest" }).Action(SubcmdBest).Help(Subcmd | CmdFlags.NoParameter | Everyone); 
+            new COMMAND(new string[] { "/oldest", "subcmdoldest" }).Action(SubcmdOldest).Help(Subcmd | CmdFlags.NoParameter | Everyone); 
+            new COMMAND(new string[] { "/pp", "subcmdpp" }).Action(SubcmdPP).Help(Subcmd | CmdFlags.NoParameter | Everyone); 
+
 
             new COMMAND(new string[] { "/top", "subcmdtop" }).Action(SubcmdTop).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster, "%alias% sets a flag to move the request(s) to the top of the queue.");
             new COMMAND(new string[] { "/mod","subcmdmod"}).Action(SubcmdMod).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster,"%alias% sets a flag to ignore all filtering");
@@ -304,18 +320,29 @@ namespace SongRequestManager
 
         public string SubcmdNewest(ParseState state)
         {
+            state.flags |= CmdFlags.Autopick;
             state.sort = "-id -rating";
             return success;
         }
 
+        public string SubcmdPP(ParseState state)
+        {
+            state.flags |= CmdFlags.Autopick;
+            state.sort = "-pp -rating -id";
+            return success;
+        }
+
+
         public string SubcmdBest(ParseState state)
         {
+            state.flags |= CmdFlags.Autopick;
             state.sort = "-rating -id";
             return success;
         }
 
         public string SubcmdOldest(ParseState state)
         {
+            state.flags |= CmdFlags.Autopick;
             state.sort = "+id -rating";
             return success;
         }
@@ -524,7 +551,7 @@ namespace SongRequestManager
         public partial class COMMAND
         {
             public static StringBuilder commandsummary=new StringBuilder();
-            private static bool Loading = false;
+            public static bool Loading = false;
 
             public static Dictionary<string, COMMAND> aliaslist = new Dictionary<string, COMMAND>(); // There can be only one (static)!
 
@@ -782,7 +809,7 @@ namespace SongRequestManager
 // !block /alias block, Ban 
 // !lookup /disable
 //");
-                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
+                var filename = Path.Combine(Plugin.DataPath, configfilename + ".ini");
                 File.WriteAllText(filename, UserSettings.ToString());
             }
 
@@ -792,7 +819,7 @@ namespace SongRequestManager
 
                 var UserSettings = new StringBuilder("// This section contains ONLY commands that have changed.\r\n\r\n");
 
-                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
+                var filename = Path.Combine(Plugin.DataPath, configfilename + ".ini");
 
                 Loading = true; // Prevents file updates during command load.
 
@@ -847,7 +874,7 @@ namespace SongRequestManager
             public string subparameter="";
 
             // Object clone constructor. Mostly used when spawning multiple threads against a single command
-            public ParseState(ParseState state)
+            public ParseState(ParseState state,string parameter=null)
                 {
                 // These are references
                 this.user = state.user; 
@@ -855,6 +882,7 @@ namespace SongRequestManager
                  
                 this.flags = state.flags;
                 this.parameter = state.parameter;
+                if (parameter != null) this.parameter = parameter;
                 this.subparameter = state.subparameter;
                 this.command = state.command;
                 this.info = state.info;
@@ -975,7 +1003,7 @@ namespace SongRequestManager
 
                 if (botcmd.ChangedParameters != 0 && !botcmd.ChangedParameters.HasFlag(COMMAND.ChangedFlags.Saved))
                 {
-                    COMMAND.WriteCommandConfiguration();
+                    if (COMMAND.Loading==false) COMMAND.WriteCommandConfiguration();
                     botcmd.ChangedParameters |= COMMAND.ChangedFlags.Saved;
                 }
 
@@ -1023,6 +1051,14 @@ namespace SongRequestManager
             }
 
 
+            public static string GetCommand(ref string request)
+                {
+                int commandlength = 0;
+                // This is a replacement for the much simpler Split code. It was changed to support /fakerest parameters, and sloppy users ... ie: !add4334-333 should now work, so should !command/flags
+                while (commandlength < request.Length && (request[commandlength] != '=' && request[commandlength] != '/' && request[commandlength] != ' ')) commandlength++;  // Command name ends with #... for now, I'll clean up some more later    
+                if (commandlength == 0) return "";       
+                return request.Substring(0, commandlength).ToLower();
+                }   
 
             public ParseState ParseCommand()
             {

@@ -60,7 +60,7 @@ namespace SongRequestManager
 
             public StringListManager ClearOldList(string request, TimeSpan delta, ListFlags flags = ListFlags.Unchanged)
             {
-                string listfilename = Path.Combine(Globals.DataPath, request);
+                string listfilename = Path.Combine(Plugin.DataPath, request);
                 TimeSpan UpdatedAge = GetFileAgeDifference(listfilename);
 
                 StringListManager list = OpenList(request, flags);
@@ -165,7 +165,7 @@ namespace SongRequestManager
             {
                 try
                 {
-                    ListCollection[listname].Clear();
+                    OpenList(listname).Clear();
                 }
                 catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
             }
@@ -198,7 +198,7 @@ namespace SongRequestManager
 
                 try
                 {
-                    string listfilename = Path.Combine(Globals.DataPath, filename);
+                    string listfilename = Path.Combine(Plugin.DataPath, filename);
                     string fileContent = File.ReadAllText(listfilename);
                     if (listfilename.EndsWith(".script"))
                         list = fileContent.Split(lineseparator, StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -237,7 +237,7 @@ namespace SongRequestManager
 
                 try
                 {
-                    string listfilename = Path.Combine(Globals.DataPath, filename);
+                    string listfilename = Path.Combine(Plugin.DataPath, filename);
 
                     var output = String.Join(separator, list.ToArray());
                     File.WriteAllText(listfilename, output);
