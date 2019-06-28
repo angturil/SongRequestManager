@@ -88,7 +88,19 @@ namespace SongRequestManager
 
                 foreach (var c in text)
                 {
-                    if (mask[c] != ' ') o.Append(c);
+                    if (c>127 || mask[c] != ' ') o.Append(c);
+                }
+                return o.ToString();
+            }
+
+            public string RemoveDirectorySymbols(ref string text)
+            {
+                var mask = _SymbolsValidDirectory;
+                var o = new StringBuilder(text.Length);
+
+                foreach (var c in text)
+                {
+                    if (c > 127 || mask[c] !='\0') o.Append(c);
                 }
                 return o.ToString();
             }
@@ -122,25 +134,31 @@ namespace SongRequestManager
                 return result;
             }
 
-            public char[] _SymbolsMap = new char[128];
+           public char[] _SymbolsMap = new char[128];
             public char[] _SymbolsNoDash = new char[128];
+            public char[] _SymbolsValidDirectory = new char[128];
 
 
             public StringNormalization()
             {
                 for (char i = (char)0; i < 128; i++)
-                {
+                { 
                     _SymbolsMap[i] = i;
                     _SymbolsNoDash[i] = i;
+                    _SymbolsValidDirectory[i] = i ; 
                 }
 
                 foreach (var c in new char[] { '@', '*', '+', ':', '-', '<', '~', '>', '(', ')', '[', ']', '/', '\\', '.', ',' }) if (c < 128) _SymbolsMap[c] = ' ';
                 foreach (var c in new char[] { '@', '*', '+', ':',  '<', '~', '>', '(', ')', '[', ']', '/', '\\', '.', ',' }) if (c < 128) _SymbolsNoDash[c] = ' ';
+                foreach (var c in Path.GetInvalidPathChars()) if (c<128) _SymbolsValidDirectory[c] = '\0';
+                _SymbolsValidDirectory[':'] = '\0';
+                _SymbolsValidDirectory['\\'] = '\0';
+                _SymbolsValidDirectory['/'] = '\0';
 
-                // Incomplete list of words that BeatSaver.com filters out for no good reason.
+                // Incomplete list of words that BeatSaver.com filters out for no good reason. No longer applies!
                 foreach (var word in new string[] { "and","the", "this", "from", "will", "when", "with", "what", "who", "why", "how", "was" })
                 {
-                    BeatsaverBadWords.Add(word.ToLower());
+                    //BeatsaverBadWords.Add(word.ToLower());
                 }
 
             }

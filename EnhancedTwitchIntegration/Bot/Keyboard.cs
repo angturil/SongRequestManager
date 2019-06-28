@@ -17,6 +17,7 @@ namespace SongRequestManager
     {
         public List<KEY> keys = new List<KEY>();
 
+        bool SabotageState = false;
         bool EnableInputField = true;
         bool Shift = false;
         bool Caps = false;
@@ -112,7 +113,8 @@ namespace SongRequestManager
                     key.keyaction = action;
                 }
 
-            if (!found) Plugin.Log($"Keyboard: Unable to set action of Key  [{keyname}]");
+            // BUG: This message was annoying if the keyboard didn't include those keys.
+            //if (!found) Plugin.Log($"Keyboard: Unable to set action of Key  [{keyname}]");
 
         }
 
@@ -319,7 +321,8 @@ namespace SongRequestManager
     
         // Default actions may be called more than once. Make sure to only set any overrides that replace these AFTER all keys have been added
         public KEYBOARD DefaultActions()
-            {         
+            {
+            SetAction("SABOTAGE", SABOTAGE);
             SetAction("CLEAR", Clear);
             SetAction("ENTER", Enter);
             SetAction("<--", Backspace);
@@ -476,6 +479,15 @@ namespace SongRequestManager
             key.kb.Caps = ! key.kb.Caps;
             key.mybutton.GetComponentInChildren<Image>().color = key.kb.Caps? Color.green : Color.white;
             }
+
+
+        void SABOTAGE(KEY key)
+            {
+            SabotageState = !SabotageState;
+            key.mybutton.GetComponentInChildren<Image>().color = SabotageState ? Color.green : Color.red;
+            string text = "!sabotage "+ ( SabotageState ? "on" : "off");
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, text, RequestBot.CmdFlags.Local);
+           }
 
         void DrawCursor()
         {

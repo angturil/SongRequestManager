@@ -28,6 +28,8 @@ namespace SongRequestManager
         static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>");
         static StringBuilder QueueTextFileFormat=new StringBuilder ("%songName%%LF%");         // Don't forget to include %LF% for these. 
 
+        static StringBuilder BanSongDetail = new StringBuilder("Blocking %songName%/%authorName% (%version%)");
+
         static StringBuilder QueueListFormat= new StringBuilder("%songName% (%version%)");
         static StringBuilder HistoryListFormat = new StringBuilder("%songName% (%version%)");
 
@@ -183,7 +185,7 @@ namespace SongRequestManager
         {
             string songid = song["id"].Value;
             if (IsInQueue(songid)) return true;
-            if (SongBlacklist.Songs.ContainsKey(songid)) return true;
+            if (listcollection.contains(ref banlist,songid)) return true;
             if (listcollection.contains(ref duplicatelist, songid)) return true;
             return false;
         }
@@ -197,7 +199,7 @@ namespace SongRequestManager
             string songid = song["id"].Value;
             if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
 
-            if (filter.HasFlag(SongFilter.Blacklist) && SongBlacklist.Songs.ContainsKey(songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is banned!";
+            if (filter.HasFlag(SongFilter.Blacklist) && listcollection.contains(ref banlist,songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is banned!";
 
             if (filter.HasFlag(SongFilter.Mapper) &&  mapperfiltered(song,_mapperWhitelist)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
@@ -239,43 +241,95 @@ namespace SongRequestManager
         #endregion
 
         #region Ban/Unban Song
-        public void Ban(TwitchUser requestor, string request)
-        {
-            Ban(requestor, request, false);
-        }
+        //public void Ban(TwitchUser requestor, string request)
+        //{
+        //    Ban(requestor, request, false);
+        //}
 
-        public void Ban(TwitchUser requestor, string request, bool silence)
+        private IEnumerator Ban(ParseState state)
         {
-            if (isNotModerator(requestor)) return;
 
-            var songId = GetBeatSaverId(request);
-            if (songId == "" && !silence)
+
+            var id = GetBeatSaverId(state.parameter.ToLower());
+
+            if (listcollection.contains(ref banlist, id))
             {
-                QueueChatMessage($"usage: !block <songid>, omit <>'s.");
-                return;
+                QueueChatMessage($"{id} is already on the ban list.");
+                yield break;
             }
 
-            if (SongBlacklist.Songs.ContainsKey(songId) && !silence)
+            SongMap song = null;
+            if (!MapDatabase.MapLibrary.TryGetValue(id, out song))
             {
-                QueueChatMessage($"{request} is already on the ban list.");
+
+                JSONNode result = null;
+                string requestUrl = $"https://beatsaver.com/api/maps/detail/{id}";
+                if (RequestBotConfig.Instance.OfflineMode) requestUrl = "";
+
+                using (var web = UnityWebRequest.Get($"{requestUrl}"))
+                {
+                    yield return web.SendWebRequest();
+                    if (web.isNetworkError || web.isHttpError)
+                    {
+                        Plugin.Log($"Ban: Error {web.error} occured when trying to request song {requestUrl}!");
+                    }
+                    else
+                    {
+                        result = JSON.Parse(web.downloadHandler.text);
+                    }
+
+                }
+                if (result != null) song = new SongMap(result.AsObject);
             }
+
+            listcollection.add(banlist, id);
+
+            if (song==null)
+                {
+                QueueChatMessage($"{id} is now on the ban list.");
+                }
             else
-            {
-                var song = new JSONObject();
-                song.Add("id", songId);
-                BlacklistQueue.Enqueue(new KeyValuePair<SongRequest, bool>(new SongRequest(song, requestor, DateTime.UtcNow, RequestStatus.Blacklisted), silence));
-            }
+                {
+                state.msg(new DynamicText().AddSong(ref song.song).Parse(BanSongDetail), ", ");
+
+            }   
+
+            
         }
+
+
+        //public void Ban(TwitchUser requestor, string request, bool silence)
+        //{
+        //    if (isNotModerator(requestor)) return;
+
+        //    var songId = GetBeatSaverId(request);
+        //    if (songId == "" && !silence)
+        //    {
+        //        QueueChatMessage($"usage: !block <songid>, omit <>'s.");
+        //        return;
+        //    }
+
+        //    if (listcollection.contains(ref banlist,songId) && !silence)
+        //    {
+        //        QueueChatMessage($"{request} is already on the ban list.");
+        //    }
+        //    else
+        //    {
+
+        //        listcollection.add(banlist, songId);
+        //        QueueChatMessage($"{request} is now on the ban list.");
+
+        //    }
+        //}
 
         private void Unban(TwitchUser requestor, string request)
         {
             var unbanvalue = GetBeatSaverId(request);
 
-            if (SongBlacklist.Songs.ContainsKey(unbanvalue))
+            if (listcollection.contains(ref banlist,unbanvalue))
             {
                 QueueChatMessage($"Removed {request} from the ban list.");
-                SongBlacklist.Songs.Remove(unbanvalue);
-                SongBlacklist.Write();
+                listcollection.remove(banlist,unbanvalue);
             }
             else
             {
@@ -518,11 +572,49 @@ namespace SongRequestManager
             return success;
         }
 
+        private IEnumerator SetBombState(ParseState state)
+        {
+
+            state.parameter = state.parameter.ToLower();
+
+            if (state.parameter == "on") state.parameter = "enable";
+            if (state.parameter == "off") state.parameter = "disable";
+
+            if (state.parameter != "enable" && state.parameter != "disable")
+            {
+                state.msg(state.botcmd.ShortHelp);
+                yield break;
+            }
+
+            //System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo($"liv-streamerkit://gamechanger/beat-saber-sabotage/{state.parameter}"));
+
+            System.Diagnostics.Process.Start($"liv-streamerkit://gamechanger/beat-saber-sabotage/{state.parameter}");
+
+            if (_WobbleInstalled)
+               {
+                string wobblestate = "off";
+                if (state.parameter == "enable") wobblestate = "on"; 
+               TwitchWebSocketClient.SendCommand($"!wadmin toggle {wobblestate} ");
+
+
+            }
+
+            state.msg($"The !bomb command is now {state.parameter}d.");
+
+
+
+            yield break;
+
+        }
+
+
         private IEnumerator addsongsFromnewest(ParseState state)
         {
             int totalSongs = 0;
 
-            string requestUrl = "https://beatsaver.com/api/songs/new";
+            string requestUrl = "https://beatsaver.com/api/maps/latest";
+
+            if (RequestBotConfig.Instance.OfflineMode) yield break;
 
             int offset = 0;
 
@@ -530,7 +622,7 @@ namespace SongRequestManager
 
             //state.msg($"Flags: {state.flags}");
 
-            while (offset < RequestBotConfig.Instance.MaxiumAddScanRange) // MaxiumAddScanRange
+            while (offset < RequestBotConfig.Instance.MaxiumScanRange) // MaxiumAddScanRange
             {
 
                 using (var web = UnityWebRequest.Get($"{requestUrl}/{offset}"))
@@ -543,14 +635,14 @@ namespace SongRequestManager
                     }
 
                     JSONNode result = JSON.Parse(web.downloadHandler.text);
-                    if (result["songs"].IsArray && result["total"].AsInt == 0)
+                    if (result["docs"].IsArray && result["totalDocs"].AsInt == 0)
                     {
                         yield break;
                     }
 
-                    if (result["songs"].IsArray)
+                    if (result["docs"].IsArray)
                     {
-                        foreach (JSONObject entry in result["songs"])
+                        foreach (JSONObject entry in result["docs"])
                         {
                             JSONObject song = entry;
                             new SongMap(song);
@@ -564,7 +656,7 @@ namespace SongRequestManager
                         }
                     }
                 }
-                offset += 20; // Magic beatsaver.com skip constant.
+                offset += 1; // Magic beatsaver.com skip constant.
             }
 
             if (totalSongs == 0)
@@ -589,22 +681,28 @@ namespace SongRequestManager
         // General search version
         private IEnumerator addsongs(ParseState state)
         {
-            bool isBeatSaverId = _digitRegex.IsMatch(state.parameter) || _beatSaverRegex.IsMatch(state.parameter);
+ 
+            var id = GetBeatSaverId(state.parameter);
+            string requestUrl = (id != "") ? $"https://beatsaver.com/api/maps/detail/{normalize.RemoveSymbols(ref state.parameter, normalize._SymbolsNoDash)}" : $"https://beatsaver.com/api/search/text/0?q={state.request}";
 
-            string requestUrl = isBeatSaverId ? "https://beatsaver.com/api/songs/detail" : "https://beatsaver.com/api/songs/search/song";
 
             string errorMessage = "";
 
+            if (RequestBotConfig.Instance.OfflineMode) requestUrl = "";
+
+            JSONNode result = null;
             using (var web = UnityWebRequest.Get($"{requestUrl}/{normalize.NormalizeBeatSaverString(state.parameter)}"))
             {
                 yield return web.SendWebRequest();
                 if (web.isNetworkError || web.isHttpError)
                 {
                     Plugin.Log($"Error {web.error} occured when trying to request song {state.parameter}!");
-                    errorMessage=$"Invalid BeatSaver ID \"{state.parameter}\" specified.";
+                    errorMessage = $"Invalid BeatSaver ID \"{state.parameter}\" specified.";
                 }
-
-                JSONNode result = JSON.Parse(web.downloadHandler.text);
+                else
+                {
+                    result = JSON.Parse(web.downloadHandler.text);
+                }
 
                 SongFilter filter = SongFilter.All;
                 if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
@@ -732,7 +830,8 @@ namespace SongRequestManager
             var id = GetBeatSaverId(state.parameter);
 
             JSONNode result = null;
-            string requestUrl = (id!="") ? $"https://beatsaver.com/api/songs/detail/{normalize.RemoveSymbols(ref state.parameter,normalize._SymbolsNoDash)}" : $"https://beatsaver.com/api/songs/search/song/{normalize.NormalizeBeatSaverString(state.parameter)}";            
+            string requestUrl = (id!="") ? $"https://beatsaver.com/api/maps/detail/{id}" : $"https://beatsaver.com/api/search/text/0?q={normalize.NormalizeBeatSaverString(state.parameter)}";
+            if (RequestBotConfig.Instance.OfflineMode) requestUrl = "";
             using (var web = UnityWebRequest.Get($"{requestUrl}"))
             {
                 yield return web.SendWebRequest();
@@ -745,6 +844,7 @@ namespace SongRequestManager
                 result = JSON.Parse(web.downloadHandler.text);
                 }
 
+            
                 string errorMessage="";
                 SongFilter filter = SongFilter.none;
                 if (state.flags.HasFlag(CmdFlags.NoFilter)) filter = SongFilter.Queue;
@@ -823,11 +923,11 @@ namespace SongRequestManager
 
             msg.Header("Banlist ");
 
-            foreach (string songId in SongBlacklist.Songs.Keys)
+            foreach (string songId in listcollection.OpenList("banlist.unique").list)
             {
                 if (msg.Add(songId, ", ")) break;
             }
-            msg.end($" ... and {SongBlacklist.Songs.Count - msg.Count} more entries.", "is empty.");
+            msg.end($" ... and {listcollection.OpenList("banlist.unique").list.Count - msg.Count} more entries.", "is empty.");
 
         }
 
@@ -911,8 +1011,71 @@ namespace SongRequestManager
             }
         }
 
+        public static void Shuffle<T>(List<T> list)
+        {
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = generator.Next(0, n+1);
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+        }
 
-        private void Clearqueue(TwitchUser requestor, string request)
+        private string QueueLottery(ParseState state)
+        {
+
+            int entrycount = 0;
+            Int32.TryParse(state.parameter, out entrycount);
+         
+            Shuffle(RequestQueue.Songs);
+
+            var list = RequestQueue.Songs;
+            for (int i=entrycount;i<list.Count;i++)
+                {
+                try
+                {
+                    if (RequestTracker.ContainsKey(list[i].requestor.id)) RequestTracker[list[i].requestor.id].numRequests--;
+                    listcollection.remove(duplicatelist, list[i].song["id"]);
+                }
+                catch
+                {
+                }
+
+                }
+
+            if (entrycount>0)
+                {
+                try
+                {
+                    Writedeck(state.user, "prelotto");
+                    RequestQueue.Songs.RemoveRange(entrycount, RequestQueue.Songs.Count - entrycount);
+                }
+catch       
+                {
+
+                }
+
+
+                }
+
+            
+
+            RequestQueue.Write();
+
+            // Notify the chat that the queue was cleared
+            QueueChatMessage($"Queue lottery complete!");
+
+            ToggleQueue(state.user, state.parameter, false); // Close the queue.
+            // Reload the queue
+            UpdateRequestUI();
+            _refreshQueue = true;
+            return success;
+        }
+
+            private void Clearqueue(TwitchUser requestor, string request)
         {
             // Write our current queue to file so we can restore it if needed
             Writedeck(requestor, "justcleared");
@@ -1185,7 +1348,7 @@ namespace SongRequestManager
 
                 Add("StarRating", GetStarRating(ref song)); // Add additional dynamic properties
                 Add("Rating", GetRating(ref song));
-                Add("BeatsaverLink", $"https://beatsaver.com/browse/detail/{song["version"].Value}");
+                Add("BeatsaverLink", $"https://beatsaver.com/beatmap/{song["id"].Value}");
                 Add("BeatsaberLink", $"https://bsaber.com/songs/{song["id"].Value}");
                 return this;
             }

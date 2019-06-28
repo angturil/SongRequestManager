@@ -62,6 +62,10 @@ namespace SongRequestManager
             VIPBonus.SetValue += (scale) => { RequestBotConfig.Instance.VipBonusRequests = (int)scale; };
             VIPBonus.GetValue += () => { return RequestBotConfig.Instance.VipBonusRequests; };
 
+            var ModeratorRights = menu.AddBool("Full moderator rights", "Allow moderators access to ALL bot commands. Do you trust your mods?");
+            ModeratorRights.SetValue += (requests) => { RequestBotConfig.Instance.ModFullRights = requests ; };
+            ModeratorRights.GetValue += () => { return RequestBotConfig.Instance.ModFullRights; };
+
 
 
         }

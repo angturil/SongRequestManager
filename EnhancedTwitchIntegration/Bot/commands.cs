@@ -18,6 +18,8 @@ namespace SongRequestManager
 {
     public partial class RequestBot : MonoBehaviour
     {
+        static bool _WobbleInstalled = false;
+
         #region COMMANDFLAGS
         [Flags]
         public enum CmdFlags
@@ -91,18 +93,18 @@ namespace SongRequestManager
 
         #region common Regex expressions
 
-        private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex _digitRegex = new Regex("^[0-9a-fA-F]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);
-        private static readonly Regex _RemapRegex = new Regex("^[0-9]+,[0-9]+$", RegexOptions.Compiled);
-        private static readonly Regex _beatsaversongversion = new Regex("^[0-9]+$|^[0-9]+-[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex _RemapRegex = new Regex("^[0-9a-fA-F]+,[0-9a-fA-F]+$", RegexOptions.Compiled);
+        private static readonly Regex _beatsaversongversion = new Regex("^[0-9a-zA-Z]+$", RegexOptions.Compiled);
         private static readonly Regex _nothing = new Regex("$^", RegexOptions.Compiled);
         private static readonly Regex _anything = new Regex(".*", RegexOptions.Compiled); // Is this the most efficient way?
         private static readonly Regex _atleast1 = new Regex("..*", RegexOptions.Compiled); // Allow usage message to kick in for blank 
         private static readonly Regex _fail = new Regex("(?!x)x", RegexOptions.Compiled); // Not sure what the official fastest way to auto-fail a match is, so this will do
         private static readonly Regex _deck = new Regex("^(current|draw|first|last|random|unload)$|$^", RegexOptions.Compiled); // Checks deck command parameters
 
-        private static readonly Regex _drawcard = new Regex("($^)|(^[0-9]+$|^[0-9]+-[0-9]+$)", RegexOptions.Compiled);
+        private static readonly Regex _drawcard = new Regex("($^)|(^[0-9a-zA-Z]+$)", RegexOptions.Compiled);
 
         #endregion
 
@@ -122,7 +124,7 @@ namespace SongRequestManager
 
 
             new COMMAND(new string[] { "!request", "!bsr", "!add", "!sr","!srm" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
-            new COMMAND(new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
+            new COMMAND(new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <song id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
             new COMMAND("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias% %|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
 
@@ -142,7 +144,7 @@ namespace SongRequestManager
             new COMMAND(new string[] { "!wrongsong", "!wrong", "!oops" }).Action(WrongSong).Help(Everyone, "usage: %alias%%|%... Removes your last requested song form the queue. It can be requested again later.", _nothing);
 
             new COMMAND("!unblock").Action(Unban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
-            new COMMAND("!block").Action(Ban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
+            new COMMAND("!block").Coroutine(Ban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
             new COMMAND("!blist").Action(ShowBanList).Help(Broadcaster, "usage: Don't use, it will spam chat!", _atleast1); // Purposely annoying to use, add a character after the command to make it happen 
 
             new COMMAND("!remap").Action(Remap).Help(Mod, "usage: %alias%<songid1> , <songid2>%|%... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.", _RemapRegex);
@@ -175,10 +177,22 @@ namespace SongRequestManager
             new COMMAND(new string[] { "!addnew", "!addlatest" }).Coroutine(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
             new COMMAND("!backup").Action(Backup).Help(CmdFlags.Broadcaster, "Backup %SRM% directory.", _anything);
 
-            new COMMAND("!refreshsongs").Coroutine(RefreshSongs).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
+            //new COMMAND("!refreshsongs").Coroutine(RefreshSongs).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature."); // BUG: Broken in 1.10
             new COMMAND("!savesongdatabase").Coroutine(SaveSongDatabase).Help(Broadcaster);
 
             new COMMAND("!queuestatus").Action(QueueStatus).Help(Mod, "usage: %alias% %|% Show current queue status", _nothing);
+
+            new COMMAND("!QueueLottery").Action(QueueLottery).Help(Broadcaster, "usage: %alias% <entry count> %|% Shuffle the queue and reduce to <entry count> entries. Close the queue.", _anything);
+
+            #region Gamechanger Specific           
+            bool _GameChangerInstalled = IPA.Loader.PluginManager.GetPlugin("Beat Bits") != null;
+            _WobbleInstalled= IPA.Loader.PluginManager.GetPlugin("WobbleSaber") != null;
+
+            if (_GameChangerInstalled)
+                {
+                new COMMAND("!sabotage").Coroutine(SetBombState).Help(Mod, "Usage: %alias% on/off (LIV Gamechanger only). %|% Turns bombs on and off in Gamechanger.");
+                }
+            #endregion
 
 #if UNRELEASED
 
@@ -192,8 +206,6 @@ namespace SongRequestManager
 
 
             new COMMAND("!readarchive").Coroutine(ReadArchive).Help(Broadcaster, "Adds archived sngs to bot");
-
-
 
 
             new COMMAND("!at").Help(Broadcaster, "Run a command at a certain time.", _atleast1); // BUG: No code
@@ -1148,6 +1160,7 @@ namespace SongRequestManager
             if (flags.HasFlag(CmdFlags.Local)) return true;
             if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return false;
             if (botcmd.Flags.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
+            if (user.isMod & RequestBotConfig.Instance.ModFullRights) return true;
             if (user.isBroadcaster & botcmd.Flags.HasFlag(CmdFlags.Broadcaster)) return true;
             if (user.isMod & botcmd.Flags.HasFlag(CmdFlags.Mod)) return true;
             if (user.isSub & botcmd.Flags.HasFlag(CmdFlags.Sub)) return true;

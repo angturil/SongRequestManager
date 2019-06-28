@@ -12,6 +12,9 @@ using UnityEngine;
 using UnityEngine.Networking;
 using SongRequestManager;
 using StreamCore.Utils;
+using TMPro;
+
+using UnityEngine;
 // Feature requests: Add Reason for being banned to banlist
 //  
 
