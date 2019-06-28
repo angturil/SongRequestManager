@@ -18,6 +18,7 @@ namespace SongRequestManager
         public bool PersistentRequestQueue = true;
 
         public bool AutoplaySong = false; // Pressing play will automatically attempt to play the song you selected at the highest difficulty level it has
+        public bool ClearNoFail = true; // Pressing play will automatically attempt to play the song you selected at the highest difficulty level it has
 
         public int RequestHistoryLimit = 40;
         public int UserRequestLimit = 2;
@@ -25,8 +26,13 @@ namespace SongRequestManager
         public int ModRequestLimit = 10;
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
         public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
+        public bool LimitUserRequestsToSession = false; // Request limits do not reset after a song is played.  
+
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
-        public int MaxiumAddScanRange = 20; // How far down the list to scan for new songs
+        
+
+
+        public int MaxiumScanRange = 5; // How far down the list to scan for new songs
 
         public string DeckList = "fun hard challenge dance chill";
 
@@ -37,6 +43,8 @@ namespace SongRequestManager
         public int MaximumQueueTextEntries = 8;
         public string BotPrefix ="";
 
+        public bool ModFullRights = false; // Allow moderator full broadcaster rights. Use at own risk!
+
         public int maximumqueuemessages = 1;
         public int maximumlookupmessages = 1;
 
@@ -44,7 +52,10 @@ namespace SongRequestManager
         public string backuppath = Path.Combine(Environment.CurrentDirectory, "userdata", "backup");
 
         public bool OfflineMode = false;
+        public string offlinepath = "d:\\customsongs";
+
         public bool LocalSearch = false;
+        public bool PPSearch = false;
         public string additionalsongpath = "";
         public string songdownloadpath = "";
 

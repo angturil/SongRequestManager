@@ -77,10 +77,22 @@ namespace SongRequestManager
 
             public SongMap(JSONObject song, string LevelId = "", string path = "")
             {
-                if (LevelId == "")
-                {
-                    LevelId = string.Join("∎", song["hashMd5"].Value.ToUpper(), song["songName"].Value, song["songSubName"].Value, song["authorName"], song["bpm"].AsFloat.ToString()) + "∎";             
+ 
+                if (!song["version"].IsString)
+                    {
+                    //RequestBot.Instance.QueueChatMessage($"{song["key"].Value}: {song["metadata"]}");
+                    song.Add("id", song["key"]);
+                    song.Add("version", song["key"]);
+
+                    var metadata = song["metadata"];
+                    song.Add("songName", metadata["songName"].Value);
+                    song.Add("songSubName", metadata["songSubName"].Value);
+                    song.Add("songSubName", metadata["songSubName"].Value);
+                    song.Add("authorName", metadata["songAuthorName"].Value);
+                    song.Add("levelAuthor", metadata["levelAuthorName"].Value);
+                    song.Add("rating", song["stats"]["rating"].AsFloat*100);
                 }
+
 
                 float songpp = 0;
                 if (ppmap.TryGetValue(song["id"].Value,out songpp))
@@ -88,23 +100,23 @@ namespace SongRequestManager
                     song.Add("pp", songpp);
                     }
 
-                SongMap oldmap;
-                if (MapDatabase.MapLibrary.TryGetValue(song["id"].Value,out oldmap))
-                {
+                //SongMap oldmap;
+                //if (MapDatabase.MapLibrary.TryGetValue(song["id"].Value,out oldmap))
+                //{
                 
-                    if (LevelId == oldmap.LevelId && song["version"].Value == oldmap.song["version"].Value)
-                    {
-                        oldmap.song = song;
-                        return;
-                    }
+                //    if (LevelId == oldmap.LevelId && song["version"].Value == oldmap.song["version"].Value)
+                //    {
+                //        oldmap.song = song;
+                //        return;
+                //    }
 
-                    int id = song["id"].AsInt;
+                //    int id = int.Parse(song["id"].Value.ToUpper(), System.Globalization.NumberStyles.HexNumber);
 
-                    oldmap.UnIndexSong(id);                    
-                }
+                //    oldmap.UnIndexSong(id);                    
+                //}
 
                 this.path = path;
-                this.LevelId = LevelId;
+                //this.LevelId = LevelId;
                 IndexSong(song);
             }
 
@@ -113,11 +125,11 @@ namespace SongRequestManager
                 SongMap temp;
                 string indexpp = (song["pp"].AsFloat > 0) ? "PP" : "";
 
-                IndexFields(false,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value,indexpp);
+                IndexFields(false,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, indexpp);
 
                 MapDatabase.MapLibrary.TryRemove(song["id"].Value, out temp);
                 MapDatabase.MapLibrary.TryRemove(song["version"].Value, out temp);
-                MapDatabase.LevelId.TryRemove(LevelId, out temp);
+                //MapDatabase.LevelId.TryRemove(LevelId, out temp);
             }
 
             void IndexSong(JSONObject song)
@@ -127,11 +139,15 @@ namespace SongRequestManager
                     this.song = song;
                     string indexpp = (song["pp"].AsFloat > 0) ? "PP" : "";
 
-                    IndexFields(true,song["id"].AsInt, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value,indexpp);
+                    int id=int.Parse(song["id"].Value.ToUpper(), System.Globalization.NumberStyles.HexNumber);
+
+                    //Instance.QueueChatMessage($"id={song["id"].Value} = {id}");
+
+                    IndexFields(true,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value,song ["levelAuthor"],indexpp);
 
                     MapDatabase.MapLibrary.TryAdd(song["id"].Value, this);
                     MapDatabase.MapLibrary.TryAdd(song["version"].Value, this);
-                    MapDatabase.LevelId.TryAdd(LevelId, this);
+                    //MapDatabase.LevelId.TryAdd(LevelId, this);
                 }
                 catch (Exception ex)
                 {
@@ -152,7 +168,7 @@ namespace SongRequestManager
             static int tempid = 100000; // For now, we use these for local ID less songs
 
             static bool DatabaseImported = false;
-            static bool DatabaseLoading = false;
+            public static bool DatabaseLoading = false;
 
 
             // Fast? Full Text Search
@@ -201,7 +217,15 @@ namespace SongRequestManager
                         if (!resultlist[i].Contains(map)) goto next; // We can't continue from here :(    
                     }
 
-                result.Add(MapDatabase.MapLibrary[map.ToString()]);
+
+                    try
+                    {
+                        result.Add(MapDatabase.MapLibrary[map.ToString("x")]);
+                    }
+                catch
+                    {
+                        RequestBot.Instance.QueueChatMessage($"map fail = {map}");
+                    }
 
                 next:
                     ;
@@ -234,7 +258,7 @@ namespace SongRequestManager
                 JSONArray arr = new JSONArray();
                 foreach (var entry in LevelId)
                 arr.Add(entry.Value.song);
-                File.WriteAllText(Path.Combine(Plugin.DataPath, "SongDatabase.json"), arr.ToString());
+                File.WriteAllText(Path.Combine(Plugin.DataPath, "SongDatabase.dat"), arr.ToString());
                 Instance.QueueChatMessage($"Saved Song Databse in  {(DateTime.Now - start).Seconds} secs.");
             }
             catch (Exception ex)
@@ -252,7 +276,7 @@ namespace SongRequestManager
                 {
 
                     DateTime start = DateTime.Now;
-                    string path = Path.Combine(Plugin.DataPath, "SongDatabase.json");
+                    string path = Path.Combine(Plugin.DataPath, "SongDatabase.dat");
 
                     if (File.Exists(path))
                     {
@@ -400,18 +424,17 @@ namespace SongRequestManager
 
 
                     // Update Database from Directory
-            public static async void LoadCustomSongs(string folder = "")
+            public static async Task LoadCustomSongs(string folder = "",string songid="")
             {
 
-
                 if (MapDatabase.DatabaseLoading) return;
+
+                DatabaseLoading = true;
 
                 await Task.Run(() =>
                 {
 
-                    Instance.QueueChatMessage("Starting song indexing");
-
-                    DatabaseLoading = true;
+                    if (songid=="") Instance.QueueChatMessage($"Starting song indexing {folder}");
 
                     var StarTime = DateTime.UtcNow;
 
@@ -512,7 +535,7 @@ namespace SongRequestManager
 
                     }
                     var duration = DateTime.UtcNow - StarTime;
-                    Instance.QueueChatMessage($"Song indexing done. ({duration.TotalSeconds} secs.");
+                    if (songid=="") Instance.QueueChatMessage($"Song indexing done. ({duration.TotalSeconds} secs.");
 
                     DatabaseImported = true;
                     DatabaseLoading = false;
@@ -579,19 +602,19 @@ namespace SongRequestManager
             if (result != null)
             {
                 // Add query results to out song database.
-                if (result["songs"].IsArray)    
+                if (result["docs"].IsArray)    
                 {
-                    var downloadedsongs = result["songs"].AsArray;
+                    var downloadedsongs = result["docs"].AsArray;
                     for (int i = 0; i < downloadedsongs.Count; i++) new SongMap(downloadedsongs[i].AsObject);
                         
-                    foreach (JSONObject currentSong in result["songs"].AsArray)
+                    foreach (JSONObject currentSong in result["docs"].AsArray)
                     {
                         new SongMap(currentSong);
                     }
                 }
                 else
                 {
-                    new SongMap(result["song"].AsObject);
+                    new SongMap(result.AsObject);
                 }
             }
 
@@ -623,7 +646,7 @@ namespace SongRequestManager
 
         public IEnumerator RefreshSongs(ParseState state)
         {
-
+           
             MapDatabase.LoadCustomSongs();
 
             yield break;
@@ -807,7 +830,7 @@ namespace SongRequestManager
                     string id = GetBeatSaverId(version);
                     ppmap.TryAdd(id, (int)(maxpp));
 
-                    if (id != "" && maxpp >150) listcollection.add("pp.deck", id);
+                    if (id != "" && maxpp >180) listcollection.add("pp.deck", id);
 
                     if (MapDatabase.MapLibrary.TryGetValue(version, out map))
                     {

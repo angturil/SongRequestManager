@@ -3,8 +3,6 @@ using StreamCore.Config;
 using StreamCore.Utils;
 using HMUI;
 using SimpleJSON;
-using SongLoaderPlugin;
-using SongLoaderPlugin.OverrideClasses;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +16,8 @@ using Image = UnityEngine.UI.Image;
 using System.IO;
 using StreamCore.Chat;
 using SongRequestManager;
+using SongCore;
+using BeatSaverDownloader;
 
 namespace SongRequestManager
 {
@@ -83,6 +83,7 @@ namespace SongRequestManager
 
         public void ColorDeckButtons(KEYBOARD kb,Color basecolor,Color Present)
             {
+            if (RequestHistory.Songs.Count == 0) return;
             foreach (KEYBOARD.KEY key in kb.keys)
             foreach (var item in RequestBot.deck)
                 {
@@ -108,8 +109,9 @@ namespace SongRequestManager
         {
             if (firstActivation)
             {
-                if (!SongLoader.AreSongsLoaded)
-                    SongLoader.SongsLoadedEvent += SongLoader_SongsLoadedEvent;
+                if (!SongCore.Loader.AreSongsLoaded)
+                    SongCore.Loader.SongsLoadedEvent += SongLoader_SongsLoadedEvent;
+
 
                 InitConfirmationDialog();
 
@@ -163,6 +165,8 @@ namespace SongRequestManager
 #endif
 
                 RequestBot.AddKeyboard(CenterKeys, "CenterPanel.kbd");
+
+                CenterKeys.DefaultActions();
 
 
                 // History button
@@ -322,7 +326,7 @@ namespace SongRequestManager
         private void InitKeyboardDialog()
         {
          
-            _KeyboardDialog.Present();
+            //_KeyboardDialog.Present();
         }
 
 
@@ -382,17 +386,17 @@ namespace SongRequestManager
             _selectedRow = row;
             if (row != _lastSelection)
             {
-                CustomLevel level = CustomLevelForRow(row);
-                if (level)
-                    SongLoader.Instance.LoadAudioClipForLevel(level, (customLevel) => { PlayPreview(customLevel); });
-                else
-                    _songPreviewPlayer.CrossfadeToDefault();
+                //CustomLevel level = CustomLevelForRow(row);
+                //if (level)
+                //    SongLoader.Instance.LoadAudioClipForLevel(level, (customLevel) => { PlayPreview(customLevel); });
+                //else
+                //    _songPreviewPlayer.CrossfadeToDefault();
                 _lastSelection = row;
             }
 
         }
 
-        private void SongLoader_SongsLoadedEvent(SongLoader arg1, List<CustomLevel> arg2)
+        private void SongLoader_SongsLoadedEvent(SongCore.Loader arg1, Dictionary <string,CustomPreviewBeatmapLevel> arg2)
         {
             _customListTableView?.ReloadData();
         }
@@ -406,11 +410,11 @@ namespace SongRequestManager
             _historyButton.interactable = interactive;
         }
 
-        private CustomLevel CustomLevelForRow(int row)
+        private CustomPreviewBeatmapLevel CustomLevelForRow(int row)
         {
-            var levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith((SongInfoForRow(row).song["hashMd5"].Value).ToUpper()))?.ToArray();
-            if (levels.Count() > 0)
-                return levels[0];
+            //var levels = SongCore.Loader.CustomLevels.Where(l => l.levelID.StartsWith((SongInfoForRow(row).song["hashMd5"].Value).ToUpper()))?.ToArray();
+            CustomPreviewBeatmapLevel result;
+            if (SongCore.Loader.CustomLevels.TryGetValue(SongInfoForRow(row).song["hashMd5"].Value, out result)) return result;
             return null;
         }
 
@@ -419,9 +423,9 @@ namespace SongRequestManager
             return isShowingHistory ? RequestHistory.Songs.ElementAt(row) : RequestQueue.Songs.ElementAt(row);
         }
 
-        private void PlayPreview(CustomLevel level)
+        private void PlayPreview(CustomPreviewBeatmapLevel level)
         {
-            _songPreviewPlayer.CrossfadeTo(level.previewAudioClip, level.previewStartTime, level.previewDuration);
+            //_songPreviewPlayer.CrossfadeTo(level.previewAudioClip, level.previewStartTime, level.previewDuration);
         }
 
         private static Dictionary<string, Sprite> _cachedSprites = new Dictionary<string, Sprite>();
@@ -444,74 +448,10 @@ namespace SongRequestManager
         {
             LevelListTableCell _tableCell = GetTableCell();
 
-            //_tableCell.GetPrivateField<Image>("_coverImage").sprite = null;
-
+ 
             SongRequest request = SongInfoForRow(row);
             SetDataFromLevelAsync(request, _tableCell, row);
 
-            //bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
-
-            //string msg = highlight ? "MSG" : "";
-
-            //string pp = "";
-            //int ppvalue = request.song["pp"].AsInt;
-            //if (ppvalue > 0) pp = $" {ppvalue} PP";
-
-            //var songName = _tableCell.GetPrivateField<TextMeshProUGUI>("_songNameText");
-            //songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>";
-
-            //var author = _tableCell.GetPrivateField<TextMeshProUGUI>("_authorText");
-            //author.text = request.song["authorName"].Value + " (" + request.song["version"].Value + ")";
-
-            //var image = _tableCell.GetPrivateField<RawImage>("_coverRawImage");
-
-            //if (SongLoader.AreSongsLoaded)
-            //{
-            //    CustomLevel level = CustomLevelForRow(row);
-            //    if (level)
-            //        image.texture = level.coverImageTexture2D;
-            //    // BUG: Fix cell image -> should be texture
-            //    //if (level)
-            //    //_tableCell.SetIcon(level.coverImage);
-            //}
-            //if (image.texture == null)
-            //{
-            //    string url = request.song["coverUrl"].Value;
-            //    var s = GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); });
-            //    image.texture = s.texture;
-            //}
-
-            ////BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, $"Requested by {request.requestor.displayName}\nStatus: {request.status.ToString()}\n\n<size=60%>Request Time: {request.requestTime.ToLocalTime()}</size>");
-
-            //var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
-            //dt.Add("Status", request.status.ToString());
-            //dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
-            //dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
-
-            //BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
-
-            //bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
-
-            //string msg = highlight ? "MSG" : "";
-
-            //string pp = "";
-            //int ppvalue = request.song["pp"].AsInt;
-            //if (ppvalue > 0) pp = $" {ppvalue} PP";
-
-            //_tableCell.SetText($"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>");
-            //_tableCell.SetSubText(request.song["authorName"].Value+" ("+request.song["version"].Value+")");
-            //if (SongLoader.AreSongsLoaded)
-            //{
-            //    CustomLevel level = CustomLevelForRow(row);
-            //    // BUG: Fix cell image -> should be texture
-            //    //if (level)
-            //    //_tableCell.SetIcon(level.coverImage);
-            //}
-            //if (_tableCell.GetPrivateField<RawImage>("_coverRawImage").texture == null)
-            //{
-            //    string url = request.song["coverUrl"].Value;
-            //    _tableCell.SetIcon(GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); }));
-            //}
             return _tableCell;
         }
 
@@ -534,15 +474,15 @@ namespace SongRequestManager
             var image = _tableCell.GetPrivateField<RawImage>("_coverRawImage");
             var imageSet = false;
 
-            if (SongLoader.AreSongsLoaded)
+            if (SongCore.Loader.AreSongsLoaded)
             {
-                CustomLevel level = CustomLevelForRow(row);
-                if (level)
-                {
-                    var tkn = new System.Threading.CancellationToken();
-                    image.texture = await level.GetCoverImageTexture2DAsync(tkn);
-                    imageSet = true;
-                }
+                CustomPreviewBeatmapLevel level = CustomLevelForRow(row);
+                //if (level)
+                //{
+                //    var tkn = new System.Threading.CancellationToken();
+                //    image.texture = await level.GetCoverImageTexture2DAsync(tkn);
+                //    imageSet = true;
+                //}
             }
 
             if (!imageSet)

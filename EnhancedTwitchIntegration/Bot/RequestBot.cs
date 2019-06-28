@@ -4,7 +4,6 @@ using StreamCore.Chat;
 using StreamCore.Utils;
 using StreamCore.SimpleJSON;
 
-using SongLoaderPlugin.OverrideClasses;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -21,7 +20,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
-using SongLoaderPlugin;
+using SongCore;
 using StreamCore;
 
 namespace SongRequestManager
@@ -40,10 +39,15 @@ namespace SongRequestManager
             SongSearch,
         }
 
+
+
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
-        public static ConcurrentQueue<KeyValuePair<SongRequest, bool>> BlacklistQueue = new ConcurrentQueue<KeyValuePair<SongRequest, bool>>();
         public static Dictionary<string, RequestUserTracker> RequestTracker = new Dictionary<string, RequestUserTracker>();
+
+        //SpeechSynthesizer synthesizer = new SpeechSynthesizer();
+        //synthesizer.Volume = 100;  // 0...100
+          //  synthesizer.Rate = -2;     // -10...10
 
         private static Button _requestButton;
         public static bool _refreshQueue = false;
@@ -61,6 +65,7 @@ namespace SongRequestManager
         private static StringListManager mapperBanlist = new StringListManager(); // BUG: This needs to switch to list manager interface
 
         private static string duplicatelist = "duplicate.list"; // BUG: Name of the list, needs to use a different interface for this.
+        private static string banlist = "banlist.unique"; // BUG: Name of the list, needs to use a different interface for this.
 
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         public static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
@@ -242,11 +247,72 @@ namespace SongRequestManager
             #if UNRELEASED
             var startingmem = GC.GetTotalMemory(true);
 
+            //var folder = Path.Combine(Environment.CurrentDirectory, "userdata","streamcore");
+
+            //List<FileInfo> files = new List<FileInfo>();  // List that will hold the files and subfiles in path
+            //List<DirectoryInfo> folders = new List<DirectoryInfo>(); // List that hold direcotries that cannot be accessed
+
+            //DirectoryInfo di = new DirectoryInfo(folder);
+
+            //Dictionary<string, string> remap = new Dictionary<string, string>();
+        
+            //foreach (var entry in listcollection.OpenList("all.list").list) 
+            //    {
+            //    //Instance.QueueChatMessage($"Map {entry}");
+
+            //    string[] remapparts = entry.Split('-');
+            //    if (remapparts.Length == 2)
+            //    {
+            //        int o;
+            //        if (Int32.TryParse(remapparts[1], out o))
+            //        {
+            //            try
+            //            {
+            //                remap.Add(remapparts[0], o.ToString("x"));
+            //            }
+            //            catch
+            //            { }
+            //            //Instance.QueueChatMessage($"Map {remapparts[0]} : {o.ToString("x")}");
+            //        }
+            //    }
+            //}
+
+            //Instance.QueueChatMessage($"Scanning lists");
+
+            //FullDirList(di, "*.deck");
+            //void FullDirList(DirectoryInfo dir, string searchPattern)
+            //{
+            //    try
+            //    {
+            //        foreach (FileInfo f in dir.GetFiles(searchPattern))
+            //        {
+            //            var List = listcollection.OpenList(f.Name).list;
+            //            for (int i=0;i<List.Count;i++)
+            //                {
+            //                if (remap.ContainsKey(List[i]))
+            //                {
+            //                    //Instance.QueueChatMessage($"{List[i]} : {remap[List[i]]}");
+            //                    List[i] = remap[List[i]];
+            //                }    
+            //                }
+            //            listcollection.OpenList(f.Name).Writefile(f.Name);
+            //        }
+            //    }
+            //    catch
+            //    {
+            //        Console.WriteLine("Directory {0}  \n could not be accessed!!!!", dir.FullName);
+            //        return;
+            //    }
+            //}
+
+
+
+
             //NOTJSON.UNITTEST();
-            #endif
+#endif
 
 
-            playedfilename = Path.Combine(Plugin.DataPath, "played.json"); // Record of all the songs played in the current session
+            playedfilename = Path.Combine(Plugin.DataPath, "played.dat"); // Record of all the songs played in the current session
 
             try
             {
@@ -286,24 +352,15 @@ namespace SongRequestManager
                 }
 
 
+                if (RequestBotConfig.Instance.PPSearch) StartCoroutine(GetPPData()); // Start loading PP data
 
-                string blacklistMigrationFile = Path.Combine(Plugin.DataPath, "SongBlacklistMigration.list");
-                if (File.Exists(blacklistMigrationFile))
-                {
-                    SongBlacklist.ConvertFromList(File.ReadAllText(blacklistMigrationFile).Split(','));
-                    File.Delete(blacklistMigrationFile);
-                }
-
-#if UNRELEASED
-                StartCoroutine(GetPPData());
-#endif
                 MapDatabase.LoadDatabase();
 
                 if (RequestBotConfig.Instance.LocalSearch) MapDatabase.LoadCustomSongs(); // This is a background process
 
                 RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
                 RequestHistory.Read();
-                SongBlacklist.Read();
+                listcollection.OpenList("banlist.unique");
 
 #if UNRELEASED
             //GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
@@ -324,7 +381,6 @@ namespace SongRequestManager
 
 
                 StartCoroutine(ProcessRequestQueue());
-                StartCoroutine(ProcessBlacklistRequests());
 
                 TwitchMessageHandlers.PRIVMSG += PRIVMSG;
 
@@ -344,11 +400,15 @@ namespace SongRequestManager
         public bool MyChatMessageHandler(TwitchMessage msg)
         {
             string excludefilename = "chatexclude.users";
+
+
+
             return RequestBot.Instance && RequestBot.listcollection.contains(ref excludefilename, msg.user.displayName.ToLower(), RequestBot.ListFlags.Uncached);
         }
 
         private void PRIVMSG(TwitchMessage msg)
           {
+
             RequestBot.COMMAND.Parse(msg.user, msg.message);
         }
 
@@ -449,45 +509,8 @@ namespace SongRequestManager
             }
         }
 
-        private IEnumerator ProcessBlacklistRequests()
-        {
-            WaitUntil waitForBlacklistRequest = new WaitUntil(() => BlacklistQueue.Count > 0);
-            while (!Plugin.Instance.IsApplicationExiting)
-            {
-                yield return waitForBlacklistRequest;
 
-                if (BlacklistQueue.Count > 0 && BlacklistQueue.TryDequeue(out var request))
-                {
-                    bool silence = request.Value;
-                    string songId = request.Key.song["id"].Value;
-                    using (var web = UnityWebRequest.Get($"https://beatsaver.com/api/songs/detail/{songId}"))
-                    {
-                        yield return web.SendWebRequest();
-                        if (web.isNetworkError || web.isHttpError)
-                        {
-                            if (!silence) QueueChatMessage($"Invalid BeatSaver ID \"{songId}\" specified.");
-                            continue;
-                        }
-
-                        JSONNode result = JSON.Parse(web.downloadHandler.text);
-
-                        if (result["songs"].IsArray && result["total"].AsInt == 0)
-                        {
-                            if (!silence) QueueChatMessage($"BeatSaver ID \"{songId}\" does not exist.");
-                            continue;
-                        }
-                        yield return null;
-
-                        request.Key.song = result["song"].AsObject;
-                        SongBlacklist.Songs.Add(songId, request.Key);
-                        SongBlacklist.Write();
-
-                        if (!silence) QueueChatMessage($"{request.Key.song["songName"].Value}/{request.Key.song["authorName"].Value} ({songId}) added to the blacklist.");
-                    }
-                }
-            }
-        }
-
+// if (!silence) QueueChatMessage($"{request.Key.song["songName"].Value}/{request.Key.song["authorName"].Value} ({songId}) added to the blacklist.");
         private void SendChatMessage(string message)
         {
             try
@@ -558,51 +581,11 @@ namespace SongRequestManager
             return result;
         }
 
-        // sortby MUST have + or - in front of each field. 
-        private List<JSONObject> GetSongListFromResults(JSONNode result, ref string errorMessage,SongFilter filter=SongFilter.All, string sortby="-rating",int reverse=1)
-        {
-            List<JSONObject> songs = new List<JSONObject>();
-            if (result == null) return songs; 
-
-            if (result["songs"].IsArray)
-            {
-                // Might consider sorting the list by rating to improve quality of results        
-    
-                foreach (JSONObject currentSong in result["songs"].AsArray)
-                {
-                    new SongMap(currentSong);
-                    errorMessage = SongSearchFilter(currentSong, false,filter);
-                    if (errorMessage == "")
-                        songs.Add(currentSong);
-                }
-            }
-            else
-            {
-                songs.Add(result["song"].AsObject);
-            }
-
-            try
-            {
-            string[] sortorder = sortby.Split(' ');         
-
-            songs.Sort(delegate (JSONObject c1, JSONObject c2)
-                {
-                    return reverse*CompareSong(c1, c2, ref sortorder);
-                });                    
-            }
-            catch (Exception e)
-            {
-                //QueueChatMessage($"Exception {e} sorting song list");
-                Plugin.Log($"Exception sorting a returned song list. {e.ToString()}");
-            }
-
-            return songs;
-        }
 
         private IEnumerator UpdateSongMap(JSONObject song)
             {
 
-            yield return Utilities.Download($"https://beatsaver.com/api/songs/detail/{song["id"].Value.ToString()}", Utilities.DownloadType.Raw, null,
+            yield return Utilities.Download($"https://beatsaver.com/api/maps/detail/{song["id"].Value.ToString()}", Utilities.DownloadType.Raw, null,
             // Download success
             (web) =>
             {
@@ -652,6 +635,21 @@ namespace SongRequestManager
                     QueueChatMessage(requestcheckmessage);
                     yield break;
                 }
+
+                if (RequestBotConfig.Instance.OfflineMode && RequestBotConfig.Instance.offlinepath!="" && !MapDatabase.MapLibrary.ContainsKey(id))
+                {
+                    foreach (string directory in Directory.GetDirectories(RequestBotConfig.Instance.offlinepath, id+"*"))
+                    {
+                        
+                        MapDatabase.LoadCustomSongs(directory, id);
+                        while (MapDatabase.DatabaseLoading)  
+                            {
+                            yield return 0;
+                            }
+                        
+                        break;
+                    }
+                }
             }
 
             JSONNode result = null;
@@ -659,7 +657,11 @@ namespace SongRequestManager
             string errorMessage = "";
 
             // Get song query results from beatsaver.com
-            string requestUrl = (id!="") ? $"https://beatsaver.com/api/songs/detail/{normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash)}" : $"https://beatsaver.com/api/songs/search/song/{normalrequest}";
+
+            string requestUrl = (id!="") ? $"https://beatsaver.com/api/maps/detail/{normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash)}" : $"https://beatsaver.com/api/search/text/0?q={normalrequest}";
+
+            if (RequestBotConfig.Instance.OfflineMode) requestUrl = "";
+
             yield return Utilities.Download(requestUrl, Utilities.DownloadType.Raw, null,
                 // Download success
                 (web) =>
@@ -718,32 +720,32 @@ namespace SongRequestManager
 
                 // Song requests should try to be current. If the song was local, we double check for a newer version
 
-                if ((song["downloadUrl"].Value == ""))
-                {
-                    //QueueChatMessage($"song:  {song["id"].Value.ToString()} ,{song["songName"].Value}");
+                //if ((song["downloadUrl"].Value == "") && !RequestBotConfig.Instance.OfflineMode )
+                //{
+                //    //QueueChatMessage($"song:  {song["id"].Value.ToString()} ,{song["songName"].Value}");
 
-                    yield return Utilities.Download($"https://beatsaver.com/api/songs/detail/{song["id"].Value.ToString()}", Utilities.DownloadType.Raw, null,
-                     // Download success
-                     (web) =>
-                     {
-                         result = JSON.Parse(web.downloadHandler.text);
-                         var newsong = result["song"].AsObject;
+                //    yield return Utilities.Download($"https://beatsaver.com/api/maps/detail/{song["id"].Value.ToString()}", Utilities.DownloadType.Raw, null,
+                //     // Download success
+                //     (web) =>
+                //     {
+                //         result = JSON.Parse(web.downloadHandler.text);
+                //         var newsong = result["song"].AsObject;
 
-                         if (result != null && newsong["version"].Value != "")
-                         {
-                             new SongMap(newsong);
-                             song = newsong;
-                         }
-                     },
-                     // Download failed,  song probably doesn't exist on beatsaver
-                     (web) =>
-                     {
-                         // Let player know that the song is not current on BeatSaver
-                         requestInfo.requestInfo += " *LOCAL ONLY*";
-                         ; //errorMessage = $"Invalid BeatSaver ID \"{request}\" specified. {requestUrl}";
-                     });
+                //         if (result != null && newsong["version"].Value != "")
+                //         {
+                //             new SongMap(newsong);
+                //             song = newsong;
+                //         }
+                //     },
+                //     // Download failed,  song probably doesn't exist on beatsaver
+                //     (web) =>
+                //     {
+                //         // Let player know that the song is not current on BeatSaver
+                //         requestInfo.requestInfo += " *LOCAL ONLY*";
+                //         ; //errorMessage = $"Invalid BeatSaver ID \"{request}\" specified. {requestUrl}";
+                //     });
 
-                }
+                //}
 
 
             yield return null;
@@ -791,38 +793,51 @@ namespace SongRequestManager
                 else
                     Plugin.Log($"Processing song request {request.song["songName"].Value}");
 
-                bool retried = false;
-                string songIndex = request.song["version"].Value, songName = request.song["songName"].Value;
-                string currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
-                string songHash = request.song["hashMd5"].Value.ToUpper();
+ 
+                string songName = request.song["songName"].Value;
+                string songIndex = $"{request.song["id"].Value} ({request.song["songName"].Value} - {request.song["levelAuthor"].Value})";
+                songIndex = normalize.RemoveDirectorySymbols(ref songIndex); // Remove invalid characters.
 
-                retry:
-                CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
-                if (levels.Length == 0)
+                string currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "Beat Saber_Data\\CustomLevels", songIndex);
+                string songHash = request.song["hash"].Value.ToUpper();
+
+
+                // Check to see if level exists, download if not.
+
+                // Replace with level check.
+                //CustomLevel[] levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
+                //if (levels.Length == 0)
+
+                var rat = SongCore.Collections.levelIDsForHash(songHash);
+                bool mapexists = (rat.Count>0) && (rat[0] != "");
+                
+
+                if (!SongCore.Loader.CustomLevels.ContainsKey(currentSongDirectory) && !mapexists )
                 {
+
 
                     Utilities.EmptyDirectory(".requestcache", false);
 
 
-                    SongMap map;
-                    if (MapDatabase.MapLibrary.TryGetValue(songIndex, out map))
-                    {
-                        if (map.path != "")
-                        {
-                            songIndex = map.song["version"].Value;
-                            songName = map.song["songName"].Value;
-                            currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
-                            songHash = map.song["hashMd5"].Value.ToUpper();
+                    //SongMap map;
+                    //if (MapDatabase.MapLibrary.TryGetValue(songIndex, out map))
+                    //{
+                    //    if (map.path != "")
+                    //    {
+                    //        songIndex = map.song["version"].Value;
+                    //        songName = map.song["songName"].Value;
+                    //        currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
+                    //        songHash = map.song["hashMd5"].Value.ToUpper();
 
-                            Directory.CreateDirectory(currentSongDirectory);
-                            // HACK to allow playing alternate songs not in custom song directory
-                            CopyFilesRecursively(new DirectoryInfo(map.path),new DirectoryInfo( currentSongDirectory));                           
+                    //        Directory.CreateDirectory(currentSongDirectory);
+                    //        // HACK to allow playing alternate songs not in custom song directory
+                    //        CopyFilesRecursively(new DirectoryInfo(map.path),new DirectoryInfo( currentSongDirectory));                           
 
-                            goto here;
-                        }
-                    }
+                    //        goto here;
+                    //    }
+                    //}
 
-                    Plugin.Log("Downloading");
+                    //Plugin.Log("Downloading");
 
                     if (Directory.Exists(currentSongDirectory))
                     {
@@ -830,42 +845,42 @@ namespace SongRequestManager
                         Plugin.Log($"Deleting {currentSongDirectory}");
                     }
 
-                    string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{songIndex}.zip");
-                    yield return Utilities.DownloadFile(request.song["downloadUrl"].Value, localPath);
+                    string localPath = Path.Combine(Environment.CurrentDirectory, ".requestcache", $"{request.song["id"].Value}.zip");
+                    //string dl = $"https://beatsaver.com {request.song["downloadURL"].Value}";
+                    //Instance.QueueChatMessage($"Download url: {dl}, {request.song}");
+
+                    yield return Utilities.DownloadFile($"https://beatsaver.com{request.song["downloadURL"].Value}", localPath);
                     yield return Utilities.ExtractZip(localPath, currentSongDirectory);
                     
                     here:
 
-                    yield return new WaitUntil(() => SongLoader.AreSongsLoaded && !SongLoader.AreSongsLoading);
-                    yield return SongListUtils.RetrieveNewSong(songIndex, true);
-                    
+                    yield return new WaitUntil(() => SongCore.Loader.AreSongsLoaded && !SongCore.Loader.AreSongsLoading);
+
+                    Loader.Instance.RefreshSongs();
+                    yield return new WaitUntil(() => SongCore.Loader.AreSongsLoaded && !SongCore.Loader.AreSongsLoading);
+
                     Utilities.EmptyDirectory(".requestcache", true);
-                    levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
+                    //levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
                 }
                 else
                 {
+                    //Instance.QueueChatMessage($"Directory exists: {currentSongDirectory}");
+
                     Plugin.Log($"Song {songName} already exists!");
                 }
 
-                if (!retried)
-                {
-                    // Dismiss the song request viewcontroller now
-                    _songRequestMenu.Dismiss();
-                }
+                // Dismiss the song request viewcontroller now
+                _songRequestMenu.Dismiss();
 
-                if (levels.Length > 0)
+                if (true)
                 {
-                    Plugin.Log($"Scrolling to level {levels[0].levelID}");
+                    //Plugin.Log($"Scrolling to level {levels[0].levelID}");
 
                     bool success = false;
-                    yield return SongListUtils.ScrollToLevel(levels[0].levelID, (s) => success = s, false);
+                    yield return SongListUtils.ScrollToLevel(request.song["hash"].Value.ToUpper(), (s) => success = s, false);
+                    yield return null;
 
                     // Redownload the song if we failed to scroll to it
-                    if (!success && !retried)
-                    {
-                        retried = true;
-                        goto retry;
-                    }
                 }
                 else
                 {
@@ -916,7 +931,11 @@ namespace SongRequestManager
             RequestQueue.Write();
 
             // Decrement the requestors request count, since their request is now out of the queue
-            if (RequestTracker.ContainsKey(request.requestor.id)) RequestTracker[request.requestor.id].numRequests--;
+
+            if (!RequestBotConfig.Instance.LimitUserRequestsToSession)
+                {
+                if (RequestTracker.ContainsKey(request.requestor.id)) RequestTracker[request.requestor.id].numRequests--;
+                }
 
             if (updateUI == false) return;
 
@@ -939,8 +958,6 @@ namespace SongRequestManager
             }
             catch (Exception ex) { Plugin.Log(ex.ToString()); }
 #endif
-
-
             return request;
         }
 
@@ -957,9 +974,8 @@ namespace SongRequestManager
             // Add the song to the blacklist
             SongRequest request = fromHistory ? RequestHistory.Songs.ElementAt(index) : RequestQueue.Songs.ElementAt(index);
 
-            SongBlacklist.Songs.Add(request.song["id"].Value, new SongRequest(request.song, request.requestor, DateTime.UtcNow, RequestStatus.Blacklisted));
-            SongBlacklist.Write();
-
+            listcollection.add(banlist, request.song["id"].Value);
+ 
             Instance.QueueChatMessage($"{request.song["songName"].Value} by {request.song["authorName"].Value} ({request.song["id"].Value}) added to the blacklist.");
 
             if (!fromHistory)
@@ -998,7 +1014,15 @@ namespace SongRequestManager
             if (_beatSaverRegex.IsMatch(request))
             {
                 string[] requestparts = request.Split(new char[] { '-' }, 2);
-                return requestparts[0];
+                //return requestparts[0];
+           
+                int o;
+                Int32.TryParse(requestparts[1], out o);
+                     {
+                        //Instance.QueueChatMessage($"key={o.ToString("x")}");
+                    return o.ToString("x");
+                    }
+      
             }
             return "";
         }
@@ -1043,8 +1067,14 @@ namespace SongRequestManager
                 {
                     if (RequestTracker[state.user.id].numRequests >= limit)
                     {
-
-                        new DynamicText().Add("Requests", RequestTracker[state.user.id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
+                        if (RequestBotConfig.Instance.LimitUserRequestsToSession)
+                        {
+                            new DynamicText().Add("Requests", RequestTracker[state.user.id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You've already used %Requests% requests this stream. Subscribers are limited to %RequestLimit%.");
+                        }
+                        else
+                        {
+                            new DynamicText().Add("Requests", RequestTracker[state.user.id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
+                        }
 
                         return success;
                     }
