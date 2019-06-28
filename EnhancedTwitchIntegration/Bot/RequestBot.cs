@@ -409,7 +409,7 @@ namespace SongRequestManager
         private void PRIVMSG(TwitchMessage msg)
           {
 
-            RequestBot.COMMAND.Parse(msg.user, msg.message);
+            RequestBot.COMMAND.Parse(msg.user.Twitch, msg.message);
         }
 
         private void OnConfigChangedEvent(RequestBotConfig config)
