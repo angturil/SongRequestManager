@@ -156,9 +156,9 @@ namespace SongRequestManager
                 _SymbolsValidDirectory['/'] = '\0';
 
                 // Incomplete list of words that BeatSaver.com filters out for no good reason. No longer applies!
-                foreach (var word in new string[] { "and","the", "this", "from", "will", "when", "with", "what", "who", "why", "how", "was" })
+                foreach (var word in new string[] { "pp" })
                 {
-                    //BeatsaverBadWords.Add(word.ToLower());
+                    BeatsaverBadWords.Add(word.ToLower());
                 }
 
             }

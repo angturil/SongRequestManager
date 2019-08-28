@@ -28,6 +28,8 @@ namespace SongRequestManager
         static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>");
         static StringBuilder QueueTextFileFormat=new StringBuilder ("%songName%%LF%");         // Don't forget to include %LF% for these. 
 
+        static public StringBuilder QueueListRow2 = new StringBuilder("%authorName% (%id%) <color=white>%songlength%</color>");
+
         static StringBuilder BanSongDetail = new StringBuilder("Blocking %songName%/%authorName% (%version%)");
 
         static StringBuilder QueueListFormat= new StringBuilder("%songName% (%version%)");
@@ -233,10 +235,11 @@ namespace SongRequestManager
             return !(IsRequestInQueue(request) == "");
         }
 
-        private void ClearDuplicateList(TwitchUser requestor, string request)
+        private string ClearDuplicateList(ParseState state)
         {
-            QueueChatMessage("Session duplicate list is now clear.");
+            if (!state.botcmd.Flags.HasFlag(CmdFlags.SilentResult)) QueueChatMessage("Session duplicate list is now clear.");
             listcollection.ClearList(duplicatelist);
+            return success;
         }
         #endregion
 
@@ -454,7 +457,7 @@ namespace SongRequestManager
         // Not super efficient, but what can you do
         private bool mapperfiltered(JSONObject song,bool white)
         {
-            string normalizedauthor = song["authorName"].Value.ToLower();
+            string normalizedauthor = song["metadata"]["levelAuthorName"].Value.ToLower();
             if (white && mapperwhitelist.list.Count > 0)
             {
                 foreach (var mapper in mapperwhitelist.list)
@@ -486,7 +489,7 @@ namespace SongRequestManager
 
                 if (songId == "")
                 {
-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, entry.requestor.displayName };
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, entry.requestor.displayName };
 
                     if (DoesContainTerms(request, ref terms))
                         {
@@ -755,7 +758,7 @@ namespace SongRequestManager
                 bool moveRequest = false;
                 if (moveId == "")
                 {
-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
                     if (DoesContainTerms(request, ref terms))
                         moveRequest = true;
                 }
@@ -1343,6 +1346,27 @@ catch
                 //{
                 //    Add("pp", "");
                 //}
+                try
+                {
+                                                                                  
+                       var characteristics = song["metadata"]["characteristics"][0]["difficulties"];
+
+                    //Instance.QueueChatMessage($"{characteristics}");
+
+                    foreach (var entry in characteristics)
+                    {
+                        if (entry.Value.IsNull) continue;
+                        var diff = entry.Value["length"].AsInt;
+                        if (diff > 0)
+                        {
+                            Add("songlength", $"{diff / 60}:{diff % 60:00}");
+                            //Instance.QueueChatMessage($"{diff / 60}:{diff % 60}");
+                        }
+                    }
+                }
+                catch
+                {
+                }
 
                 if (song["pp"].AsFloat > 0) Add("PP", song["pp"].AsInt.ToString() + " PP"); else Add("PP", "");
 

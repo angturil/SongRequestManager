@@ -67,7 +67,7 @@ namespace SongRequestManager
 
                 if (File.Exists(listfilename) && UpdatedAge > delta) // BUG: There's probably a better way to handle this
                 {
-                    RequestBot.Instance.QueueChatMessage($"Clearing old session {request}");
+                    //RequestBot.Instance.QueueChatMessage($"Clearing old session {request}");
                     list.Clear();
                     if (!(flags.HasFlag(ListFlags.InMemory) | flags.HasFlag(ListFlags.ReadOnly))) list.Writefile(request);
 

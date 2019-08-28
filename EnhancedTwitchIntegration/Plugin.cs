@@ -11,7 +11,7 @@ namespace SongRequestManager
     public class Plugin : IBeatSaberPlugin
     {
         public string Name => "Song Request Manager";
-        public string Version => "2.0.8";
+        public string Version => "2.1.0";
 
         public static IPALogger Logger { get; internal set; }
 

@@ -86,14 +86,14 @@ namespace SongRequestManager
                 var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelPackLevelsViewController>().First();
                 if (_levelListViewController)
                     {
-                    _requestButton = BeatSaberUI.CreateUIButton(_levelListViewController.rectTransform, "OkButton", new Vector2(63, -3.5f),
-                        new Vector2(15.0f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "Song Requests");
+                    _requestButton = BeatSaberUI.CreateUIButton(_levelListViewController.rectTransform, "OkButton", new Vector2(66, -3.5f),
+                        new Vector2(9f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "SRM");
 
                     (_requestButton.transform as RectTransform).anchorMin = new Vector2(1, 1);
                     (_requestButton.transform as RectTransform).anchorMax = new Vector2(1, 1);
 
                     _requestButton.ToggleWordWrapping(false);
-                    _requestButton.SetButtonTextSize(2.0f);
+                    _requestButton.SetButtonTextSize(3.5f);
                     BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, "Manage the current request queue");
 
                     UpdateRequestUI();
@@ -761,7 +761,10 @@ namespace SongRequestManager
 
                 Writedeck(requestor, "savedqueue"); // This can be used as a backup if persistent Queue is turned off.
 
+            if (!requestInfo.flags.HasFlag(CmdFlags.SilentResult))
+            {
                 new DynamicText().AddSong(ref song).QueueMessage(AddSongToQueueText.ToString());
+            }
                 UpdateRequestUI();
                 _refreshQueue = true;
 

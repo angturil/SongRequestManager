@@ -62,7 +62,7 @@ namespace SongRequestManager
 
 [fun +]/25'!fun/current/toggle%CR%' [hard +]/25'!hard/current/toggle%CR%'
 [dance +]/25'!dance/current/toggle%CR%' [chill +]/25'!chill/current/toggle%CR%'
-[challenge +]/25'!challenge/current/toggle%CR%' [sehria +]/25'!sehria/current/toggle%CR%'
+[brutal +]/25'!brutal/current/toggle%CR%' [sehria +]/25'!sehria/current/toggle%CR%'
 
 [rock +]/25'!rock/current/toggle%CR%' [metal +]/25'!metal/current/toggle%CR%'  
 [anime +]/25'!anime/current/toggle%CR%' [pop +]/25'!pop/current/toggle%CR%' 
@@ -324,9 +324,7 @@ namespace SongRequestManager
 
 
         private void InitKeyboardDialog()
-        {
-         
-            //_KeyboardDialog.Present();
+        {         
         }
 
 
@@ -412,10 +410,13 @@ namespace SongRequestManager
 
         private CustomPreviewBeatmapLevel CustomLevelForRow(int row)
         {
-            //var levels = SongCore.Loader.CustomLevels.Where(l => l.levelID.StartsWith((SongInfoForRow(row).song["hashMd5"].Value).ToUpper()))?.ToArray();
-            CustomPreviewBeatmapLevel result;
-            if (SongCore.Loader.CustomLevels.TryGetValue(SongInfoForRow(row).song["hashMd5"].Value, out result)) return result;
-            return null;
+                        // get level id from hash
+            var levelIds = SongCore.Collections.levelIDsForHash(SongInfoForRow(row).song["hash"]);
+                        if (levelIds.Count == 0) return null;
+                        if (levelIds.Count == 0) return null;
+            
+                        // lookup song from level id
+                        return SongCore.Loader.CustomLevels.FirstOrDefault(s => string.Equals(s.Value.levelID, levelIds.First(), StringComparison.OrdinalIgnoreCase)).Value ?? null;
         }
 
         private SongRequest SongInfoForRow(int row)
@@ -433,7 +434,7 @@ namespace SongRequestManager
         {
             if (!_cachedSprites.ContainsKey(url))
             {
-                RequestBot.Instance.StartCoroutine(Utilities.DownloadSpriteAsync(url, downloadCompleted));
+                RequestBot.Instance.StartCoroutine(Utilities.DownloadSpriteAsync($"https://beatsaver.com{url}", downloadCompleted));
                 _cachedSprites.Add(url, CustomUI.Utilities.UIUtilities.BlankSprite);
             }
             return _cachedSprites[url];
@@ -465,11 +466,18 @@ namespace SongRequestManager
             int ppvalue = request.song["pp"].AsInt;
             if (ppvalue > 0) pp = $" {ppvalue} PP";
 
+            var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
+            dt.Add("Status", request.status.ToString());
+            dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
+            dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
+
             var songName = _tableCell.GetPrivateField<TextMeshProUGUI>("_songNameText");
             songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>";
 
             var author = _tableCell.GetPrivateField<TextMeshProUGUI>("_authorText");
-            author.text = request.song["authorName"].Value + " (" + request.song["version"].Value + ")";
+            //author.text = request.song["authorName"].Value + " (" + request.song["key"].Value + ")";
+
+            author.text = dt.Parse(RequestBot.QueueListRow2);
 
             var image = _tableCell.GetPrivateField<RawImage>("_coverRawImage");
             var imageSet = false;
@@ -477,25 +485,22 @@ namespace SongRequestManager
             if (SongCore.Loader.AreSongsLoaded)
             {
                 CustomPreviewBeatmapLevel level = CustomLevelForRow(row);
-                //if (level)
-                //{
-                //    var tkn = new System.Threading.CancellationToken();
-                //    image.texture = await level.GetCoverImageTexture2DAsync(tkn);
-                //    imageSet = true;
-                //}
+                if (level != null)
+                                    {
+                    Plugin.Log("custom level found");
+                                        // set image from song's cover image
+                    var tex = await level.GetCoverImageTexture2DAsync(System.Threading.CancellationToken.None);
+                    image.texture = tex;
+                    imageSet = true;
+                                    }
             }
 
             if (!imageSet)
             {
-                string url = request.song["coverUrl"].Value;
+                string url = request.song["coverURL"].Value;
                 var s = GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _customListTableView.ReloadData(); });
                 image.texture = s.texture;
             }
-
-            var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
-            dt.Add("Status", request.status.ToString());
-            dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
-            dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
 
             BeatSaberUI.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
         }

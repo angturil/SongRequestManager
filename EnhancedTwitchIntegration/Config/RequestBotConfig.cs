@@ -34,7 +34,7 @@ namespace SongRequestManager
 
         public int MaxiumScanRange = 5; // How far down the list to scan for new songs
 
-        public string DeckList = "fun hard challenge dance chill";
+        public string DeckList = "fun hard brutal dance chill";
 
         public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
