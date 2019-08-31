@@ -317,7 +317,7 @@ namespace SongRequestManager
             if (NumberOfCells() > _selectedRow)
             {
                 _customListTableView.SelectCellWithIdx(_selectedRow, selectRowCallback);
-                _customListTableView.ScrollToCellWithIdx(_selectedRow, TableView.ScrollPositionType.Beginning, true);
+                _customListTableView.ScrollToCellWithIdx(_selectedRow, TableViewScroller.ScrollPositionType.Beginning, true);
             }
         }
 
@@ -445,7 +445,7 @@ namespace SongRequestManager
             return isShowingHistory ? RequestHistory.Songs.Count() : RequestQueue.Songs.Count();
         }
 
-        public override TableCell CellForIdx(int row)
+        public override TableCell CellForIdx(TableView tableView, int row)
         {
             LevelListTableCell _tableCell = GetTableCell();
 
