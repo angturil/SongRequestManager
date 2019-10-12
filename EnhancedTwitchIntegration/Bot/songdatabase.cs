@@ -90,6 +90,39 @@ namespace SongRequestManager
                     song.Add("authorName", metadata["songAuthorName"].Value);
                     song.Add("levelAuthor", metadata["levelAuthorName"].Value);
                     song.Add("rating", song["stats"]["rating"].AsFloat*100);
+
+                    try
+                    {
+
+                        var characteristics = metadata["characteristics"][0]["difficulties"];
+
+                        //Instance.QueueChatMessage($"{characteristics}");
+
+                        int maxnjs = 0;
+                        foreach (var entry in characteristics)
+                        {
+                            if (entry.Value.IsNull) continue;
+                            var diff = entry.Value["length"].AsInt;
+                            var njs = entry.Value["njs"].AsInt;
+                            if (njs > maxnjs) maxnjs = njs;
+
+                            if (diff > 0)
+                            {
+                                song.Add("songlength", $"{diff / 60}:{diff % 60:00}");
+                                song.Add("songduration", diff);
+                                //Instance.QueueChatMessage($"{diff / 60}:{diff % 60}");
+                            }
+                        }
+
+                        if (maxnjs>0)
+                        {
+                            song.Add("njs", maxnjs);
+                        }
+                    }
+                    catch
+                    {
+                    }
+
                 }
 
 
@@ -848,7 +881,7 @@ namespace SongRequestManager
 
                     ppmap.TryAdd(id, (int)(maxpp));
 
-                    if (id != "" && maxpp >180) listcollection.add("pp.deck", id);
+                    if (id != "" && maxpp >200) listcollection.add("pp.deck", id);
 
                     if (MapDatabase.MapLibrary.TryGetValue(id, out map))
                     {

@@ -63,9 +63,13 @@ namespace SongRequestManager
 
         private static StringListManager mapperwhitelist = new StringListManager(); // BUG: This needs to switch to list manager interface
         private static StringListManager mapperBanlist = new StringListManager(); // BUG: This needs to switch to list manager interface
+        private static StringListManager Whitelist = new StringListManager();
+        private static StringListManager BlockedUser = new StringListManager();
 
         private static string duplicatelist = "duplicate.list"; // BUG: Name of the list, needs to use a different interface for this.
         private static string banlist = "banlist.unique"; // BUG: Name of the list, needs to use a different interface for this.
+        private static string _whitelist = "whitelist.unique"; // BUG: Name of the list, needs to use a different interface for this.
+        private static string _blockeduser = "blockeduser.unique";
 
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         public static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
@@ -120,7 +124,8 @@ namespace SongRequestManager
                 var mykeyboard = new KEYBOARD(KeyboardContainer, "");
 
 #if UNRELEASED
-                mykeyboard.AddKeys(BOTKEYS, 0.4f);
+                //mykeyboard.AddKeys(BOTKEYS, 0.4f);
+                AddKeyboard(mykeyboard, "emotes.kbd", 0.4f);
 #endif
                 mykeyboard.AddKeys(KEYBOARD.QWERTY); // You can replace this with DVORAK if you like
                 mykeyboard.DefaultActions();
@@ -145,13 +150,14 @@ namespace SongRequestManager
 
                 mykeyboard.SetAction("CLEAR SEARCH", ClearSearch);
                 mykeyboard.SetAction("UNFILTERED", UnfilteredSearch);
-                mykeyboard.SetAction("SEARCH", Search);
+                mykeyboard.SetAction("SEARCH", MSD);
                 mykeyboard.SetAction("NEWEST", Newest);
 
 
 #if UNRELEASED
-                mykeyboard.AddKeys(RequestBot.DECKS, 0.4f);
+                AddKeyboard(mykeyboard, "decks.kbd", 0.4f);
 #endif
+            
                 // The UI for this might need a bit of work.
 
                 AddKeyboard(mykeyboard, "RightPanel.kbd");
@@ -174,12 +180,12 @@ namespace SongRequestManager
             new GameObject("SongRequestManager").AddComponent<RequestBot>();
         }
 
-        public static  void AddKeyboard(KEYBOARD keyboard, string keyboardname)
+        public static  void AddKeyboard(KEYBOARD keyboard, string keyboardname,float scale=0.5f)
             {
             try
             {
                 string fileContent = File.ReadAllText(Path.Combine(Plugin.DataPath, keyboardname));
-                if (fileContent.Length > 0) keyboard.AddKeys(fileContent);
+                if (fileContent.Length > 0) keyboard.AddKeys(fileContent,scale);
             }
             catch           
             {
@@ -205,6 +211,18 @@ namespace SongRequestManager
             RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}",CmdFlags.Local);
             key.kb.Clear(key);
         }
+
+        public static void MSD(KEYBOARD.KEY key)
+        {
+            if (key.kb.KeyboardText.text.StartsWith("!"))
+            {
+                key.kb.Enter(key);
+            }
+            ClearSearches();
+            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!makesearchdeck {key.kb.KeyboardText.text}", CmdFlags.Local);
+            key.kb.Clear(key);
+        }
+
 
         public static void UnfilteredSearch(KEYBOARD.KEY key)
         {
@@ -249,7 +267,7 @@ namespace SongRequestManager
 
             //var folder = Path.Combine(Environment.CurrentDirectory, "userdata","streamcore");
 
-            //List<FileInfo> files = new List<FileInfo>();  // List that will hold the files and subfiles in path
+           //List<FileInfo> files = new List<FileInfo>();  // List that will hold the files and subfiles in path
             //List<DirectoryInfo> folders = new List<DirectoryInfo>(); // List that hold direcotries that cannot be accessed
 
             //DirectoryInfo di = new DirectoryInfo(folder);
@@ -423,7 +441,9 @@ namespace SongRequestManager
             UpdateRequestUI();
 
             if (RequestBotListViewController.Instance.isActivated)
-                RequestBotListViewController.Instance.UpdateRequestUI(true);
+            {
+                RequestBotListViewController.Instance.UpdateRequestUI(true);                
+            }
 
             _configChanged = false;
         }
@@ -480,17 +500,25 @@ namespace SongRequestManager
         {
             ReadRemapList(); // BUG: This should use list manager
 
+            MapperBanList(TwitchWebSocketClient.OurTwitchUser, "mapperban.list");
+            WhiteList(TwitchWebSocketClient.OurTwitchUser, "whitelist.unique");
+            BlockedUserList(TwitchWebSocketClient.OurTwitchUser, "blockeduser.unique");
+            accesslist("whitelist.unique");
+            accesslist("blockeduser.unique");
+            accesslist("mapper.list");
+            accesslist("mapperban.list");
+
 #if UNRELEASED
 
 
             OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
             MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
-            MapperBanList(TwitchWebSocketClient.OurTwitchUser, "mapperban.list");
             loaddecks(TwitchWebSocketClient.OurTwitchUser, ""); // Load our default deck collection
             // BUG: Command failure observed once, no permission to use /chatcommand. Possible cause: Ourtwitchuser isn't authenticated yet.
 
             RunScript(TwitchWebSocketClient.OurTwitchUser, "startup.script"); // Run startup script. This can include any bot commands.
 #endif
+
         }
 
         private void FixedUpdate()
@@ -504,7 +532,9 @@ namespace SongRequestManager
             if (_refreshQueue)
             {
                 if (RequestBotListViewController.Instance.isActivated)
+                {
                     RequestBotListViewController.Instance.UpdateRequestUI(true);
+                }
                 _refreshQueue = false;
             }
         }
@@ -919,6 +949,7 @@ namespace SongRequestManager
                 Plugin.Log(ex.ToString());
             }
         }
+
 
         public static void DequeueRequest(SongRequest request, bool updateUI = true)
         {

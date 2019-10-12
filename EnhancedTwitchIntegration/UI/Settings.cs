@@ -42,6 +42,15 @@ namespace SongRequestManager
             MiniumSongRating.SetValue += (scale) => { RequestBotConfig.Instance.LowestAllowedRating = scale; };
             MiniumSongRating.GetValue += () => { return RequestBotConfig.Instance.LowestAllowedRating; };
 
+            var MaximumAllowedSongLength = menu.AddSlider("Maximum Song Length", "Logest allowed song length in seconds", 0, 999, 1.0f, false);
+            MaximumAllowedSongLength.SetValue += (scale) => { RequestBotConfig.Instance.MaximumSongLength =  scale; };
+            MaximumAllowedSongLength.GetValue += () => { return RequestBotConfig.Instance.MaximumSongLength; };
+
+
+            var MinimumNJS = menu.AddSlider("Minimum NJS allowed", "Disallow songs below a certain NJS", 0, 50, 1.0f, false);
+            MinimumNJS.SetValue += (scale) => { RequestBotConfig.Instance.MinimumNJS= scale; };
+            MinimumNJS.GetValue += () => { return RequestBotConfig.Instance.MinimumNJS; };
+
             var TTSSupport = menu.AddBool("TTS Support", "Add ! to all command outputs for TTS Filtering");
             TTSSupport.SetValue += (requests) => { RequestBotConfig.Instance.BotPrefix = requests ? "! " : ""; };
             TTSSupport.GetValue += () => { return RequestBotConfig.Instance.BotPrefix!=""; };

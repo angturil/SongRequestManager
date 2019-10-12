@@ -17,6 +17,131 @@ namespace SongRequestManager
     public partial class RequestBot : MonoBehaviour
     {
 
+        private void showlists(TwitchUser requestor, string request)
+        {
+            var msg = new QueueLongMessage();
+            msg.Header("Loaded lists: ");
+            foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})", ", ");
+            msg.end("...", "No lists loaded.");
+        }
+
+        private string listaccess(ParseState state)
+        {
+            QueueChatMessage($"Hi, my name is {state.botcmd.userParameter} , and I'm a list object!");
+            return success;
+        }
+
+
+        private string accesslist(string request)
+        {
+            string[] listname = request.Split('.');
+
+            var req = listname[0];
+
+            if (!COMMAND.aliaslist.ContainsKey(req))
+            {
+                new COMMAND('!' + req).Action(listaccess).Help(Everyone | CmdFlags.Dynamic, "usage: %alias%   %|%Draws a song from one of the curated `. Does not repeat or conflict.", _anything).User(request);
+            }
+
+            return success;
+        }
+
+        private void Addtolist(TwitchUser requestor, string request)
+        {
+            string[] parts = request.Split(new char[] { ' ', ',' }, 2);
+            if (parts.Length < 2)
+            {
+                QueueChatMessage("Usage text... use the official help method");
+                return;
+            }
+
+            try
+            {
+
+                listcollection.add(ref parts[0], ref parts[1]);
+                QueueChatMessage($"Added {parts[1]} to {parts[0]}");
+
+            }
+            catch
+            {
+                QueueChatMessage($"list {parts[0]} not found.");
+            }
+        }
+
+        private void ListList(TwitchUser requestor, string request)
+        {
+
+            try
+            {
+                var list = listcollection.OpenList(request);
+
+                var msg = new QueueLongMessage();
+                foreach (var entry in list.list) msg.Add(entry, ", ");
+                msg.end("...", $"{request} is empty");
+            }
+            catch
+            {
+                QueueChatMessage($"{request} not found.");
+            }
+        }
+
+
+        private void RemoveFromlist(TwitchUser requestor, string request)
+        {
+            string[] parts = request.Split(new char[] { ' ', ',' }, 2);
+            if (parts.Length < 2)
+            {
+                //     NewCommands[Addtolist].ShortHelp();
+                QueueChatMessage("Usage text... use the official help method");
+                return;
+            }
+
+            try
+            {
+
+                listcollection.remove(ref parts[0], ref parts[1]);
+                QueueChatMessage($"Removed {parts[1]} from {parts[0]}");
+
+            }
+            catch
+            {
+                QueueChatMessage($"list {parts[0]} not found.");
+            }
+        }
+
+
+
+        private void ClearList(TwitchUser requestor, string request)
+        {
+
+            try
+            {
+                listcollection.ClearList(request);
+                QueueChatMessage($"{request} is cleared.");
+            }
+            catch
+            {
+                QueueChatMessage($"Unable to clear {request}");
+            }
+        }
+
+        private void UnloadList(TwitchUser requestor, string request)
+        {
+
+            try
+            {
+                listcollection.ListCollection.Remove(request.ToLower());
+                QueueChatMessage($"{request} unloaded.");
+            }
+            catch
+            {
+                QueueChatMessage($"Unable to unload {request}");
+            }
+        }
+
+
+
+
         #region List Manager Related functions ...
 
         // List types:
@@ -31,7 +156,7 @@ namespace SongRequestManager
         // .json = (not part of list manager.. yet)
 
         // This code is currently in an extreme state of flux. Underlying implementation will change.
-        
+
         private void OpenList(TwitchUser requestor, string request)
         {
             listcollection.OpenList(request.ToLower());

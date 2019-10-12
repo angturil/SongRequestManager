@@ -29,8 +29,8 @@ namespace SongRequestManager
         public bool LimitUserRequestsToSession = false; // Request limits do not reset after a song is played.  
 
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
-        
-
+        public float MaximumSongLength = 9999; // Maximum song length in seconds
+        public float MinimumNJS = 14;
 
         public int MaxiumScanRange = 5; // How far down the list to scan for new songs
 

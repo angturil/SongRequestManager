@@ -197,6 +197,8 @@ namespace SongRequestManager
 #if UNRELEASED
 
 
+            new COMMAND("!makesearchdeck").Coroutine(makelistfromsearch).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria to search.deck", _atleast1);
+
             //new COMMAND("!getpp").Coroutine(GetPPData).Help(Broadcaster, "Get PP Data");
 
             new COMMAND("!downloadsongs").Coroutine(DownloadEverything).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
@@ -282,6 +284,12 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/current", "subcmdcurrent" }).Action(SubcmdCurrentSong).Help(Subcmd | Everyone, "usage: <command>/current");
             new COMMAND(new string[] { "/last", "/previous", "subcmdlast" }).Action(SubcmdPreviousSong).Help(Subcmd | Everyone, "usage: <command>/last");
             new COMMAND(new string[] { "/next", "subcmdnext" }).Action(SubcmdNextSong).Help(Subcmd | Everyone, "usage: <command>/next");
+
+            new COMMAND(new string[] { "/requestor", "subcmduser" }).Action(SubcmdCurrentUser).Help(Subcmd | Everyone, "usage: <command>/requestor");
+            new COMMAND(new string[] { "/list", "subcmdlist" }).Action(SubcmdList).Help(Subcmd | Mod, "usage: <command>/list");
+            new COMMAND(new string[] { "/add", "subcmdadd" }).Action(SubcmdAdd).Help(Subcmd | Mod, "usage: <command>/add");
+            new COMMAND(new string[] { "/remove", "subcmdremove" }).Action(SubcmdRemove).Help(Subcmd | Mod, "usage: <command>/remove");
+
 
             new COMMAND(new string[] { "/flags", "subcmdflags" }).Action(SubcmdShowflags).Help(Subcmd, "usage: <command>/next");
             new COMMAND(new string[] { "/set", "subcmdset" }).Action(SubcmdSetflags).Help(Subcmd, "usage: <command>/set <flags>");
@@ -370,6 +378,25 @@ namespace SongRequestManager
             return endcommand;
         }
 
+        public string SubcmdList(ParseState state)
+        {
+            ListList(state.user, state.botcmd.userParameter.ToString());    
+            return endcommand;
+        }
+
+        public string SubcmdAdd(ParseState state)
+        {
+            Addtolist(state.user, state.botcmd.userParameter.ToString()+" "+state.subparameter);
+            return endcommand;
+        }
+
+        public string SubcmdRemove(ParseState state)
+        {
+            RemoveFromlist(state.user, state.botcmd.userParameter.ToString()+" "+state.subparameter);
+            return endcommand;
+        }
+
+
         public string SubcmdCurrentSong(ParseState state)
         {
             try
@@ -385,6 +412,23 @@ namespace SongRequestManager
 
             return state.error($"Theree is no current song available");
         }
+
+        public string SubcmdCurrentUser(ParseState state)
+        {
+            try
+            {
+                if (state.parameter != "") state.parameter += " ";
+                //state.parameter += RequestHistory.Songs[0][""];
+                return "";
+            }
+            catch
+            {
+                // Being lazy, incase RequestHistory access failure.
+            }
+
+            return state.error($"Theree is no current user available");
+        }
+
 
         public string SubcmdPreviousSong(ParseState state)
         {
@@ -726,6 +770,8 @@ namespace SongRequestManager
             public static void Parse(TwitchUser user, string request, CmdFlags flags = 0, string info = "")
             {
                 if (!Instance || request.Length == 0) return;
+
+                if (listcollection.contains(ref _blockeduser, user.username.ToLower())) return;
 
                 // This will be used for all parsing type operations, allowing subcommands efficient access to parse state logic
                 ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();
