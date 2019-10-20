@@ -25,7 +25,7 @@ using StreamCore;
 
 namespace SongRequestManager
 {
-    public partial class RequestBot : MonoBehaviour
+    public partial class RequestBot : MonoBehaviour, ITwitchMessageHandler
     {
         [Flags]
         public enum RequestStatus
@@ -82,6 +82,16 @@ namespace SongRequestManager
         public static CustomViewController _KeyboardViewController = null;
 
         public static string playedfilename = "";
+
+        public Action<TwitchMessage> Twitch_OnPrivmsgReceived { get; set; }
+        public Action<TwitchMessage> Twitch_OnRoomstateReceived { get; set; }
+        public Action<TwitchMessage> Twitch_OnUsernoticeReceived { get; set; }
+        public Action<TwitchMessage> Twitch_OnUserstateReceived { get; set; }
+        public Action<TwitchMessage> Twitch_OnClearchatReceived { get; set; }
+        public Action<TwitchMessage> Twitch_OnClearmsgReceived { get; set; }
+        public Action<TwitchMessage> Twitch_OnModeReceived { get; set; }
+        public Action<TwitchMessage> Twitch_OnJoinReceived { get; set; }
+        public bool ChatCallbacksReady { get; set; } = false;
 
         public static void OnLoad()
         {
@@ -175,9 +185,9 @@ namespace SongRequestManager
             WriteQueueSummaryToFile();
             WriteQueueStatusToFile(QueueMessage(RequestBotConfig.Instance.RequestQueueOpen));
 
-
-            if (Instance) return;
-            new GameObject("SongRequestManager").AddComponent<RequestBot>();
+            // Yes, this is disabled on purpose. StreamCore will init this class for you now, so don't uncomment this! -Brian
+            //if (Instance) return;
+            //new GameObject("SongRequestManager").AddComponent<RequestBot>();
         }
 
         public static  void AddKeyboard(KEYBOARD keyboard, string keyboardname,float scale=0.5f)
@@ -400,11 +410,10 @@ namespace SongRequestManager
 
                 StartCoroutine(ProcessRequestQueue());
 
-                TwitchMessageHandlers.PRIVMSG += PRIVMSG;
-
-
+                Twitch_OnPrivmsgReceived += PRIVMSG;
 
                 RequestBotConfig.Instance.ConfigChangedEvent += OnConfigChangedEvent;
+                ChatCallbacksReady = true;
             }
         catch (Exception ex)
             {

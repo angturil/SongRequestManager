@@ -52,8 +52,6 @@ namespace SongRequestManager
 
             // init sprites
             Base64Sprites.Init();
-            
-            TwitchWebSocketClient.Initialize();
         }
 
         static string MenuSceneName = "MenuCore";
