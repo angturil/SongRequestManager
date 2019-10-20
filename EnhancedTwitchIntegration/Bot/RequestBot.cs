@@ -22,6 +22,7 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using SongCore;
 using StreamCore;
+using StreamCore.Twitch;
 
 namespace SongRequestManager
 {

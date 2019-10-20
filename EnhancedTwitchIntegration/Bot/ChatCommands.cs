@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using StreamCore;
+using StreamCore.Twitch;
 
 namespace SongRequestManager
 {
