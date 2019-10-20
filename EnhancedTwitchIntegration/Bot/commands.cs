@@ -161,7 +161,7 @@ namespace SongRequestManager
             new COMMAND("!readdeck").Action(Readdeck).Help(Mod, "usage: %alias", _alphaNumericRegex);
             new COMMAND("!writedeck").Action(Writedeck).Help(Broadcaster, "usage: %alias", _alphaNumericRegex);
 
-            new COMMAND("!chatmessage").Action(ChatMessage).Help(Mod, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
+            new COMMAND("!chatmessage").Action(ChatMessage).Help(Broadcaster, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
             new COMMAND("!runscript").Action(RunScript).Help(Mod, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/StreamCore", _atleast1);
 
             new COMMAND("!formatlist").Action(showFormatList).Help(Broadcaster, "Show a list of all the available customizable text format strings. Use caution, as this can make the output of some commands unusable. You can use /default to return a variable to its default setting.");
@@ -196,6 +196,8 @@ namespace SongRequestManager
 
 #if UNRELEASED
 
+
+            new COMMAND("!makesearchdeck").Coroutine(makelistfromsearch).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria to search.deck", _atleast1);
 
             //new COMMAND("!getpp").Coroutine(GetPPData).Help(Broadcaster, "Get PP Data");
 
@@ -264,6 +266,7 @@ namespace SongRequestManager
             new COMMAND("NextSonglink", NextSonglink);
             new COMMAND("SongHintText", SongHintText);
             new COMMAND("QueueTextFileFormat", QueueTextFileFormat);
+            new COMMAND("QueueListRow2", QueueListRow2);
             new COMMAND("QueueListFormat", QueueListFormat);
             new COMMAND("HistoryListFormat", HistoryListFormat);
             new COMMAND("AddSortOrder", AddSortOrder);
@@ -281,6 +284,12 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/current", "subcmdcurrent" }).Action(SubcmdCurrentSong).Help(Subcmd | Everyone, "usage: <command>/current");
             new COMMAND(new string[] { "/last", "/previous", "subcmdlast" }).Action(SubcmdPreviousSong).Help(Subcmd | Everyone, "usage: <command>/last");
             new COMMAND(new string[] { "/next", "subcmdnext" }).Action(SubcmdNextSong).Help(Subcmd | Everyone, "usage: <command>/next");
+
+            new COMMAND(new string[] { "/requestor", "subcmduser" }).Action(SubcmdCurrentUser).Help(Subcmd | Everyone, "usage: <command>/requestor");
+            new COMMAND(new string[] { "/list", "subcmdlist" }).Action(SubcmdList).Help(Subcmd | Mod, "usage: <command>/list");
+            new COMMAND(new string[] { "/add", "subcmdadd" }).Action(SubcmdAdd).Help(Subcmd | Mod, "usage: <command>/add");
+            new COMMAND(new string[] { "/remove", "subcmdremove" }).Action(SubcmdRemove).Help(Subcmd | Mod, "usage: <command>/remove");
+
 
             new COMMAND(new string[] { "/flags", "subcmdflags" }).Action(SubcmdShowflags).Help(Subcmd, "usage: <command>/next");
             new COMMAND(new string[] { "/set", "subcmdset" }).Action(SubcmdSetflags).Help(Subcmd, "usage: <command>/set <flags>");
@@ -369,6 +378,25 @@ namespace SongRequestManager
             return endcommand;
         }
 
+        public string SubcmdList(ParseState state)
+        {
+            ListList(state.user, state.botcmd.userParameter.ToString());    
+            return endcommand;
+        }
+
+        public string SubcmdAdd(ParseState state)
+        {
+            Addtolist(state.user, state.botcmd.userParameter.ToString()+" "+state.subparameter);
+            return endcommand;
+        }
+
+        public string SubcmdRemove(ParseState state)
+        {
+            RemoveFromlist(state.user, state.botcmd.userParameter.ToString()+" "+state.subparameter);
+            return endcommand;
+        }
+
+
         public string SubcmdCurrentSong(ParseState state)
         {
             try
@@ -384,6 +412,23 @@ namespace SongRequestManager
 
             return state.error($"Theree is no current song available");
         }
+
+        public string SubcmdCurrentUser(ParseState state)
+        {
+            try
+            {
+                if (state.parameter != "") state.parameter += " ";
+                //state.parameter += RequestHistory.Songs[0][""];
+                return "";
+            }
+            catch
+            {
+                // Being lazy, incase RequestHistory access failure.
+            }
+
+            return state.error($"Theree is no current user available");
+        }
+
 
         public string SubcmdPreviousSong(ParseState state)
         {
@@ -725,6 +770,8 @@ namespace SongRequestManager
             public static void Parse(TwitchUser user, string request, CmdFlags flags = 0, string info = "")
             {
                 if (!Instance || request.Length == 0) return;
+
+                if (listcollection.contains(ref _blockeduser, user.username.ToLower())) return;
 
                 // This will be used for all parsing type operations, allowing subcommands efficient access to parse state logic
                 ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();

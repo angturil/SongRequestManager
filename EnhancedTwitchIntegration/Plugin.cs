@@ -5,13 +5,14 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using UnityEngine.SceneManagement;
 using StreamCore.Chat;
+using SongRequestManager.UI;
 
 namespace SongRequestManager
 {
     public class Plugin : IBeatSaberPlugin
     {
         public string Name => "Song Request Manager";
-        public string Version => "2.0.8";
+        public string Version => "2.1.4";
 
         public static IPALogger Logger { get; internal set; }
 
@@ -41,28 +42,42 @@ namespace SongRequestManager
             if (Instance != null) return;
             Instance = this;
 
+             // setup handle for fresh menu scene changes
+            CustomUI.Utilities.BSEvents.OnLoad();
+            CustomUI.Utilities.BSEvents.menuSceneLoadedFresh += OnMenuSceneLoadedFresh;
+            
+                        // keep track of active scene
+            CustomUI.Utilities.BSEvents.menuSceneActive += () => { IsAtMainMenu = true; };
+            CustomUI.Utilities.BSEvents.gameSceneActive += () => { IsAtMainMenu = false; };
+
+            // init sprites
+            Base64Sprites.Init();
+            
             TwitchWebSocketClient.Initialize();
         }
 
         static string MenuSceneName = "MenuCore";
-        
+
+
+        private void OnMenuSceneLoadedFresh()
+        {
+            try
+            {
+                Settings.OnLoad();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log($"{ex}");
+            }
+
+            RequestBot.OnLoad();
+            RequestBotConfig.Save(true);
+        }
+
+
+        #region Unused IBeatSaberPlugin methods
         public void OnSceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
-            if (arg0.name == MenuSceneName)
-            {
-                try
-                {
-                    Settings.OnLoad();
-                }
-                catch (Exception ex)       
-                {
-                    Plugin.Log($"{ex}");
-                }
-
-                RequestBot.OnLoad();
-
-                RequestBotConfig.Save(true);
-            }
         }
 
         public void OnApplicationQuit()
@@ -72,10 +87,6 @@ namespace SongRequestManager
 
         public void OnActiveSceneChanged(Scene from, Scene to)
         {
-            if (to.name == MenuSceneName)
-                IsAtMainMenu = true;
-            else if (to.name == "GameCore")
-                IsAtMainMenu = false;
         }
 
         public void OnLevelWasLoaded(int level)
@@ -97,5 +108,6 @@ namespace SongRequestManager
         public void OnSceneUnloaded(Scene scene)
         {
         }
+        #endregion
     }
 }

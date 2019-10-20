@@ -145,9 +145,10 @@ namespace SongRequestManager
             if (customSongPackIndex != -1 && levelPacksTableView.GetPrivateField<int>("_selectedColumn") != customSongPackIndex)
             {
                 tableView.SelectCellWithIdx(customSongPackIndex, true);
-                tableView.ScrollToCellWithIdx(0, TableView.ScrollPositionType.Beginning, false);
+                tableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Beginning, false);
+                var tableViewScroller = tableView.GetPrivateField<TableViewScroller>("_scroller");
                 for (int i = 0; i < Mathf.FloorToInt(customSongPackIndex / 6); i++)
-                    tableView.PageScrollDown();
+                    tableViewScroller.PageScrollDown();
             }
 
 
@@ -227,7 +228,7 @@ namespace SongRequestManager
                     Plugin.Log($"Selecting row {songIndex}");
 
                     // scroll to song
-                    tableView.ScrollToCellWithIdx(songIndex, TableView.ScrollPositionType.Beginning, animated);
+                    tableView.ScrollToCellWithIdx(songIndex, TableViewScroller.ScrollPositionType.Beginning, animated);
 
                     // select song, and fire the event
                     tableView.SelectCellWithIdx(songIndex, true);
@@ -245,7 +246,7 @@ namespace SongRequestManager
  
                             //gameplayModifiersPanelController.gameplayModifiers.ResetToDefault();
 
-                            gameplayModifiersPanelController.RefreshUI();
+                            gameplayModifiersPanelController.Refresh();
                         }
                         catch
                         { }

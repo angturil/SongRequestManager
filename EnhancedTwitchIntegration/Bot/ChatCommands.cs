@@ -28,6 +28,8 @@ namespace SongRequestManager
         static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>");
         static StringBuilder QueueTextFileFormat=new StringBuilder ("%songName%%LF%");         // Don't forget to include %LF% for these. 
 
+        static public StringBuilder QueueListRow2 = new StringBuilder("%authorName% (%id%) <color=white>%songlength%</color>");
+
         static StringBuilder BanSongDetail = new StringBuilder("Blocking %songName%/%authorName% (%version%)");
 
         static StringBuilder QueueListFormat= new StringBuilder("%songName% (%version%)");
@@ -192,7 +194,7 @@ namespace SongRequestManager
 
         // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
 
-        [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, All = -1 };
+        [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, Duration=64,NJS=128,All = -1 };
 
         private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.All) // BUG: This could be nicer
         {
@@ -204,6 +206,12 @@ namespace SongRequestManager
             if (filter.HasFlag(SongFilter.Mapper) &&  mapperfiltered(song,_mapperWhitelist)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
 
             if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist, songid)) return fast ? "X" : $"{song["songName"].Value} by  {song["authorName"].Value} already requested this session!";
+
+            if (listcollection.contains(ref _whitelist, songid)) return "";
+
+            if (filter.HasFlag(SongFilter.Duration) && song["songduration"].AsFloat > RequestBotConfig.Instance.MaximumSongLength) return fast ? "X" : $"{song["songName"].Value} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) is too long!";
+
+            if (filter.HasFlag(SongFilter.NJS) && song["njs"].AsInt < RequestBotConfig.Instance.MinimumNJS) return fast ? "X" : $"{song["songName"].Value} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) NJS ({song["njs"].Value}) is too low!";
 
             if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"no permitted results found!";
 
@@ -233,10 +241,11 @@ namespace SongRequestManager
             return !(IsRequestInQueue(request) == "");
         }
 
-        private void ClearDuplicateList(TwitchUser requestor, string request)
+        private string ClearDuplicateList(ParseState state)
         {
-            QueueChatMessage("Session duplicate list is now clear.");
+            if (!state.botcmd.Flags.HasFlag(CmdFlags.SilentResult)) QueueChatMessage("Session duplicate list is now clear.");
             listcollection.ClearList(duplicatelist);
+            return success;
         }
         #endregion
 
@@ -448,13 +457,25 @@ namespace SongRequestManager
         {
             string key = request.ToLower();
             mapperBanlist = listcollection.OpenList(key);
-            QueueChatMessage($"Mapper ban list set to {request}.");
+            //QueueChatMessage($"Mapper ban list set to {request}.");
+        }
+
+        private void WhiteList(TwitchUser requestor, string request)
+        {
+            string key = request.ToLower();
+            Whitelist = listcollection.OpenList(key);
+        }
+
+        private void BlockedUserList(TwitchUser requestor, string request)
+        {
+            string key = request.ToLower();
+            BlockedUser = listcollection.OpenList(key);
         }
 
         // Not super efficient, but what can you do
         private bool mapperfiltered(JSONObject song,bool white)
         {
-            string normalizedauthor = song["authorName"].Value.ToLower();
+            string normalizedauthor = song["metadata"]["levelAuthorName"].Value.ToLower();
             if (white && mapperwhitelist.list.Count > 0)
             {
                 foreach (var mapper in mapperwhitelist.list)
@@ -486,7 +507,7 @@ namespace SongRequestManager
 
                 if (songId == "")
                 {
-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, entry.requestor.displayName };
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, entry.requestor.displayName };
 
                     if (DoesContainTerms(request, ref terms))
                         {
@@ -678,13 +699,84 @@ namespace SongRequestManager
             yield return null;
         }
 
+        private IEnumerator makelistfromsearch(ParseState state)
+        {
+            int totalSongs = 0;
+
+            var id = GetBeatSaverId(state.parameter);
+
+            string requestUrl = (id != "") ? $"https://beatsaver.com/api/maps/detail/{normalize.RemoveSymbols(ref state.parameter, normalize._SymbolsNoDash)}" : $"https://beatsaver.com/api/search/text";
+
+            if (RequestBotConfig.Instance.OfflineMode) yield break;
+
+            int offset = 0;
+
+            listcollection.ClearList("search.deck");
+
+            //state.msg($"Flags: {state.flags}");
+
+            while (offset < RequestBotConfig.Instance.MaxiumScanRange) // MaxiumAddScanRange
+            {
+                using (var web = UnityWebRequest.Get($"{requestUrl}/{offset}?q={state.parameter}"))
+                {
+                    yield return web.SendWebRequest();
+                    if (web.isNetworkError || web.isHttpError)
+                    {
+                        Plugin.Log($"Error {web.error} occured when trying to request song {requestUrl}!");
+                        yield break;
+                    }
+
+                    JSONNode result = JSON.Parse(web.downloadHandler.text);
+                    if (result["docs"].IsArray && result["totalDocs"].AsInt == 0)
+                    {
+                        yield break;
+                    }
+
+                    if (result["docs"].IsArray)
+                    {
+                        foreach (JSONObject entry in result["docs"])
+                        {
+                            JSONObject song = entry;
+                            new SongMap(song);
+
+                            if (mapperfiltered(song, true)) continue; // This forces the mapper filter
+                            if (filtersong(song)) continue;
+
+                            if (state.flags.HasFlag(CmdFlags.Local)) QueueSong(state, song);
+                            listcollection.add("search.deck", song["id"].Value);
+                            totalSongs++;
+                        }
+                    }
+                }
+                offset += 1; 
+            }
+
+            if (totalSongs == 0)
+            {
+                //QueueChatMessage($"No new songs found.");
+            }
+            else
+            {
+#if UNRELEASED
+                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck search", state.flags);
+#endif
+
+                if (state.flags.HasFlag(CmdFlags.Local))
+                {
+                    UpdateRequestUI();
+                    _refreshQueue = true;
+                }
+            }
+            yield return null;
+        }
+
+
         // General search version
         private IEnumerator addsongs(ParseState state)
         {
  
             var id = GetBeatSaverId(state.parameter);
             string requestUrl = (id != "") ? $"https://beatsaver.com/api/maps/detail/{normalize.RemoveSymbols(ref state.parameter, normalize._SymbolsNoDash)}" : $"https://beatsaver.com/api/search/text/0?q={state.request}";
-
 
             string errorMessage = "";
 
@@ -755,7 +847,7 @@ namespace SongRequestManager
                 bool moveRequest = false;
                 if (moveId == "")
                 {
-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
                     if (DoesContainTerms(request, ref terms))
                         moveRequest = true;
                 }
@@ -1343,7 +1435,7 @@ catch
                 //{
                 //    Add("pp", "");
                 //}
-
+ 
                 if (song["pp"].AsFloat > 0) Add("PP", song["pp"].AsInt.ToString() + " PP"); else Add("PP", "");
 
                 Add("StarRating", GetStarRating(ref song)); // Add additional dynamic properties

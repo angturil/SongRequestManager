@@ -87,10 +87,42 @@ namespace SongRequestManager
                     var metadata = song["metadata"];
                     song.Add("songName", metadata["songName"].Value);
                     song.Add("songSubName", metadata["songSubName"].Value);
-                    song.Add("songSubName", metadata["songSubName"].Value);
                     song.Add("authorName", metadata["songAuthorName"].Value);
                     song.Add("levelAuthor", metadata["levelAuthorName"].Value);
                     song.Add("rating", song["stats"]["rating"].AsFloat*100);
+
+                    try
+                    {
+
+                        var characteristics = metadata["characteristics"][0]["difficulties"];
+
+                        //Instance.QueueChatMessage($"{characteristics}");
+
+                        int maxnjs = 0;
+                        foreach (var entry in characteristics)
+                        {
+                            if (entry.Value.IsNull) continue;
+                            var diff = entry.Value["length"].AsInt;
+                            var njs = entry.Value["njs"].AsInt;
+                            if (njs > maxnjs) maxnjs = njs;
+
+                            if (diff > 0)
+                            {
+                                song.Add("songlength", $"{diff / 60}:{diff % 60:00}");
+                                song.Add("songduration", diff);
+                                //Instance.QueueChatMessage($"{diff / 60}:{diff % 60}");
+                            }
+                        }
+
+                        if (maxnjs>0)
+                        {
+                            song.Add("njs", maxnjs);
+                        }
+                    }
+                    catch
+                    {
+                    }
+
                 }
 
 
@@ -125,7 +157,7 @@ namespace SongRequestManager
                 SongMap temp;
                 string indexpp = (song["pp"].AsFloat > 0) ? "PP" : "";
 
-                IndexFields(false,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, indexpp);
+                IndexFields(false,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value , song["levelAuthor"].Value, indexpp);
 
                 MapDatabase.MapLibrary.TryRemove(song["id"].Value, out temp);
                 MapDatabase.MapLibrary.TryRemove(song["version"].Value, out temp);
@@ -256,7 +288,7 @@ namespace SongRequestManager
             {
                 DateTime start = DateTime.Now;
                 JSONArray arr = new JSONArray();
-                foreach (var entry in LevelId)
+                foreach (var entry in MapLibrary)
                 arr.Add(entry.Value.song);
                 File.WriteAllText(Path.Combine(Plugin.DataPath, "SongDatabase.dat"), arr.ToString());
                 Instance.QueueChatMessage($"Saved Song Databse in  {(DateTime.Now - start).Seconds} secs.");
@@ -776,8 +808,12 @@ namespace SongRequestManager
             var StarTime = DateTime.UtcNow;
 
 
-            string requestUrl = "https://wes.ams3.digitaloceanspaces.com/beatstar/bssb.json";
-                                 
+            string requestUrl = "https://cdn.wes.cloud/beatstar/bssb/v2-ranked.json"; 
+            //public const String SCRAPED_SCORE_SABER_ALL_JSON_URL = "https://cdn.wes.cloud/beatstar/bssb/v2-all.json";
+
+            
+
+
             string result;
 
             System.Globalization.NumberStyles style = System.Globalization.NumberStyles.AllowDecimalPoint;
@@ -805,17 +841,30 @@ namespace SongRequestManager
                 {
                     JSONNode difficultyNodes = kvp.Value;
 
-                    string version = "";
+
+
+                string id = "";
                     float maxpp = 0;
                     float maxstar = 0;
- 
-                foreach (KeyValuePair<string, JSONNode> innerKvp in difficultyNodes)
+
+                //Instance.QueueChatMessage($"{kvp.Value}");
+
+                id = difficultyNodes["key"];
+
+                //Instance.QueueChatMessage($"{id}");
+
+                foreach (var innerKvp in difficultyNodes["diffs"])
                     {
                     JSONNode node = innerKvp.Value;
-                    version = node["key"];
-                 
+
+                    //Instance.QueueChatMessage($"{node}");
+
+
                     float pp = 0;
+
                     float.TryParse(node["pp"], style, System.Globalization.CultureInfo.InvariantCulture, out pp);
+
+ 
                     if (pp > maxpp) maxpp = pp;
 
                     float starDifficulty = 0;
@@ -825,14 +874,16 @@ namespace SongRequestManager
 
                 if (maxpp > 0)
                 {
+
+                    //Instance.QueueChatMessage($"{id} = {maxpp}");
+
                     SongMap map;
 
-                    string id = GetBeatSaverId(version);
                     ppmap.TryAdd(id, (int)(maxpp));
 
-                    if (id != "" && maxpp >180) listcollection.add("pp.deck", id);
+                    if (id != "" && maxpp >200) listcollection.add("pp.deck", id);
 
-                    if (MapDatabase.MapLibrary.TryGetValue(version, out map))
+                    if (MapDatabase.MapLibrary.TryGetValue(id, out map))
                     {
                         map.pp=(int) (maxpp);
                     }

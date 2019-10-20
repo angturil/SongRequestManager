@@ -1,0 +1,57 @@
+diff --git a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+index e42dcc1..75e7983 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+@@ -317,7 +317,7 @@ namespace SongRequestManager
+             if (NumberOfCells() > _selectedRow)
+             {
+                 _customListTableView.SelectCellWithIdx(_selectedRow, selectRowCallback);
+-                _customListTableView.ScrollToCellWithIdx(_selectedRow, TableView.ScrollPositionType.Beginning, true);
++                _customListTableView.ScrollToCellWithIdx(_selectedRow, TableViewScroller.ScrollPositionType.Beginning, true);
+             }
+         }
+ 
+@@ -445,7 +445,7 @@ namespace SongRequestManager
+             return isShowingHistory ? RequestHistory.Songs.Count() : RequestQueue.Songs.Count();
+         }
+ 
+-        public override TableCell CellForIdx(int row)
++        public override TableCell CellForIdx(TableView tableView, int row)
+         {
+             LevelListTableCell _tableCell = GetTableCell();
+ 
+diff --git a/EnhancedTwitchIntegration/UI/SongListUtils.cs b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+index 3752cc1..17e88e9 100644
+--- a/EnhancedTwitchIntegration/UI/SongListUtils.cs
++++ b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+@@ -145,9 +145,10 @@ namespace SongRequestManager
+             if (customSongPackIndex != -1 && levelPacksTableView.GetPrivateField<int>("_selectedColumn") != customSongPackIndex)
+             {
+                 tableView.SelectCellWithIdx(customSongPackIndex, true);
+-                tableView.ScrollToCellWithIdx(0, TableView.ScrollPositionType.Beginning, false);
++                tableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Beginning, false);
++                var tableViewScroller = tableView.GetPrivateField<TableViewScroller>("_scroller");
+                 for (int i = 0; i < Mathf.FloorToInt(customSongPackIndex / 6); i++)
+-                    tableView.PageScrollDown();
++                    tableViewScroller.PageScrollDown();
+             }
+ 
+ 
+@@ -227,7 +228,7 @@ namespace SongRequestManager
+                     Plugin.Log($"Selecting row {songIndex}");
+ 
+                     // scroll to song
+-                    tableView.ScrollToCellWithIdx(songIndex, TableView.ScrollPositionType.Beginning, animated);
++                    tableView.ScrollToCellWithIdx(songIndex, TableViewScroller.ScrollPositionType.Beginning, animated);
+ 
+                     // select song, and fire the event
+                     tableView.SelectCellWithIdx(songIndex, true);
+@@ -245,7 +246,7 @@ namespace SongRequestManager
+  
+                             //gameplayModifiersPanelController.gameplayModifiers.ResetToDefault();
+ 
+-                            gameplayModifiersPanelController.RefreshUI();
++                            gameplayModifiersPanelController.Refresh();
+                         }
+                         catch
+                         { }
