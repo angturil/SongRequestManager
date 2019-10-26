@@ -26,7 +26,7 @@ using StreamCore.Twitch;
 
 namespace SongRequestManager
 {
-    public partial class RequestBot : MonoBehaviour, ITwitchMessageHandler
+    public partial class RequestBot : MonoBehaviour, ITwitchIntegration
     {
         [Flags]
         public enum RequestStatus
@@ -84,15 +84,7 @@ namespace SongRequestManager
 
         public static string playedfilename = "";
 
-        public Action<TwitchMessage> Twitch_OnPrivmsgReceived { get; set; }
-        public Action<TwitchMessage> Twitch_OnRoomstateReceived { get; set; }
-        public Action<TwitchMessage> Twitch_OnUsernoticeReceived { get; set; }
-        public Action<TwitchMessage> Twitch_OnUserstateReceived { get; set; }
-        public Action<TwitchMessage> Twitch_OnClearchatReceived { get; set; }
-        public Action<TwitchMessage> Twitch_OnClearmsgReceived { get; set; }
-        public Action<TwitchMessage> Twitch_OnModeReceived { get; set; }
-        public Action<TwitchMessage> Twitch_OnJoinReceived { get; set; }
-        public bool ChatCallbacksReady { get; set; } = false;
+        public bool IsPluginReady { get; set; } = false;
 
         public static void OnLoad()
         {
@@ -411,10 +403,10 @@ namespace SongRequestManager
 
                 StartCoroutine(ProcessRequestQueue());
 
-                Twitch_OnPrivmsgReceived += PRIVMSG;
+                TwitchMessageHandlers.PRIVMSG += PRIVMSG;
 
                 RequestBotConfig.Instance.ConfigChangedEvent += OnConfigChangedEvent;
-                ChatCallbacksReady = true;
+                IsPluginReady = true;
             }
         catch (Exception ex)
             {
