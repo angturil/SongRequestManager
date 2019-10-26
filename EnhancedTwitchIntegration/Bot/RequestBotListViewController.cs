@@ -88,11 +88,11 @@ namespace SongRequestManager
             foreach (KEYBOARD.KEY key in kb.keys)
                 foreach (var item in RequestBot.deck)
                 {
-                    string search = $"!{item.Key}/current/toggle";
+                    string search = $"!{item.Key}/selected/toggle";
                     if (key.value.StartsWith(search))
                         {
                         string deckname = item.Key.ToLower() + ".deck";
-                        Color color= (RequestBot.listcollection.contains(ref deckname, RequestHistory.Songs[0].song["id"].Value)) ? Present : basecolor;
+                        Color color= (RequestBot.listcollection.contains(ref deckname, CurrentlySelectedSong().song["id"].Value)) ? Present : basecolor;
                         key.mybutton.GetComponentInChildren<Image>().color =color;
                         }
                 }   
@@ -176,6 +176,7 @@ namespace SongRequestManager
                     isShowingHistory = !isShowingHistory;
                     Resources.FindObjectsOfTypeAll<VRUIScreenSystem>().First().title = isShowingHistory ? "Song Request History" : "Song Request Queue";
                     UpdateRequestUI(true);
+                    SetUIInteractivity();
                     _lastSelection = -1;
                 });
                 _historyHintText = BeatSaberUI.AddHintText(_historyButton.transform as RectTransform, "");
@@ -250,7 +251,7 @@ namespace SongRequestManager
                         
                         SetUIInteractivity(false);
                         RequestBot.Process(_selectedRow, isShowingHistory);
-                        //_selectedRow = -1;
+                        _selectedRow = -1;
                     }
                 });
                 BeatSaberUI.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");
@@ -286,6 +287,34 @@ namespace SongRequestManager
                 isShowingHistory = false;
         }
 
+        public SongRequest CurrentlySelectedSong()
+        {
+            var currentsong = RequestHistory.Songs[0];
+
+            if (_selectedRow != -1 && NumberOfCells() > _selectedRow)
+            {
+                currentsong = SongInfoForRow(_selectedRow);
+            }
+            return currentsong;
+        }
+
+
+        public void UpdateSelectSongInfo()
+            {
+#if UNRELEASED
+            if (RequestHistory.Songs.Count > 0)
+            {
+
+                var currentsong = CurrentlySelectedSong();
+
+                _CurrentSongName.text = currentsong.song["songName"].Value;
+                _CurrentSongName2.text = $"{currentsong.song["authorName"].Value} ({currentsong.song["version"].Value})";
+
+                ColorDeckButtons(CenterKeys, Color.white, Color.magenta);
+            }
+#endif
+
+        }
 
         public void UpdateRequestUI(bool selectRowCallback = false)
         {
@@ -296,17 +325,13 @@ namespace SongRequestManager
             _historyButton.SetButtonText(isShowingHistory ? "Requests" : "History");
             _playButton.SetButtonText(isShowingHistory ? "Replay" : "Play");
 
-#if UNRELEASED
-            if (RequestHistory.Songs.Count > 0)
-            {
-                _CurrentSongName.text = RequestHistory.Songs[0].song["songName"].Value;
-                _CurrentSongName2.text = $"{RequestHistory.Songs[0].song["authorName"].Value} ({RequestHistory.Songs[0].song["version"].Value})";
+            UpdateSelectSongInfo();
 
-                ColorDeckButtons(CenterKeys, Color.white, Color.magenta);
-            }
-#endif
 
             _customListTableView.ReloadData();
+
+            if (_selectedRow == -1) return;
+
 
             if (NumberOfCells() > _selectedRow)
             {
@@ -383,12 +408,15 @@ namespace SongRequestManager
       
             // if not in history, disable play button if request is a challenge
             if (!isShowingHistory)
-                {
+            {
                 var request = SongInfoForRow(row);
                 var isChallenge = request.requestInfo.IndexOf("!challenge", StringComparison.OrdinalIgnoreCase) >= 0;
                 _playButton.interactable = !isChallenge;
-                }
+            }
 
+            UpdateSelectSongInfo();
+
+            SetUIInteractivity();
         }
 
         private void SongLoader_SongsLoadedEvent(SongCore.Loader arg1, Dictionary <string,CustomPreviewBeatmapLevel> arg2)
@@ -396,20 +424,52 @@ namespace SongRequestManager
             _customListTableView?.ReloadData();
         }
 
-        public void SetUIInteractivity(bool interactive=false)
+ 
+        /// <summary>
+        /// Alter the state of the buttons based on selection
+        /// </summary>
+        /// <param name="interactive">Set to false to force disable all buttons, true to auto enable buttons based on states</param>
+        public void SetUIInteractivity(bool interactive = true)
         {
+            var toggled = interactive;
+                        if (NumberOfCells() == 0 || _selectedRow == -1)
+                            {
+                Plugin.Log("Nothing selected, or empty list, buttons should be off");
+                toggled = false;
+                            }
+            
+            var playButtonEnabled = toggled;
+                        if (toggled && !isShowingHistory)
+                            {
+                var request = SongInfoForRow(_selectedRow);
+                var isChallenge = request.requestInfo.IndexOf("!challenge", StringComparison.OrdinalIgnoreCase) >= 0;
+                playButtonEnabled = isChallenge ? false : toggled;
+                            }
+            
+            _playButton.interactable = playButtonEnabled;
+            
+            var skipButtonEnabled = toggled;
+                        if (toggled && isShowingHistory)
+                            {
+                skipButtonEnabled = false;
+                            }
+            _skipButton.interactable = skipButtonEnabled;
+            
+            _blacklistButton.interactable = toggled;
 
             // history button can be enabled even if others are disabled
             _historyButton.interactable = true;
+            _historyButton.interactable = interactive;
 
             _playButton.interactable = interactive;
             _skipButton.interactable = interactive;
             _blacklistButton.interactable = interactive;
+                        // history button can be enabled even if others are disabled
+            _historyButton.interactable = true;
         }
 
-    
 
-    private CustomPreviewBeatmapLevel CustomLevelForRow(int row)
+        private CustomPreviewBeatmapLevel CustomLevelForRow(int row)
         {
             // get level id from hash
             var levelIds = SongCore.Collections.levelIDsForHash(SongInfoForRow(row).song["hash"]);

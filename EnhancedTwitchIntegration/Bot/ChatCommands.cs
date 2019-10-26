@@ -209,7 +209,7 @@ namespace SongRequestManager
 
             if (listcollection.contains(ref _whitelist, songid)) return "";
 
-            if (filter.HasFlag(SongFilter.Duration) && song["songduration"].AsFloat > RequestBotConfig.Instance.MaximumSongLength) return fast ? "X" : $"{song["songName"].Value} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) is too long!";
+            if (filter.HasFlag(SongFilter.Duration) && song["songduration"].AsFloat > RequestBotConfig.Instance.MaximumSongLength*60) return fast ? "X" : $"{song["songName"].Value} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) is too long!";
 
             if (filter.HasFlag(SongFilter.NJS) && song["njs"].AsInt < RequestBotConfig.Instance.MinimumNJS) return fast ? "X" : $"{song["songName"].Value} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) NJS ({song["njs"].Value}) is too low!";
 
@@ -1303,10 +1303,33 @@ catch
 
         }
 
+        public string queueduration()
+            {
+
+            int total = 0;
+            try
+            {
+                foreach (var songrequest in RequestQueue.Songs)
+                {
+                    total += songrequest.song["songduration"];
+                }
+            }
+            catch
+            {
+
+
+            }
+
+            return $"{total / 60}:{ total % 60:00}";
+
+        }
+
         private string QueueStatus(ParseState state)
            {
+   
+
             string queuestate = RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open. " : "Queue is closed. ";
-            QueueChatMessage($"{queuestate} There are {RequestQueue.Songs.Count} maps in the queue.");
+            QueueChatMessage($"{queuestate} There are {RequestQueue.Songs.Count} maps ({queueduration()}) in the queue.");
             return success;
            }
 
@@ -1435,7 +1458,8 @@ catch
                 //{
                 //    Add("pp", "");
                 //}
- 
+
+
                 if (song["pp"].AsFloat > 0) Add("PP", song["pp"].AsInt.ToString() + " PP"); else Add("PP", "");
 
                 Add("StarRating", GetStarRating(ref song)); // Add additional dynamic properties

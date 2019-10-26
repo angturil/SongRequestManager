@@ -219,7 +219,9 @@ namespace SongRequestManager
             new COMMAND("!allowmappers").Action(MapperAllowList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
             new COMMAND("!blockmappers").Action(MapperBanList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
 
-            new COMMAND("!mapper").Coroutine(AddmapperToDeck).Help(Broadcaster, "usage: %alias%<mapperlist>");
+            new COMMAND("!mapperdeck").Coroutine(AddmapperToDeck).Help(Broadcaster, "usage: %alias%<mapperlist>");
+
+            new COMMAND("!glitter").Action(AddLIVGlitter).Help(Broadcaster, "usage: %alias% <number> Message");
 
             // These commands will use a completely new format in future builds and rely on a slightly more flexible parser. Commands like userlist.add george, userlist1=userlist2 will be allowed. 
 
@@ -282,6 +284,7 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/enable", "subcmdenable" }).Action(SubcmdEnable).Help(Subcmd, "usage: <command>/enable");
             new COMMAND(new string[] { "/disable", "subcmddisable" }).Action(SubcmdDisable).Help(Subcmd, "usage: <command>/disable");
             new COMMAND(new string[] { "/current", "subcmdcurrent" }).Action(SubcmdCurrentSong).Help(Subcmd | Everyone, "usage: <command>/current");
+            new COMMAND(new string[] { "/selected", "subcmdselected" }).Action(SubcmdSelected).Help(Subcmd | Mod, "usage: <command>/selected");
             new COMMAND(new string[] { "/last", "/previous", "subcmdlast" }).Action(SubcmdPreviousSong).Help(Subcmd | Everyone, "usage: <command>/last");
             new COMMAND(new string[] { "/next", "subcmdnext" }).Action(SubcmdNextSong).Help(Subcmd | Everyone, "usage: <command>/next");
 
@@ -412,6 +415,24 @@ namespace SongRequestManager
 
             return state.error($"Theree is no current song available");
         }
+
+        public string SubcmdSelected(ParseState state)
+        {
+            try
+            {
+                if (state.parameter != "") state.parameter += " ";
+                state.parameter  +=  RequestBotListViewController.Instance.CurrentlySelectedSong().song["version"];
+                return "";
+            }
+            catch
+            {
+                // Being lazy, incase RequestHistory access failure.
+            }
+
+            return state.error($"Theree is no current song available");
+        }
+
+
 
         public string SubcmdCurrentUser(ParseState state)
         {
