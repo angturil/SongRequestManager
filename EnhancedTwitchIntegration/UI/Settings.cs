@@ -42,7 +42,7 @@ namespace SongRequestManager
             MiniumSongRating.SetValue += (scale) => { RequestBotConfig.Instance.LowestAllowedRating = scale; };
             MiniumSongRating.GetValue += () => { return RequestBotConfig.Instance.LowestAllowedRating; };
 
-            var MaximumAllowedSongLength = menu.AddSlider("Maximum Song Length", "Logest allowed song length in seconds", 0, 999, 1.0f, false);
+            var MaximumAllowedSongLength = menu.AddSlider("Maximum Song Length", "Longest allowed song length in minutes", 0, 999, 1.0f, false);
             MaximumAllowedSongLength.SetValue += (scale) => { RequestBotConfig.Instance.MaximumSongLength =  scale; };
             MaximumAllowedSongLength.GetValue += () => { return RequestBotConfig.Instance.MaximumSongLength; };
 

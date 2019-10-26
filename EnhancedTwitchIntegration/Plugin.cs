@@ -54,7 +54,6 @@ namespace SongRequestManager
             Base64Sprites.Init();
         }
 
-        static string MenuSceneName = "MenuCore";
 
 
         private void OnMenuSceneLoadedFresh()

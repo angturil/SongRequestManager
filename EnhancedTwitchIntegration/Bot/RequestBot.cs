@@ -452,7 +452,8 @@ namespace SongRequestManager
 
             if (RequestBotListViewController.Instance.isActivated)
             {
-                RequestBotListViewController.Instance.UpdateRequestUI(true);                
+                RequestBotListViewController.Instance.UpdateRequestUI(true);
+                RequestBotListViewController.Instance.SetUIInteractivity();
             }
 
             _configChanged = false;
@@ -515,7 +516,6 @@ namespace SongRequestManager
             BlockedUserList(TwitchWebSocketClient.OurTwitchUser, "blockeduser.unique");
             accesslist("whitelist.unique");
             accesslist("blockeduser.unique");
-            accesslist("mapper.list");
             accesslist("mapperban.list");
 
 #if UNRELEASED
@@ -523,6 +523,8 @@ namespace SongRequestManager
 
             OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
             MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
+            accesslist("mapper.list");
+
             loaddecks(TwitchWebSocketClient.OurTwitchUser, ""); // Load our default deck collection
             // BUG: Command failure observed once, no permission to use /chatcommand. Possible cause: Ourtwitchuser isn't authenticated yet.
 
@@ -544,6 +546,7 @@ namespace SongRequestManager
                 if (RequestBotListViewController.Instance.isActivated)
                 {
                     RequestBotListViewController.Instance.UpdateRequestUI(true);
+                    RequestBotListViewController.Instance.SetUIInteractivity();
                 }
                 _refreshQueue = false;
             }
@@ -932,6 +935,12 @@ namespace SongRequestManager
 
                 if (!request.song.IsNull) new DynamicText().AddUser(ref request.requestor).AddSong(request.song).QueueMessage(NextSonglink.ToString()); // Display next song message
 
+                #if UNRELEASED
+                if (!request.song.IsNull) // Experimental!
+                {
+                    TwitchWebSocketClient.SendCommand("/marker "+ new DynamicText().AddUser(ref request.requestor).AddSong(request.song).Parse(NextSonglink.ToString()));
+                }
+                #endif
             }
         }
 

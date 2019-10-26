@@ -44,7 +44,7 @@ namespace SongRequestManager
                     _songBrowserInstalled = Utilities.IsModInstalled("Song Browser");
                     //_songDownloaderInstalled = Utilities.IsModInstalled("BeatSaver Downloader");
 
-                    _songDownloaderInstalled = IPA.Loader.PluginManager.GetPlugin("BeatSaver Downloader") != null || IPA.Loader.PluginManager.Plugins.Any(p => p.Name == "BeatSaver Downloader");
+                    _songDownloaderInstalled = IPA.Loader.PluginManager.GetPlugin("BeatSaver Downloader") != null;;
 
                     Plugin.Log($"Song Browser installed: {_songBrowserInstalled}");
                     Plugin.Log($"Downloader installed: {_songDownloaderInstalled}");
