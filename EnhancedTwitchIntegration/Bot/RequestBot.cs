@@ -22,10 +22,11 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using SongCore;
 using StreamCore;
+using StreamCore.Twitch;
 
 namespace SongRequestManager
 {
-    public partial class RequestBot : MonoBehaviour
+    public partial class RequestBot : MonoBehaviour, ITwitchIntegration
     {
         [Flags]
         public enum RequestStatus
@@ -82,6 +83,8 @@ namespace SongRequestManager
         public static CustomViewController _KeyboardViewController = null;
 
         public static string playedfilename = "";
+
+        public bool IsPluginReady { get; set; } = false;
 
         public static void OnLoad()
         {
@@ -175,9 +178,9 @@ namespace SongRequestManager
             WriteQueueSummaryToFile();
             WriteQueueStatusToFile(QueueMessage(RequestBotConfig.Instance.RequestQueueOpen));
 
-
-            if (Instance) return;
-            new GameObject("SongRequestManager").AddComponent<RequestBot>();
+            // Yes, this is disabled on purpose. StreamCore will init this class for you now, so don't uncomment this! -Brian
+            //if (Instance) return;
+            //new GameObject("SongRequestManager").AddComponent<RequestBot>();
         }
 
         public static  void AddKeyboard(KEYBOARD keyboard, string keyboardname,float scale=0.5f)
@@ -402,9 +405,8 @@ namespace SongRequestManager
 
                 TwitchMessageHandlers.PRIVMSG += PRIVMSG;
 
-
-
                 RequestBotConfig.Instance.ConfigChangedEvent += OnConfigChangedEvent;
+                IsPluginReady = true;
             }
         catch (Exception ex)
             {
@@ -427,7 +429,7 @@ namespace SongRequestManager
         private void PRIVMSG(TwitchMessage msg)
           {
 
-            RequestBot.COMMAND.Parse(msg.user, msg.message);
+            RequestBot.COMMAND.Parse(msg.user.Twitch, msg.message);
         }
 
         private void OnConfigChangedEvent(RequestBotConfig config)

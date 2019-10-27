@@ -15,6 +15,7 @@ using UnityEngine.Networking;
 using System.Collections.Concurrent;
 
 using System.Security.Cryptography;
+using StreamCore.Twitch;
 // Feature requests: Add Reason for being banned to banlist
 //  
 

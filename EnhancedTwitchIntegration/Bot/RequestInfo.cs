@@ -1,5 +1,6 @@
 ﻿
 using StreamCore.Chat;
+using StreamCore.Twitch;
 using System;
 using System.Collections.Generic;
 using System.Linq;

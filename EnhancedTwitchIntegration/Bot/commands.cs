@@ -12,6 +12,7 @@ using UnityEngine.Networking;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using StreamCore;
+using StreamCore.Twitch;
 // Feature requests: Add Reason for being banned to banlist
 
 namespace SongRequestManager
