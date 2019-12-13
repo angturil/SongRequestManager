@@ -431,6 +431,8 @@ namespace SongRequestManager
         /// <param name="interactive">Set to false to force disable all buttons, true to auto enable buttons based on states</param>
         public void SetUIInteractivity(bool interactive = true)
         {
+            if (_selectedRow >= (isShowingHistory ? RequestHistory.Songs : RequestQueue.Songs).Count()) _selectedRow = -1;
+
             var toggled = interactive;
                         if (NumberOfCells() == 0 || _selectedRow == -1)
                             {

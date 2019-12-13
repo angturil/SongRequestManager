@@ -891,7 +891,7 @@ namespace SongRequestManager
                 }
             }
 
-            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck pp");
+            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck pp", RequestBot.CmdFlags.Local);
             Instance.QueueChatMessage("PP Data indexed");
             pploading = false;
         }

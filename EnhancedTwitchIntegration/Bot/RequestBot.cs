@@ -326,9 +326,6 @@ namespace SongRequestManager
             //    }
             //}
 
-
-
-
             //NOTJSON.UNITTEST();
 #endif
 
@@ -404,7 +401,6 @@ namespace SongRequestManager
                 StartCoroutine(ProcessRequestQueue());
 
                 TwitchMessageHandlers.PRIVMSG += PRIVMSG;
-
                 RequestBotConfig.Instance.ConfigChangedEvent += OnConfigChangedEvent;
                 IsPluginReady = true;
             }
@@ -565,9 +561,16 @@ namespace SongRequestManager
 
         public void QueueChatMessage(string message)
         {
-            TwitchWebSocketClient.SendCommand($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
+            if (TwitchWebSocketClient.Connected)
+            {
+                TwitchWebSocketClient.SendCommand($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
+            }
+            else
+            {
+                Plugin.Log($"Message sent before twitch connected! \"{message}\"");
+            }
         }
-        
+
         private IEnumerator ProcessRequestQueue()
         {
             var waitForRequests = new WaitUntil(() => UnverifiedRequestQueue.Count > 0);

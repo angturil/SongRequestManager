@@ -13,6 +13,15 @@ using UnityEngine.Networking;
 using SongRequestManager;
 using StreamCore.Utils;
 using TMPro;
+using IPA.Utilities;
+
+using StreamCore.Twitch;
+using System.Collections.Generic;
+using System.Reflection;
+
+using BeatSaverDownloader;
+
+using BeatBits;
 
 using UnityEngine;
 // Feature requests: Add Reason for being banned to banlist
