@@ -1,15 +1,6 @@
-﻿
-using StreamCore;
-using StreamCore.Chat;
-using StreamCore.SimpleJSON;
-using System;
-using System.Collections;
+﻿using StreamCore.SimpleJSON;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
 
 namespace SongRequestManager
 {

@@ -1,15 +1,14 @@
-﻿using CustomUI.BeatSaber;
-using StreamCore.Chat;
-using SongRequestManager;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using StreamCore.Twitch;
+using HMUI;
+using Image = UnityEngine.UI.Image;
+using BeatSaberMarkupLanguage;
+using SongRequestManager.UI;
 
 namespace SongRequestManager
 {
@@ -69,10 +68,6 @@ namespace SongRequestManager
 [SHIFT] (;:) (qQ) (jJ) (kK) (xX) (bB) (mM) (wW) (vV) (zZ) [CLEAR]/28
 /23 (!!) (@@) [SPACE]/40 (##) (__)";
 
-
-
-        
-
         public KEY this[string index]
         {
             get 
@@ -85,40 +80,37 @@ namespace SongRequestManager
 
         }
 
-
         public void SetButtonType(string ButtonName= "KeyboardButton")
-            {
+        {
             BaseButton = Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == ButtonName));
             if (BaseButton==null) BaseButton = Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "KeyboardButton"));
-            }
+        }
+
         public void SetValue (string keylabel, string value)
-            {
+        {
             bool found = false;
             foreach (KEY key in keys) if (key.name == keylabel)
-                {
-                    found = true;
-                    key.value = value;
-                    //key.shifted = value;
-                }
+            {
+                found = true;
+                key.value = value;
+                //key.shifted = value;
+            }
 
             if (!found) Plugin.Log($"Keyboard: Unable to set property of Key  [{keylabel}]");
-
         }
 
         public void SetAction(string keyname, Action<KEY> action)
         {
             bool found = false;
             foreach (KEY key in keys) if (key.name == keyname)
-                {
-                    found = true;
-                    key.keyaction = action;
-                }
+            {
+                found = true;
+                key.keyaction = action;
+            }
 
             // BUG: This message was annoying if the keyboard didn't include those keys.
             //if (!found) Plugin.Log($"Keyboard: Unable to set action of Key  [{keyname}]");
-
         }
-
 
         KEY AddKey(string keylabel, float width = 12,float height=10,int color=0xffffff)
         {
@@ -143,10 +135,9 @@ namespace SongRequestManager
             return key;
         }
 
-
         // BUG: Refactor this within a keybard parser subclass once everything works.
         void EmitKey(ref float spacing,ref float Width, ref string Label, ref string Key,ref bool space,ref string newvalue,ref float height,ref int color)
-            {
+        {
             currentposition.x += spacing;
             
             if (Label != "") AddKey(Label, Width,height,color).Set(newvalue);
@@ -160,31 +151,29 @@ namespace SongRequestManager
             color = 0xffffff;
             space = false;
             return;
-            }
+        }
 
-        bool ReadFloat(ref String data, ref int Position,ref float result)
-           {
+        bool ReadFloat(ref String data, ref int Position, ref float result)
+        {
             if (Position >= data.Length) return false;
             int start = Position;
-            while (Position<data.Length)
-                {
+            while (Position < data.Length)
+            {
                 char c = data[Position];
                 if (!((c >= '0' && c <= '9') || c == '+' || c == '-' || c == '.')) break;
                 Position++;
-                }
+            }
 
+            if (float.TryParse(data.Substring(start, Position - start), out result)) return true;
 
-           if (float.TryParse(data.Substring(start, Position - start),out result)) return true ;
-
-           Position = start;
-           return false;
-           }
-
+            Position = start;
+            return false;
+        }
 
         // Very basic parser for the keyboard grammar - no doubt can be improved. Tricky to implement because of special characters.
         // It might possible to make grep do this, but it would be even harder to read than this!
         public KEYBOARD AddKeys(string Keyboard, float scale = 0.5f)
-            {
+        {
             this.scale = scale;
             bool space = true;
             float spacing = padding;
@@ -221,10 +210,10 @@ namespace SongRequestManager
 
                         case 'S': // Scale
                             {
-                            EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
-                            p++;
-                            ReadFloat(ref Keyboard, ref p, ref this.scale);                            
-                            continue;
+                                EmitKey(ref spacing, ref width, ref Label, ref Key, ref space, ref newvalue, ref height, ref color);
+                                p++;
+                                ReadFloat(ref Keyboard, ref p, ref this.scale);
+                                continue;
                             }
 
                         case '\r':
@@ -312,17 +301,16 @@ namespace SongRequestManager
             }
             catch (Exception ex)
             {
-            Plugin.Log($"Unable to parse keyboard at position {p} : [{Keyboard}]");
-            Plugin.Log(ex.ToString());
+                Plugin.Log($"Unable to parse keyboard at position {p} : [{Keyboard}]");
+                Plugin.Log(ex.ToString());
             }
 
             return this;
-            }
+        }
 
-    
         // Default actions may be called more than once. Make sure to only set any overrides that replace these AFTER all keys have been added
         public KEYBOARD DefaultActions()
-            {
+        {
             SetAction("SABOTAGE", SABOTAGE);
             SetAction("CLEAR", Clear);
             SetAction("ENTER", Enter);
@@ -330,13 +318,13 @@ namespace SongRequestManager
             SetAction("SHIFT", SHIFT);
             SetAction("CAPS", CAPS);
             return this;    
-            }
-    
-        public KEYBOARD(RectTransform container,string DefaultKeyboard=QWERTY,bool EnableInputField=true,float x=0,float y=0)
+        }
+
+        public KEYBOARD(RectTransform container, string DefaultKeyboard = QWERTY, bool EnableInputField = true, float x = 0, float y = 0)
         {
             this.EnableInputField = EnableInputField;
             this.container = container;
-            baseposition = new Vector2(-50+x, 23+y);
+            baseposition = new Vector2(-50 + x, 23 + y);
             currentposition = baseposition;
             //bool addhint = true;
 
@@ -353,8 +341,6 @@ namespace SongRequestManager
             KeyboardText.enabled = this.EnableInputField;
             //KeyboardText
 
-             
-
             KeyboardCursor = BeatSaberUI.CreateText(container, "|", new Vector2(0, 0));
             KeyboardCursor.fontSize = 6f;
             KeyboardCursor.color = Color.cyan;
@@ -366,16 +352,14 @@ namespace SongRequestManager
 
             // We protect this since setting nonexistent keys will throw.
 
-                // BUG: These are here on a temporary basis, they will be moving out as soon as API is finished
- 
+            // BUG: These are here on a temporary basis, they will be moving out as soon as API is finished
 
-                if (DefaultKeyboard != "")
-                    {
-                    AddKeys(DefaultKeyboard);
-                    DefaultActions();
-                    }
+            if (DefaultKeyboard != "")
+            {
+                AddKeys(DefaultKeyboard);
+                DefaultActions();
+            }
 
-        
             return;
         }
 
@@ -387,33 +371,33 @@ namespace SongRequestManager
         }
 
         public KEYBOARD SetScale(float scale)
-            {
+        {
             this.scale = scale;
             return this;
-            }
+        }
 
         void Newest(KEY key)
-            {
+        {
             ClearSearches();
             RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top",RequestBot.CmdFlags.Local);
-            }
+        }
 
         void Search(KEY key)
-            {
+        {
             if (key.kb.KeyboardText.text.StartsWith("!"))
                 {
                 Enter(key);
                 }
 
-            #if UNRELEASED
+#if UNRELEASED
             ClearSearches();
             RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}",RequestBot.CmdFlags.Local);
             Clear(key);
-            #endif
-            }
+#endif
+        }
 
         void ClearSearches()
-            {
+        {
             for (int i = 0; i < RequestQueue.Songs.Count; i++)
             {
                 var entry = RequestQueue.Songs[i];
@@ -425,18 +409,18 @@ namespace SongRequestManager
             }
         }
         void ClearSearch(KEY key)
-            {
+        {
             ClearSearches();          
             
             RequestBot.UpdateRequestUI();
             RequestBot._refreshQueue = true;
-            }
+        }
 
 
         public void Clear(KEY key)
-            {
+        {
             key.kb.KeyboardText.text = "";
-            }
+        }
 
         public void Enter(KEY key)
         {
@@ -457,10 +441,11 @@ namespace SongRequestManager
         }
 
         void Backspace(KEY key)
-            {
+        {
                 // BUG: This is terribly long winded... 
                 if (key.kb.KeyboardText.text.Length > 0) key.kb.KeyboardText.text = key.kb.KeyboardText.text.Substring(0, key.kb.KeyboardText.text.Length - 1); // Is there a cleaner way to say this?
-            }
+        }
+
         void SHIFT(KEY key)
         {
             key.kb.Shift = !key.kb.Shift;
@@ -476,19 +461,19 @@ namespace SongRequestManager
         }
 
         void CAPS(KEY key)
-            {
+        {
             key.kb.Caps = ! key.kb.Caps;
             key.mybutton.GetComponentInChildren<Image>().color = key.kb.Caps? Color.green : Color.white;
-            }
+        }
 
 
         void SABOTAGE(KEY key)
-            {
+        {
             SabotageState = !SabotageState;
             key.mybutton.GetComponentInChildren<Image>().color = SabotageState ? Color.green : Color.red;
             string text = "!sabotage "+ ( SabotageState ? "on" : "off");
             RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, text, RequestBot.CmdFlags.Local);
-           }
+        }
 
         void DrawCursor()
         {
@@ -501,8 +486,6 @@ namespace SongRequestManager
             v.x = v.x / 2 + 30f-0.5f; // BUG: The .5 gets rid of the trailing |, but technically, we need to calculate its width and store it
             (KeyboardCursor.transform as RectTransform).anchoredPosition = v;
         }
-            
-
 
         public class KEY
         {
@@ -525,7 +508,7 @@ namespace SongRequestManager
 
             public KEY()
             {
-            // This key is not intialized at all
+                // This key is not intialized at all
             }
 
             public KEY(KEYBOARD kb, Vector2 position, string text, float width,float height, Color color)
@@ -595,7 +578,7 @@ namespace SongRequestManager
               
                     }
                 });
-                HoverHint _MyHintText = BeatSaberUI.AddHintText(mybutton.transform as RectTransform, value);
+                HoverHint _MyHintText = UIHelper.AddHintText(mybutton.transform as RectTransform, value);
             }
         }
     }

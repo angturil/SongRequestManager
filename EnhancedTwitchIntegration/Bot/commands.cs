@@ -1,17 +1,11 @@
-using StreamCore.Chat;
-using StreamCore.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
 using System.Text.RegularExpressions;
-using System.Diagnostics;
-using StreamCore;
 using StreamCore.Twitch;
 // Feature requests: Add Reason for being banned to banlist
 
@@ -185,6 +179,9 @@ namespace SongRequestManager
 
             new COMMAND("!QueueLottery").Action(QueueLottery).Help(Broadcaster, "usage: %alias% <entry count> %|% Shuffle the queue and reduce to <entry count> entries. Close the queue.", _anything);
 
+            new COMMAND("!addtoqueue").Action(queuelist).Help(Broadcaster, "usage: %alias% <list>", _atleast1);
+
+
             #region Gamechanger Specific           
             bool _GameChangerInstalled = IPA.Loader.PluginManager.GetPlugin("Beat Bits") != null;
             _WobbleInstalled= IPA.Loader.PluginManager.GetPlugin("WobbleSaber") != null;
@@ -196,8 +193,6 @@ namespace SongRequestManager
             #endregion
 
 #if UNRELEASED
-
-
             new COMMAND("!makesearchdeck").Coroutine(makelistfromsearch).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria to search.deck", _atleast1);
 
             //new COMMAND("!getpp").Coroutine(GetPPData).Help(Broadcaster, "Get PP Data");
@@ -207,22 +202,19 @@ namespace SongRequestManager
             // These comments contain forward looking statement that are absolutely subject to change. I make no commitment to following through
             // on any specific feature,interface or implementation. I do not promise to make them generally available. Its probably best to avoid using or making assumptions based on these.
 
-
             new COMMAND("!readarchive").Coroutine(ReadArchive).Help(Broadcaster, "Adds archived sngs to bot");
-
 
             new COMMAND("!at").Help(Broadcaster, "Run a command at a certain time.", _atleast1); // BUG: No code
             new COMMAND("!alias").Help(Broadcaster, "usage: %alias %|% Create a command alias, short cuts version a commands. Single line only. Supports %variables% (processed at execution time), parameters are appended.", _atleast1); // BUG: No action
 
             new COMMAND("!detail"); // Get song details BUG: NO code
 
-
             new COMMAND("!allowmappers").Action(MapperAllowList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
             new COMMAND("!blockmappers").Action(MapperBanList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
 
             new COMMAND("!mapperdeck").Coroutine(AddmapperToDeck).Help(Broadcaster, "usage: %alias%<mapperlist>");
 
-            new COMMAND("!glitter").Action(AddLIVGlitter).Help(Broadcaster, "usage: %alias% <number> Message");
+            //new COMMAND("!glitter").Action(AddLIVGlitter).Help(Broadcaster, "usage: %alias% <number> Message");
 
             // These commands will use a completely new format in future builds and rely on a slightly more flexible parser. Commands like userlist.add george, userlist1=userlist2 will be allowed. 
 
@@ -245,7 +237,6 @@ namespace SongRequestManager
             new COMMAND("!whatdeck").Action(whatdeck).Help(Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
             new COMMAND("!decklist").Action(decklist).Help(Mod, "usage: %alias", _deck);
 
-            new COMMAND("!addtoqueue").Action(queuelist).Help(Broadcaster, "usage: %alias% <list>", _atleast1);
             new COMMAND("!unqueuemsg").Help(Broadcaster, "usage: %alias% msg text to match", _atleast1); // BUG: No code
 
             new COMMAND(new string[] { "/toggle", "subcomdtoggle" }).Action(SubcmdToggle).Help(Subcmd | Mod | CmdFlags.NoParameter, "usage: <!deck> /toggle <songid> %|% Adds a song to a deck if not present, otherwise removes it. Used primarily for button actions");
@@ -255,7 +246,6 @@ namespace SongRequestManager
             new COMMAND("!savecommands").Action(SaveCommands);
 
             new COMMAND("gccount").Action(GetGCCount).Help(Broadcaster);
-
 #endif
             #endregion
 
@@ -322,13 +312,11 @@ namespace SongRequestManager
             COMMAND.SummarizeCommands(); // Save original command states string.
         }
 
-
         public string SaveCommands(ParseState state)
-            {
+        {
             COMMAND.WriteCommandConfiguration();
             return success;
-            }
-        
+        }
 
         const string success = "";
         const string endcommand = "X";
@@ -955,12 +943,12 @@ namespace SongRequestManager
             public string subparameter="";
 
             // Object clone constructor. Mostly used when spawning multiple threads against a single command
-            public ParseState(ParseState state,string parameter=null)
-                {
+            public ParseState(ParseState state, string parameter = null)
+            {
                 // These are references
-                this.user = state.user; 
+                this.user = state.user;
                 this.botcmd = state.botcmd;
-                 
+
                 this.flags = state.flags;
                 this.parameter = state.parameter;
                 if (parameter != null) this.parameter = parameter;
@@ -968,7 +956,7 @@ namespace SongRequestManager
                 this.command = state.command;
                 this.info = state.info;
                 this.sort = state.sort;
-                }
+            }
 
             public ParseState(ref TwitchUser user, ref string request, CmdFlags flags, ref string info)
             {
@@ -1011,9 +999,13 @@ namespace SongRequestManager
                 if (!HasRights(ref subcmd, ref user,flags)) return error($"No permission to use {subcommand}");
 
                 if (subcmd.Flags.HasFlag(CmdFlags.NoParameter))
+                {
                     parameter = parameter.Substring(subcommandend).Trim(' ');
+                }
                 else
+                {
                     parameter = parameter.Substring(subcommandsectionend);
+                }
 
                 try
                 {
@@ -1026,7 +1018,6 @@ namespace SongRequestManager
 
                 return "";
             }
-
 
             public string msg(string text,string result=success)
             {
@@ -1061,7 +1052,6 @@ namespace SongRequestManager
                 //          !decklist/setflags SUB
                 //          !lookup/sethelp usage: %alias%<song name or id>
                 //
-
                 while (true)
                 {
                     string errormsg = ExecuteSubcommand();
@@ -1089,7 +1079,6 @@ namespace SongRequestManager
                 }
 
                 if (botcmd.Flags.HasFlag(CmdFlags.Disabled) || flags.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
-
 
                 // Check permissions first
 
@@ -1133,17 +1122,16 @@ namespace SongRequestManager
 
 
             public static string GetCommand(ref string request)
-                {
+            {
                 int commandlength = 0;
                 // This is a replacement for the much simpler Split code. It was changed to support /fakerest parameters, and sloppy users ... ie: !add4334-333 should now work, so should !command/flags
                 while (commandlength < request.Length && (request[commandlength] != '=' && request[commandlength] != '/' && request[commandlength] != ' ')) commandlength++;  // Command name ends with #... for now, I'll clean up some more later    
-                if (commandlength == 0) return "";       
+                if (commandlength == 0) return "";
                 return request.Substring(0, commandlength).ToLower();
-                }   
+            }
 
             public ParseState ParseCommand()
             {
-
                 // Notes for later.
                 //var match = Regex.Match(request, "^!(?<command>[^ ^/]*?<parameter>.*)");
                 //string username = match.Success ? match.Groups["command"].Value : null;
@@ -1171,10 +1159,9 @@ namespace SongRequestManager
                         Plugin.Log(ex.ToString());
                     }
                 }
+
                 return this;
-
             }
-
         }
 
         // A much more general solution for extracting dymatic values into a text string. If we need to convert a text message to one containing local values, but the availability of those values varies by calling location

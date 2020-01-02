@@ -2,17 +2,17 @@
   "$schema": "",
   "author": "angturil",
   "description": "Song Request Manager on twitch",
-  "gameVersion": "1.1.0",
+  "gameVersion": "1.6.0",
   "id": "SongRequestManager",
   "name": "Song Request Manager",
-  "version": "2.1.5",
+  "version": "2.2.0",
   "dependsOn": {
-    "CustomUI": "^1.5.4",
-    "BS Utils": "^1.2.3",
+    "BS Utils": "^1.4.0",
+    "BeatSaberMarkupLanguage": "^1.1.0"
   },
   "features": [
     "print",
     "debug",
-    "warn",
+    "warn"
   ]
 }

@@ -1,17 +1,8 @@
-using StreamCore;
-using StreamCore.Chat;
-using StreamCore.SimpleJSON;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
-using SongRequestManager;
-using StreamCore.Utils;
 using System.IO.Compression;
 // Feature requests: Add Reason for being banned to banlist
 
@@ -23,7 +14,10 @@ namespace SongRequestManager
         public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
         {
             foreach (DirectoryInfo dir in source.GetDirectories())
+            {
                 CopyFilesRecursively(dir, target.CreateSubdirectory(dir.Name));
+            }
+
             foreach (FileInfo file in source.GetFiles())
             {
                 string newFilePath = Path.Combine(target.FullName, file.Name);
@@ -43,7 +37,7 @@ namespace SongRequestManager
             if (errormsg=="") state.msg("SRManager files backed up.");
             return errormsg;
         } 
-    public static string Backup()
+        public static string Backup()
         {
             DateTime Now = DateTime.Now;
             string BackupName = Path.Combine(RequestBotConfig.Instance.backuppath, $"SRMBACKUP-{Now.ToString("yyyy-MM-dd-HHmm")}.zip");
@@ -61,7 +55,7 @@ namespace SongRequestManager
                 Plugin.Log($"Backup success writing {BackupName}");
                 return success;
             }
-        catch       
+            catch
             {
 
             }
@@ -134,10 +128,9 @@ namespace SongRequestManager
                 return result;
             }
 
-           public char[] _SymbolsMap = new char[128];
+            public char[] _SymbolsMap = new char[128];
             public char[] _SymbolsNoDash = new char[128];
             public char[] _SymbolsValidDirectory = new char[128];
-
 
             public StringNormalization()
             {
@@ -173,7 +166,6 @@ namespace SongRequestManager
         }
 
         public static StringNormalization normalize = new StringNormalization();
-
 
     }
 }

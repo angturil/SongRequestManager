@@ -1,7 +1,4 @@
-﻿
-using CustomUI.BeatSaber;
-using StreamCore.Chat;
-using StreamCore.Utils;
+﻿using StreamCore.Chat;
 using StreamCore.SimpleJSON;
 
 using System;
@@ -17,12 +14,15 @@ using TMPro;
 #endif
 
 using UnityEngine;
-using UnityEngine.Networking;
 using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using SongCore;
 using StreamCore;
 using StreamCore.Twitch;
+using IPA.Utilities;
+using SongRequestManager.UI;
+using BeatSaberMarkupLanguage;
+using Utilities = StreamCore.Utils.Utilities;
 
 namespace SongRequestManager
 {
@@ -39,8 +39,6 @@ namespace SongRequestManager
             Wrongsong,
             SongSearch,
         }
-
-
 
         public static RequestBot Instance;
         public static ConcurrentQueue<RequestInfo> UnverifiedRequestQueue = new ConcurrentQueue<RequestInfo>();
@@ -75,33 +73,39 @@ namespace SongRequestManager
         private static Dictionary<string, string> songremap = new Dictionary<string, string>();
         public static Dictionary<string, string> deck = new Dictionary<string, string>(); // deck name/content
 
-        private static CustomMenu _songRequestMenu = null;
-
-
-        public static RequestBotListViewController _songRequestListViewController = null;
-
-        public static CustomViewController _KeyboardViewController = null;
+        private static RequestFlowCoordinator _flowCoordinator;
 
         public static string playedfilename = "";
 
         public bool IsPluginReady { get; set; } = false;
 
+        internal static void SRMButtonPressed()
+        {
+            var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
+            soloFlow.InvokePrivateMethod("PresentFlowCoordinator", _flowCoordinator, null, false, false);
+        }
+
+        internal static void SetTitle(string title)
+        {
+            _flowCoordinator.SetTitle(title);
+        }
+
         public static void OnLoad()
         {
             try
             {
-                var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelPackLevelsViewController>().First();
+                var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelCollectionViewController>().First();
                 if (_levelListViewController)
                     {
-                    _requestButton = BeatSaberUI.CreateUIButton(_levelListViewController.rectTransform, "OkButton", new Vector2(66, -3.5f),
-                        new Vector2(9f, 5.5f), () => { _requestButton.interactable = false; _songRequestMenu.Present(); _requestButton.interactable = true; }, "SRM");
+                    _requestButton = UIHelper.CreateUIButton(_levelListViewController.rectTransform, "OkButton", new Vector2(66, -3.5f),
+                        new Vector2(9f, 5.5f), () => { _requestButton.interactable = false; SRMButtonPressed(); _requestButton.interactable = true; }, "SRM");
 
                     (_requestButton.transform as RectTransform).anchorMin = new Vector2(1, 1);
                     (_requestButton.transform as RectTransform).anchorMax = new Vector2(1, 1);
 
                     _requestButton.ToggleWordWrapping(false);
                     _requestButton.SetButtonTextSize(3.5f);
-                    BeatSaberUI.AddHintText(_requestButton.transform as RectTransform, "Manage the current request queue");
+                    UIHelper.AddHintText(_requestButton.transform as RectTransform, "Manage the current request queue");
 
                     UpdateRequestUI();
                     Plugin.Log("Created request button!");
@@ -112,65 +116,10 @@ namespace SongRequestManager
                 Plugin.Log("Unable to create request button");
             }
 
-            if (_songRequestListViewController == null)
-                _songRequestListViewController = BeatSaberUI.CreateViewController<RequestBotListViewController>();
-
-
-            if (_KeyboardViewController == null)
+            // check if flow coordinator has been setup yet
+            if (_flowCoordinator == null)
             {
-                _KeyboardViewController = BeatSaberUI.CreateViewController<CustomViewController>();
-
-                RectTransform KeyboardContainer = new GameObject("KeyboardContainer", typeof(RectTransform)).transform as RectTransform;
-                KeyboardContainer.SetParent(_KeyboardViewController.rectTransform, false);
-                KeyboardContainer.sizeDelta = new Vector2(60f, 40f);
-
-                var mykeyboard = new KEYBOARD(KeyboardContainer, "");
-
-#if UNRELEASED
-                //mykeyboard.AddKeys(BOTKEYS, 0.4f);
-                AddKeyboard(mykeyboard, "emotes.kbd", 0.4f);
-#endif
-                mykeyboard.AddKeys(KEYBOARD.QWERTY); // You can replace this with DVORAK if you like
-                mykeyboard.DefaultActions();
-
-
-
-#if UNRELEASED
-                const string SEARCH = @"
-
-[CLEAR SEARCH]/0 /2 [NEWEST]/0 /2 [UNFILTERED]/30 /2 [PP]/0'!addsongs/top/pp pp%CR%' /2 [SEARCH]/0";
-
-#else
-                const string SEARCH = @"
-
-[CLEAR SEARCH]/0 /2 [NEWEST]/0 /2 [UNFILTERED]/30 /2 [SEARCH]/0";
-
-#endif
-
-
-                mykeyboard.SetButtonType("OkButton"); // Adding this alters button positions??! Why?
-                mykeyboard.AddKeys(SEARCH, 0.75f);
-
-                mykeyboard.SetAction("CLEAR SEARCH", ClearSearch);
-                mykeyboard.SetAction("UNFILTERED", UnfilteredSearch);
-                mykeyboard.SetAction("SEARCH", MSD);
-                mykeyboard.SetAction("NEWEST", Newest);
-
-
-#if UNRELEASED
-                AddKeyboard(mykeyboard, "decks.kbd", 0.4f);
-#endif
-            
-                // The UI for this might need a bit of work.
-
-                AddKeyboard(mykeyboard, "RightPanel.kbd");
-            }
-
-            if (_songRequestMenu == null)
-            {
-                _songRequestMenu = BeatSaberUI.CreateCustomMenu<CustomMenu>("Song Request Queue");
-                _songRequestMenu.SetMainViewController(_songRequestListViewController, true);
-                _songRequestMenu.SetRightViewController(_KeyboardViewController, false);
+                _flowCoordinator = BeatSaberMarkupLanguage.BeatSaberUI.CreateFlowCoordinator<RequestFlowCoordinator>();
             }
 
             SongListUtils.Initialize();
@@ -183,20 +132,18 @@ namespace SongRequestManager
             //new GameObject("SongRequestManager").AddComponent<RequestBot>();
         }
 
-        public static  void AddKeyboard(KEYBOARD keyboard, string keyboardname,float scale=0.5f)
-            {
+        public static void AddKeyboard(KEYBOARD keyboard, string keyboardname, float scale = 0.5f)
+        {
             try
             {
                 string fileContent = File.ReadAllText(Path.Combine(Plugin.DataPath, keyboardname));
-                if (fileContent.Length > 0) keyboard.AddKeys(fileContent,scale);
+                if (fileContent.Length > 0) keyboard.AddKeys(fileContent, scale);
             }
-            catch           
+            catch
             {
-            // This is a silent fail since custom keyboards are optional
+                // This is a silent fail since custom keyboards are optional
             }
-            }
-
-
+        }
 
         public static void Newest(KEYBOARD.KEY key)
         {
@@ -226,7 +173,6 @@ namespace SongRequestManager
             key.kb.Clear(key);
         }
 
-
         public static void UnfilteredSearch(KEYBOARD.KEY key)
         {
             if (key.kb.KeyboardText.text.StartsWith("!"))
@@ -237,7 +183,6 @@ namespace SongRequestManager
             RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top/mod {key.kb.KeyboardText.text}",CmdFlags.Local);
             key.kb.Clear(key);
         }
-
 
         public static void ClearSearches()
         {
@@ -251,6 +196,7 @@ namespace SongRequestManager
                 }
             }
         }
+
         public static void ClearSearch(KEYBOARD.KEY key)
         {
             ClearSearches();
@@ -258,7 +204,6 @@ namespace SongRequestManager
             RequestBot.UpdateRequestUI();
             RequestBot._refreshQueue = true;
         }
-
 
         private void Awake()
         {
@@ -329,7 +274,6 @@ namespace SongRequestManager
             //NOTJSON.UNITTEST();
 #endif
 
-
             playedfilename = Path.Combine(Plugin.DataPath, "played.dat"); // Record of all the songs played in the current session
 
             try
@@ -356,7 +300,6 @@ namespace SongRequestManager
 
                 }
 
-
                 try
                 {
                     TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
@@ -368,7 +311,6 @@ namespace SongRequestManager
                     Instance.QueueChatMessage("Failed to clear played file");
 
                 }
-
 
                 if (RequestBotConfig.Instance.PPSearch) StartCoroutine(GetPPData()); // Start loading PP data
 
@@ -401,6 +343,7 @@ namespace SongRequestManager
                 StartCoroutine(ProcessRequestQueue());
 
                 TwitchMessageHandlers.PRIVMSG += PRIVMSG;
+
                 RequestBotConfig.Instance.ConfigChangedEvent += OnConfigChangedEvent;
                 IsPluginReady = true;
             }
@@ -411,20 +354,14 @@ namespace SongRequestManager
             }
         }
 
-
-
         public bool MyChatMessageHandler(TwitchMessage msg)
         {
             string excludefilename = "chatexclude.users";
-
-
-
             return RequestBot.Instance && RequestBot.listcollection.contains(ref excludefilename, msg.user.displayName.ToLower(), RequestBot.ListFlags.Uncached);
         }
 
         private void PRIVMSG(TwitchMessage msg)
-          {
-
+        {
             RequestBot.COMMAND.Parse(msg.user.Twitch, msg.message);
         }
 
@@ -432,7 +369,6 @@ namespace SongRequestManager
         {
             _configChanged = true;
         }
-
 
         private void OnConfigChanged()
         {
@@ -446,8 +382,6 @@ namespace SongRequestManager
 
             _configChanged = false;
         }
-
-
         
         // BUG: Prototype code, used for testing.
         class BotEvent
@@ -459,11 +393,11 @@ namespace SongRequestManager
             public bool repeat;
             Timer timeq;
 
-        public static void Clear()
+            public static void Clear()
             {                
                 foreach (var ev in events) ev.timeq.Stop();
             }
-        public BotEvent(DateTime time,string command,bool repeat)
+            public BotEvent(DateTime time,string command,bool repeat)
             {
                 this.time = time;
                 this.command = command;
@@ -474,7 +408,7 @@ namespace SongRequestManager
                 timeq.Enabled = true;
             }
 
-        public BotEvent(TimeSpan delta, string command, bool repeat=false)
+            public BotEvent(TimeSpan delta, string command, bool repeat=false)
             {
                 this.command = command;
                 this.repeat = repeat;
@@ -488,12 +422,10 @@ namespace SongRequestManager
             }
         }
 
- 
-
         public static void ScheduledCommand(string command, System.Timers.ElapsedEventArgs e)
-            {
+        {
             COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, command);
-            }
+        }
 
         private void RunStartupScripts()
         {
@@ -507,8 +439,6 @@ namespace SongRequestManager
             accesslist("mapperban.list");
 
 #if UNRELEASED
-
-
             OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
             MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
             accesslist("mapper.list");
@@ -518,7 +448,6 @@ namespace SongRequestManager
 
             RunScript(TwitchWebSocketClient.OurTwitchUser, "startup.script"); // Run startup script. This can include any bot commands.
 #endif
-
         }
 
         private void FixedUpdate()
@@ -539,7 +468,6 @@ namespace SongRequestManager
                 _refreshQueue = false;
             }
         }
-
 
 // if (!silence) QueueChatMessage($"{request.Key.song["songName"].Value}/{request.Key.song["authorName"].Value} ({songId}) added to the blacklist.");
         private void SendChatMessage(string message)
@@ -565,10 +493,10 @@ namespace SongRequestManager
             {
                 TwitchWebSocketClient.SendCommand($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
             }
-            else
-            {
-                Plugin.Log($"Message sent before twitch connected! \"{message}\"");
-            }
+            //else
+            //{
+            //    Plugin.Log($"Message sent before twitch connected! \"{message}\"");
+            //}
         }
 
         private IEnumerator ProcessRequestQueue()
@@ -582,7 +510,6 @@ namespace SongRequestManager
                     yield return CheckRequest(requestInfo);
             }
         }
-        
 
         int CompareSong(JSONObject song2, JSONObject song1, ref string [] sortorder)            
             {
@@ -619,9 +546,8 @@ namespace SongRequestManager
             return result;
         }
 
-
         private IEnumerator UpdateSongMap(JSONObject song)
-            {
+        {
 
             yield return Utilities.Download($"https://beatsaver.com/api/maps/detail/{song["id"].Value.ToString()}", Utilities.DownloadType.Raw, null,
             // Download success
@@ -640,12 +566,10 @@ namespace SongRequestManager
             // Download failed,  song probably doesn't exist on beatsaver
             (web) =>
             {
-
                 ; //errorMessage = $"Invalid BeatSaver ID \"{request}\" specified. {requestUrl}";
             });
 
         }
-
 
         // BUG: Testing major changes. This will get seriously refactored soon.
         private IEnumerator CheckRequest(RequestInfo requestInfo)
@@ -654,7 +578,6 @@ namespace SongRequestManager
             string request = requestInfo.request;
 
             string normalrequest= normalize.NormalizeBeatSaverString(requestInfo.request);
-
 
             var id = GetBeatSaverId(normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash));
 
@@ -678,7 +601,6 @@ namespace SongRequestManager
                 {
                     foreach (string directory in Directory.GetDirectories(RequestBotConfig.Instance.offlinepath, id+"*"))
                     {
-                        
                         MapDatabase.LoadCustomSongs(directory, id);
                         while (MapDatabase.DatabaseLoading)  
                             {
@@ -808,9 +730,6 @@ namespace SongRequestManager
 
         }
 
-
-
-
         private static IEnumerator ProcessSongRequest(int index, bool fromHistory = false)
         {
             if ((RequestQueue.Songs.Count > 0 && !fromHistory) || (RequestHistory.Songs.Count > 0 && fromHistory))
@@ -911,7 +830,8 @@ namespace SongRequestManager
                 }
 
                 // Dismiss the song request viewcontroller now
-                _songRequestMenu.Dismiss();
+                //_songRequestMenu.Dismiss();
+                _flowCoordinator.Dismiss();
 
                 if (true)
                 {
@@ -1058,7 +978,7 @@ namespace SongRequestManager
         private string GetBeatSaverId(string request)
         {
             request=normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash);
-            if (_digitRegex.IsMatch(request)) return request;
+            if (request!="360" && _digitRegex.IsMatch(request)) return request;
             if (_beatSaverRegex.IsMatch(request))
             {
                 string[] requestparts = request.Split(new char[] { '-' }, 2);

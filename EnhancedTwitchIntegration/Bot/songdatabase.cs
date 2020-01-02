@@ -1,7 +1,5 @@
 ﻿using System;
-using StreamCore;
 using System.Runtime;
-using StreamCore.Chat;
 using StreamCore.SimpleJSON;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,8 +16,6 @@ using System.Security.Cryptography;
 using StreamCore.Twitch;
 // Feature requests: Add Reason for being banned to banlist
 //  
-
-
 
 namespace SongRequestManager
 {
@@ -92,12 +88,21 @@ namespace SongRequestManager
                     song.Add("levelAuthor", metadata["levelAuthorName"].Value);
                     song.Add("rating", song["stats"]["rating"].AsFloat*100);
 
+                    bool degrees90 = false;
+                    bool degrees360 = false;
+
                     try
                     {
 
                         var characteristics = metadata["characteristics"][0]["difficulties"];
 
                         //Instance.QueueChatMessage($"{characteristics}");
+
+                        foreach (var entry in metadata["characteristics"])
+                        {
+                            if (entry.Value["name"] == "360Degree") degrees360 = true;
+                            if (entry.Value["name"] == "90Degree") degrees90 = true;
+                        }
 
                         int maxnjs = 0;
                         foreach (var entry in characteristics)
@@ -106,6 +111,8 @@ namespace SongRequestManager
                             var diff = entry.Value["length"].AsInt;
                             var njs = entry.Value["njs"].AsInt;
                             if (njs > maxnjs) maxnjs = njs;
+
+
 
                             if (diff > 0)
                             {
@@ -119,6 +126,7 @@ namespace SongRequestManager
                         {
                             song.Add("njs", maxnjs);
                         }
+                        if (degrees360 || degrees90) song.Add("maptype", "360");
                     }
                     catch
                     {
@@ -158,7 +166,7 @@ namespace SongRequestManager
                 SongMap temp;
                 string indexpp = (song["pp"].AsFloat > 0) ? "PP" : "";
 
-                IndexFields(false,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value , song["levelAuthor"].Value, indexpp);
+                IndexFields(false,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value , song["levelAuthor"].Value, indexpp,song["maptype"].Value);
 
                 MapDatabase.MapLibrary.TryRemove(song["id"].Value, out temp);
                 MapDatabase.MapLibrary.TryRemove(song["version"].Value, out temp);
@@ -176,7 +184,7 @@ namespace SongRequestManager
 
                     //Instance.QueueChatMessage($"id={song["id"].Value} = {id}");
 
-                    IndexFields(true,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value,song ["levelAuthor"],indexpp);
+                    IndexFields(true,id, song["songName"].Value, song["songSubName"].Value, song["authorName"].Value,song ["levelAuthor"],indexpp, song["maptype"].Value);
 
                     MapDatabase.MapLibrary.TryAdd(song["id"].Value, this);
                     MapDatabase.MapLibrary.TryAdd(song["version"].Value, this);
@@ -435,7 +443,7 @@ namespace SongRequestManager
                             x = null;
 
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             Instance.QueueChatMessage($"Failed to process {f.FullName}");   
                             //Instance.QueueChatMessage(ex.ToString());
@@ -456,10 +464,9 @@ namespace SongRequestManager
             }
 
 
-                    // Update Database from Directory
+            // Update Database from Directory
             public static async Task LoadCustomSongs(string folder = "",string songid="")
             {
-
                 if (MapDatabase.DatabaseLoading) return;
 
                 DatabaseLoading = true;
@@ -561,7 +568,7 @@ namespace SongRequestManager
 
                             new SongMap(song, levelId, item.DirectoryName);
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             Instance.QueueChatMessage($"Failed to process {item}.");
                         }

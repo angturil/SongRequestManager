@@ -1,0 +1,14 @@
+﻿<modal id="modal" show-event='open-modal' hide-event='close-modal' clickerino-offerino-closerino="false" size-delta-x='90' size-delta-y='45' move-to-center='true'>
+  <vertical child-control-height='false' child-expand-width='true' child-expand-height='true'>
+    <horizontal bg='panel-top' pad-left='10' pad-right='10' horizontal-fit='PreferredSize' child-align='UpperCenter'>
+      <text id='title' text='Dialog Title' align='Center'></text>
+    </horizontal>
+  </vertical>
+  <horizontal child-control-width='false' anchor-pos-x='0' anchor-pos-y='0'>
+    <text id='message' align='Center' text='Blacklist song? this is a really long text line to see what happens with text wrapping'></text>
+  </horizontal>
+  <bottom-button-panel>
+    <button on-click='yes-click' text='Yes'></button>
+    <button on-click='no-click' text='No'></button>
+  </bottom-button-panel>
+</modal>

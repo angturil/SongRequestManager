@@ -1,17 +1,12 @@
-﻿using StreamCore.Chat;
-using StreamCore.Config;
-using StreamCore.SimpleJSON;
-using SongRequestManager;
+﻿using StreamCore.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using StreamCore;
 using StreamCore.Twitch;
 
 namespace SongRequestManager
@@ -533,13 +528,13 @@ namespace SongRequestManager
         }
 
         public string ClearEvents(ParseState state)
-            {
+        {
             BotEvent.Clear();
             return success;
-            }    
+        }    
 
         public string Every(ParseState state)
-            {
+        {
             float period;
 
             string[] parts = state.parameter.Split(new char[] { ' ', ',' }, 2);
@@ -548,7 +543,7 @@ namespace SongRequestManager
             if (period < 1) return state.error($"You must specify a period of at least 1 minute");
             new BotEvent(TimeSpan.FromMinutes(period), parts[1], true);
             return success;
-            }
+        }
 
         public string EventIn(ParseState state)
         {
@@ -596,7 +591,6 @@ namespace SongRequestManager
 
         private IEnumerator SetBombState(ParseState state)
         {
-
             state.parameter = state.parameter.ToLower();
 
             if (state.parameter == "on") state.parameter = "enable";
@@ -623,10 +617,7 @@ namespace SongRequestManager
 
             state.msg($"The !bomb command is now {state.parameter}d.");
 
-
-
             yield break;
-
         }
 
 
@@ -687,9 +678,9 @@ namespace SongRequestManager
             }
             else
             {
-                #if UNRELEASED
+#if UNRELEASED
                 COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest",state.flags);
-                #endif
+#endif
 
                 if (state.flags.HasFlag(CmdFlags.Local))
                     {
@@ -771,7 +762,6 @@ namespace SongRequestManager
             yield return null;
         }
 
-
         // General search version
         private IEnumerator addsongs(ParseState state)
         {
@@ -814,7 +804,6 @@ namespace SongRequestManager
                 yield return null;
             }
         }
-
 
         public static void QueueSong(ParseState state, JSONObject song)
         {
@@ -1286,7 +1275,6 @@ catch
         }
         #endregion
 
-
         // BUG: This requires a switch, or should be disabled for those who don't allow links
         private string ShowSongLink(ParseState state)
         {
@@ -1300,13 +1288,11 @@ catch
                 Plugin.Log(ex.ToString());
             }
 
-         return success;
-
+            return success;
         }
 
         public string queueduration()
-            {
-
+        {
             int total = 0;
             try
             {
@@ -1322,17 +1308,14 @@ catch
             }
 
             return $"{total / 60}:{ total % 60:00}";
-
         }
 
         private string QueueStatus(ParseState state)
-           {
-   
-
+        {
             string queuestate = RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open. " : "Queue is closed. ";
             QueueChatMessage($"{queuestate} There are {RequestQueue.Songs.Count} maps ({queueduration()}) in the queue.");
             return success;
-           }
+        }
 
         public static string GetStarRating(ref JSONObject song, bool mode = true)
         {
@@ -1538,7 +1521,5 @@ catch
         }
 
         #endregion
-
-
     }
 }

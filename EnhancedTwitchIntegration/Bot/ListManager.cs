@@ -1,23 +1,15 @@
-
-using StreamCore;
-using StreamCore.Chat;
 using StreamCore.SimpleJSON;
 using StreamCore.Twitch;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace SongRequestManager
 {
     public partial class RequestBot : MonoBehaviour
     {
-
         private void showlists(TwitchUser requestor, string request)
         {
             var msg = new QueueLongMessage();
@@ -31,7 +23,6 @@ namespace SongRequestManager
             QueueChatMessage($"Hi, my name is {state.botcmd.userParameter} , and I'm a list object!");
             return success;
         }
-
 
         private string accesslist(string request)
         {
@@ -71,7 +62,6 @@ namespace SongRequestManager
 
         private void ListList(TwitchUser requestor, string request)
         {
-
             try
             {
                 var list = listcollection.OpenList(request);
@@ -85,7 +75,6 @@ namespace SongRequestManager
                 QueueChatMessage($"{request} not found.");
             }
         }
-
 
         private void RemoveFromlist(TwitchUser requestor, string request)
         {
@@ -110,11 +99,8 @@ namespace SongRequestManager
             }
         }
 
-
-
         private void ClearList(TwitchUser requestor, string request)
         {
-
             try
             {
                 listcollection.ClearList(request);
@@ -128,7 +114,6 @@ namespace SongRequestManager
 
         private void UnloadList(TwitchUser requestor, string request)
         {
-
             try
             {
                 listcollection.ListCollection.Remove(request.ToLower());
@@ -140,11 +125,45 @@ namespace SongRequestManager
             }
         }
 
+        #region LIST MANAGER user interface
 
+        private void writelist(TwitchUser requestor, string request)
+        {
+
+        }
+
+        // Add list to queue, filtered by InQueue and duplicatelist
+        private string queuelist(ParseState state)
+        {
+            try
+            {
+                StringListManager list = listcollection.OpenList(state.parameter);
+                foreach (var entry in list.list) ProcessSongRequest(new ParseState(state, entry)); // Must use copies here, since these are all threads
+            }
+            catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
+            return success;
+        }
+
+        // Remove entire list from queue
+        private string unqueuelist(ParseState state)
+        {
+            state.flags |= Silent;
+            foreach (var entry in listcollection.OpenList(state.parameter).list)
+            {
+                state.parameter = entry;
+                DequeueSong(state);
+            }
+            return success;
+        }
+
+
+
+
+
+        #endregion
 
 
         #region List Manager Related functions ...
-
         // List types:
 
         // This is a work in progress. 
@@ -171,7 +190,6 @@ namespace SongRequestManager
         // What I really want though is a collection of container objects with the same interface. I need to look into Dynamic to see if I can make this work. Damn being a c# noob
         public class ListCollectionManager
         {
-
             // BUG: DoNotCreate flags currently do nothing
             // BUG: List name case normalization is inconsistent. I'll probably fix it by changing the list interface (its currently just the filename)
 
@@ -275,10 +293,8 @@ namespace SongRequestManager
                 return false;
             }
 
-
             public void runscript(string listname, ListFlags flags = ListFlags.Unchanged)
             {
-
                 try
                 {
                     OpenList(listname, flags).runscript();
@@ -301,13 +317,11 @@ namespace SongRequestManager
         // All variables are public for now until we finalize the interface
         public class StringListManager
         {
-
             private static char[] anyseparator = { ',', ' ', '\t', '\r', '\n' };
             private static char[] lineseparator = { '\n', '\r' };
 
             public List<string> list = new List<string>();
             private HashSet<string> hashlist = new HashSet<string>();
-
 
             ListFlags flags = 0;
 
@@ -344,18 +358,17 @@ namespace SongRequestManager
 
             public void runscript()
             {
-
                 try
                 {
-
                     // BUG: A DynamicText context needs to be applied to each command to allow use of dynamic variables
 
                     foreach (var line in list) COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, line, RequestBot.CmdFlags.Local);
                 }
-                catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.            
-
+                catch (Exception ex)
+                {
+                    Plugin.Log(ex.ToString());
+                } // Going to try this form, to reduce code verbosity.            
             }
-
 
             public bool Writefile(string filename)
             {
@@ -376,12 +389,12 @@ namespace SongRequestManager
                 return false;
             }
 
-
             public bool Contains(string entry)
             {
                 if (list.Contains(entry)) return true;
                 return false;
             }
+
             public bool Add(string entry)
             {
                 if (list.Contains(entry)) return false;
@@ -463,10 +476,6 @@ namespace SongRequestManager
 
             File.WriteAllText(path, arr.ToString());
         }
-
-
         #endregion
-
-
     }
 }

@@ -1,5 +1,5 @@
 using System.Runtime;
-using StreamCore.Chat;
+using StreamCore.Twitch;
 using StreamCore.SimpleJSON;
 using System;
 using System.Collections;
@@ -7,23 +7,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using SongRequestManager;
 using StreamCore.Utils;
 using TMPro;
-using IPA.Utilities;
 
-using StreamCore.Twitch;
-using System.Collections.Generic;
-using System.Reflection;
+//using BeatBits;
 
-using BeatSaverDownloader;
-
-using BeatBits;
-
-using UnityEngine;
 // Feature requests: Add Reason for being banned to banlist
 //  
 
