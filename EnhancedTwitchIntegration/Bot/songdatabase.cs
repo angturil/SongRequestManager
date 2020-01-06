@@ -173,7 +173,7 @@ namespace SongRequestManager
                 //MapDatabase.LevelId.TryRemove(LevelId, out temp);
             }
 
-            void IndexSong(JSONObject song)
+            public void IndexSong(JSONObject song)
             {
                 try
                 {
@@ -296,9 +296,10 @@ namespace SongRequestManager
             try
             {
                 DateTime start = DateTime.Now;
-                JSONArray arr = new JSONArray();
+                //JSONArray arr = new JSONArray();
+                JSONObject arr = new JSONObject();
                 foreach (var entry in MapLibrary)
-                arr.Add(entry.Value.song);
+                arr.Add(entry.Value.song["id"],entry.Value.song);
                 File.WriteAllText(Path.Combine(Plugin.DataPath, "SongDatabase.dat"), arr.ToString());
                 Instance.QueueChatMessage($"Saved Song Databse in  {(DateTime.Now - start).Seconds} secs.");
             }
@@ -326,11 +327,20 @@ namespace SongRequestManager
                         if (!json.IsNull)
                         {
                             
+
                             int Count = json.Count;
-                            foreach (JSONObject j in json.AsArray)
-                            {                                    
-                                new SongMap(j);
+
+                            //foreach (JSONObject j in json.AsArray)
+                            //{                                    
+                            //    new SongMap(j);
+                            //}
+
+
+                            foreach (KeyValuePair<string, JSONNode> kvp in json)
+                            {
+                                new SongMap((JSONObject) kvp.Value);
                             }
+
 
                             json = 0; // BUG: This doesn't actually help. The problem is that the json object is still being referenced.
 
@@ -894,6 +904,9 @@ namespace SongRequestManager
                     if (MapDatabase.MapLibrary.TryGetValue(id, out map))
                     {
                         map.pp=(int) (maxpp);
+                        map.song.Add("pp", maxpp);
+                        map.IndexSong(map.song);
+                        
                     }
                 }
             }

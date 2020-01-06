@@ -627,7 +627,7 @@ namespace SongRequestManager
 
             string requestUrl = "https://beatsaver.com/api/maps/latest";
 
-            if (RequestBotConfig.Instance.OfflineMode) yield break;
+            //if (RequestBotConfig.Instance.OfflineMode) yield break;
 
             int offset = 0;
 

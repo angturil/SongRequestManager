@@ -809,7 +809,37 @@ namespace SongRequestManager
                     //string dl = $"https://beatsaver.com {request.song["downloadURL"].Value}";
                     //Instance.QueueChatMessage($"Download url: {dl}, {request.song}");
 
+
+
+                    // Insert code to replace local path with ZIP path here
+                    //SongMap map;
+                    //if (MapDatabase.MapLibrary.TryGetValue(songIndex, out map))
+                    //{
+                    //    if (map.path != "")
+                    //    {
+                    //        songIndex = map.song["version"].Value;
+                    //        songName = map.song["songName"].Value;
+                    //        currentSongDirectory = Path.Combine(Environment.CurrentDirectory, "CustomSongs", songIndex);
+                    //        songHash = map.song["hashMd5"].Value.ToUpper();
+
+                    //        Directory.CreateDirectory(currentSongDirectory);
+                    //        // HACK to allow playing alternate songs not in custom song directory
+                    //        CopyFilesRecursively(new DirectoryInfo(map.path),new DirectoryInfo( currentSongDirectory));                           
+
+                    //        goto here;
+                    //    }
+                    //}
+
+
+#if UNRELEASED
+                    // Direct download hack
+                    var ext = Path.GetExtension(request.song["coverURL"].Value);
+                    var k = request.song["coverURL"].Value.Replace(ext, ".zip");
+                    yield return Utilities.DownloadFile($"https://beatsaver.com{k}", localPath);
+                    #else
                     yield return Utilities.DownloadFile($"https://beatsaver.com{request.song["downloadURL"].Value}", localPath);
+                    #endif
+
                     yield return Utilities.ExtractZip(localPath, currentSongDirectory);
                     
                     here:

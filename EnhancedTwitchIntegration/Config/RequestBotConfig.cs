@@ -25,7 +25,7 @@ namespace SongRequestManager
         public bool LimitUserRequestsToSession = false; // Request limits do not reset after a song is played.  
 
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
-        public float MaximumSongLength = 999; // Maximum song length in seconds
+        public float MaximumSongLength = 180; // Maximum song length in minutes
         public float MinimumNJS = 0;
 
         public int MaxiumScanRange = 5; // How far down the list to scan for new songs
@@ -50,6 +50,7 @@ namespace SongRequestManager
         public string backuppath = Path.Combine(Environment.CurrentDirectory, "userdata", "backup");
 
         public bool OfflineMode = false;
+        public bool SavedatabaseOnNewest=false;
         public string offlinepath = "d:\\customsongs";
 
         public bool LocalSearch = false;
