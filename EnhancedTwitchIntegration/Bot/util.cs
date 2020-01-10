@@ -31,7 +31,7 @@ namespace SongRequestManager
             }
         }
 
-        public static string Backup(ParseState state)
+        public static string BackupStreamcore(ParseState state)
         {
             string errormsg = Backup();
             if (errormsg=="") state.msg("SRManager files backed up.");

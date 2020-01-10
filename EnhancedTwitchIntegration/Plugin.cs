@@ -14,9 +14,11 @@ namespace SongRequestManager
     public class Plugin : IBeatSaberPlugin
     {
         public string Name => "Song Request Manager";
-        public string Version => "2.1.6";
+        public static SemVer.Version Version => IPA.Loader.PluginManager.GetPluginFromId("SongRequestManager").Metadata.Version;
 
         public static IPALogger Logger { get; internal set; }
+
+        internal static WebClient WebClient;
 
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
@@ -44,6 +46,11 @@ namespace SongRequestManager
         {
             if (Instance != null) return;
             Instance = this;
+
+            Dispatcher.Initialize();
+
+            // create our internal webclient
+            WebClient = new WebClient();
 
             SongBrowserPluginPresent = IPA.Loader.PluginManager.GetPlugin("Song Browser") != null;
 
@@ -76,7 +83,7 @@ namespace SongRequestManager
                 var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
                 if (_songBrowserUI)
                 {
-                    if (_songBrowserUI.Model.Settings.filterMode != SongBrowser.DataAccess.SongFilterMode.None)
+                    if (_songBrowserUI.Model.Settings.filterMode != SongBrowser.DataAccess.SongFilterMode.None && _songBrowserUI.Model.Settings.sortMode != SongBrowser.DataAccess.SongSortMode.Original)
                     {
                         _songBrowserUI.CancelFilter();
                     }

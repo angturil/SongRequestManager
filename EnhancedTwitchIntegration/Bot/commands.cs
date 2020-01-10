@@ -7,6 +7,7 @@ using System.Text;
 using UnityEngine;
 using System.Text.RegularExpressions;
 using StreamCore.Twitch;
+using System.Threading.Tasks;
 // Feature requests: Add Reason for being banned to banlist
 
 namespace SongRequestManager
@@ -119,7 +120,7 @@ namespace SongRequestManager
 
 
             new COMMAND(new string[] { "!request", "!bsr", "!add", "!sr","!srm" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
-            new COMMAND(new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <song id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
+            new COMMAND(new string[] { "!lookup", "!find" }).AsyncAction(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <song id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
             new COMMAND("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias% %|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
 
@@ -139,7 +140,7 @@ namespace SongRequestManager
             new COMMAND(new string[] { "!wrongsong", "!wrong", "!oops" }).Action(WrongSong).Help(Everyone, "usage: %alias%%|%... Removes your last requested song form the queue. It can be requested again later.", _nothing);
 
             new COMMAND("!unblock").Action(Unban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
-            new COMMAND("!block").Coroutine(Ban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
+            new COMMAND("!block").AsyncAction(Ban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
             new COMMAND("!blist").Action(ShowBanList).Help(Broadcaster, "usage: Don't use, it will spam chat!", _atleast1); // Purposely annoying to use, add a character after the command to make it happen 
 
             new COMMAND("!remap").Action(Remap).Help(Mod, "usage: %alias%<songid1> , <songid2>%|%... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.", _RemapRegex);
@@ -149,7 +150,7 @@ namespace SongRequestManager
             new COMMAND("!clearalreadyplayed").Action(ClearDuplicateList).Help(Mod, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
             new COMMAND("!restore").Action(restoredeck).Help(Mod, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
 
-            new COMMAND("!about").Help(CmdFlags.Broadcaster | CmdFlags.SilentCheck , $"Song Request Manager version {Plugin.Instance.Version}. Github angturil/SongRequestManager", _fail); // Help commands have no code
+            new COMMAND("!about").Help(CmdFlags.Broadcaster | CmdFlags.SilentCheck , $"Song Request Manager version {Plugin.Version.ToString()}. Github angturil/SongRequestManager", _fail); // Help commands have no code
             new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
             new COMMAND("!commandlist").Action(showCommandlist).Help(Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
@@ -164,13 +165,13 @@ namespace SongRequestManager
 
             new COMMAND("!songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|% Assign a message to a songid, which will be visible to the player during song selection.", _atleast1);
 
-            new COMMAND("!addsongs").Coroutine(addsongs).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria (up to 40) to the queue", _atleast1);
+            new COMMAND("!addsongs").AsyncAction(addsongs).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria (up to 40) to the queue", _atleast1);
 
             new COMMAND("!every").Action(Every).Help(Broadcaster, "usage: every <minutes> %|% Run a command every <minutes>.", _atleast1);
             new COMMAND("!in").Action(EventIn).Help(Broadcaster, "usage: in <minutes> <bot command>.", _atleast1);
             new COMMAND("!clearevents").Action(ClearEvents).Help(Broadcaster, "usage: %alias% %|% Clear all timer events.");
-            new COMMAND(new string[] { "!addnew", "!addlatest" }).Coroutine(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
-            new COMMAND("!backup").Action(Backup).Help(CmdFlags.Broadcaster, "Backup %SRM% directory.", _anything);
+            new COMMAND(new string[] { "!addnew", "!addlatest" }).AsyncAction(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
+            new COMMAND("!backup").Action(BackupStreamcore).Help(CmdFlags.Broadcaster, "Backup %SRM% directory.", _anything);
 
             //new COMMAND("!refreshsongs").Coroutine(RefreshSongs).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature."); // BUG: Broken in 1.10
             new COMMAND("!savesongdatabase").Coroutine(SaveSongDatabase).Help(Broadcaster);
@@ -193,11 +194,11 @@ namespace SongRequestManager
             #endregion
 
 #if UNRELEASED
-            new COMMAND("!makesearchdeck").Coroutine(makelistfromsearch).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria to search.deck", _atleast1);
+            new COMMAND("!makesearchdeck").AsyncAction(makelistfromsearch).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria to search.deck", _atleast1);
 
             //new COMMAND("!getpp").Coroutine(GetPPData).Help(Broadcaster, "Get PP Data");
 
-            new COMMAND("!downloadsongs").Coroutine(DownloadEverything).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
+            new COMMAND("!downloadsongs").AsyncAction(DownloadEverything).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
 
             // These comments contain forward looking statement that are absolutely subject to change. I make no commitment to following through
             // on any specific feature,interface or implementation. I do not promise to make them generally available. Its probably best to avoid using or making assumptions based on these.
@@ -212,7 +213,7 @@ namespace SongRequestManager
             new COMMAND("!allowmappers").Action(MapperAllowList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
             new COMMAND("!blockmappers").Action(MapperBanList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
 
-            new COMMAND("!mapperdeck").Coroutine(AddmapperToDeck).Help(Broadcaster, "usage: %alias%<mapperlist>");
+            new COMMAND("!mapperdeck").AsyncAction(AddmapperToDeck).Help(Broadcaster, "usage: %alias%<mapperlist>");
 
             //new COMMAND("!glitter").Action(AddLIVGlitter).Help(Broadcaster, "usage: %alias% <number> Message");
 
@@ -241,7 +242,7 @@ namespace SongRequestManager
 
             new COMMAND(new string[] { "/toggle", "subcomdtoggle" }).Action(SubcmdToggle).Help(Subcmd | Mod | CmdFlags.NoParameter, "usage: <!deck> /toggle <songid> %|% Adds a song to a deck if not present, otherwise removes it. Used primarily for button actions");
 
-            new COMMAND("!updatemappers").Coroutine(UpdateMappers).Help(Broadcaster, "usage: %alias% %|% Update mapper lists/decks. This may take a while, don't do live.");
+            new COMMAND("!updatemappers").AsyncAction(UpdateMappers).Help(Broadcaster, "usage: %alias% %|% Update mapper lists/decks. This may take a while, don't do live.");
             new COMMAND("!joinrooms").Coroutine(GetRooms).Help(Broadcaster, "usage: %alias% %|% This is not fully functional, allows the bot to accept commands from your other rooms.") ;
             new COMMAND("!savecommands").Action(SaveCommands);
 
@@ -629,6 +630,8 @@ namespace SongRequestManager
             private Func<ParseState, IEnumerator> func1 = null;
 
             public Func<ParseState, string> subcommand = null; // Prefered calling convention. It does expose calling command base properties, so be careful.
+            public Func<ParseState> subcommand2 = null;
+            public Func<ParseState, Task> AsyncSubCommand = null;
 
             public CmdFlags Flags = Broadcaster;          // flags
             public string ShortHelp = "";                   // short help text (on failing preliminary check
@@ -675,7 +678,7 @@ namespace SongRequestManager
                 permittedusers = fixedname;
             }
 
-            public string Execute(ParseState state)
+            public async Task<string> Execute(ParseState state)
             {
                 // BUG: Most of these will be replaced.  
 
@@ -684,6 +687,8 @@ namespace SongRequestManager
                 //else if (Method3 != null) return Method3(this, state.user, state.parameter, state.flags, state.info);
                 else if (func1 != null) Instance.StartCoroutine(func1(state));
                 else if (subcommand != null) return subcommand(state); // Recommended.
+                else if (subcommand2 != null) subcommand(state);
+                else if (AsyncSubCommand != null) await AsyncSubCommand(state);
                 return success;
             }
 
@@ -736,6 +741,16 @@ namespace SongRequestManager
             public COMMAND Action(Func<ParseState, string> action)
             {
                 subcommand = action;
+                return this;
+            }
+            public COMMAND Action(Func<ParseState> action)
+            {
+                subcommand2 = action;
+                return this;
+            }
+            public COMMAND AsyncAction(Func<ParseState, Task> action)
+            {
+                AsyncSubCommand = action;
                 return this;
             }
             public COMMAND Help(CmdFlags flags = Broadcaster, string ShortHelp = "", Regex regexfilter = null)
@@ -1041,7 +1056,7 @@ namespace SongRequestManager
             }
 
             static string done = "X";
-            public void ExecuteCommand()
+            public async void ExecuteCommand()
             {
                 if (!COMMAND.aliaslist.TryGetValue(command, out botcmd)) return; // Unknown command
 
@@ -1107,7 +1122,7 @@ namespace SongRequestManager
 
                 try
                 {
-                    string errormsg = botcmd.Execute(this); // Call the command
+                    string errormsg = await botcmd.Execute(this); // Call the command
                     if (errormsg != "" && !flags.HasFlag(CmdFlags.SilentError))
                     {
                         Instance.QueueChatMessage(errormsg);

@@ -120,12 +120,31 @@ namespace SongRequestManager
             // get the tab bar
             var _tabBarViewController = _levelFilteringNavigationController.GetPrivateField<TabBarViewController>("_tabBarViewController");
 
-            // select the 4th item, whichi is custom songs
-            _tabBarViewController.SelectItem(3);
+            if (_tabBarViewController.selectedCellNumber != 3)
+            {
+                // select the 4th item, whichi is custom songs
+                _tabBarViewController.SelectItem(3);
 
-            // trigger a switch and reload
-            //_levelFilteringNavigationController.SwitchWithReloadIfNeeded();
-            _levelFilteringNavigationController.TabBarDidSwitch();
+                // trigger a switch and reload
+                _levelFilteringNavigationController.TabBarDidSwitch();
+            }
+            else
+            {
+                // get the annotated view controller
+                var _annotatedBeatmapLevelCollectionsViewController = _levelFilteringNavigationController.GetPrivateField<PlaylistsViewController>("_annotatedBeatmapLevelCollectionsViewController");
+
+                // check if the first element is selected (whichi is custom maps)
+                if (_annotatedBeatmapLevelCollectionsViewController.selectedPlaylistNumber != 0)
+                {
+                    // get the table view
+                    var _playlistsTableView = _annotatedBeatmapLevelCollectionsViewController.GetPrivateField<PlaylistsTableView>("_playlistsTableView");
+
+                    // get the tableview to select custom songs
+                    var _tableView = _playlistsTableView.GetPrivateField<TableView>("_tableView");
+                    _tableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Center, false);
+                    _tableView.SelectCellWithIdx(0, true);
+                }
+            }
 
             // first element is custom maps
             return 0;
@@ -156,6 +175,7 @@ namespace SongRequestManager
                 {
                     Plugin.SongBrowserCancelFilter();
                 }
+
                 // Make sure our custom songpack is selected
                 var packIndex = SelectCustomSongPack();
 
@@ -173,13 +193,10 @@ namespace SongRequestManager
                 var tableView = levelsTableView.GetPrivateField<TableView>("_tableView");
 
                 // get list of beatmaps, this is pre-sorted, etc
-                var beatmaps = levelsTableView.GetPrivateField<IPreviewBeatmapLevel[]>("_previewBeatmapLevels");
+                var beatmaps = levelsTableView.GetPrivateField<IPreviewBeatmapLevel[]>("_previewBeatmapLevels").ToList();
 
                 // get the row number for the song we want
-                //songIndex = Array.FindIndex(beatmaps, x => (x.levelID.Split('_')[2] == levelID));
-
-                // get the row number for the song we want
-                songIndex = Array.FindIndex(Loader.CustomBeatmapLevelPackCollectionSO.beatmapLevelPacks[packIndex].beatmapLevelCollection.beatmapLevels, x => (x.levelID.Split('_')[2] == levelID));
+                songIndex = beatmaps.FindIndex(x => (x.levelID.Split('_')[2] == levelID));
 
                 // bail if song is not found, shouldn't happen
                 if (songIndex >= 0)

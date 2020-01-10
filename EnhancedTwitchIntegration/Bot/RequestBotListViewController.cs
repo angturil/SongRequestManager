@@ -10,6 +10,7 @@ using SongRequestManager.UI;
 using IPA.Utilities;
 using BeatSaberMarkupLanguage;
 using Utilities = StreamCore.Utils.Utilities;
+using System.Threading.Tasks;
 
 namespace SongRequestManager
 {
@@ -489,7 +490,6 @@ namespace SongRequestManager
             // get level id from hash
             var levelIds = SongCore.Collections.levelIDsForHash(SongInfoForRow(row).song["hash"]);
             if (levelIds.Count == 0) return null;
-            if (levelIds.Count == 0) return null;
             
             // lookup song from level id
             return SongCore.Loader.CustomLevels.FirstOrDefault(s => string.Equals(s.Value.levelID, levelIds.First(), StringComparison.OrdinalIgnoreCase)).Value ?? null;
@@ -505,17 +505,7 @@ namespace SongRequestManager
             //_songPreviewPlayer.CrossfadeTo(level.previewAudioClip, level.previewStartTime, level.previewDuration);
         }
 
-        private static Dictionary<string, Sprite> _cachedSprites = new Dictionary<string, Sprite>();
-
-        public static Sprite GetSongCoverArt(string url, Action<Sprite> downloadCompleted)
-        {
-            if (!_cachedSprites.ContainsKey(url))
-            {
-                RequestBot.Instance.StartCoroutine(Utilities.DownloadSpriteAsync($"https://beatsaver.com{url}", downloadCompleted));
-                _cachedSprites.Add(url, UIHelper.BlankSprite);
-            }
-            return _cachedSprites[url];
-        }
+        private static Dictionary<string, Texture2D> _cachedTextures = new Dictionary<string, Texture2D>();
 
         #region TableView.IDataSource interface
         public float CellSize() { return 10f; }
@@ -566,7 +556,7 @@ namespace SongRequestManager
             // set challenge icon if song is a challenge
             if (isChallenge)
             {
-                var el = beatmapCharacteristicImages.ElementAt(1);
+                var el = beatmapCharacteristicImages.ElementAt(beatmapCharacteristicImages.Length - 2);
 
                 el.sprite = Base64Sprites.VersusChallengeIcon;
                 el.enabled = true;
@@ -597,8 +587,8 @@ namespace SongRequestManager
                 CustomPreviewBeatmapLevel level = CustomLevelForRow(row);
                 if (level != null)
                 {
-                    Plugin.Log("custom level found");
-                                        // set image from song's cover image
+                    //Plugin.Log("custom level found");
+                    // set image from song's cover image
                     var tex = await level.GetCoverImageTexture2DAsync(System.Threading.CancellationToken.None);
                     image.texture = tex;
                     imageSet = true;
@@ -608,8 +598,25 @@ namespace SongRequestManager
             if (!imageSet)
             {
                 string url = request.song["coverURL"].Value;
-                var s = GetSongCoverArt(url, (sprite) => { _cachedSprites[url] = sprite; _songListTableView.ReloadData(); });
-                image.texture = s.texture;
+
+                if (!_cachedTextures.TryGetValue(url, out var tex))
+                {
+                    var b = await Plugin.WebClient.DownloadImage($"https://beatsaver.com{url}", System.Threading.CancellationToken.None);
+
+                    tex = new Texture2D(2, 2);
+                    tex.LoadImage(b);
+
+                    try
+                    {
+                        _cachedTextures.Add(url, tex);
+                    }
+                    catch (Exception)
+                    {
+
+                    }
+                }
+
+                image.texture = tex;
             }
 
             UIHelper.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
