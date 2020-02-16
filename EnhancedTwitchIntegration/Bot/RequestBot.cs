@@ -889,7 +889,10 @@ namespace SongRequestManager
                     Plugin.Log("Failed to find new level!");
                 }
 
-                if (!request.song.IsNull) new DynamicText().AddUser(ref request.requestor).AddSong(request.song).QueueMessage(NextSonglink.ToString()); // Display next song message
+                if (!request.song.IsNull && RequestBotConfig.Instance.SendNextSongBeingPlayedtoChat)
+                {
+                    new DynamicText().AddUser(ref request.requestor).AddSong(request.song).QueueMessage(NextSonglink.ToString()); // Display next song message
+                }
 
                 #if UNRELEASED
                 if (!request.song.IsNull) // Experimental!
