@@ -772,16 +772,20 @@ namespace SongRequestManager
 
             JSONNode result = null;
 
-            var resp = await Plugin.WebClient.GetAsync($"{requestUrl}/{normalize.NormalizeBeatSaverString(state.parameter)}", System.Threading.CancellationToken.None);
+            if (!RequestBotConfig.Instance.OfflineMode)
+            {
+                var resp = await Plugin.WebClient.GetAsync($"{requestUrl}/{normalize.NormalizeBeatSaverString(state.parameter)}", System.Threading.CancellationToken.None);
 
-            if (resp.IsSuccessStatusCode)
-            {
-                result = resp.ConvertToJsonNode();
-            }
-            else
-            {
-                Plugin.Log($"Error {resp.ReasonPhrase} occured when trying to request song {state.parameter}!");
-                errorMessage = $"Invalid BeatSaver ID \"{state.parameter}\" specified.";
+                if (resp.IsSuccessStatusCode)
+                {
+                    result = resp.ConvertToJsonNode();
+
+                }
+                else
+                {
+                    Plugin.Log($"Error {resp.ReasonPhrase} occured when trying to request song {state.parameter}!");
+                    errorMessage = $"Invalid BeatSaver ID \"{state.parameter}\" specified.";
+                }
             }
 
             SongFilter filter = SongFilter.All;

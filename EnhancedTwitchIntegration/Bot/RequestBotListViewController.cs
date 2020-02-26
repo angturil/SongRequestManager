@@ -549,8 +549,8 @@ namespace SongRequestManager
             // set message icon if request has a message // NEW VERSION
             if (hasMessage)
             {
-                beatmapCharacteristicImages.Last().sprite = Base64Sprites.InfoIcon;
-                beatmapCharacteristicImages.Last().enabled = true;
+                beatmapCharacteristicImages.First().sprite = Base64Sprites.InfoIcon;
+                beatmapCharacteristicImages.First().enabled = true;
             }
 
             // set challenge icon if song is a challenge

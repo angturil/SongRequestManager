@@ -27,7 +27,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;UNRELEASEDX</DefineConstants>
+    <DefineConstants>TRACE;UNRELEASED</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -137,6 +137,8 @@
     <Compile Include="Bot\RequestInfo.cs" />
     <Compile Include="Bot\RequestManager.cs" />
     <Compile Include="Bot\RequestUserTracker.cs" />
+    <Compile Include="Bot\SDKStructs.cs" />
+    <Compile Include="Bot\SharedTextureProtocol.cs" />
     <Compile Include="Bot\songdatabase.cs" />
     <Compile Include="Bot\SongRequest.cs" />
     <Compile Include="Bot\UnreleasedCode.cs" />

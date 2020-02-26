@@ -908,15 +908,18 @@ namespace SongRequestManager
                 if (writeSummary)
                     WriteQueueSummaryToFile(); // Write out queue status to file, do it first
 
-                _requestButton.interactable = true;
+                if (_requestButton != null)
+                {
+                    _requestButton.interactable = true;
 
-                if (RequestQueue.Songs.Count == 0)
-                {
-                    _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
-                }
-                else
-                {
-                    _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
+                    if (RequestQueue.Songs.Count == 0)
+                    {
+                        _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
+                    }
+                    else
+                    {
+                        _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
+                    }
                 }
             }
             catch (Exception ex)

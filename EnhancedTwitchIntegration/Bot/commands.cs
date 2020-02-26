@@ -196,6 +196,8 @@ namespace SongRequestManager
 #if UNRELEASED
             new COMMAND("!makesearchdeck").AsyncAction(makelistfromsearch).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria to search.deck", _atleast1);
 
+            new COMMAND("!sdk2test").Action(livsdktest).Help(Broadcaster,"usage: don't",_anything);
+
             //new COMMAND("!getpp").Coroutine(GetPPData).Help(Broadcaster, "Get PP Data");
 
             new COMMAND("!downloadsongs").AsyncAction(DownloadEverything).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");

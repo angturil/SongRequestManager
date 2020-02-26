@@ -815,7 +815,7 @@ namespace SongRequestManager
         public static ConcurrentDictionary<String, float> ppmap = new ConcurrentDictionary<string, float>();
         public static bool pploading = false;
 
-        public async void GetPPData()
+        public async Task GetPPData()
         {
             if (pploading) return;
 
@@ -823,7 +823,6 @@ namespace SongRequestManager
 
             //Instance.QueueChatMessage("Getting PP Data");
             var StarTime = DateTime.UtcNow;
-
             string requestUrl = "https://cdn.wes.cloud/beatstar/bssb/v2-ranked.json";
             //public const String SCRAPED_SCORE_SABER_ALL_JSON_URL = "https://cdn.wes.cloud/beatstar/bssb/v2-all.json";
 
@@ -835,10 +834,11 @@ namespace SongRequestManager
 
             if (resp.IsSuccessStatusCode)
             {
-                result = resp.ToString();
+                result = resp.ContentToString();
             }
             else
             {
+                Plugin.Log("Failed to get pp");
                 pploading = false;
                 return;
             }
