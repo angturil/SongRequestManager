@@ -36,7 +36,7 @@ namespace SongRequestManager
         {
             // dismiss ourselves
             var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
-            soloFlow.InvokePrivateMethod("DismissFlowCoordinator", this, null, false);
+            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("DismissFlowCoordinator", this, null, false);
         }
 
         public void Dismiss()

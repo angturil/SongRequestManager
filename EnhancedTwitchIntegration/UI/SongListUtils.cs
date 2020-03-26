@@ -43,7 +43,7 @@ namespace SongRequestManager
         private enum SongBrowserAction { ResetFilter = 1 }
         private static void ExecuteSongBrowserAction(SongBrowserAction action)
         {
-            //var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
+            //var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetField<SongBrowser.UI.SongBrowserUI, SongBrowser.SongBrowserApplication>("_songBrowserUI");
             //if (_songBrowserUI)
             //{
             //    if (action.HasFlag(SongBrowserAction.ResetFilter))
@@ -118,7 +118,7 @@ namespace SongRequestManager
             var _levelFilteringNavigationController = Resources.FindObjectsOfTypeAll<LevelFilteringNavigationController>().First();
 
             // get the tab bar
-            var _tabBarViewController = _levelFilteringNavigationController.GetPrivateField<TabBarViewController>("_tabBarViewController");
+            var _tabBarViewController = _levelFilteringNavigationController.GetField<TabBarViewController, LevelFilteringNavigationController>("_tabBarViewController");
 
             if (_tabBarViewController.selectedCellNumber != 3)
             {
@@ -126,21 +126,21 @@ namespace SongRequestManager
                 _tabBarViewController.SelectItem(3);
 
                 // trigger a switch and reload
-                _levelFilteringNavigationController.TabBarDidSwitch();
+                _levelFilteringNavigationController.InvokeMethod<object, LevelFilteringNavigationController>("TabBarDidSwitch");
             }
             else
             {
                 // get the annotated view controller
-                var _annotatedBeatmapLevelCollectionsViewController = _levelFilteringNavigationController.GetPrivateField<PlaylistsViewController>("_annotatedBeatmapLevelCollectionsViewController");
+                var _annotatedBeatmapLevelCollectionsViewController = _levelFilteringNavigationController.GetField<AnnotatedBeatmapLevelCollectionsViewController, LevelFilteringNavigationController>("_annotatedBeatmapLevelCollectionsViewController");
 
                 // check if the first element is selected (whichi is custom maps)
-                if (_annotatedBeatmapLevelCollectionsViewController.selectedPlaylistNumber != 0)
+                if (_annotatedBeatmapLevelCollectionsViewController.selectedItemIndex != 0)
                 {
                     // get the table view
-                    var _playlistsTableView = _annotatedBeatmapLevelCollectionsViewController.GetPrivateField<PlaylistsTableView>("_playlistsTableView");
+                    var _playlistsTableView = _annotatedBeatmapLevelCollectionsViewController.GetField<AnnotatedBeatmapLevelCollectionsTableView, AnnotatedBeatmapLevelCollectionsViewController>("_playlistsTableView");
 
                     // get the tableview to select custom songs
-                    var _tableView = _playlistsTableView.GetPrivateField<TableView>("_tableView");
+                    var _tableView = _playlistsTableView.GetField<TableView, AnnotatedBeatmapLevelCollectionsTableView>("_tableView");
                     _tableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Center, false);
                     _tableView.SelectCellWithIdx(0, true);
                 }
@@ -184,16 +184,16 @@ namespace SongRequestManager
                 int songIndex = 0;
 
                 // get the table view
-                var levelsTableView = _levelCollectionViewController.GetPrivateField<LevelCollectionTableView>("_levelCollectionTableView");
+                var levelsTableView = _levelCollectionViewController.GetField<LevelCollectionTableView, LevelCollectionViewController>("_levelCollectionTableView");
 
                 //RequestBot.Instance.QueueChatMessage($"selecting song: {levelID} pack: {packIndex}");
                 yield return null;
 
                 // get the table view
-                var tableView = levelsTableView.GetPrivateField<TableView>("_tableView");
+                var tableView = levelsTableView.GetField<TableView, LevelCollectionTableView>("_tableView");
 
                 // get list of beatmaps, this is pre-sorted, etc
-                var beatmaps = levelsTableView.GetPrivateField<IPreviewBeatmapLevel[]>("_previewBeatmapLevels").ToList();
+                var beatmaps = levelsTableView.GetField<IPreviewBeatmapLevel[], LevelCollectionTableView>("_previewBeatmapLevels").ToList();
 
                 // get the row number for the song we want
                 songIndex = beatmaps.FindIndex(x => (x.levelID.Split('_')[2] == levelID));
@@ -202,7 +202,7 @@ namespace SongRequestManager
                 if (songIndex >= 0)
                 {
                     // if header is being shown, increment row
-                    if (levelsTableView.GetPrivateField<bool>("_showLevelPackHeader"))
+                    if (levelsTableView.GetField<bool, LevelCollectionTableView>("_showLevelPackHeader"))
                     {
                         songIndex++;
                     }

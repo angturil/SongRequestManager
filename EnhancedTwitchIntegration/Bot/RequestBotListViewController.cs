@@ -131,8 +131,8 @@ namespace SongRequestManager
                 _songListTableView.gameObject.AddComponent<RectMask2D>();
                 _songListTableView.transform.SetParent(container, false);
 
-                _songListTableView.SetPrivateField("_preallocatedCells", new TableView.CellsGroup[0]);
-                _songListTableView.SetPrivateField("_isInitialized", false);
+                _songListTableView.SetField("_preallocatedCells", new TableView.CellsGroup[0]);
+                _songListTableView.SetField("_isInitialized", false);
 
                 var viewport = new GameObject("Viewport").AddComponent<RectTransform>();
                 viewport.SetParent(go.GetComponent<RectTransform>(), false);
@@ -141,7 +141,7 @@ namespace SongRequestManager
                 (viewport.transform as RectTransform).anchorMax = new Vector2(1, 1);
                 go.GetComponent<ScrollRect>().viewport = viewport;
 
-                _songListTableView.InvokePrivateMethod("Init");
+                _songListTableView.InvokeMethod<object, TableView>("Init");
 
                 _songListTableView.dataSource = this;
 
@@ -159,7 +159,7 @@ namespace SongRequestManager
                 rectTransform.sizeDelta = new Vector2(74f, 0f);
                 rectTransform.pivot = new Vector2(0.4f, 0.5f);
 
-                var _songListTableViewScroller = _songListTableView.GetPrivateField<TableViewScroller>("_scroller");
+                var _songListTableViewScroller = _songListTableView.GetField<TableViewScroller, TableView>("_scroller");
 
                 _pageUpButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().Last(x => (x.name == "PageUpButton")), container, false);
                 (_pageUpButton.transform as RectTransform).anchoredPosition = new Vector2(0f, 35f);
@@ -519,7 +519,7 @@ namespace SongRequestManager
         {
             LevelListTableCell _tableCell = Instantiate(_requestListTableCellInstance);
             _tableCell.reuseIdentifier = "RequestBotFriendCell";
-            _tableCell.SetPrivateField("_bought", true);
+            _tableCell.SetField("_bought", true);
 
             SongRequest request = SongInfoForRow(row);
             SetDataFromLevelAsync(request, _tableCell, row);
@@ -530,7 +530,7 @@ namespace SongRequestManager
 
         private async void SetDataFromLevelAsync(SongRequest request, LevelListTableCell _tableCell, int row)
         {
-            var favouritesBadge = _tableCell.GetPrivateField<RawImage>("_favoritesBadgeImage");
+            var favouritesBadge = _tableCell.GetField<RawImage, LevelListTableCell>("_favoritesBadgeImage");
             favouritesBadge.enabled = false;
 
             bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
@@ -540,17 +540,17 @@ namespace SongRequestManager
             var hasMessage = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
             var isChallenge = request.requestInfo.IndexOf("!challenge", StringComparison.OrdinalIgnoreCase) >= 0;
 
-            var beatmapCharacteristicImages = _tableCell.GetPrivateField<UnityEngine.UI.Image[]>("_beatmapCharacteristicImages"); // NEW VERSION
+            var beatmapCharacteristicImages = _tableCell.GetField<UnityEngine.UI.Image[], LevelListTableCell>("_beatmapCharacteristicImages"); // NEW VERSION
             foreach (var i in beatmapCharacteristicImages) i.enabled = false;
             
             // causing a nullex?
-            _tableCell.SetPrivateField("_beatmapCharacteristicAlphas", new float[5] { 1f, 1f, 1f, 1f, 1f });
+            //_tableCell.SetField("_beatmapCharacteristicAlphas", new float[5] { 1f, 1f, 1f, 1f, 1f });
 
             // set message icon if request has a message // NEW VERSION
             if (hasMessage)
             {
-                beatmapCharacteristicImages.First().sprite = Base64Sprites.InfoIcon;
-                beatmapCharacteristicImages.First().enabled = true;
+                beatmapCharacteristicImages.Last().sprite = Base64Sprites.InfoIcon;
+                beatmapCharacteristicImages.Last().enabled = true;
             }
 
             // set challenge icon if song is a challenge
@@ -571,15 +571,15 @@ namespace SongRequestManager
             dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
             dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
 
-            var songName = _tableCell.GetPrivateField<TextMeshProUGUI>("_songNameText");
+            var songName = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songNameText");
             //songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>";
             songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size>"; // NEW VERSION
 
-            var author = _tableCell.GetPrivateField<TextMeshProUGUI>("_authorText");
+            var author = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_authorText");
 
             author.text = dt.Parse(RequestBot.QueueListRow2);
 
-            var image = _tableCell.GetPrivateField<RawImage>("_coverRawImage");
+            var image = _tableCell.GetField<RawImage, LevelListTableCell>("_coverRawImage");
             var imageSet = false;
 
             if (SongCore.Loader.AreSongsLoaded)

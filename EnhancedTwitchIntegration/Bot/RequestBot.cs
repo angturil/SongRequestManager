@@ -84,7 +84,7 @@ namespace SongRequestManager
         internal static void SRMButtonPressed()
         {
             var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
-            soloFlow.InvokePrivateMethod("PresentFlowCoordinator", _flowCoordinator, null, false, false);
+            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("PresentFlowCoordinator", _flowCoordinator, null, false, false);
         }
 
         internal static void SetTitle(string title)

@@ -3,18 +3,17 @@ using IPALogger = IPA.Logging.Logger;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using UnityEngine.SceneManagement;
 using SongRequestManager.UI;
 using BeatSaberMarkupLanguage.Settings;
-using SongBrowser;
 using IPA.Utilities;
 
 namespace SongRequestManager
 {
-    public class Plugin : IBeatSaberPlugin
+    [Plugin(RuntimeOptions.SingleStartInit)]
+    public class Plugin
     {
         public string Name => "Song Request Manager";
-        public static SemVer.Version Version => IPA.Loader.PluginManager.GetPluginFromId("SongRequestManager").Metadata.Version;
+        public static SemVer.Version Version => IPA.Loader.PluginManager.GetPluginFromId("SongRequestManager").Version;
 
         public static IPALogger Logger { get; internal set; }
 
@@ -29,7 +28,8 @@ namespace SongRequestManager
         public static string DataPath = Path.Combine(Environment.CurrentDirectory, "UserData", "StreamCore");
         public static bool SongBrowserPluginPresent;
 
-        public void Init(object thisIsNull, IPALogger log)
+        [Init]
+        public void Init(IPALogger log)
         {
             Logger = log;
         }
@@ -42,7 +42,8 @@ namespace SongRequestManager
             Logger.Info($"[SongRequestManager] {Path.GetFileName(file)}->{member}({line}): {text}");
         }
 
-        public void OnApplicationStart()
+        [OnStart]
+        public void OnStart()
         {
             if (Instance != null) return;
             Instance = this;
@@ -80,7 +81,7 @@ namespace SongRequestManager
         {
             if (SongBrowserPluginPresent)
             {
-                var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
+                var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetField<SongBrowser.UI.SongBrowserUI, SongBrowser.SongBrowserApplication>("_songBrowserUI");
                 if (_songBrowserUI)
                 {
                     if (_songBrowserUI.Model.Settings.filterMode != SongBrowser.DataAccess.SongFilterMode.None && _songBrowserUI.Model.Settings.sortMode != SongBrowser.DataAccess.SongSortMode.Original)
@@ -95,39 +96,10 @@ namespace SongRequestManager
             }
         }
 
-        #region Unused IBeatSaberPlugin methods
-        public void OnSceneLoaded(Scene arg0, LoadSceneMode arg1)
-        {
-        }
-
-        public void OnApplicationQuit()
+        [OnExit]
+        public void OnExit()
         {
             IsApplicationExiting = true;
         }
-
-        public void OnActiveSceneChanged(Scene from, Scene to)
-        {
-        }
-
-        public void OnLevelWasLoaded(int level)
-        {
-        }
-
-        public void OnLevelWasInitialized(int level)
-        {
-        }
-
-        public void OnFixedUpdate()
-        {
-        }
-
-        public void OnUpdate()
-        {
-        }
-
-        public void OnSceneUnloaded(Scene scene)
-        {
-        }
-        #endregion
     }
 }
