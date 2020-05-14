@@ -69,6 +69,15 @@ namespace SongRequestManager
 
         public void RunScript(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.RunScriptPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.RunScriptPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             listcollection.runscript(request);
         }
 
@@ -253,6 +262,7 @@ namespace SongRequestManager
 
         private async Task Ban(ParseState state)
         {
+
             var id = GetBeatSaverId(state.parameter.ToLower());
 
             if (listcollection.contains(ref banlist, id))
@@ -321,6 +331,15 @@ namespace SongRequestManager
 
         private void Unban(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.UnBanPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.UnBanPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             var unbanvalue = GetBeatSaverId(request);
 
             if (listcollection.contains(ref banlist,unbanvalue))
@@ -343,6 +362,15 @@ namespace SongRequestManager
 
         private void Writedeck(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.WritedeckPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.WritedeckPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             try
             {
                 int count = 0;
@@ -401,7 +429,15 @@ namespace SongRequestManager
         #region Dequeue Song
         private string DequeueSong(ParseState state)
         {
-
+            if (!RequestBot.HasPermission(state.user, RequestBotConfig.Instance.DequeuePermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.DequeuePermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return success;
+            }
             var songId = GetBeatSaverId(state.parameter);
             for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
             {
@@ -436,6 +472,15 @@ namespace SongRequestManager
         // BUG: Will use a new interface to the list manager
         private void MapperAllowList(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.MapperAllowListPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.MapperAllowListPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             string key = request.ToLower();
             mapperwhitelist = listcollection.OpenList(key); // BUG: this is still not the final interface
             QueueChatMessage($"Mapper whitelist set to {request}.");
@@ -443,6 +488,15 @@ namespace SongRequestManager
 
         private void MapperBanList(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.MapperBanListPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.MapperBanListPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             string key = request.ToLower();
             mapperBanlist = listcollection.OpenList(key);
             //QueueChatMessage($"Mapper ban list set to {request}.");
@@ -450,12 +504,30 @@ namespace SongRequestManager
 
         private void WhiteList(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.WhiteListPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.WhiteListPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             string key = request.ToLower();
             Whitelist = listcollection.OpenList(key);
         }
 
         private void BlockedUserList(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.BlockedUserPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.BlockedUserPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             string key = request.ToLower();
             BlockedUser = listcollection.OpenList(key);
         }
@@ -826,7 +898,15 @@ namespace SongRequestManager
 
         private void MoveRequestPositionInQueue(TwitchUser requestor, string request, bool top)
         {
-
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.MoveRequestPositionInQueuePermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.MoveRequestPositionInQueuePermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             string moveId = GetBeatSaverId(request);
             for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
             {
@@ -878,7 +958,15 @@ namespace SongRequestManager
 
         private void showCommandlist(TwitchUser requestor, string request)
         {
-
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.ShowCommandListPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowCommandListPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             var msg = new QueueLongMessage();
 
             foreach (var entry in COMMAND.aliaslist)
@@ -892,7 +980,15 @@ namespace SongRequestManager
 
         private void showFormatList (TwitchUser requestor, string request)
         {
-
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.ShowFormatListPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowFormatListPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             var msg = new QueueLongMessage();
 
             foreach (var entry in COMMAND.aliaslist)
@@ -906,8 +1002,16 @@ namespace SongRequestManager
 
 
         private async Task LookupSongs(ParseState state)
-        {                
-   
+        {
+            if (!RequestBot.HasPermission(state.user, RequestBotConfig.Instance.LookupSongsPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.LookupSongsPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             var id = GetBeatSaverId(state.parameter);
 
             JSONNode result = null;
@@ -951,14 +1055,24 @@ namespace SongRequestManager
         // BUG: Should be dynamic text
         private void ListQueue(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.ListQueuePermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ListQueuePermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
 
             var msg = new QueueLongMessage(RequestBotConfig.Instance.maximumqueuemessages);
 
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
                 var song = req.song;
-                if (msg.Add(new DynamicText().AddSong(ref song).Parse(QueueListFormat), ", ")) break;
+                if (msg.Add(new DynamicText().AddSong(ref song).Parse(QueueListFormat), RequestBotConfig.Instance.QueueDelimiter)) break;
             }
+            
             msg.end($" ... and {RequestQueue.Songs.Count - msg.Count} more songs.", "Queue is empty.");
             return;
 
@@ -966,8 +1080,17 @@ namespace SongRequestManager
 
         private void ShowHistory(TwitchUser requestor, string request)
         {
-
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.ShowHistoryPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowHistoryPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             var msg = new QueueLongMessage(1);
+            
 
             foreach (var entry in RequestHistory.Songs)
             {
@@ -981,7 +1104,17 @@ namespace SongRequestManager
 
         private void ShowSongsplayed(TwitchUser requestor, string request) // Note: This can be spammy.
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.ShowSongsPlayedPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowSongsPlayedPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             var msg = new QueueLongMessage(2);
+            
 
             msg.Header($"{played.Count} songs played tonight: ");
 
@@ -996,8 +1129,17 @@ namespace SongRequestManager
 
         private void ShowBanList(TwitchUser requestor, string request)
         {
-
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.ShowBanListPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowBanListPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             var msg = new QueueLongMessage(1);
+            
 
             msg.Header("Banlist ");
 
@@ -1032,6 +1174,16 @@ namespace SongRequestManager
 
         private void ToggleQueue(TwitchUser requestor, string request, bool state)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.ToggleQueuePermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ToggleQueuePermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
+
             RequestBotConfig.Instance.RequestQueueOpen = state;
             RequestBotConfig.Instance.Save();
 
@@ -1143,6 +1295,16 @@ namespace SongRequestManager
 
         private void Clearqueue(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.ClearQueuePermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ClearQueuePermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
+
             // Write our current queue to file so we can restore it if needed
             Writedeck(requestor, "justcleared");
 
@@ -1167,6 +1329,15 @@ namespace SongRequestManager
         #region Unmap/Remap Commands
         private void Remap(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.RemapPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.RemapPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             string[] parts = request.Split(',', ' ');
 
             if (parts.Length < 2)
@@ -1183,7 +1354,15 @@ namespace SongRequestManager
 
         private void Unmap(TwitchUser requestor, string request)
         {
-
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.UnmapPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.UnmapPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             if (songremap.ContainsKey(request))
             {
                 QueueChatMessage($"Remap entry {request} removed.");
@@ -1242,6 +1421,15 @@ namespace SongRequestManager
         #region Wrong Song
         private void WrongSong(TwitchUser requestor, string request)
         {
+            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.WrongSongPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.WrongSongPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return;
+            }
             // Note: Scanning backwards to remove LastIn, for loop is best known way.
             for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
             {
@@ -1262,6 +1450,15 @@ namespace SongRequestManager
         // BUG: This requires a switch, or should be disabled for those who don't allow links
         private string ShowSongLink(ParseState state)
         {
+            if (!RequestBot.HasPermission(state.user, RequestBotConfig.Instance.ShowSongLinkPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowSongLinkPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return "";
+            }
             try  // We're accessing an element across threads, and currentsong doesn't need to be defined
             {
                 var song = RequestHistory.Songs[0].song;
