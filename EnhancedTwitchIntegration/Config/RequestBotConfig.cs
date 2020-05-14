@@ -85,12 +85,11 @@ namespace SongRequestManager
         public int ClearQueuePermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
         // !clearalreadyplayed?
         // !help?
+        public int ShowHelpPermissionLevel = (int)(RequestBot.CmdFlags.Sub | RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.VIP | RequestBot.CmdFlags.Broadcaster);
         // covers !commandlist
         public int ShowCommandListPermissionLevel = (int)(RequestBot.CmdFlags.Everyone);
         // !readdeck?
 
-        // covers !writedeck
-        public int WritedeckPermissionLevel = (int)(RequestBot.CmdFlags.Broadcaster);
         // !chatmessage?
         // covers !runscript
         public int RunScriptPermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);

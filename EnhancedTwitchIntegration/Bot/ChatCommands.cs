@@ -73,7 +73,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.RunScriptPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.RunScriptPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -335,7 +335,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.UnBanPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.UnBanPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -362,15 +362,6 @@ namespace SongRequestManager
 
         private void Writedeck(TwitchUser requestor, string request)
         {
-            if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.WritedeckPermissionLevel))
-            {
-                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
-                {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.WritedeckPermissionLevel) + "\n");
-                }
-                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
-                return;
-            }
             try
             {
                 int count = 0;
@@ -433,7 +424,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.DequeuePermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.DequeuePermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return success;
@@ -476,7 +467,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.MapperAllowListPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.MapperAllowListPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -492,7 +483,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.MapperBanListPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.MapperBanListPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -508,7 +499,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.WhiteListPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.WhiteListPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -523,7 +514,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.BlockedUserPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.BlockedUserPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -902,7 +893,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.MoveRequestPositionInQueuePermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.MoveRequestPositionInQueuePermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -962,7 +953,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowCommandListPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowCommandListPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -984,7 +975,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowFormatListPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowFormatListPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1007,7 +998,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.LookupSongsPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.LookupSongsPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1059,7 +1050,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ListQueuePermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ListQueuePermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1084,7 +1075,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowHistoryPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowHistoryPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1108,7 +1099,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowSongsPlayedPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowSongsPlayedPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1133,7 +1124,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowBanListPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowBanListPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1178,7 +1169,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ToggleQueuePermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ToggleQueuePermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1299,7 +1290,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ClearQueuePermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ClearQueuePermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1333,7 +1324,8 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.RemapPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.RemapPermissionLevel) + "");
+
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1358,7 +1350,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.UnmapPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.UnmapPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1425,7 +1417,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.WrongSongPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.WrongSongPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return;
@@ -1454,7 +1446,7 @@ namespace SongRequestManager
             {
                 if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
                 {
-                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowSongLinkPermissionLevel) + "\n");
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowSongLinkPermissionLevel) + "");
                 }
                 QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                 return "";

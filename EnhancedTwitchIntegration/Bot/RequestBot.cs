@@ -1059,16 +1059,16 @@ namespace SongRequestManager
 
         private string ProcessSongRequest(ParseState state)
         {
+            if (!RequestBot.HasPermission(state.user, RequestBotConfig.Instance.SongRequestPermissionLevel))
+            {
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return success;
+            }
             try
             {
                 if (RequestBotConfig.Instance.RequestQueueOpen == false && !state.flags.HasFlag(CmdFlags.NoFilter) && !state.flags.HasFlag(CmdFlags.Local)) // BUG: Complex permission, Queue state message needs to be handled higher up
                 {
                     QueueChatMessage($"Queue is currently closed.");
-                    return success;
-                }
-                if(!RequestBot.HasPermission(state.user, RequestBotConfig.Instance.SongRequestPermissionLevel))
-                {
-                    QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
                     return success;
                 }
 
@@ -1137,10 +1137,24 @@ namespace SongRequestManager
         {
             // create a string the lazy and inefficient way
             string returnValue = "";
-            returnValue = "Subs: " + RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.Sub) + " ";
-            returnValue += "Mods: " + RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.Mod) + " ";
-            returnValue += "VIPs: " + RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.VIP) + " ";
-            returnValue += "Host: " + RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.Broadcaster) + "";
+            string delimiter = ", ";
+            bool isSub = RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.Sub);
+            bool isMod = RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.Mod);
+            bool isVip = RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.VIP);
+            bool isBroadcaster = RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.Broadcaster);
+
+            if (isSub) { returnValue += "Subs" ; }
+            if (isSub && (isMod || isVip || isBroadcaster)) { returnValue += delimiter; }
+
+            if (isMod) { returnValue += "Mods"; }
+            if (isMod && (isVip || isBroadcaster)) { returnValue += delimiter; }
+
+            if (isVip) { returnValue += "VIPs"; }
+            if (isVip && (isMod || isBroadcaster)) { returnValue += delimiter; }
+
+            if (isBroadcaster && (isMod || isVip || isSub)) { returnValue += " and "; }
+            if (isBroadcaster) { returnValue += "Hosts"; }
+
             return returnValue;
         }
 
@@ -1148,7 +1162,7 @@ namespace SongRequestManager
         {
             // explicitly check a permission level of a user and an action
             int userPermissionLevel = RequestBot.getPermissionLevel(inputUser);
-            if((userPermissionLevel&permissionLevel)> 1) { return true; }
+            if((userPermissionLevel&permissionLevel)>= 1) { return true; }
             return false;
         }
 

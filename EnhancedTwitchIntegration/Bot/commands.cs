@@ -151,7 +151,7 @@ namespace SongRequestManager
             new COMMAND("!restore").Action(restoredeck).Help(Mod, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
 
             new COMMAND("!about").Help(CmdFlags.Broadcaster | CmdFlags.SilentCheck , $"Song Request Manager version {Plugin.Version.ToString()}. Github angturil/SongRequestManager", _fail); // Help commands have no code
-            new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
+            //new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
             new COMMAND("!commandlist").Action(showCommandlist).Help(Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
             new COMMAND("!readdeck").Action(Readdeck).Help(Mod, "usage: %alias", _alphaNumericRegex);
@@ -176,7 +176,7 @@ namespace SongRequestManager
             //new COMMAND("!refreshsongs").Coroutine(RefreshSongs).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature."); // BUG: Broken in 1.10
             new COMMAND("!savesongdatabase").Coroutine(SaveSongDatabase).Help(Broadcaster);
 
-            new COMMAND("!queuestatus").Action(QueueStatus).Help(Mod, "usage: %alias% %|% Show current queue status", _nothing);
+            new COMMAND("!queuestatus").Action(QueueStatus).Help(Everyone, "usage: %alias% %|% Show current queue status", _nothing);
 
             new COMMAND("!QueueLottery").Action(QueueLottery).Help(Broadcaster, "usage: %alias% <entry count> %|% Shuffle the queue and reduce to <entry count> entries. Close the queue.", _anything);
 
@@ -1196,6 +1196,15 @@ namespace SongRequestManager
         // Get help on a command
         private string help(ParseState state)
         {
+            if (!RequestBot.HasPermission(state.user, RequestBotConfig.Instance.ShowHelpPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowHelpPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return success;
+            }
             if (state.parameter == "")
             {
                 var msg = new QueueLongMessage();
