@@ -182,7 +182,6 @@ namespace SongRequestManager
 
             new COMMAND("!addtoqueue").Action(queuelist).Help(Broadcaster, "usage: %alias% <list>", _atleast1);
 
-
             #region Gamechanger Specific           
             bool _GameChangerInstalled = IPA.Loader.PluginManager.GetPlugin("Beat Bits") != null;
             _WobbleInstalled= IPA.Loader.PluginManager.GetPlugin("WobbleSaber") != null;
