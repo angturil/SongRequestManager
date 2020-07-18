@@ -134,15 +134,17 @@ namespace SongRequestManager
             //new GameObject("SongRequestManager").AddComponent<RequestBot>();
         }
 
-        public static void AddKeyboard(KEYBOARD keyboard, string keyboardname, float scale = 0.5f)
+        public static bool AddKeyboard(KEYBOARD keyboard, string keyboardname, float scale = 0.5f)
         {
             try
             {
                 string fileContent = File.ReadAllText(Path.Combine(Plugin.DataPath, keyboardname));
                 if (fileContent.Length > 0) keyboard.AddKeys(fileContent, scale);
+                return true;
             }
             catch
             {
+                return false;
                 // This is a silent fail since custom keyboards are optional
             }
         }

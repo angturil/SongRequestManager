@@ -32,7 +32,7 @@ namespace SongRequestManager
 
         public int PPDeckMiniumumPP=150; // Minimum PP to add to pp deck
 
-        public string DeckList = "fun hard brutal dance chill";
+        public string DeckList = "fun hard brutal dance chill sickwalls brutal mydeck metal rap pop";
 
         public bool AutopickFirstSong = false; // Pick the first song that !bsr finds instead of showing a short list. *IMPLEMENTED*, needs UI
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 

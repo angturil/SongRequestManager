@@ -16,7 +16,6 @@ namespace SongRequestManager.UI
                 var mykeyboard = new KEYBOARD(KeyboardContainer, "");
 
 #if UNRELEASED
-                //mykeyboard.AddKeys(BOTKEYS, 0.4f);
                 RequestBot.AddKeyboard(mykeyboard, "emotes.kbd", 0.4f);
 #endif
                 mykeyboard.AddKeys(KEYBOARD.QWERTY); // You can replace this with DVORAK if you like
