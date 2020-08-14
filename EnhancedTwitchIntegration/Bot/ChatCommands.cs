@@ -598,14 +598,14 @@ namespace SongRequestManager
 
             System.Diagnostics.Process.Start($"liv-streamerkit://gamechanger/beat-saber-sabotage/{state.parameter}");
 
-            if (_WobbleInstalled)
-               {
-                string wobblestate = "off";
-                if (state.parameter == "enable") wobblestate = "on"; 
-               TwitchWebSocketClient.SendCommand($"!wadmin toggle {wobblestate} ");
+            //if (_WobbleInstalled)
+            //   {
+            //    string wobblestate = "off";
+            //    if (state.parameter == "enable") wobblestate = "on"; 
+            //   TwitchWebSocketClient.SendCommand($"!wadmin toggle {wobblestate} ");
 
 
-            }
+            //}
 
             state.msg($"The !bomb command is now {state.parameter}d.");
 
