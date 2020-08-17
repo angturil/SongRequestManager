@@ -6,8 +6,10 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using System.Text.RegularExpressions;
-using StreamCore.Twitch;
 using System.Threading.Tasks;
+using ChatCore.Interfaces;
+using ChatCore.Models.Twitch;
+
 // Feature requests: Add Reason for being banned to banlist
 
 namespace SongRequestManager
@@ -797,7 +799,7 @@ namespace SongRequestManager
             {
                 if (!Instance || request.Length == 0) return;
 
-                if (listcollection.contains(ref _blockeduser, user.username.ToLower())) return;
+                if (listcollection.contains(ref _blockeduser, user.UserName.ToLower())) return;
 
                 // This will be used for all parsing type operations, allowing subcommands efficient access to parse state logic
                 ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();
@@ -923,7 +925,7 @@ namespace SongRequestManager
                             UserSettings.Append(line).Append("\r\n");
                             // MAGICALLY configure the customized commands 
 
-                            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser,line,CmdFlags.SilentResult | CmdFlags.Local);
+                            COMMAND.Parse(ChatHandler.Self, line, CmdFlags.SilentResult | CmdFlags.Local);
                         }
                         sr.Close();
                     }
@@ -1100,7 +1102,7 @@ namespace SongRequestManager
 
                 bool allow = HasRights(ref botcmd, ref user,flags);
 
-                if (!allow && !botcmd.Flags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.displayName.ToLower()))
+                if (!allow && !botcmd.Flags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.DisplayName.ToLower()))
                 {
                     CmdFlags twitchpermission = botcmd.Flags & CmdFlags.TwitchLevel;
                     if (!botcmd.Flags.HasFlag(CmdFlags.SilentCheck)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
@@ -1232,11 +1234,11 @@ namespace SongRequestManager
             if (flags.HasFlag(CmdFlags.Local)) return true;
             if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return false;
             if (botcmd.Flags.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
-            if (user.isMod & RequestBotConfig.Instance.ModFullRights) return true;
-            if (user.isBroadcaster & botcmd.Flags.HasFlag(CmdFlags.Broadcaster)) return true;
-            if (user.isMod & botcmd.Flags.HasFlag(CmdFlags.Mod)) return true;
-            if (user.isSub & botcmd.Flags.HasFlag(CmdFlags.Sub)) return true;
-            if (user.isVip & botcmd.Flags.HasFlag(CmdFlags.VIP)) return true;
+            if (user.IsModerator & RequestBotConfig.Instance.ModFullRights) return true;
+            if (user.IsBroadcaster & botcmd.Flags.HasFlag(CmdFlags.Broadcaster)) return true;
+            if (user.IsModerator & botcmd.Flags.HasFlag(CmdFlags.Mod)) return true;
+            if (user.IsSubscriber & botcmd.Flags.HasFlag(CmdFlags.Sub)) return true;
+            if (user.IsVip & botcmd.Flags.HasFlag(CmdFlags.VIP)) return true;
             return false;
 
         }

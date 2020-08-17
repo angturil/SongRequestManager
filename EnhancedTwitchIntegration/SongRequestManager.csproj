@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;UNRELEASEDX</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;UNRELEASED</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -43,6 +43,9 @@
     <Reference Include="BS_Utils">
       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\BS_Utils.dll</HintPath>
     </Reference>
+    <Reference Include="ChatCore">
+      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\IPA\Libs\ChatCore.dll</HintPath>
+    </Reference>
     <Reference Include="HMLib">
       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\HMLib.dll</HintPath>
     </Reference>
@@ -51,24 +54,21 @@
     </Reference>
     <Reference Include="IPA.Loader, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
+      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
     </Reference>
     <Reference Include="Main">
-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Main.dll</HintPath>
+      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Main.dll</HintPath>
     </Reference>
     <Reference Include="SemVer">
-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Libs\SemVer.dll</HintPath>
+      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Libs\SemVer.dll</HintPath>
     </Reference>
     <Reference Include="SongBrowser, Version=6.0.3.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
+      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
     </Reference>
     <Reference Include="SongCore, Version=2.7.5.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\SongCore.dll</HintPath>
-    </Reference>
-    <Reference Include="StreamCore">
-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\StreamCore.dll</HintPath>
+      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Plugins\SongCore.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -143,10 +143,12 @@
     <Compile Include="Bot\SongRequest.cs" />
     <Compile Include="Bot\UnreleasedCode.cs" />
     <Compile Include="Bot\util.cs" />
+    <Compile Include="ChatHandler.cs" />
     <Compile Include="Config\RequestBotConfig.cs" />
     <Compile Include="Dispatcher.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimpleJson.cs" />
     <Compile Include="UI\Base64Sprites.cs" />
     <Compile Include="UI\KeyboardViewController.cs" />
     <Compile Include="UI\UIHelper.cs" />
@@ -171,6 +173,6 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Games\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
   </PropertyGroup>
 </Project>

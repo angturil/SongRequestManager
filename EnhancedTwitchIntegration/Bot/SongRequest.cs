@@ -1,6 +1,6 @@
-﻿using StreamCore.SimpleJSON;
-using StreamCore.Twitch;
-using System;
+﻿using System;
+using ChatCore.Models.Twitch;
+using ChatCore.SimpleJSON;
 using static SongRequestManager.RequestBot;
 
 namespace SongRequestManager
@@ -29,14 +29,14 @@ namespace SongRequestManager
             obj.Add("status", new JSONString(status.ToString()));
             obj.Add("requestInfo", new JSONString(requestInfo));
             obj.Add("time", new JSONString(requestTime.ToFileTime().ToString()));
-            obj.Add("requestor", requestor.ToJson());
+            obj.Add("requestor", requestor.ToJson().ToString());
             obj.Add("song", song);
             return obj;
         }
 
         public SongRequest FromJson(JSONObject obj)
         {
-            requestor.FromJson(obj["requestor"].AsObject);
+            requestor = new TwitchUser(obj["requestor"].Value);
             requestTime = DateTime.FromFileTime(long.Parse(obj["time"].Value));
             status = (RequestStatus)Enum.Parse(typeof(RequestStatus), obj["status"].Value);
             song = obj["song"].AsObject;

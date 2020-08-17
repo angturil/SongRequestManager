@@ -1,6 +1,4 @@
 using System.Runtime;
-using StreamCore.Twitch;
-using StreamCore.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,9 +7,10 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
-using StreamCore.Utils;
 using TMPro;
 using System.Threading.Tasks;
+using ChatCore.Models.Twitch;
+using ChatCore.SimpleJSON;
 
 //using BeatBits;
 
@@ -415,7 +414,7 @@ namespace SongRequestManager
 
             if (request != "")
             {
-                if (state.user.isBroadcaster || state.user.isMod) // BUG: These commands take 2 tiers of permission, perhaps we can handle this better with subcommands.
+                if (state.user.IsBroadcaster || state.user.IsModerator) // BUG: These commands take 2 tiers of permission, perhaps we can handle this better with subcommands.
                 {
                     request = GetBeatSaverId(request);
                     if (request == "") return empty;

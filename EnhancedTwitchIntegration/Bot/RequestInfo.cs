@@ -1,5 +1,5 @@
-﻿using StreamCore.Twitch;
-using System;
+﻿using System;
+using ChatCore.Models.Twitch;
 
 namespace SongRequestManager
 {
