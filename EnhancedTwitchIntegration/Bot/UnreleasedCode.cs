@@ -329,7 +329,7 @@ namespace SongRequestManager
                     msg += ($"!{req} (invalid) ");
                 }
             }
-            QueueChatMessage(msg);
+            //QueueChatMessage(msg);
         }
 
         // Toggle a card in a deck

@@ -48,6 +48,12 @@ namespace SongRequestManager
             if (Instance != null) return;
             Instance = this;
 
+            // create playlists folder if needed
+            if (!Directory.Exists(DataPath))
+            {
+                Directory.CreateDirectory(DataPath);
+            }
+
             Dispatcher.Initialize();
 
             // create our internal webclient

@@ -44,7 +44,7 @@
       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\BS_Utils.dll</HintPath>
     </Reference>
     <Reference Include="ChatCore">
-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\IPA\Libs\ChatCore.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Libs\ChatCore.dll</HintPath>
     </Reference>
     <Reference Include="HMLib">
       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\HMLib.dll</HintPath>
@@ -173,6 +173,7 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Games\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Games\Steam\steamapps\common\Beat Saber\Plugins"
+copy /Y "$(TargetDir)$(TargetFileName)" "C:\Beat Saber\Plugins"</PostBuildEvent>
   </PropertyGroup>
 </Project>
