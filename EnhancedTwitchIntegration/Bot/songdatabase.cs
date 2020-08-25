@@ -81,7 +81,7 @@ namespace SongRequestManager
                     var metadata = song["metadata"];
                     song.Add("songName", metadata["songName"].Value);
                     song.Add("songSubName", metadata["songSubName"].Value);
-                    song.Add("authorName", metadata["songAuthorName"].Value);
+                    song.Add("authorName", metadata["levelAuthorName"].Value);
                     song.Add("levelAuthor", metadata["levelAuthorName"].Value);
                     song.Add("rating", song["stats"]["rating"].AsFloat*100);
 

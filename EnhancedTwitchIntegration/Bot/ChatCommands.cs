@@ -634,16 +634,23 @@ namespace SongRequestManager
                 if (resp.IsSuccessStatusCode)
                 {
                     var result = resp.ConvertToJsonNode();
+
+
                     if (result["docs"].IsArray && result["totalDocs"].AsInt == 0)
                     {
                         return;
                     }
+
 
                     if (result["docs"].IsArray)
                     {
                         foreach (JSONObject entry in result["docs"])
                         {
                             JSONObject song = entry;
+
+
+
+
                             new SongMap(song);
 
                             if (mapperfiltered(song, true)) continue; // This forces the mapper filter
