@@ -438,7 +438,7 @@ namespace SongRequestManager
         {
             string key = request.ToLower();
             mapperwhitelist = listcollection.OpenList(key); // BUG: this is still not the final interface
-            QueueChatMessage($"Mapper whitelist set to {request}.");
+            //QueueChatMessage($"Mapper whitelist set to {request}.");
         }
 
         private void MapperBanList(TwitchUser requestor, string request)

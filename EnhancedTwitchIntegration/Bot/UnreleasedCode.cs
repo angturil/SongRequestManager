@@ -308,7 +308,7 @@ namespace SongRequestManager
 
                     if (integerStrings.Length == 0)
                     {
-                        QueueChatMessage($"Creating deck: {req}");
+                        //QueueChatMessage($"Creating deck: {req}");
                     }
 
                     //if (integerStrings.Length > 0)
