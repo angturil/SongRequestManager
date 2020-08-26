@@ -41,14 +41,21 @@ namespace SongRequestManager
 
         public static bool Connected => _twitchService.LoggedInUser != null && _twitchService.Channels.Count > 0;
 
-        public static void SendCommand(string message)
+        public static void Send(string message, bool isCommand = false)
         {
             if (string.IsNullOrEmpty(message)) return;
             try
             {
                 foreach (var channel in _twitchService.Channels)
                 {
-                    _twitchService.SendTextMessage(message, channel.Value);
+                    if (isCommand)
+                    {
+                        _twitchService.SendCommand(message.TrimStart('/'), channel.Value.Name);
+                    }
+                    else
+                    {
+                        _twitchService.SendTextMessage(message, channel.Value);
+                    }
                 }
             }
             catch (Exception e)

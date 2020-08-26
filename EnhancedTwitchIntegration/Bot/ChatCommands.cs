@@ -831,7 +831,7 @@ namespace SongRequestManager
             MoveRequestPositionInQueue(requestor, request, false);
         }
 
-        private void MoveRequestPositionInQueue(TwitchUser requestor, string request, bool top)
+        internal void MoveRequestPositionInQueue(TwitchUser requestor, string request, bool top)
         {
 
             string moveId = GetBeatSaverId(request);

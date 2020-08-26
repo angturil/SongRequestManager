@@ -467,7 +467,7 @@ namespace SongRequestManager
             {
                 Plugin.Log($"Sending message: \"{message}\"");
                 //TwitchWebSocketClient.SendMessage($"PRIVMSG #{TwitchLoginConfig.Instance.TwitchChannelName} :{message}");
-                ChatHandler.SendCommand(message);
+                ChatHandler.Send(message);
                 //TwitchMessage tmpMessage = new TwitchMessage();
                 //tmpMessage.Sender = ChatHandler.Self;
                 //MessageParser.Parse(new ChatMessage(message, tmpMessage)); // This call is obsolete, when sending a message through TwitchWebSocketClient, the message should automatically appear in chat.
@@ -482,7 +482,7 @@ namespace SongRequestManager
         {
             if (ChatHandler.Connected)
             {
-                ChatHandler.SendCommand($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
+                ChatHandler.Send($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
             }
             //else
             //{
@@ -886,7 +886,7 @@ namespace SongRequestManager
                 #if UNRELEASED
                 if (!request.song.IsNull) // Experimental!
                 {
-                    ChatHandler.SendCommand("/marker "+ new DynamicText().AddUser(ref request.requestor).AddSong(request.song).Parse(NextSonglink.ToString()));
+                    ChatHandler.Send("marker "+ new DynamicText().AddUser(ref request.requestor).AddSong(request.song).Parse(NextSonglink.ToString()), true);
                 }
                 #endif
             }

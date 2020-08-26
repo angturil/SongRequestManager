@@ -428,11 +428,11 @@ namespace SongRequestManager
             {
                 if (RequestBot.COMMAND.aliaslist.ContainsKey(RequestBot.ParseState.GetCommand(ref typedtext)))
                 {
-                    RequestBot.COMMAND.Parse(ChatHandler.Self, typedtext,RequestBot.CmdFlags.Local);
+                    RequestBot.COMMAND.Parse(ChatHandler.Self, typedtext ,RequestBot.CmdFlags.Local);
                 }
                 else
                 {
-                    ChatHandler.SendCommand(typedtext);
+                    ChatHandler.Send(typedtext, typedtext.StartsWith("/"));
                 }
 
                 key.kb.KeyboardText.text = "";
