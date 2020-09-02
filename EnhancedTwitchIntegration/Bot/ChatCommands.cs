@@ -1,13 +1,13 @@
-﻿using StreamCore.SimpleJSON;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using UnityEngine;
-using StreamCore.Twitch;
 using System.Threading.Tasks;
+using ChatCore.Models.Twitch;
+using ChatCore.SimpleJSON;
 
 namespace SongRequestManager
 {
@@ -183,7 +183,7 @@ namespace SongRequestManager
 
         bool isNotModerator(TwitchUser requestor, string message = "")
         {
-            if (requestor.isBroadcaster || requestor.isMod) return false;
+            if (requestor.IsBroadcaster || requestor.IsModerator) return false;
             if (message != "") QueueChatMessage($"{message} is moderator only.");
             return true;
         }
@@ -437,7 +437,7 @@ namespace SongRequestManager
 
                 if (songId == "")
                 {
-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.DisplayName };
 
                     if (DoesContainTerms(state.parameter, ref terms))
                         dequeueSong = true;
@@ -474,7 +474,7 @@ namespace SongRequestManager
             }
             string key = request.ToLower();
             mapperwhitelist = listcollection.OpenList(key); // BUG: this is still not the final interface
-            QueueChatMessage($"Mapper whitelist set to {request}.");
+            //QueueChatMessage($"Mapper whitelist set to {request}.");
         }
 
         private void MapperBanList(TwitchUser requestor, string request)
@@ -558,15 +558,15 @@ namespace SongRequestManager
 
                 if (songId == "")
                 {
-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, entry.requestor.displayName };
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, entry.requestor.DisplayName };
 
                     if (DoesContainTerms(request, ref terms))
                         {
                         result = entry;
 
-                        if (lastuser != result.requestor.displayName) qm.Add($"{result.requestor.displayName}: ");
+                        if (lastuser != result.requestor.DisplayName) qm.Add($"{result.requestor.DisplayName}: ");
                         qm.Add($"{result.song["songName"].Value} ({result.song["version"].Value})", ",");
-                        lastuser = result.requestor.displayName;
+                        lastuser = result.requestor.DisplayName;
                         }
                 }
                 else
@@ -574,7 +574,7 @@ namespace SongRequestManager
                     if (song["id"].Value == songId)
                     {
                         result = entry;
-                        qm.Add($"{result.requestor.displayName}: {result.song["songName"].Value} ({result.song["version"].Value})");
+                        qm.Add($"{result.requestor.DisplayName}: {result.song["songName"].Value} ({result.song["version"].Value})");
                         return entry;
                     }
                 }
@@ -661,14 +661,14 @@ namespace SongRequestManager
 
             System.Diagnostics.Process.Start($"liv-streamerkit://gamechanger/beat-saber-sabotage/{state.parameter}");
 
-            if (_WobbleInstalled)
-               {
-                string wobblestate = "off";
-                if (state.parameter == "enable") wobblestate = "on"; 
-               TwitchWebSocketClient.SendCommand($"!wadmin toggle {wobblestate} ");
+            //if (_WobbleInstalled)
+            //   {
+            //    string wobblestate = "off";
+            //    if (state.parameter == "enable") wobblestate = "on"; 
+            //   TwitchWebSocketClient.SendCommand($"!wadmin toggle {wobblestate} ");
 
 
-            }
+            //}
 
             state.msg($"The !bomb command is now {state.parameter}d.");
 
@@ -697,16 +697,23 @@ namespace SongRequestManager
                 if (resp.IsSuccessStatusCode)
                 {
                     var result = resp.ConvertToJsonNode();
+
+
                     if (result["docs"].IsArray && result["totalDocs"].AsInt == 0)
                     {
                         return;
                     }
+
 
                     if (result["docs"].IsArray)
                     {
                         foreach (JSONObject entry in result["docs"])
                         {
                             JSONObject song = entry;
+
+
+
+
                             new SongMap(song);
 
                             if (mapperfiltered(song, true)) continue; // This forces the mapper filter
@@ -735,7 +742,7 @@ namespace SongRequestManager
             else
             {
 #if UNRELEASED
-                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest",state.flags);
+                COMMAND.Parse(ChatHandler.Self, "!deck latest",state.flags);
 #endif
 
                 if (state.flags.HasFlag(CmdFlags.Local))
@@ -808,7 +815,7 @@ namespace SongRequestManager
             else
             {
 #if UNRELEASED
-                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck search", state.flags);
+                COMMAND.Parse(ChatHandler.Self, "!deck search", state.flags);
 #endif
 
                 if (state.flags.HasFlag(CmdFlags.Local))
@@ -887,7 +894,7 @@ namespace SongRequestManager
             MoveRequestPositionInQueue(requestor, request, false);
         }
 
-        private void MoveRequestPositionInQueue(TwitchUser requestor, string request, bool top)
+        internal void MoveRequestPositionInQueue(TwitchUser requestor, string request, bool top)
         {
             if (!RequestBot.HasPermission(requestor, RequestBotConfig.Instance.MoveRequestPositionInQueuePermissionLevel))
             {
@@ -907,7 +914,7 @@ namespace SongRequestManager
                 bool moveRequest = false;
                 if (moveId == "")
                 {
-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
+                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.DisplayName };
                     if (DoesContainTerms(request, ref terms))
                         moveRequest = true;
                 }
@@ -1256,7 +1263,7 @@ namespace SongRequestManager
             {
                 try
                 {
-                    if (RequestTracker.ContainsKey(list[i].requestor.id)) RequestTracker[list[i].requestor.id].numRequests--;
+                    if (RequestTracker.ContainsKey(list[i].requestor.Id)) RequestTracker[list[i].requestor.Id].numRequests--;
                     listcollection.remove(duplicatelist, list[i].song["id"]);
                 }
                 catch { }
@@ -1426,7 +1433,7 @@ namespace SongRequestManager
             for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
             {
                 var song = RequestQueue.Songs[i].song;
-                if (RequestQueue.Songs[i].requestor.id == requestor.id)
+                if (RequestQueue.Songs[i].requestor.Id == requestor.Id)
                 {
                     QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
 
@@ -1547,7 +1554,7 @@ namespace SongRequestManager
             {
                 try
                 {
-                    Add("user", user.displayName);
+                    Add("user", user.DisplayName);
                 }
                 catch   
                 {

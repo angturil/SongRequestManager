@@ -33,7 +33,7 @@ then filter out the ! lines on your tts client.
 ```
   
 # Dependencies
-Enhanced Twitch Chat depends on [EnhancedStreamChat] and [StreamCore], [CustomUI](https://www.modsaber.org/mod/customui/), [SongLoader](https://www.modsaber.org/mod/song-loader/), and [AsyncTwitch](https://www.modsaber.org/mod/asynctwitchlib/). Make sure to install them, or Song Request Manager Chat won't work!
+Dependencies are set in beatmods, but chatcore, configured and connected to twitch is a requirement.
   
 # Installation
 Copy SongRequestManager.dll to your Beat Saber\Plugins folder, and install all of its dependencies. That's it!

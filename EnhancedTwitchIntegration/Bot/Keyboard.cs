@@ -4,7 +4,6 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using StreamCore.Twitch;
 using HMUI;
 using Image = UnityEngine.UI.Image;
 using BeatSaberMarkupLanguage;
@@ -379,7 +378,7 @@ namespace SongRequestManager
         void Newest(KEY key)
         {
             ClearSearches();
-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top",RequestBot.CmdFlags.Local);
+            RequestBot.COMMAND.Parse(ChatHandler.Self, $"!addnew/top",RequestBot.CmdFlags.Local);
         }
 
         void Search(KEY key)
@@ -391,7 +390,7 @@ namespace SongRequestManager
 
 #if UNRELEASED
             ClearSearches();
-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}",RequestBot.CmdFlags.Local);
+            RequestBot.COMMAND.Parse(ChatHandler.Self, $"!addsongs/top {key.kb.KeyboardText.text}",RequestBot.CmdFlags.Local);
             Clear(key);
 #endif
         }
@@ -429,11 +428,11 @@ namespace SongRequestManager
             {
                 if (RequestBot.COMMAND.aliaslist.ContainsKey(RequestBot.ParseState.GetCommand(ref typedtext)))
                 {
-                    RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, typedtext,RequestBot.CmdFlags.Local);
+                    RequestBot.COMMAND.Parse(ChatHandler.Self, typedtext ,RequestBot.CmdFlags.Local);
                 }
                 else
                 {
-                    TwitchWebSocketClient.SendCommand(typedtext);
+                    ChatHandler.Send(typedtext, typedtext.StartsWith("/"));
                 }
 
                 key.kb.KeyboardText.text = "";
@@ -472,7 +471,7 @@ namespace SongRequestManager
             SabotageState = !SabotageState;
             key.mybutton.GetComponentInChildren<Image>().color = SabotageState ? Color.green : Color.red;
             string text = "!sabotage "+ ( SabotageState ? "on" : "off");
-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, text, RequestBot.CmdFlags.Local);
+            RequestBot.COMMAND.Parse(ChatHandler.Self, text, RequestBot.CmdFlags.Local);
         }
 
         void DrawCursor()

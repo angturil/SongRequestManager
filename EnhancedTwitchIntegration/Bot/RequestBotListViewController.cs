@@ -9,7 +9,6 @@ using Image = UnityEngine.UI.Image;
 using SongRequestManager.UI;
 using IPA.Utilities;
 using BeatSaberMarkupLanguage;
-using Utilities = StreamCore.Utils.Utilities;
 using System.Threading.Tasks;
 
 namespace SongRequestManager
@@ -65,10 +64,7 @@ namespace SongRequestManager
 
 [fun +]/25'!fun/current/toggle%CR%' [hard +]/25'!hard/current/toggle%CR%'
 [dance +]/25'!dance/current/toggle%CR%' [chill +]/25'!chill/current/toggle%CR%'
-[brutal +]/25'!brutal/current/toggle%CR%' [sehria +]/25'!sehria/current/toggle%CR%'
-
-[rock +]/25'!rock/current/toggle%CR%' [metal +]/25'!metal/current/toggle%CR%'  
-[anime +]/25'!anime/current/toggle%CR%' [pop +]/25'!pop/current/toggle%CR%' 
+[brutal +]/25'!brutal/current/toggle%CR%' 
 
 [Random song!]/0'!decklist draw%CR%'";
 
@@ -197,9 +193,13 @@ namespace SongRequestManager
                 _CurrentSongName2.alignment = TextAlignmentOptions.Left;
                 _CurrentSongName2.enableWordWrapping = false;
                 _CurrentSongName2.text = "";
-                
+
                 //CenterKeys.AddKeys(SONGLISTKEY);
-                RequestBot.AddKeyboard(CenterKeys, "mainpanel.kbd");
+                if (!RequestBot.AddKeyboard(CenterKeys, "mainpanel.kbd"))
+                {
+                    CenterKeys.AddKeys(SONGLISTKEY);
+                }
+
                 ColorDeckButtons(CenterKeys, Color.white, Color.magenta);
 #endif
 

@@ -10,6 +10,17 @@ namespace SongRequestManager
 {
     public partial class RequestBot : MonoBehaviour
     {
+        public static void EmptyDirectory(string directory, bool delete = true)
+        {
+            if (Directory.Exists(directory))
+            {
+                var directoryInfo = new DirectoryInfo(directory);
+                foreach (System.IO.FileInfo file in directoryInfo.GetFiles()) file.Delete();
+                foreach (System.IO.DirectoryInfo subDirectory in directoryInfo.GetDirectories()) subDirectory.Delete(true);
+
+                if (delete) Directory.Delete(directory);
+            }
+        }
 
         public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
         {
@@ -153,8 +164,6 @@ namespace SongRequestManager
                 _SymbolsValidDirectory[';'] = '\0';
                 _SymbolsValidDirectory['$'] = '\0';
                 _SymbolsValidDirectory['.'] = '\0';
-                _SymbolsValidDirectory['('] = '\0';
-                _SymbolsValidDirectory[')'] = '\0';
 
                 // Incomplete list of words that BeatSaver.com filters out for no good reason. No longer applies!
                 foreach (var word in new string[] { "pp" })

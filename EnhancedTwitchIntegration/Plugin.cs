@@ -19,6 +19,8 @@ namespace SongRequestManager
 
         internal static WebClient WebClient;
 
+        public static UdpListener UdpListener;
+
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
         public static Plugin Instance { get; private set; }
@@ -48,10 +50,19 @@ namespace SongRequestManager
             if (Instance != null) return;
             Instance = this;
 
+            // create playlists folder if needed
+            if (!Directory.Exists(DataPath))
+            {
+                Directory.CreateDirectory(DataPath);
+            }
+
             Dispatcher.Initialize();
 
             // create our internal webclient
             WebClient = new WebClient();
+
+            // create udp listener
+            UdpListener = new UdpListener();
 
             SongBrowserPluginPresent = IPA.Loader.PluginManager.GetPlugin("Song Browser") != null;
 
@@ -99,6 +110,8 @@ namespace SongRequestManager
         [OnExit]
         public void OnExit()
         {
+            UdpListener?.Shutdown();
+
             IsApplicationExiting = true;
         }
     }

@@ -1,0 +1,896 @@
+diff --git a/EnhancedTwitchIntegration/Bot/ChatCommands.cs b/EnhancedTwitchIntegration/Bot/ChatCommands.cs
+index 0fdde39..02c9dd5 100644
+--- a/EnhancedTwitchIntegration/Bot/ChatCommands.cs
++++ b/EnhancedTwitchIntegration/Bot/ChatCommands.cs
+@@ -1,13 +1,13 @@
+-﻿using StreamCore.SimpleJSON;
+-using System;
++﻿using System;
+ using System.Collections;
+ using System.Collections.Generic;
+ using System.IO;
+ using System.Linq;
+ using System.Text;
+ using UnityEngine;
+-using StreamCore.Twitch;
+ using System.Threading.Tasks;
++using ChatCore.Models.Twitch;
++using ChatCore.SimpleJSON;
+ 
+ namespace SongRequestManager
+ {
+@@ -174,7 +174,7 @@ namespace SongRequestManager
+ 
+         bool isNotModerator(TwitchUser requestor, string message = "")
+         {
+-            if (requestor.isBroadcaster || requestor.isMod) return false;
++            if (requestor.IsBroadcaster || requestor.IsModerator) return false;
+             if (message != "") QueueChatMessage($"{message} is moderator only.");
+             return true;
+         }
+@@ -410,7 +410,7 @@ namespace SongRequestManager
+ 
+                 if (songId == "")
+                 {
+-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
++                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.DisplayName };
+ 
+                     if (DoesContainTerms(state.parameter, ref terms))
+                         dequeueSong = true;
+@@ -495,15 +495,15 @@ namespace SongRequestManager
+ 
+                 if (songId == "")
+                 {
+-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, entry.requestor.displayName };
++                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, entry.requestor.DisplayName };
+ 
+                     if (DoesContainTerms(request, ref terms))
+                         {
+                         result = entry;
+ 
+-                        if (lastuser != result.requestor.displayName) qm.Add($"{result.requestor.displayName}: ");
++                        if (lastuser != result.requestor.DisplayName) qm.Add($"{result.requestor.DisplayName}: ");
+                         qm.Add($"{result.song["songName"].Value} ({result.song["version"].Value})", ",");
+-                        lastuser = result.requestor.displayName;
++                        lastuser = result.requestor.DisplayName;
+                         }
+                 }
+                 else
+@@ -511,7 +511,7 @@ namespace SongRequestManager
+                     if (song["id"].Value == songId)
+                     {
+                         result = entry;
+-                        qm.Add($"{result.requestor.displayName}: {result.song["songName"].Value} ({result.song["version"].Value})");
++                        qm.Add($"{result.requestor.DisplayName}: {result.song["songName"].Value} ({result.song["version"].Value})");
+                         return entry;
+                     }
+                 }
+@@ -672,7 +672,7 @@ namespace SongRequestManager
+             else
+             {
+ #if UNRELEASED
+-                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck latest",state.flags);
++                COMMAND.Parse(ChatHandler.Self, "!deck latest",state.flags);
+ #endif
+ 
+                 if (state.flags.HasFlag(CmdFlags.Local))
+@@ -745,7 +745,7 @@ namespace SongRequestManager
+             else
+             {
+ #if UNRELEASED
+-                COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck search", state.flags);
++                COMMAND.Parse(ChatHandler.Self, "!deck search", state.flags);
+ #endif
+ 
+                 if (state.flags.HasFlag(CmdFlags.Local))
+@@ -836,7 +836,7 @@ namespace SongRequestManager
+                 bool moveRequest = false;
+                 if (moveId == "")
+                 {
+-                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.displayName };
++                    string[] terms = new string[] { song["songName"].Value, song["songSubName"].Value, song["authorName"].Value, song["levelAuthor"].Value, song["version"].Value, RequestQueue.Songs[i].requestor.DisplayName };
+                     if (DoesContainTerms(request, ref terms))
+                         moveRequest = true;
+                 }
+@@ -1113,7 +1113,7 @@ namespace SongRequestManager
+             {
+                 try
+                 {
+-                    if (RequestTracker.ContainsKey(list[i].requestor.id)) RequestTracker[list[i].requestor.id].numRequests--;
++                    if (RequestTracker.ContainsKey(list[i].requestor.Id)) RequestTracker[list[i].requestor.Id].numRequests--;
+                     listcollection.remove(duplicatelist, list[i].song["id"]);
+                 }
+                 catch { }
+@@ -1246,7 +1246,7 @@ namespace SongRequestManager
+             for (int i = RequestQueue.Songs.Count - 1; i >= 0; i--)
+             {
+                 var song = RequestQueue.Songs[i].song;
+-                if (RequestQueue.Songs[i].requestor.id == requestor.id)
++                if (RequestQueue.Songs[i].requestor.Id == requestor.Id)
+                 {
+                     QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
+ 
+@@ -1358,7 +1358,7 @@ namespace SongRequestManager
+             {
+                 try
+                 {
+-                    Add("user", user.displayName);
++                    Add("user", user.DisplayName);
+                 }
+                 catch   
+                 {
+diff --git a/EnhancedTwitchIntegration/Bot/Keyboard.cs b/EnhancedTwitchIntegration/Bot/Keyboard.cs
+index d2bc1fe..3fafe0a 100644
+--- a/EnhancedTwitchIntegration/Bot/Keyboard.cs
++++ b/EnhancedTwitchIntegration/Bot/Keyboard.cs
+@@ -4,7 +4,6 @@ using System.Linq;
+ using TMPro;
+ using UnityEngine;
+ using UnityEngine.UI;
+-using StreamCore.Twitch;
+ using HMUI;
+ using Image = UnityEngine.UI.Image;
+ using BeatSaberMarkupLanguage;
+@@ -379,7 +378,7 @@ namespace SongRequestManager
+         void Newest(KEY key)
+         {
+             ClearSearches();
+-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top",RequestBot.CmdFlags.Local);
++            RequestBot.COMMAND.Parse(ChatHandler.Self, $"!addnew/top",RequestBot.CmdFlags.Local);
+         }
+ 
+         void Search(KEY key)
+@@ -391,7 +390,7 @@ namespace SongRequestManager
+ 
+ #if UNRELEASED
+             ClearSearches();
+-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}",RequestBot.CmdFlags.Local);
++            RequestBot.COMMAND.Parse(ChatHandler.Self, $"!addsongs/top {key.kb.KeyboardText.text}",RequestBot.CmdFlags.Local);
+             Clear(key);
+ #endif
+         }
+@@ -429,11 +428,11 @@ namespace SongRequestManager
+             {
+                 if (RequestBot.COMMAND.aliaslist.ContainsKey(RequestBot.ParseState.GetCommand(ref typedtext)))
+                 {
+-                    RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, typedtext,RequestBot.CmdFlags.Local);
++                    RequestBot.COMMAND.Parse(ChatHandler.Self, typedtext,RequestBot.CmdFlags.Local);
+                 }
+                 else
+                 {
+-                    TwitchWebSocketClient.SendCommand(typedtext);
++                    ChatHandler.SendCommand(typedtext);
+                 }
+ 
+                 key.kb.KeyboardText.text = "";
+@@ -472,7 +471,7 @@ namespace SongRequestManager
+             SabotageState = !SabotageState;
+             key.mybutton.GetComponentInChildren<Image>().color = SabotageState ? Color.green : Color.red;
+             string text = "!sabotage "+ ( SabotageState ? "on" : "off");
+-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, text, RequestBot.CmdFlags.Local);
++            RequestBot.COMMAND.Parse(ChatHandler.Self, text, RequestBot.CmdFlags.Local);
+         }
+ 
+         void DrawCursor()
+diff --git a/EnhancedTwitchIntegration/Bot/ListManager.cs b/EnhancedTwitchIntegration/Bot/ListManager.cs
+index a0294f3..eb2e9f9 100644
+--- a/EnhancedTwitchIntegration/Bot/ListManager.cs
++++ b/EnhancedTwitchIntegration/Bot/ListManager.cs
+@@ -1,9 +1,9 @@
+-using StreamCore.SimpleJSON;
+-using StreamCore.Twitch;
+ using System;
+ using System.Collections.Generic;
+ using System.IO;
+ using System.Linq;
++using ChatCore.Models.Twitch;
++using ChatCore.SimpleJSON;
+ using UnityEngine;
+ 
+ namespace SongRequestManager
+@@ -362,7 +362,7 @@ namespace SongRequestManager
+                 {
+                     // BUG: A DynamicText context needs to be applied to each command to allow use of dynamic variables
+ 
+-                    foreach (var line in list) COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, line, RequestBot.CmdFlags.Local);
++                    foreach (var line in list) COMMAND.Parse(ChatHandler.Self, line, RequestBot.CmdFlags.Local);
+                 }
+                 catch (Exception ex)
+                 {
+diff --git a/EnhancedTwitchIntegration/Bot/RequestBot.cs b/EnhancedTwitchIntegration/Bot/RequestBot.cs
+index f24b4c3..8bf26d4 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestBot.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestBot.cs
+@@ -1,7 +1,4 @@
+-﻿using StreamCore.Chat;
+-using StreamCore.SimpleJSON;
+-
+-using System;
++﻿using System;
+ using System.Collections;
+ using System.Collections.Concurrent;
+ using System.Collections.Generic;
+@@ -17,18 +14,17 @@ using UnityEngine;
+ using UnityEngine.UI;
+ using Image = UnityEngine.UI.Image;
+ using SongCore;
+-using StreamCore;
+-using StreamCore.Twitch;
+ using IPA.Utilities;
+ using SongRequestManager.UI;
+ using BeatSaberMarkupLanguage;
+-using Utilities = StreamCore.Utils.Utilities;
+ using System.Threading.Tasks;
+ using System.IO.Compression;
++using ChatCore.Models.Twitch;
++using ChatCore.SimpleJSON;
+ 
+ namespace SongRequestManager
+ {
+-    public partial class RequestBot : MonoBehaviour, ITwitchIntegration
++    public partial class RequestBot : MonoBehaviour
+     {
+         [Flags]
+         public enum RequestStatus
+@@ -79,8 +75,6 @@ namespace SongRequestManager
+ 
+         public static string playedfilename = "";
+ 
+-        public bool IsPluginReady { get; set; } = false;
+-
+         internal static void SRMButtonPressed()
+         {
+             var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
+@@ -126,12 +120,13 @@ namespace SongRequestManager
+ 
+             SongListUtils.Initialize();
+ 
++            ChatHandler.instance.Init();
++
+             WriteQueueSummaryToFile();
+             WriteQueueStatusToFile(QueueMessage(RequestBotConfig.Instance.RequestQueueOpen));
+ 
+-            // Yes, this is disabled on purpose. StreamCore will init this class for you now, so don't uncomment this! -Brian
+-            //if (Instance) return;
+-            //new GameObject("SongRequestManager").AddComponent<RequestBot>();
++            if (Instance) return;
++            new GameObject("SongRequestManager").AddComponent<RequestBot>();
+         }
+ 
+         public static bool AddKeyboard(KEYBOARD keyboard, string keyboardname, float scale = 0.5f)
+@@ -152,7 +147,7 @@ namespace SongRequestManager
+         public static void Newest(KEYBOARD.KEY key)
+         {
+             ClearSearches();
+-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addnew/top",CmdFlags.Local);
++            RequestBot.COMMAND.Parse(ChatHandler.Self, $"!addnew/top",CmdFlags.Local);
+         }
+ 
+         public static void Search(KEYBOARD.KEY key)
+@@ -162,7 +157,7 @@ namespace SongRequestManager
+                 key.kb.Enter(key);
+             }
+             ClearSearches();
+-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top {key.kb.KeyboardText.text}",CmdFlags.Local);
++            RequestBot.COMMAND.Parse(ChatHandler.Self, $"!addsongs/top {key.kb.KeyboardText.text}",CmdFlags.Local);
+             key.kb.Clear(key);
+         }
+ 
+@@ -173,7 +168,7 @@ namespace SongRequestManager
+                 key.kb.Enter(key);
+             }
+             ClearSearches();
+-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!makesearchdeck {key.kb.KeyboardText.text}", CmdFlags.Local);
++            RequestBot.COMMAND.Parse(ChatHandler.Self, $"!makesearchdeck {key.kb.KeyboardText.text}", CmdFlags.Local);
+             key.kb.Clear(key);
+         }
+ 
+@@ -184,7 +179,7 @@ namespace SongRequestManager
+                 key.kb.Enter(key);
+             }
+             ClearSearches();
+-            RequestBot.COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, $"!addsongs/top/mod {key.kb.KeyboardText.text}",CmdFlags.Local);
++            RequestBot.COMMAND.Parse(ChatHandler.Self, $"!addsongs/top/mod {key.kb.KeyboardText.text}",CmdFlags.Local);
+             key.kb.Clear(key);
+         }
+ 
+@@ -219,13 +214,13 @@ namespace SongRequestManager
+ 
+             //var folder = Path.Combine(Environment.CurrentDirectory, "userdata","streamcore");
+ 
+-           //List<FileInfo> files = new List<FileInfo>();  // List that will hold the files and subfiles in path
++            //List<FileInfo> files = new List<FileInfo>();  // List that will hold the files and subfiles in path
+             //List<DirectoryInfo> folders = new List<DirectoryInfo>(); // List that hold direcotries that cannot be accessed
+ 
+             //DirectoryInfo di = new DirectoryInfo(folder);
+ 
+             //Dictionary<string, string> remap = new Dictionary<string, string>();
+-        
++
+             //foreach (var entry in listcollection.OpenList("all.list").list) 
+             //    {
+             //    //Instance.QueueChatMessage($"Map {entry}");
+@@ -284,7 +279,7 @@ namespace SongRequestManager
+             {
+                 string filesToDelete = Path.Combine(Environment.CurrentDirectory, "FilesToDelete");
+                 if (Directory.Exists(filesToDelete))
+-                    Utilities.EmptyDirectory(filesToDelete);
++                    EmptyDirectory(filesToDelete);
+ 
+ 
+                 try
+@@ -327,9 +322,9 @@ namespace SongRequestManager
+                 listcollection.OpenList("banlist.unique");
+ 
+ #if UNRELEASED
+-            //GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+-            //GC.Collect();
+-            //Instance.QueueChatMessage($"hashentries: {SongMap.hashcount} memory: {(GC.GetTotalMemory(false) - startingmem) / 1048576} MB");
++                //GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
++                //GC.Collect();
++                //Instance.QueueChatMessage($"hashentries: {SongMap.hashcount} memory: {(GC.GetTotalMemory(false) - startingmem) / 1048576} MB");
+ #endif
+ 
+                 listcollection.ClearOldList("duplicate.list", TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours));
+@@ -346,28 +341,20 @@ namespace SongRequestManager
+ 
+                 ProcessRequestQueue();
+ 
+-                TwitchMessageHandlers.PRIVMSG += PRIVMSG;
+-
+                 RequestBotConfig.Instance.ConfigChangedEvent += OnConfigChangedEvent;
+-                IsPluginReady = true;
+             }
+-        catch (Exception ex)
++            catch (Exception ex)
+             {
+             Plugin.Log(ex.ToString());
+             Instance.QueueChatMessage(ex.ToString());
+             }
+         }
+ 
+-        public bool MyChatMessageHandler(TwitchMessage msg)
+-        {
+-            string excludefilename = "chatexclude.users";
+-            return RequestBot.Instance && RequestBot.listcollection.contains(ref excludefilename, msg.user.displayName.ToLower(), RequestBot.ListFlags.Uncached);
+-        }
+-
+-        private void PRIVMSG(TwitchMessage msg)
+-        {
+-            RequestBot.COMMAND.Parse(msg.user.Twitch, msg.message);
+-        }
++        //public bool MyChatMessageHandler(TwitchMessage msg)
++        //{
++        //    string excludefilename = "chatexclude.users";
++        //    return RequestBot.Instance && RequestBot.listcollection.contains(ref excludefilename, msg.user.displayName.ToLower(), RequestBot.ListFlags.Uncached);
++        //}
+ 
+         private void OnConfigChangedEvent(RequestBotConfig config)
+         {
+@@ -428,29 +415,29 @@ namespace SongRequestManager
+ 
+         public static void ScheduledCommand(string command, System.Timers.ElapsedEventArgs e)
+         {
+-            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, command);
++            COMMAND.Parse(ChatHandler.Self, command);
+         }
+ 
+         private void RunStartupScripts()
+         {
+             ReadRemapList(); // BUG: This should use list manager
+ 
+-            MapperBanList(TwitchWebSocketClient.OurTwitchUser, "mapperban.list");
+-            WhiteList(TwitchWebSocketClient.OurTwitchUser, "whitelist.unique");
+-            BlockedUserList(TwitchWebSocketClient.OurTwitchUser, "blockeduser.unique");
++            MapperBanList(ChatHandler.Self, "mapperban.list");
++            WhiteList(ChatHandler.Self, "whitelist.unique");
++            BlockedUserList(ChatHandler.Self, "blockeduser.unique");
+             accesslist("whitelist.unique");
+             accesslist("blockeduser.unique");
+             accesslist("mapperban.list");
+ 
+ #if UNRELEASED
+-            OpenList(TwitchWebSocketClient.OurTwitchUser, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
+-            MapperAllowList(TwitchWebSocketClient.OurTwitchUser, "mapper.list");
++            OpenList(ChatHandler.Self, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
++            MapperAllowList(ChatHandler.Self, "mapper.list");
+             accesslist("mapper.list");
+ 
+-            loaddecks(TwitchWebSocketClient.OurTwitchUser, ""); // Load our default deck collection
+-            // BUG: Command failure observed once, no permission to use /chatcommand. Possible cause: Ourtwitchuser isn't authenticated yet.
++            loaddecks(ChatHandler.Self, ""); // Load our default deck collection
++            // BUG: Command failure observed once, no permission to use /chatcommand. Possible cause: OurTwitchUser isn't authenticated yet.
+ 
+-            RunScript(TwitchWebSocketClient.OurTwitchUser, "startup.script"); // Run startup script. This can include any bot commands.
++            RunScript(ChatHandler.Self, "startup.script"); // Run startup script. This can include any bot commands.
+ #endif
+         }
+ 
+@@ -480,9 +467,9 @@ namespace SongRequestManager
+             {
+                 Plugin.Log($"Sending message: \"{message}\"");
+                 //TwitchWebSocketClient.SendMessage($"PRIVMSG #{TwitchLoginConfig.Instance.TwitchChannelName} :{message}");
+-                TwitchWebSocketClient.SendMessage(message);
+-                TwitchMessage tmpMessage = new TwitchMessage();
+-                tmpMessage.user = TwitchWebSocketClient.OurTwitchUser;
++                ChatHandler.SendCommand(message);
++                //TwitchMessage tmpMessage = new TwitchMessage();
++                //tmpMessage.Sender = ChatHandler.Self;
+                 //MessageParser.Parse(new ChatMessage(message, tmpMessage)); // This call is obsolete, when sending a message through TwitchWebSocketClient, the message should automatically appear in chat.
+             }
+             catch (Exception e)
+@@ -493,9 +480,9 @@ namespace SongRequestManager
+ 
+         public void QueueChatMessage(string message)
+         {
+-            if (TwitchWebSocketClient.Connected)
++            if (ChatHandler.Connected)
+             {
+-                TwitchWebSocketClient.SendCommand($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
++                ChatHandler.SendCommand($"{RequestBotConfig.Instance.BotPrefix}\uFEFF{message}");
+             }
+             //else
+             //{
+@@ -651,7 +638,7 @@ namespace SongRequestManager
+                 else if (!autopick && songs.Count > 1 && songs.Count < 4)
+                 {
+                     var msg = new QueueLongMessage(1, 5);
+-                    msg.Header($"@{requestor.displayName}, please choose: ");
++                    msg.Header($"@{requestor.DisplayName}, please choose: ");
+                     foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(BsrSongDetail), ", ");
+                     msg.end("...", $"No matching songs for for {request}");
+                     return;
+@@ -699,7 +686,7 @@ namespace SongRequestManager
+ 
+                 //}
+ 
+-            RequestTracker[requestor.id].numRequests++;
++            RequestTracker[requestor.Id].numRequests++;
+                 listcollection.add(duplicatelist, song["id"].Value);
+                 if ((requestInfo.flags.HasFlag(CmdFlags.MoveToTop)))
+                     RequestQueue.Songs.Insert(0, new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
+@@ -768,7 +755,7 @@ namespace SongRequestManager
+                 {
+ 
+ 
+-                    Utilities.EmptyDirectory(".requestcache", false);
++                    EmptyDirectory(".requestcache", false);
+ 
+ 
+                     //SongMap map;
+@@ -793,7 +780,7 @@ namespace SongRequestManager
+ 
+                     if (Directory.Exists(currentSongDirectory))
+                     {
+-                        Utilities.EmptyDirectory(currentSongDirectory, true);
++                        EmptyDirectory(currentSongDirectory, true);
+                         Plugin.Log($"Deleting {currentSongDirectory}");
+                     }
+ 
+@@ -862,7 +849,7 @@ namespace SongRequestManager
+                         while (!SongCore.Loader.AreSongsLoaded && SongCore.Loader.AreSongsLoading) await Task.Delay(25);
+                     });
+ 
+-                    Utilities.EmptyDirectory(".requestcache", true);
++                    EmptyDirectory(".requestcache", true);
+                     //levels = SongLoader.CustomLevels.Where(l => l.levelID.StartsWith(songHash)).ToArray();
+                 }
+                 else
+@@ -899,7 +886,7 @@ namespace SongRequestManager
+                 #if UNRELEASED
+                 if (!request.song.IsNull) // Experimental!
+                 {
+-                    TwitchWebSocketClient.SendCommand("/marker "+ new DynamicText().AddUser(ref request.requestor).AddSong(request.song).Parse(NextSonglink.ToString()));
++                    ChatHandler.SendCommand("/marker "+ new DynamicText().AddUser(ref request.requestor).AddSong(request.song).Parse(NextSonglink.ToString()));
+                 }
+                 #endif
+             }
+@@ -951,7 +938,7 @@ namespace SongRequestManager
+ 
+             if (!RequestBotConfig.Instance.LimitUserRequestsToSession)
+             {
+-                if (RequestTracker.ContainsKey(request.requestor.id)) RequestTracker[request.requestor.id].numRequests--;
++                if (RequestTracker.ContainsKey(request.requestor.Id)) RequestTracker[request.requestor.Id].numRequests--;
+             }
+ 
+             if (updateUI == false) return;
+@@ -1072,25 +1059,25 @@ namespace SongRequestManager
+                     return success;
+                 }
+ 
+-                if (!RequestTracker.ContainsKey(state.user.id))
+-                    RequestTracker.Add(state.user.id, new RequestUserTracker());
++                if (!RequestTracker.ContainsKey(state.user.Id))
++                    RequestTracker.Add(state.user.Id, new RequestUserTracker());
+ 
+                 int limit = RequestBotConfig.Instance.UserRequestLimit;
+-                if (state.user.isSub) limit = Math.Max(limit, RequestBotConfig.Instance.SubRequestLimit);
+-                if (state.user.isMod) limit = Math.Max(limit, RequestBotConfig.Instance.ModRequestLimit);
+-                if (state.user.isVip) limit += RequestBotConfig.Instance.VipBonusRequests; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
++                if (state.user.IsSubscriber) limit = Math.Max(limit, RequestBotConfig.Instance.SubRequestLimit);
++                if (state.user.IsModerator) limit = Math.Max(limit, RequestBotConfig.Instance.ModRequestLimit);
++                if (state.user.IsVip) limit += RequestBotConfig.Instance.VipBonusRequests; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
+ 
+-                if (!state.user.isBroadcaster)
++                if (!state.user.IsBroadcaster)
+                 {
+-                    if (RequestTracker[state.user.id].numRequests >= limit)
++                    if (RequestTracker[state.user.Id].numRequests >= limit)
+                     {
+                         if (RequestBotConfig.Instance.LimitUserRequestsToSession)
+                         {
+-                            new DynamicText().Add("Requests", RequestTracker[state.user.id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You've already used %Requests% requests this stream. Subscribers are limited to %RequestLimit%.");
++                            new DynamicText().Add("Requests", RequestTracker[state.user.Id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You've already used %Requests% requests this stream. Subscribers are limited to %RequestLimit%.");
+                         }
+                         else
+                         {
+-                            new DynamicText().Add("Requests", RequestTracker[state.user.id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
++                            new DynamicText().Add("Requests", RequestTracker[state.user.Id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
+                         }
+ 
+                         return success;
+diff --git a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+index bde1b9b..0d05a35 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+@@ -9,7 +9,6 @@ using Image = UnityEngine.UI.Image;
+ using SongRequestManager.UI;
+ using IPA.Utilities;
+ using BeatSaberMarkupLanguage;
+-using Utilities = StreamCore.Utils.Utilities;
+ using System.Threading.Tasks;
+ 
+ namespace SongRequestManager
+diff --git a/EnhancedTwitchIntegration/Bot/RequestInfo.cs b/EnhancedTwitchIntegration/Bot/RequestInfo.cs
+index d624f25..36d8aeb 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestInfo.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestInfo.cs
+@@ -1,5 +1,5 @@
+-﻿using StreamCore.Twitch;
+-using System;
++﻿using System;
++using ChatCore.Models.Twitch;
+ 
+ namespace SongRequestManager
+ {
+diff --git a/EnhancedTwitchIntegration/Bot/RequestManager.cs b/EnhancedTwitchIntegration/Bot/RequestManager.cs
+index 608d7ec..712f0c2 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestManager.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestManager.cs
+@@ -1,6 +1,7 @@
+-﻿using StreamCore.SimpleJSON;
++﻿using System;
+ using System.Collections.Generic;
+ using System.IO;
++using ChatCore.SimpleJSON;
+ 
+ namespace SongRequestManager
+ {
+@@ -28,7 +29,17 @@ namespace SongRequestManager
+ 
+             JSONArray arr = new JSONArray();
+             foreach (SongRequest song in songs)
+-                arr.Add(song.ToJson());
++            {
++                try
++                {
++                    var songData = song.ToJson();
++                    arr.Add(songData);
++                }
++                catch (Exception)
++                {
++                    // silent ignore
++                }
++            }
+ 
+             File.WriteAllText(path, arr.ToString());
+         }
+diff --git a/EnhancedTwitchIntegration/Bot/SongRequest.cs b/EnhancedTwitchIntegration/Bot/SongRequest.cs
+index 09fb3b5..3ddfc06 100644
+--- a/EnhancedTwitchIntegration/Bot/SongRequest.cs
++++ b/EnhancedTwitchIntegration/Bot/SongRequest.cs
+@@ -1,6 +1,6 @@
+-﻿using StreamCore.SimpleJSON;
+-using StreamCore.Twitch;
+-using System;
++﻿using System;
++using ChatCore.Models.Twitch;
++using ChatCore.SimpleJSON;
+ using static SongRequestManager.RequestBot;
+ 
+ namespace SongRequestManager
+@@ -29,14 +29,14 @@ namespace SongRequestManager
+             obj.Add("status", new JSONString(status.ToString()));
+             obj.Add("requestInfo", new JSONString(requestInfo));
+             obj.Add("time", new JSONString(requestTime.ToFileTime().ToString()));
+-            obj.Add("requestor", requestor.ToJson());
++            obj.Add("requestor", requestor.ToJson().ToString());
+             obj.Add("song", song);
+             return obj;
+         }
+ 
+         public SongRequest FromJson(JSONObject obj)
+         {
+-            requestor.FromJson(obj["requestor"].AsObject);
++            requestor = new TwitchUser(obj["requestor"].Value);
+             requestTime = DateTime.FromFileTime(long.Parse(obj["time"].Value));
+             status = (RequestStatus)Enum.Parse(typeof(RequestStatus), obj["status"].Value);
+             song = obj["song"].AsObject;
+diff --git a/EnhancedTwitchIntegration/Bot/UnreleasedCode.cs b/EnhancedTwitchIntegration/Bot/UnreleasedCode.cs
+index fc6bc30..0a88578 100644
+--- a/EnhancedTwitchIntegration/Bot/UnreleasedCode.cs
++++ b/EnhancedTwitchIntegration/Bot/UnreleasedCode.cs
+@@ -1,6 +1,4 @@
+ using System.Runtime;
+-using StreamCore.Twitch;
+-using StreamCore.SimpleJSON;
+ using System;
+ using System.Collections;
+ using System.Collections.Generic;
+@@ -9,9 +7,10 @@ using System.Linq;
+ using System.Text;
+ using UnityEngine;
+ using UnityEngine.Networking;
+-using StreamCore.Utils;
+ using TMPro;
+ using System.Threading.Tasks;
++using ChatCore.Models.Twitch;
++using ChatCore.SimpleJSON;
+ 
+ //using BeatBits;
+ 
+@@ -415,7 +414,7 @@ namespace SongRequestManager
+ 
+             if (request != "")
+             {
+-                if (state.user.isBroadcaster || state.user.isMod) // BUG: These commands take 2 tiers of permission, perhaps we can handle this better with subcommands.
++                if (state.user.IsBroadcaster || state.user.IsModerator) // BUG: These commands take 2 tiers of permission, perhaps we can handle this better with subcommands.
+                 {
+                     request = GetBeatSaverId(request);
+                     if (request == "") return empty;
+diff --git a/EnhancedTwitchIntegration/Bot/commands.cs b/EnhancedTwitchIntegration/Bot/commands.cs
+index 4eada2e..740c4b2 100644
+--- a/EnhancedTwitchIntegration/Bot/commands.cs
++++ b/EnhancedTwitchIntegration/Bot/commands.cs
+@@ -6,8 +6,10 @@ using System.Linq;
+ using System.Text;
+ using UnityEngine;
+ using System.Text.RegularExpressions;
+-using StreamCore.Twitch;
+ using System.Threading.Tasks;
++using ChatCore.Interfaces;
++using ChatCore.Models.Twitch;
++
+ // Feature requests: Add Reason for being banned to banlist
+ 
+ namespace SongRequestManager
+@@ -797,7 +799,7 @@ namespace SongRequestManager
+             {
+                 if (!Instance || request.Length == 0) return;
+ 
+-                if (listcollection.contains(ref _blockeduser, user.username.ToLower())) return;
++                if (listcollection.contains(ref _blockeduser, user.UserName.ToLower())) return;
+ 
+                 // This will be used for all parsing type operations, allowing subcommands efficient access to parse state logic
+                 ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();
+@@ -923,7 +925,7 @@ namespace SongRequestManager
+                             UserSettings.Append(line).Append("\r\n");
+                             // MAGICALLY configure the customized commands 
+ 
+-                            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser,line,CmdFlags.SilentResult | CmdFlags.Local);
++                            COMMAND.Parse(ChatHandler.Self, line, CmdFlags.SilentResult | CmdFlags.Local);
+                         }
+                         sr.Close();
+                     }
+@@ -1100,7 +1102,7 @@ namespace SongRequestManager
+ 
+                 bool allow = HasRights(ref botcmd, ref user,flags);
+ 
+-                if (!allow && !botcmd.Flags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.displayName.ToLower()))
++                if (!allow && !botcmd.Flags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.DisplayName.ToLower()))
+                 {
+                     CmdFlags twitchpermission = botcmd.Flags & CmdFlags.TwitchLevel;
+                     if (!botcmd.Flags.HasFlag(CmdFlags.SilentCheck)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
+@@ -1232,11 +1234,11 @@ namespace SongRequestManager
+             if (flags.HasFlag(CmdFlags.Local)) return true;
+             if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return false;
+             if (botcmd.Flags.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
+-            if (user.isMod & RequestBotConfig.Instance.ModFullRights) return true;
+-            if (user.isBroadcaster & botcmd.Flags.HasFlag(CmdFlags.Broadcaster)) return true;
+-            if (user.isMod & botcmd.Flags.HasFlag(CmdFlags.Mod)) return true;
+-            if (user.isSub & botcmd.Flags.HasFlag(CmdFlags.Sub)) return true;
+-            if (user.isVip & botcmd.Flags.HasFlag(CmdFlags.VIP)) return true;
++            if (user.IsModerator & RequestBotConfig.Instance.ModFullRights) return true;
++            if (user.IsBroadcaster & botcmd.Flags.HasFlag(CmdFlags.Broadcaster)) return true;
++            if (user.IsModerator & botcmd.Flags.HasFlag(CmdFlags.Mod)) return true;
++            if (user.IsSubscriber & botcmd.Flags.HasFlag(CmdFlags.Sub)) return true;
++            if (user.IsVip & botcmd.Flags.HasFlag(CmdFlags.VIP)) return true;
+             return false;
+ 
+         }
+diff --git a/EnhancedTwitchIntegration/Bot/songdatabase.cs b/EnhancedTwitchIntegration/Bot/songdatabase.cs
+index 3c7b6cf..cff9314 100644
+--- a/EnhancedTwitchIntegration/Bot/songdatabase.cs
++++ b/EnhancedTwitchIntegration/Bot/songdatabase.cs
+@@ -1,6 +1,5 @@
+ ﻿using System;
+ using System.Runtime;
+-using StreamCore.SimpleJSON;
+ using System.Collections;
+ using System.Collections.Generic;
+ using System.IO;
+@@ -10,9 +9,8 @@ using System.Text;
+ using System.Threading.Tasks;
+ using UnityEngine;
+ using System.Collections.Concurrent;
+-
+ using System.Security.Cryptography;
+-using StreamCore.Twitch;
++using ChatCore.SimpleJSON;
+ // Feature requests: Add Reason for being banned to banlist
+ //  
+ 
+@@ -894,7 +892,7 @@ namespace SongRequestManager
+                 }
+             }
+ 
+-            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck pp", RequestBot.CmdFlags.Local);
++            COMMAND.Parse(ChatHandler.Self, "!deck pp", RequestBot.CmdFlags.Local);
+             Instance.QueueChatMessage("PP Data indexed");
+             pploading = false;
+         }
+diff --git a/EnhancedTwitchIntegration/Bot/util.cs b/EnhancedTwitchIntegration/Bot/util.cs
+index a36a974..2973101 100644
+--- a/EnhancedTwitchIntegration/Bot/util.cs
++++ b/EnhancedTwitchIntegration/Bot/util.cs
+@@ -10,6 +10,17 @@ namespace SongRequestManager
+ {
+     public partial class RequestBot : MonoBehaviour
+     {
++        public static void EmptyDirectory(string directory, bool delete = true)
++        {
++            if (Directory.Exists(directory))
++            {
++                var directoryInfo = new DirectoryInfo(directory);
++                foreach (System.IO.FileInfo file in directoryInfo.GetFiles()) file.Delete();
++                foreach (System.IO.DirectoryInfo subDirectory in directoryInfo.GetDirectories()) subDirectory.Delete(true);
++
++                if (delete) Directory.Delete(directory);
++            }
++        }
+ 
+         public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
+         {
+diff --git a/EnhancedTwitchIntegration/Properties/AssemblyInfo.cs b/EnhancedTwitchIntegration/Properties/AssemblyInfo.cs
+index 00510d3..8b33351 100644
+--- a/EnhancedTwitchIntegration/Properties/AssemblyInfo.cs
++++ b/EnhancedTwitchIntegration/Properties/AssemblyInfo.cs
+@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
+ // You can specify all the values or you can default the Build and Revision Numbers
+ // by using the '*' as shown below:
+ // [assembly: AssemblyVersion("1.0.*")]
+-[assembly: AssemblyVersion("2.4.0.1")]
+-[assembly: AssemblyFileVersion("2.4.1.0")]
++[assembly: AssemblyVersion("2.9.0.0")]
++[assembly: AssemblyFileVersion("2.9.0.0")]
+diff --git a/EnhancedTwitchIntegration/SongRequestManager.csproj b/EnhancedTwitchIntegration/SongRequestManager.csproj
+index 8b789c0..9792507 100644
+--- a/EnhancedTwitchIntegration/SongRequestManager.csproj
++++ b/EnhancedTwitchIntegration/SongRequestManager.csproj
+@@ -18,7 +18,7 @@
+     <DebugType>full</DebugType>
+     <Optimize>false</Optimize>
+     <OutputPath>bin\Debug\</OutputPath>
+-    <DefineConstants>TRACE;DEBUG;UNRELEASEDX</DefineConstants>
++    <DefineConstants>TRACE;DEBUG;UNRELEASED</DefineConstants>
+     <ErrorReport>prompt</ErrorReport>
+     <WarningLevel>4</WarningLevel>
+     <Prefer32Bit>false</Prefer32Bit>
+@@ -43,6 +43,9 @@
+     <Reference Include="BS_Utils">
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\BS_Utils.dll</HintPath>
+     </Reference>
++    <Reference Include="ChatCore">
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\IPA\Libs\ChatCore.dll</HintPath>
++    </Reference>
+     <Reference Include="HMLib">
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\HMLib.dll</HintPath>
+     </Reference>
+@@ -51,24 +54,21 @@
+     </Reference>
+     <Reference Include="IPA.Loader, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
++      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
+     </Reference>
+     <Reference Include="Main">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Main.dll</HintPath>
++      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Main.dll</HintPath>
+     </Reference>
+     <Reference Include="SemVer">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Libs\SemVer.dll</HintPath>
++      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Libs\SemVer.dll</HintPath>
+     </Reference>
+     <Reference Include="SongBrowser, Version=6.0.3.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
++      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
+     </Reference>
+     <Reference Include="SongCore, Version=2.7.5.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\SongCore.dll</HintPath>
+-    </Reference>
+-    <Reference Include="StreamCore">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\StreamCore.dll</HintPath>
++      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Plugins\SongCore.dll</HintPath>
+     </Reference>
+     <Reference Include="System" />
+     <Reference Include="System.Core" />
+@@ -143,10 +143,12 @@
+     <Compile Include="Bot\SongRequest.cs" />
+     <Compile Include="Bot\UnreleasedCode.cs" />
+     <Compile Include="Bot\util.cs" />
++    <Compile Include="ChatHandler.cs" />
+     <Compile Include="Config\RequestBotConfig.cs" />
+     <Compile Include="Dispatcher.cs" />
+     <Compile Include="Plugin.cs" />
+     <Compile Include="Properties\AssemblyInfo.cs" />
++    <Compile Include="SimpleJson.cs" />
+     <Compile Include="UI\Base64Sprites.cs" />
+     <Compile Include="UI\KeyboardViewController.cs" />
+     <Compile Include="UI\UIHelper.cs" />
+@@ -171,6 +173,6 @@
+     </PreBuildEvent>
+   </PropertyGroup>
+   <PropertyGroup>
+-    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
++    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Games\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
+   </PropertyGroup>
+ </Project>
+\ No newline at end of file
+diff --git a/EnhancedTwitchIntegration/UI/SongListUtils.cs b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+index 68d7308..a68201b 100644
+--- a/EnhancedTwitchIntegration/UI/SongListUtils.cs
++++ b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+@@ -1,5 +1,4 @@
+ ﻿using BeatSaverDownloader.UI;
+-using StreamCore.Utils;
+ using HMUI;
+ using System;
+ using System.Collections;
+diff --git a/EnhancedTwitchIntegration/WebClient.cs b/EnhancedTwitchIntegration/WebClient.cs
+index fc21deb..d63af8a 100644
+--- a/EnhancedTwitchIntegration/WebClient.cs
++++ b/EnhancedTwitchIntegration/WebClient.cs
+@@ -1,5 +1,4 @@
+-﻿using StreamCore.SimpleJSON;
+-using System;
++﻿using System;
+ using System.IO;
+ using System.Net;
+ using System.Net.Http;
+@@ -7,6 +6,7 @@ using System.Net.Http.Headers;
+ using System.Text;
+ using System.Threading;
+ using System.Threading.Tasks;
++using ChatCore.SimpleJSON;
+ 
+ namespace SongRequestManager
+ {
+diff --git a/EnhancedTwitchIntegration/manifest.json b/EnhancedTwitchIntegration/manifest.json
+index a0b53d1..92f9909 100644
+--- a/EnhancedTwitchIntegration/manifest.json
++++ b/EnhancedTwitchIntegration/manifest.json
+@@ -2,10 +2,10 @@
+   "$schema": "",
+   "author": "angturil",
+   "description": "Song Request Manager on twitch",
+-  "gameVersion": "1.6.1",
++  "gameVersion": "1.10.0",
+   "id": "SongRequestManager",
+   "name": "Song Request Manager",
+-  "version": "2.4.1",
++  "version": "2.9.0",
+   "dependsOn": {
+     "BeatSaberMarkupLanguage": "^1.1.0",
+     "BS Utils": "^1.4.0"

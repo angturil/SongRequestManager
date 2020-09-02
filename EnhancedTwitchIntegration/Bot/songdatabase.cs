@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime;
-using StreamCore.SimpleJSON;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -10,9 +9,8 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using System.Collections.Concurrent;
-
 using System.Security.Cryptography;
-using StreamCore.Twitch;
+using ChatCore.SimpleJSON;
 // Feature requests: Add Reason for being banned to banlist
 //  
 
@@ -83,7 +81,7 @@ namespace SongRequestManager
                     var metadata = song["metadata"];
                     song.Add("songName", metadata["songName"].Value);
                     song.Add("songSubName", metadata["songSubName"].Value);
-                    song.Add("authorName", metadata["songAuthorName"].Value);
+                    song.Add("authorName", metadata["levelAuthorName"].Value);
                     song.Add("levelAuthor", metadata["levelAuthorName"].Value);
                     song.Add("rating", song["stats"]["rating"].AsFloat*100);
 
@@ -894,7 +892,7 @@ namespace SongRequestManager
                 }
             }
 
-            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, "!deck pp", RequestBot.CmdFlags.Local);
+            COMMAND.Parse(ChatHandler.Self, "!deck pp", RequestBot.CmdFlags.Local);
             Instance.QueueChatMessage("PP Data indexed");
             pploading = false;
         }
