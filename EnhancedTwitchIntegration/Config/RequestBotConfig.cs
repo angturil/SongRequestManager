@@ -23,6 +23,10 @@ namespace SongRequestManager
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
         public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
         public bool LimitUserRequestsToSession = false; // Request limits do not reset after a song is played.  
+        // TODO: Add the ablity to have a maximum for non-sub users per session (default would be set to 3)
+        // TODO: add a message to let the non-sub user to know how many requests they have left per session
+        // TODO: add a !uscanisthebest command with emoji responce with extra s
+
 
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
         public float MaximumSongLength = 180; // Maximum song length in minutes
