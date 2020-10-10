@@ -1051,6 +1051,11 @@ namespace SongRequestManager
 
         private string ProcessSongRequest(ParseState state)
         {
+            if (!RequestBot.HasPermission(state.user, RequestBotConfig.Instance.SongRequestPermissionLevel))
+            {
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return success;
+            }
             try
             {
                 if (RequestBotConfig.Instance.RequestQueueOpen == false && !state.flags.HasFlag(CmdFlags.NoFilter) && !state.flags.HasFlag(CmdFlags.Local)) // BUG: Complex permission, Queue state message needs to be handled higher up
@@ -1103,6 +1108,56 @@ namespace SongRequestManager
         return success;
         }
 
- 
+        public static int getPermissionLevel(TwitchUser inputUser)
+        {
+            // Spell this out in as clearly as possible because the cmd flag values could change
+            // This could easily be made much smaller and probably more efficient
+            int userPermission = 1;
+            if (inputUser.IsSubscriber) { userPermission |= (int)CmdFlags.Sub; }
+            if (inputUser.IsModerator) { userPermission |= (int)CmdFlags.Mod; }
+            if (inputUser.IsBroadcaster) { userPermission |= (int)CmdFlags.Broadcaster; }
+            if (inputUser.IsVip) { userPermission |= (int)CmdFlags.VIP; }
+            return userPermission;
+        }
+
+        public static bool CheckSpecificPermission(int specificPermissionLevelToCheck, int levelToCheckItWith)
+        {
+            return (specificPermissionLevelToCheck & levelToCheckItWith) >= 1;
+        }
+
+        public static string ConstructStringForPermissionLevel(int specificPermissionLevelToCheck)
+        {
+            // create a string the lazy and inefficient way
+            string returnValue = "";
+            string delimiter = ", ";
+            bool isSub = RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.Sub);
+            bool isMod = RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.Mod);
+            bool isVip = RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.VIP);
+            bool isBroadcaster = RequestBot.CheckSpecificPermission(specificPermissionLevelToCheck, (int)RequestBot.Broadcaster);
+
+            if (isSub) { returnValue += "Subs" ; }
+            if (isSub && (isMod || isVip || isBroadcaster)) { returnValue += delimiter; }
+
+            if (isMod) { returnValue += "Mods"; }
+            if (isMod && (isVip || isBroadcaster)) { returnValue += delimiter; }
+
+            if (isVip) { returnValue += "VIPs"; }
+            if (isVip && (isMod || isBroadcaster)) { returnValue += delimiter; }
+
+            if (isBroadcaster && (isMod || isVip || isSub)) { returnValue += " and "; }
+            if (isBroadcaster) { returnValue += "Hosts"; }
+
+            return returnValue;
+        }
+
+        public static bool HasPermission(TwitchUser inputUser, int permissionLevel)
+        {
+            // explicitly check a permission level of a user and an action
+            int userPermissionLevel = RequestBot.getPermissionLevel(inputUser);
+            if((userPermissionLevel&permissionLevel)>= 1) { return true; }
+            return false;
+        }
+
+
     }
 }

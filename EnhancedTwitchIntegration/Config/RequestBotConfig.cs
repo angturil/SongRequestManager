@@ -23,6 +23,10 @@ namespace SongRequestManager
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
         public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
         public bool LimitUserRequestsToSession = false; // Request limits do not reset after a song is played.  
+        // TODO: Add the ablity to have a maximum for non-sub users per session (default would be set to 3)
+        // TODO: add a message to let the non-sub user to know how many requests they have left per session
+        // TODO: add a !uscanisthebest command with emoji responce with extra s
+
 
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
         public float MaximumSongLength = 180; // Maximum song length in minutes
@@ -42,6 +46,83 @@ namespace SongRequestManager
         public string BotPrefix ="";
 
         public bool ModFullRights = false; // Allow moderator full broadcaster rights. Use at own risk!
+
+        public string QueueDelimiter = ", "; // list seperator for the queue, user might want something else besides a comma
+
+        public bool ShowPermissionLevelRequiredInChat = false;
+        public string PermissionLevelNotAcceptedText = "Sorry but you dont have access to that command!";
+
+
+        // doing this explicitly so that everyone can see whats going on
+        // !bsr 
+        public int SongRequestPermissionLevel = (int)(RequestBot.CmdFlags.Everyone);
+        // !lookup?
+        public int LookupSongsPermissionLevel = (int)(RequestBot.CmdFlags.Everyone);
+        // !link?
+        public int ShowSongLinkPermissionLevel = (int)(RequestBot.CmdFlags.Everyone);
+        // covers !open, !close
+        public int ToggleQueuePermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // covers !queue
+        public int ListQueuePermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // covers !played
+        public int ShowSongsPlayedPermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // covers !history
+        public int ShowHistoryPermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // !modadd? has its own checks
+
+        // should cover !mtt, !att, !last
+        public int MoveRequestPositionInQueuePermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // covers !remove
+        public int DequeuePermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // covers !oops
+        public int WrongSongPermissionLevel = (int)(RequestBot.CmdFlags.Everyone);
+        // !block?
+        // should cover !unblock
+        public int UnBanPermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // should cover !blist
+        public int ShowBanListPermissionLevel = (int)(RequestBot.CmdFlags.Broadcaster);
+        // covers !remap
+        public int RemapPermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // covers !unmap
+        public int UnmapPermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        //covers !clearQueue
+        public int ClearQueuePermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // !clearalreadyplayed?
+        // !help?
+        public int ShowHelpPermissionLevel = (int)(RequestBot.CmdFlags.Sub | RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.VIP | RequestBot.CmdFlags.Broadcaster);
+        // covers !commandlist
+        public int ShowCommandListPermissionLevel = (int)(RequestBot.CmdFlags.Everyone);
+        // !readdeck?
+
+        // !chatmessage?
+        // covers !runscript
+        public int RunScriptPermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // covers !formatlist
+        public int ShowFormatListPermissionLevel = (int)(RequestBot.CmdFlags.Broadcaster);
+        // !songmsg
+        // !addsongs
+        // !every
+        // !in
+        // !clearevents
+        // !addnew
+        // !backup
+        // !songsavedatabase
+        // !queuestatus
+        // !QueueLottery
+        // !addtoqueue
+
+        // not yet implemented 
+        // !allowmappers
+        public int MapperAllowListPermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // !blockmappers
+        public int MapperBanListPermissionLevel = (int)(RequestBot.CmdFlags.Mod | RequestBot.CmdFlags.Broadcaster);
+        // used in startup scripts
+        public int WhiteListPermissionLevel = (int)(RequestBot.CmdFlags.Broadcaster);
+        public int BlockedUserPermissionLevel = (int)(RequestBot.CmdFlags.Broadcaster);
+
+
+
+
 
         public int maximumqueuemessages = 1;
         public int maximumlookupmessages = 1;
