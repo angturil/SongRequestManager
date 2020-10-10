@@ -1,11 +1,13 @@
 # Mod Info
 Song Request Manager is an integrated, fully Customizable song request bot and Console for BeatSaber. It started life as an extensive rewrite of the built in song request bot in https://github.com/brian91292/BeatSaber-EnhancedTwitchChat, but quickly grew in scope and features. Its now a separate but dependent module. This mod and its companions, EnhancedStreamChat and StreamCore, are direct upgrades from the original EnhancedTwitchChat release, by the original authors. 
 
-This mod has been in use for many months, and is constantly updated. While this is a first official release as a standalone mod, its been in continuous use for months now, and is extensively tested. The bot is compatible with release 0.13.1. 
+This mod has been in use for many months, and is constantly updated. While this is a first official release as a standalone mod, its been in continuous use for months now, and is extensively tested. The bot is compatible with release 0.13.2. 
 
 # Current State
 
+
 The current bot is compatible with Release 1.0.0. Use the latest installer.
+=======
 
 # TTS Notes
 If you're using TTS, you'll want to reduce the amount of spam the bot produces. You can do this a number of ways. Filtering out your Name from TTS, or 
@@ -13,7 +15,7 @@ If you're using TTS, you'll want to reduce the amount of spam the bot produces. 
 in RequestBotSettings.ini
 BotPrefix="! "
 ```
-then filter out the ! lines on your tts client.
+then filter out the ! lines on your tts client. 
 
 # Features
 ```
@@ -80,4 +82,4 @@ This plugin is free. If you wish to help us out though, tips to
 [our Paypal](https://paypal.me/sehria) are always appreciated.
 
 # Download
-[Click here to download the latest SongRequestManager.dll](https://github.com/angturil/SongRequestManager/releases/download/1.3.1/SongRequestManager.dll)
+[Click here to download the latest SongRequestManager.dll](https://github.com/angturil/SongRequestManager/releases/download/1.3.4/SongRequestManager.zip)
