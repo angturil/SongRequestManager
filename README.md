@@ -5,7 +5,9 @@ This mod has been in use for many months, and is constantly updated. While this 
 
 # Current State
 
-The current bot is compatible with Release 0.13.2. You will need to grab the latest support files from Beatmods. Because of recent changes, Requires songbrowser.dll 3.0.5 (if you use songbrowser).
+
+The current bot is compatible with Release 1.0.0. Use the latest installer.
+=======
 
 # TTS Notes
 If you're using TTS, you'll want to reduce the amount of spam the bot produces. You can do this a number of ways. Filtering out your Name from TTS, or 
@@ -33,7 +35,7 @@ then filter out the ! lines on your tts client.
 ```
   
 # Dependencies
-Enhanced Twitch Chat depends on [EnhancedStreamChat] and [StreamCore], [CustomUI](https://www.modsaber.org/mod/customui/), [SongLoader](https://www.modsaber.org/mod/song-loader/), and [AsyncTwitch](https://www.modsaber.org/mod/asynctwitchlib/). Make sure to install them, or Song Request Manager Chat won't work!
+Dependencies are set in beatmods, but chatcore, configured and connected to twitch is a requirement.
   
 # Installation
 Copy SongRequestManager.dll to your Beat Saber\Plugins folder, and install all of its dependencies. That's it!

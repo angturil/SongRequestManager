@@ -1,17 +1,8 @@
-using StreamCore;
-using StreamCore.Chat;
-using StreamCore.SimpleJSON;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
-using SongRequestManager;
-using StreamCore.Utils;
 using System.IO.Compression;
 // Feature requests: Add Reason for being banned to banlist
 
@@ -19,11 +10,25 @@ namespace SongRequestManager
 {
     public partial class RequestBot : MonoBehaviour
     {
+        public static void EmptyDirectory(string directory, bool delete = true)
+        {
+            if (Directory.Exists(directory))
+            {
+                var directoryInfo = new DirectoryInfo(directory);
+                foreach (System.IO.FileInfo file in directoryInfo.GetFiles()) file.Delete();
+                foreach (System.IO.DirectoryInfo subDirectory in directoryInfo.GetDirectories()) subDirectory.Delete(true);
+
+                if (delete) Directory.Delete(directory);
+            }
+        }
 
         public static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
         {
             foreach (DirectoryInfo dir in source.GetDirectories())
+            {
                 CopyFilesRecursively(dir, target.CreateSubdirectory(dir.Name));
+            }
+
             foreach (FileInfo file in source.GetFiles())
             {
                 string newFilePath = Path.Combine(target.FullName, file.Name);
@@ -37,31 +42,31 @@ namespace SongRequestManager
             }
         }
 
-        public static string Backup(ParseState state)
+        public static string BackupStreamcore(ParseState state)
         {
             string errormsg = Backup();
             if (errormsg=="") state.msg("SRManager files backed up.");
             return errormsg;
         } 
-    public static string Backup()
+        public static string Backup()
         {
             DateTime Now = DateTime.Now;
             string BackupName = Path.Combine(RequestBotConfig.Instance.backuppath, $"SRMBACKUP-{Now.ToString("yyyy-MM-dd-HHmm")}.zip");
 
-            Plugin.Log($"Backing up {Globals.DataPath}");
+            Plugin.Log($"Backing up {Plugin.DataPath}");
             try
             {
                 if (!Directory.Exists(RequestBotConfig.Instance.backuppath))
                     Directory.CreateDirectory(RequestBotConfig.Instance.backuppath);
 
-                ZipFile.CreateFromDirectory(Globals.DataPath, BackupName, System.IO.Compression.CompressionLevel.Fastest, true);
+                ZipFile.CreateFromDirectory(Plugin.DataPath, BackupName, System.IO.Compression.CompressionLevel.Fastest, true);
                 RequestBotConfig.Instance.LastBackup = DateTime.Now.ToString();
                 RequestBotConfig.Instance.Save();
 
                 Plugin.Log($"Backup success writing {BackupName}");
                 return success;
             }
-        catch       
+            catch
             {
 
             }
@@ -88,7 +93,19 @@ namespace SongRequestManager
 
                 foreach (var c in text)
                 {
-                    if (mask[c] != ' ') o.Append(c);
+                    if (c>127 || mask[c] != ' ') o.Append(c);
+                }
+                return o.ToString();
+            }
+
+            public string RemoveDirectorySymbols(ref string text)
+            {
+                var mask = _SymbolsValidDirectory;
+                var o = new StringBuilder(text.Length);
+
+                foreach (var c in text)
+                {
+                    if (c > 127 || mask[c] !='\0') o.Append(c);
                 }
                 return o.ToString();
             }
@@ -124,21 +141,32 @@ namespace SongRequestManager
 
             public char[] _SymbolsMap = new char[128];
             public char[] _SymbolsNoDash = new char[128];
-
+            public char[] _SymbolsValidDirectory = new char[128];
 
             public StringNormalization()
             {
                 for (char i = (char)0; i < 128; i++)
-                {
+                { 
                     _SymbolsMap[i] = i;
                     _SymbolsNoDash[i] = i;
+                    _SymbolsValidDirectory[i] = i ; 
                 }
 
                 foreach (var c in new char[] { '@', '*', '+', ':', '-', '<', '~', '>', '(', ')', '[', ']', '/', '\\', '.', ',' }) if (c < 128) _SymbolsMap[c] = ' ';
                 foreach (var c in new char[] { '@', '*', '+', ':',  '<', '~', '>', '(', ')', '[', ']', '/', '\\', '.', ',' }) if (c < 128) _SymbolsNoDash[c] = ' ';
+                foreach (var c in Path.GetInvalidPathChars()) if (c<128) _SymbolsValidDirectory[c] = '\0';
+                _SymbolsValidDirectory[':'] = '\0';
+                _SymbolsValidDirectory['\\'] = '\0';
+                _SymbolsValidDirectory['/'] = '\0';
+                _SymbolsValidDirectory['+'] = '\0';
+                _SymbolsValidDirectory['*'] = '\0';
+                _SymbolsValidDirectory['?'] = '\0';
+                _SymbolsValidDirectory[';'] = '\0';
+                _SymbolsValidDirectory['$'] = '\0';
+                _SymbolsValidDirectory['.'] = '\0';
 
-                // Incomplete list of words that BeatSaver.com filters out for no good reason.
-                foreach (var word in new string[] { "the", "this", "from", "will", "when", "with", "what", "who", "why", "how", "was" })
+                // Incomplete list of words that BeatSaver.com filters out for no good reason. No longer applies!
+                foreach (var word in new string[] { "pp" })
                 {
                     BeatsaverBadWords.Add(word.ToLower());
                 }
@@ -147,7 +175,6 @@ namespace SongRequestManager
         }
 
         public static StringNormalization normalize = new StringNormalization();
-
 
     }
 }

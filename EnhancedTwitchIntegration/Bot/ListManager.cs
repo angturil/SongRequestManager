@@ -1,24 +1,169 @@
-
-using StreamCore;
-using StreamCore.Chat;
-using StreamCore.SimpleJSON;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using ChatCore.Models.Twitch;
+using ChatCore.SimpleJSON;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace SongRequestManager
 {
     public partial class RequestBot : MonoBehaviour
     {
+        private void showlists(TwitchUser requestor, string request)
+        {
+            var msg = new QueueLongMessage();
+            msg.Header("Loaded lists: ");
+            foreach (var entry in listcollection.ListCollection) msg.Add($"{entry.Key} ({entry.Value.Count()})", ", ");
+            msg.end("...", "No lists loaded.");
+        }
+
+        private string listaccess(ParseState state)
+        {
+            QueueChatMessage($"Hi, my name is {state.botcmd.userParameter} , and I'm a list object!");
+            return success;
+        }
+
+        private string accesslist(string request)
+        {
+            string[] listname = request.Split('.');
+
+            var req = listname[0];
+
+            if (!COMMAND.aliaslist.ContainsKey(req))
+            {
+                new COMMAND('!' + req).Action(listaccess).Help(Everyone | CmdFlags.Dynamic, "usage: %alias%   %|%Draws a song from one of the curated `. Does not repeat or conflict.", _anything).User(request);
+            }
+
+            return success;
+        }
+
+        private void Addtolist(TwitchUser requestor, string request)
+        {
+            string[] parts = request.Split(new char[] { ' ', ',' }, 2);
+            if (parts.Length < 2)
+            {
+                QueueChatMessage("Usage text... use the official help method");
+                return;
+            }
+
+            try
+            {
+
+                listcollection.add(ref parts[0], ref parts[1]);
+                QueueChatMessage($"Added {parts[1]} to {parts[0]}");
+
+            }
+            catch
+            {
+                QueueChatMessage($"list {parts[0]} not found.");
+            }
+        }
+
+        private void ListList(TwitchUser requestor, string request)
+        {
+            try
+            {
+                var list = listcollection.OpenList(request);
+
+                var msg = new QueueLongMessage();
+                foreach (var entry in list.list) msg.Add(entry, ", ");
+                msg.end("...", $"{request} is empty");
+            }
+            catch
+            {
+                QueueChatMessage($"{request} not found.");
+            }
+        }
+
+        private void RemoveFromlist(TwitchUser requestor, string request)
+        {
+            string[] parts = request.Split(new char[] { ' ', ',' }, 2);
+            if (parts.Length < 2)
+            {
+                //     NewCommands[Addtolist].ShortHelp();
+                QueueChatMessage("Usage text... use the official help method");
+                return;
+            }
+
+            try
+            {
+
+                listcollection.remove(ref parts[0], ref parts[1]);
+                QueueChatMessage($"Removed {parts[1]} from {parts[0]}");
+
+            }
+            catch
+            {
+                QueueChatMessage($"list {parts[0]} not found.");
+            }
+        }
+
+        private void ClearList(TwitchUser requestor, string request)
+        {
+            try
+            {
+                listcollection.ClearList(request);
+                QueueChatMessage($"{request} is cleared.");
+            }
+            catch
+            {
+                QueueChatMessage($"Unable to clear {request}");
+            }
+        }
+
+        private void UnloadList(TwitchUser requestor, string request)
+        {
+            try
+            {
+                listcollection.ListCollection.Remove(request.ToLower());
+                QueueChatMessage($"{request} unloaded.");
+            }
+            catch
+            {
+                QueueChatMessage($"Unable to unload {request}");
+            }
+        }
+
+        #region LIST MANAGER user interface
+
+        private void writelist(TwitchUser requestor, string request)
+        {
+
+        }
+
+        // Add list to queue, filtered by InQueue and duplicatelist
+        private string queuelist(ParseState state)
+        {
+            try
+            {
+                StringListManager list = listcollection.OpenList(state.parameter);
+                foreach (var entry in list.list) ProcessSongRequest(new ParseState(state, entry)); // Must use copies here, since these are all threads
+            }
+            catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.              
+            return success;
+        }
+
+        // Remove entire list from queue
+        private string unqueuelist(ParseState state)
+        {
+            state.flags |= Silent;
+            foreach (var entry in listcollection.OpenList(state.parameter).list)
+            {
+                state.parameter = entry;
+                DequeueSong(state);
+            }
+            return success;
+        }
+
+
+
+
+
+        #endregion
+
 
         #region List Manager Related functions ...
-
         // List types:
 
         // This is a work in progress. 
@@ -31,7 +176,7 @@ namespace SongRequestManager
         // .json = (not part of list manager.. yet)
 
         // This code is currently in an extreme state of flux. Underlying implementation will change.
-        
+
         private void OpenList(TwitchUser requestor, string request)
         {
             listcollection.OpenList(request.ToLower());
@@ -45,7 +190,6 @@ namespace SongRequestManager
         // What I really want though is a collection of container objects with the same interface. I need to look into Dynamic to see if I can make this work. Damn being a c# noob
         public class ListCollectionManager
         {
-
             // BUG: DoNotCreate flags currently do nothing
             // BUG: List name case normalization is inconsistent. I'll probably fix it by changing the list interface (its currently just the filename)
 
@@ -60,14 +204,14 @@ namespace SongRequestManager
 
             public StringListManager ClearOldList(string request, TimeSpan delta, ListFlags flags = ListFlags.Unchanged)
             {
-                string listfilename = Path.Combine(Globals.DataPath, request);
+                string listfilename = Path.Combine(Plugin.DataPath, request);
                 TimeSpan UpdatedAge = GetFileAgeDifference(listfilename);
 
                 StringListManager list = OpenList(request, flags);
 
                 if (File.Exists(listfilename) && UpdatedAge > delta) // BUG: There's probably a better way to handle this
                 {
-                    RequestBot.Instance.QueueChatMessage($"Clearing old session {request}");
+                    //RequestBot.Instance.QueueChatMessage($"Clearing old session {request}");
                     list.Clear();
                     if (!(flags.HasFlag(ListFlags.InMemory) | flags.HasFlag(ListFlags.ReadOnly))) list.Writefile(request);
 
@@ -149,10 +293,8 @@ namespace SongRequestManager
                 return false;
             }
 
-
             public void runscript(string listname, ListFlags flags = ListFlags.Unchanged)
             {
-
                 try
                 {
                     OpenList(listname, flags).runscript();
@@ -175,13 +317,11 @@ namespace SongRequestManager
         // All variables are public for now until we finalize the interface
         public class StringListManager
         {
-
             private static char[] anyseparator = { ',', ' ', '\t', '\r', '\n' };
             private static char[] lineseparator = { '\n', '\r' };
 
             public List<string> list = new List<string>();
             private HashSet<string> hashlist = new HashSet<string>();
-
 
             ListFlags flags = 0;
 
@@ -198,7 +338,7 @@ namespace SongRequestManager
 
                 try
                 {
-                    string listfilename = Path.Combine(Globals.DataPath, filename);
+                    string listfilename = Path.Combine(Plugin.DataPath, filename);
                     string fileContent = File.ReadAllText(listfilename);
                     if (listfilename.EndsWith(".script"))
                         list = fileContent.Split(lineseparator, StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -218,18 +358,17 @@ namespace SongRequestManager
 
             public void runscript()
             {
-
                 try
                 {
-
                     // BUG: A DynamicText context needs to be applied to each command to allow use of dynamic variables
 
-                    foreach (var line in list) COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser, line);
+                    foreach (var line in list) COMMAND.Parse(ChatHandler.Self, line, RequestBot.CmdFlags.Local);
                 }
-                catch (Exception ex) { Plugin.Log(ex.ToString()); } // Going to try this form, to reduce code verbosity.            
-
+                catch (Exception ex)
+                {
+                    Plugin.Log(ex.ToString());
+                } // Going to try this form, to reduce code verbosity.            
             }
-
 
             public bool Writefile(string filename)
             {
@@ -237,7 +376,7 @@ namespace SongRequestManager
 
                 try
                 {
-                    string listfilename = Path.Combine(Globals.DataPath, filename);
+                    string listfilename = Path.Combine(Plugin.DataPath, filename);
 
                     var output = String.Join(separator, list.ToArray());
                     File.WriteAllText(listfilename, output);
@@ -250,12 +389,12 @@ namespace SongRequestManager
                 return false;
             }
 
-
             public bool Contains(string entry)
             {
                 if (list.Contains(entry)) return true;
                 return false;
             }
+
             public bool Add(string entry)
             {
                 if (list.Contains(entry)) return false;
@@ -337,10 +476,6 @@ namespace SongRequestManager
 
             File.WriteAllText(path, arr.ToString());
         }
-
-
         #endregion
-
-
     }
 }

@@ -1,20 +1,25 @@
-﻿
-using SongRequestManager;
-using SongRequestManager;
-using IllusionPlugin;
+﻿using IPA;
+using IPALogger = IPA.Logging.Logger;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using UnityEngine.SceneManagement;
-using StreamCore.Chat;
+using SongRequestManager.UI;
+using BeatSaberMarkupLanguage.Settings;
+using IPA.Utilities;
 
 namespace SongRequestManager
 {
-    public class Plugin : IPlugin
+    [Plugin(RuntimeOptions.SingleStartInit)]
+    public class Plugin
     {
-        public string Name => "SongRequestManager";
-        public string Version => "1.3.3";
+        public string Name => "Song Request Manager";
+        public static SemVer.Version Version => IPA.Loader.PluginManager.GetPluginFromId("SongRequestManager").Version;
 
+        public static IPALogger Logger { get; internal set; }
+
+        internal static WebClient WebClient;
+
+        public static UdpListener UdpListener;
 
         public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
@@ -22,73 +27,92 @@ namespace SongRequestManager
         
         private readonly RequestBotConfig RequestBotConfig = new RequestBotConfig();
 
+        public static string DataPath = Path.Combine(Environment.CurrentDirectory, "UserData", "StreamCore");
+        public static bool SongBrowserPluginPresent;
+
+        [Init]
+        public void Init(IPALogger log)
+        {
+            Logger = log;
+        }
+
         public static void Log(string text,
                         [CallerFilePath] string file = "",
                         [CallerMemberName] string member = "",
                         [CallerLineNumber] int line = 0)
         {
-            Console.WriteLine($"[SongRequestManager] {DateTime.UtcNow} {Path.GetFileName(file)}->{member}({line}): {text}");
+            Logger.Info($"[SongRequestManager] {Path.GetFileName(file)}->{member}({line}): {text}");
         }
 
-        public void OnApplicationStart()
+        [OnStart]
+        public void OnStart()
         {
             if (Instance != null) return;
             Instance = this;
 
-            TwitchWebSocketClient.Initialize();
+            // create playlists folder if needed
+            if (!Directory.Exists(DataPath))
+            {
+                Directory.CreateDirectory(DataPath);
+            }
 
-            SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
-            SceneManager.sceneLoaded += SceneManager_sceneLoaded;
+            Dispatcher.Initialize();
+
+            // create our internal webclient
+            WebClient = new WebClient();
+
+            // create udp listener
+            UdpListener = new UdpListener();
+
+            SongBrowserPluginPresent = IPA.Loader.PluginManager.GetPlugin("Song Browser") != null;
+
+            // setup handle for fresh menu scene changes
+            BS_Utils.Utilities.BSEvents.OnLoad();
+            BS_Utils.Utilities.BSEvents.menuSceneLoadedFresh += OnMenuSceneLoadedFresh;
+
+            // keep track of active scene
+            BS_Utils.Utilities.BSEvents.menuSceneActive += () => { IsAtMainMenu = true; };
+            BS_Utils.Utilities.BSEvents.gameSceneActive += () => { IsAtMainMenu = false; };
+
+            // init sprites
+            Base64Sprites.Init();
         }
 
-        static string MenuSceneName = "MenuCore";
-        
-        private void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
+        private void OnMenuSceneLoadedFresh()
         {
-            if (arg0.name == MenuSceneName)
+            // setup settings ui
+            BSMLSettings.instance.AddSettingsMenu("SRM", "SongRequestManager.Views.SongRequestManagerSettings.bsml", SongRequestManagerSettings.instance);
+
+            // main load point
+            RequestBot.OnLoad();
+            RequestBotConfig.Save(true);
+        }
+
+        public static void SongBrowserCancelFilter()
+        {
+            if (SongBrowserPluginPresent)
             {
-                try
+                var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetField<SongBrowser.UI.SongBrowserUI, SongBrowser.SongBrowserApplication>("_songBrowserUI");
+                if (_songBrowserUI)
                 {
-                    Settings.OnLoad();
+                    if (_songBrowserUI.Model.Settings.filterMode != SongBrowser.DataAccess.SongFilterMode.None && _songBrowserUI.Model.Settings.sortMode != SongBrowser.DataAccess.SongSortMode.Original)
+                    {
+                        _songBrowserUI.CancelFilter();
+                    }
                 }
-                catch (Exception ex)       
+                else
                 {
-                    Plugin.Log($"{ex}");
+                    Plugin.Log("There was a problem obtaining SongBrowserUI object, unable to reset filters");
                 }
-
-                RequestBot.OnLoad();
-
-                RequestBotConfig.Save(true);
             }
         }
 
-        public void OnApplicationQuit()
+        [OnExit]
+        public void OnExit()
         {
+            UdpListener?.Shutdown();
+
             IsApplicationExiting = true;
-        }
-
-        private void SceneManager_activeSceneChanged(Scene from, Scene to)
-        {
-            if (to.name == MenuSceneName)
-                IsAtMainMenu = true;
-            else if (to.name == "GameCore")
-                IsAtMainMenu = false;
-        }
-
-        public void OnLevelWasLoaded(int level)
-        {
-        }
-
-        public void OnLevelWasInitialized(int level)
-        {
-        }
-
-        public void OnFixedUpdate()
-        {
-        }
-
-        public void OnUpdate()
-        {
         }
     }
 }

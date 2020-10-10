@@ -1,15 +1,7 @@
-﻿
-using StreamCore;
-using StreamCore.Chat;
-using StreamCore.SimpleJSON;
-using System;
-using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
+using ChatCore.SimpleJSON;
 
 namespace SongRequestManager
 {
@@ -37,7 +29,17 @@ namespace SongRequestManager
 
             JSONArray arr = new JSONArray();
             foreach (SongRequest song in songs)
-                arr.Add(song.ToJson());
+            {
+                try
+                {
+                    var songData = song.ToJson();
+                    arr.Add(songData);
+                }
+                catch (Exception)
+                {
+                    // silent ignore
+                }
+            }
 
             File.WriteAllText(path, arr.ToString());
         }
@@ -46,7 +48,7 @@ namespace SongRequestManager
     public class RequestQueue
     {
         public static List<SongRequest> Songs = new List<SongRequest>();
-        private static string requestsPath = Path.Combine(Globals.DataPath, "SongRequestQueue.json");
+        private static string requestsPath = Path.Combine(Plugin.DataPath, "SongRequestQueue.dat");
         public static void Read()
         {
             try
@@ -69,7 +71,7 @@ namespace SongRequestManager
     public class RequestHistory
     {
         public static List<SongRequest> Songs = new List<SongRequest>();
-        private static string historyPath = Path.Combine(Globals.DataPath, "SongRequestHistory.json");
+        private static string historyPath = Path.Combine(Plugin.DataPath, "SongRequestHistory.dat");
         public static void Read()
         {
             try
@@ -89,44 +91,4 @@ namespace SongRequestManager
         }
     }
 
-    public class SongBlacklist
-    {
-        public static Dictionary<string, SongRequest> Songs = new Dictionary<string, SongRequest>();
-        private static string blacklistPath = Path.Combine(Globals.DataPath, "SongBlacklist.json");
-        public static void Read()
-        {
-            try
-            {
-
-                Songs = RequestManager.Read(blacklistPath).ToDictionary(e => e.song["id"].Value);
-            }
-            catch
-            {
-                RequestBot.Instance.QueueChatMessage("There was an error reading the ban list. You may need to restore this file from a backup.");
-                throw;
-            }
-
-        }
-
-        public static void Write()
-        {
-            List<SongRequest> songs = Songs.Values.ToList();
-            RequestManager.Write(blacklistPath, ref songs);
-        }
-
-        public static void ConvertFromList(string[] list)
-        {
-            SharedCoroutineStarter.instance.StartCoroutine(ConvertOnceInitialized(list));
-        }
-
-        private static IEnumerator ConvertOnceInitialized(string[] list)
-        {
-            yield return new WaitUntil(() => RequestBot.Instance);
-
-            var user = new TwitchUser("Unknown");
-            user.isMod = true;
-            foreach (string s in list)
-                RequestBot.Instance.Ban(user, s, true);
-        }
-    }
 }

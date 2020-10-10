@@ -1,23 +1,23 @@
-using StreamCore.Chat;
-using StreamCore.SimpleJSON;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
 using System.Text.RegularExpressions;
-using System.Diagnostics;
-using StreamCore;
+using System.Threading.Tasks;
+using ChatCore.Interfaces;
+using ChatCore.Models.Twitch;
+
 // Feature requests: Add Reason for being banned to banlist
 
 namespace SongRequestManager
 {
     public partial class RequestBot : MonoBehaviour
     {
+        static bool _WobbleInstalled = false;
+
         #region COMMANDFLAGS
         [Flags]
         public enum CmdFlags
@@ -42,8 +42,8 @@ namespace SongRequestManager
 
             Timeout = 2048, // Applies a timeout to regular users after a command is succesfully invoked this is just a concept atm
             TimeoutSub = 4096, // Applies a timeout to Subs
-            TimeoutVIP = 8192, // Applies a timeout to VIP's
-            Local = 16384, 
+            Autopick = 8192, // Auto pick first song when adding
+            Local = 16384, // The command is being executed from console and therefore always full priveledge
 
             NoLinks = 32768, // Turn off any links that the command may normally generate
 
@@ -91,18 +91,18 @@ namespace SongRequestManager
 
         #region common Regex expressions
 
-        private static readonly Regex _digitRegex = new Regex("^[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex _digitRegex = new Regex("^[0-9a-fA-F]+$", RegexOptions.Compiled);
         private static readonly Regex _beatSaverRegex = new Regex("^[0-9]+-[0-9]+$", RegexOptions.Compiled);
         private static readonly Regex _alphaNumericRegex = new Regex("^[0-9A-Za-z]+$", RegexOptions.Compiled);
-        private static readonly Regex _RemapRegex = new Regex("^[0-9]+,[0-9]+$", RegexOptions.Compiled);
-        private static readonly Regex _beatsaversongversion = new Regex("^[0-9]+$|^[0-9]+-[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex _RemapRegex = new Regex("^[0-9a-fA-F]+,[0-9a-fA-F]+$", RegexOptions.Compiled);
+        private static readonly Regex _beatsaversongversion = new Regex("^[0-9a-zA-Z]+$", RegexOptions.Compiled);
         private static readonly Regex _nothing = new Regex("$^", RegexOptions.Compiled);
         private static readonly Regex _anything = new Regex(".*", RegexOptions.Compiled); // Is this the most efficient way?
         private static readonly Regex _atleast1 = new Regex("..*", RegexOptions.Compiled); // Allow usage message to kick in for blank 
         private static readonly Regex _fail = new Regex("(?!x)x", RegexOptions.Compiled); // Not sure what the official fastest way to auto-fail a match is, so this will do
         private static readonly Regex _deck = new Regex("^(current|draw|first|last|random|unload)$|$^", RegexOptions.Compiled); // Checks deck command parameters
 
-        private static readonly Regex _drawcard = new Regex("($^)|(^[0-9]+$|^[0-9]+-[0-9]+$)", RegexOptions.Compiled);
+        private static readonly Regex _drawcard = new Regex("($^)|(^[0-9a-zA-Z]+$)", RegexOptions.Compiled);
 
         #endregion
 
@@ -122,7 +122,7 @@ namespace SongRequestManager
 
 
             new COMMAND(new string[] { "!request", "!bsr", "!add", "!sr","!srm" }).Action(ProcessSongRequest).Help(Everyone, "usage: %alias%<songname> or <song id>, omit <,>'s. %|%This adds a song to the request queue. Try and be a little specific. You can look up songs on %beatsaver%", _atleast1);
-            new COMMAND(new string[] { "!lookup", "!find" }).Coroutine(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <beatsaber id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
+            new COMMAND(new string[] { "!lookup", "!find" }).AsyncAction(LookupSongs).Help(Mod | Sub | VIP, "usage: %alias%<song name> or <song id>, omit <>'s.%|%Get a list of songs from %beatsaver% matching your search criteria.", _atleast1);
 
             new COMMAND("!link").Action(ShowSongLink).Help(Everyone, "usage: %alias% %|%... Shows song details, and an %beatsaver% link to the current song", _nothing);
 
@@ -142,7 +142,7 @@ namespace SongRequestManager
             new COMMAND(new string[] { "!wrongsong", "!wrong", "!oops" }).Action(WrongSong).Help(Everyone, "usage: %alias%%|%... Removes your last requested song form the queue. It can be requested again later.", _nothing);
 
             new COMMAND("!unblock").Action(Unban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
-            new COMMAND("!block").Action(Ban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
+            new COMMAND("!block").AsyncAction(Ban).Help(Mod, "usage: %alias%<song id>, do not include <,>'s.", _beatsaversongversion);
             new COMMAND("!blist").Action(ShowBanList).Help(Broadcaster, "usage: Don't use, it will spam chat!", _atleast1); // Purposely annoying to use, add a character after the command to make it happen 
 
             new COMMAND("!remap").Action(Remap).Help(Mod, "usage: %alias%<songid1> , <songid2>%|%... Remaps future song requests of <songid1> to <songid2> , hopefully a newer/better version of the map.", _RemapRegex);
@@ -152,14 +152,14 @@ namespace SongRequestManager
             new COMMAND("!clearalreadyplayed").Action(ClearDuplicateList).Help(Mod, "usage: %alias%%|%... clears the list of already requested songs, allowing them to be requested again.", _nothing); // Needs a better name
             new COMMAND("!restore").Action(restoredeck).Help(Mod, "usage: %alias%%|%... Restores the request queue from the previous session. Only useful if you have persistent Queue turned off.", _nothing);
 
-            new COMMAND("!about").Help(CmdFlags.Broadcaster | CmdFlags.SilentCheck , $"Song Request Manager version {Plugin.Instance.Version}. Github angturil/SongRequestManager", _fail); // Help commands have no code
-            new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
+            new COMMAND("!about").Help(CmdFlags.Broadcaster | CmdFlags.SilentCheck , $"Song Request Manager version {Plugin.Version.ToString()}. Github angturil/SongRequestManager", _fail); // Help commands have no code
+            //new COMMAND(new string[] { "!help" }).Action(help).Help(Everyone, "usage: %alias%<command name>, or just %alias%to show a list of all commands available to you.", _anything);
             new COMMAND("!commandlist").Action(showCommandlist).Help(Everyone, "usage: %alias%%|%... Displays all the bot commands available to you.", _nothing);
 
             new COMMAND("!readdeck").Action(Readdeck).Help(Mod, "usage: %alias", _alphaNumericRegex);
             new COMMAND("!writedeck").Action(Writedeck).Help(Broadcaster, "usage: %alias", _alphaNumericRegex);
 
-            new COMMAND("!chatmessage").Action(ChatMessage).Help(Mod, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
+            new COMMAND("!chatmessage").Action(ChatMessage).Help(Broadcaster, "usage: %alias%<what you want to say in chat, supports % variables>", _atleast1); // BUG: Song support requires more intelligent %CurrentSong that correctly handles missing current song. Also, need a function to get the currenly playing song.
             new COMMAND("!runscript").Action(RunScript).Help(Mod, "usage: %alias%<name>%|%Runs a script with a .script extension, no conditionals are allowed. startup.script will run when the bot is first started. Its probably best that you use an external editor to edit the scripts which are located in UserData/StreamCore", _atleast1);
 
             new COMMAND("!formatlist").Action(showFormatList).Help(Broadcaster, "Show a list of all the available customizable text format strings. Use caution, as this can make the output of some commands unusable. You can use /default to return a variable to its default setting.");
@@ -167,43 +167,58 @@ namespace SongRequestManager
 
             new COMMAND("!songmsg").Action(SongMsg).Help(Mod, "usage: %alias% <songid> Message%|% Assign a message to a songid, which will be visible to the player during song selection.", _atleast1);
 
-            new COMMAND("!addsongs").Coroutine(addsongs).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria (up to 40) to the queue", _atleast1);
+            new COMMAND("!addsongs").AsyncAction(addsongs).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria (up to 40) to the queue", _atleast1);
 
             new COMMAND("!every").Action(Every).Help(Broadcaster, "usage: every <minutes> %|% Run a command every <minutes>.", _atleast1);
             new COMMAND("!in").Action(EventIn).Help(Broadcaster, "usage: in <minutes> <bot command>.", _atleast1);
             new COMMAND("!clearevents").Action(ClearEvents).Help(Broadcaster, "usage: %alias% %|% Clear all timer events.");
-            new COMMAND(new string[] { "!addnew", "!addlatest" }).Coroutine(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
-            new COMMAND("!backup").Action(Backup).Help(CmdFlags.Broadcaster, "Backup %SRM% directory.", _anything);
+            new COMMAND(new string[] { "!addnew", "!addlatest" }).AsyncAction(addsongsFromnewest).Help(Mod, "usage: %alias% <listname>%|%... Adds the latest maps from %beatsaver%, filtered by the previous selected allowmappers command", _nothing);
+            new COMMAND("!backup").Action(BackupStreamcore).Help(CmdFlags.Broadcaster, "Backup %SRM% directory.", _anything);
 
-            new COMMAND("!refreshsongs").Coroutine(RefreshSongs).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
+            //new COMMAND("!refreshsongs").Coroutine(RefreshSongs).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature."); // BUG: Broken in 1.10
             new COMMAND("!savesongdatabase").Coroutine(SaveSongDatabase).Help(Broadcaster);
 
-            new COMMAND("!queuestatus").Action(QueueStatus).Help(Mod, "usage: %alias% %|% Show current queue status", _nothing);
+            new COMMAND("!queuestatus").Action(QueueStatus).Help(Everyone, "usage: %alias% %|% Show current queue status", _nothing);
+
+            new COMMAND("!QueueLottery").Action(QueueLottery).Help(Broadcaster, "usage: %alias% <entry count> %|% Shuffle the queue and reduce to <entry count> entries. Close the queue.", _anything);
+
+            new COMMAND("!addtoqueue").Action(queuelist).Help(Broadcaster, "usage: %alias% <list>", _atleast1);
+
+            #region Gamechanger Specific           
+            bool _GameChangerInstalled = IPA.Loader.PluginManager.GetPlugin("Beat Bits") != null;
+            _WobbleInstalled= IPA.Loader.PluginManager.GetPlugin("WobbleSaber") != null;
+
+            if (_GameChangerInstalled)
+                {
+                new COMMAND("!sabotage").Coroutine(SetBombState).Help(Mod, "Usage: %alias% on/off (LIV Gamechanger only). %|% Turns bombs on and off in Gamechanger.");
+                }
+            #endregion
 
 #if UNRELEASED
+            new COMMAND("!makesearchdeck").AsyncAction(makelistfromsearch).Help(Broadcaster, "usage: %alias%%|% Add all songs matching a criteria to search.deck", _atleast1);
 
+            //new COMMAND("!sdk2test").Action(livsdktest).Help(Broadcaster,"usage: don't",_anything);
 
-            new COMMAND("!downloadsongs").Coroutine(DownloadEverything).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
+            //new COMMAND("!getpp").Coroutine(GetPPData).Help(Broadcaster, "Get PP Data");
+
+            new COMMAND("!downloadsongs").AsyncAction(DownloadEverything).Help(Broadcaster, "Adds custom songs to bot list. This is a pre-release feature.");
 
             // These comments contain forward looking statement that are absolutely subject to change. I make no commitment to following through
             // on any specific feature,interface or implementation. I do not promise to make them generally available. Its probably best to avoid using or making assumptions based on these.
 
-
             new COMMAND("!readarchive").Coroutine(ReadArchive).Help(Broadcaster, "Adds archived sngs to bot");
-
-
-
 
             new COMMAND("!at").Help(Broadcaster, "Run a command at a certain time.", _atleast1); // BUG: No code
             new COMMAND("!alias").Help(Broadcaster, "usage: %alias %|% Create a command alias, short cuts version a commands. Single line only. Supports %variables% (processed at execution time), parameters are appended.", _atleast1); // BUG: No action
 
             new COMMAND("!detail"); // Get song details BUG: NO code
 
-
             new COMMAND("!allowmappers").Action(MapperAllowList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects the mapper list used by the AddNew command for adding the latest songs from %beatsaver%, filtered by the mapper list.", _alphaNumericRegex);  // The message needs better wording, but I don't feel like it right now
             new COMMAND("!blockmappers").Action(MapperBanList).Help(Broadcaster, "usage: %alias%<mapper list> %|%... Selects a mapper list that will not be allowed in any song requests.", _alphaNumericRegex); // BUG: This code is behind a switch that can't be enabled yet.
 
-            new COMMAND("!mapper").Coroutine(AddmapperToDeck).Help(Broadcaster, "usage: %alias%<mapperlist>");
+            new COMMAND("!mapperdeck").AsyncAction(AddmapperToDeck).Help(Broadcaster, "usage: %alias%<mapperlist>");
+
+            //new COMMAND("!glitter").Action(AddLIVGlitter).Help(Broadcaster, "usage: %alias% <number> Message");
 
             // These commands will use a completely new format in future builds and rely on a slightly more flexible parser. Commands like userlist.add george, userlist1=userlist2 will be allowed. 
 
@@ -226,17 +241,15 @@ namespace SongRequestManager
             new COMMAND("!whatdeck").Action(whatdeck).Help(Mod, "usage: %alias%<songid> or 'current'", _beatsaversongversion);
             new COMMAND("!decklist").Action(decklist).Help(Mod, "usage: %alias", _deck);
 
-            new COMMAND("!addtoqueue").Action(queuelist).Help(Broadcaster, "usage: %alias% <list>", _atleast1);
             new COMMAND("!unqueuemsg").Help(Broadcaster, "usage: %alias% msg text to match", _atleast1); // BUG: No code
 
             new COMMAND(new string[] { "/toggle", "subcomdtoggle" }).Action(SubcmdToggle).Help(Subcmd | Mod | CmdFlags.NoParameter, "usage: <!deck> /toggle <songid> %|% Adds a song to a deck if not present, otherwise removes it. Used primarily for button actions");
 
-            new COMMAND("!updatemappers").Coroutine(UpdateMappers).Help(Broadcaster, "usage: %alias% %|% Update mapper lists/decks. This may take a while, don't do live.");
+            new COMMAND("!updatemappers").AsyncAction(UpdateMappers).Help(Broadcaster, "usage: %alias% %|% Update mapper lists/decks. This may take a while, don't do live.");
             new COMMAND("!joinrooms").Coroutine(GetRooms).Help(Broadcaster, "usage: %alias% %|% This is not fully functional, allows the bot to accept commands from your other rooms.") ;
             new COMMAND("!savecommands").Action(SaveCommands);
 
             new COMMAND("gccount").Action(GetGCCount).Help(Broadcaster);
-
 #endif
             #endregion
 
@@ -250,6 +263,7 @@ namespace SongRequestManager
             new COMMAND("NextSonglink", NextSonglink);
             new COMMAND("SongHintText", SongHintText);
             new COMMAND("QueueTextFileFormat", QueueTextFileFormat);
+            new COMMAND("QueueListRow2", QueueListRow2);
             new COMMAND("QueueListFormat", QueueListFormat);
             new COMMAND("HistoryListFormat", HistoryListFormat);
             new COMMAND("AddSortOrder", AddSortOrder);
@@ -265,8 +279,15 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/enable", "subcmdenable" }).Action(SubcmdEnable).Help(Subcmd, "usage: <command>/enable");
             new COMMAND(new string[] { "/disable", "subcmddisable" }).Action(SubcmdDisable).Help(Subcmd, "usage: <command>/disable");
             new COMMAND(new string[] { "/current", "subcmdcurrent" }).Action(SubcmdCurrentSong).Help(Subcmd | Everyone, "usage: <command>/current");
+            new COMMAND(new string[] { "/selected", "subcmdselected" }).Action(SubcmdSelected).Help(Subcmd | Mod, "usage: <command>/selected");
             new COMMAND(new string[] { "/last", "/previous", "subcmdlast" }).Action(SubcmdPreviousSong).Help(Subcmd | Everyone, "usage: <command>/last");
             new COMMAND(new string[] { "/next", "subcmdnext" }).Action(SubcmdNextSong).Help(Subcmd | Everyone, "usage: <command>/next");
+
+            new COMMAND(new string[] { "/requestor", "subcmduser" }).Action(SubcmdCurrentUser).Help(Subcmd | Everyone, "usage: <command>/requestor");
+            new COMMAND(new string[] { "/list", "subcmdlist" }).Action(SubcmdList).Help(Subcmd | Mod, "usage: <command>/list");
+            new COMMAND(new string[] { "/add", "subcmdadd" }).Action(SubcmdAdd).Help(Subcmd | Mod, "usage: <command>/add");
+            new COMMAND(new string[] { "/remove", "subcmdremove" }).Action(SubcmdRemove).Help(Subcmd | Mod, "usage: <command>/remove");
+
 
             new COMMAND(new string[] { "/flags", "subcmdflags" }).Action(SubcmdShowflags).Help(Subcmd, "usage: <command>/next");
             new COMMAND(new string[] { "/set", "subcmdset" }).Action(SubcmdSetflags).Help(Subcmd, "usage: <command>/set <flags>");
@@ -281,9 +302,11 @@ namespace SongRequestManager
             new COMMAND(new string[] { "/alias", "subcmdalias" }).Action(SubcmdAlias).Help(Subcmd | Broadcaster, "usage: %alias% %|% Defines all the aliases a command can use");
             new COMMAND(new string[] { "/default", "subcmddefault" }).Action(SubcmdDefault).Help(Subcmd | Broadcaster, "usage: <formattext> %alias%");
 
-            new COMMAND(new string[] { "/newest", "subcmdnewest" }).Action(SubcmdNewest).Help(Subcmd |CmdFlags.NoParameter| Everyone); // BUG: Not implemented
-            new COMMAND(new string[] { "/best", "subcmdbest" }).Action(SubcmdBest).Help(Subcmd | CmdFlags.NoParameter | Everyone); // BUG: Not implemented
-            new COMMAND(new string[] { "/oldest", "subcmdoldest" }).Action(SubcmdOldest).Help(Subcmd | CmdFlags.NoParameter | Everyone); // BUG: Not implemented
+            new COMMAND(new string[] { "/newest", "subcmdnewest" }).Action(SubcmdNewest).Help(Subcmd |CmdFlags.NoParameter| Everyone); 
+            new COMMAND(new string[] { "/best", "subcmdbest" }).Action(SubcmdBest).Help(Subcmd | CmdFlags.NoParameter | Everyone); 
+            new COMMAND(new string[] { "/oldest", "subcmdoldest" }).Action(SubcmdOldest).Help(Subcmd | CmdFlags.NoParameter | Everyone); 
+            new COMMAND(new string[] { "/pp", "subcmdpp" }).Action(SubcmdPP).Help(Subcmd | CmdFlags.NoParameter | Everyone); 
+
 
             new COMMAND(new string[] { "/top", "subcmdtop" }).Action(SubcmdTop).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster, "%alias% sets a flag to move the request(s) to the top of the queue.");
             new COMMAND(new string[] { "/mod","subcmdmod"}).Action(SubcmdMod).Help(Subcmd|CmdFlags.NoParameter | Mod | Broadcaster,"%alias% sets a flag to ignore all filtering");
@@ -293,13 +316,11 @@ namespace SongRequestManager
             COMMAND.SummarizeCommands(); // Save original command states string.
         }
 
-
         public string SaveCommands(ParseState state)
-            {
+        {
             COMMAND.WriteCommandConfiguration();
             return success;
-            }
-        
+        }
 
         const string success = "";
         const string endcommand = "X";
@@ -316,18 +337,29 @@ namespace SongRequestManager
 
         public string SubcmdNewest(ParseState state)
         {
+            state.flags |= CmdFlags.Autopick;
             state.sort = "-id -rating";
             return success;
         }
 
+        public string SubcmdPP(ParseState state)
+        {
+            state.flags |= CmdFlags.Autopick;
+            state.sort = "-pp -rating -id";
+            return success;
+        }
+
+
         public string SubcmdBest(ParseState state)
         {
+            state.flags |= CmdFlags.Autopick;
             state.sort = "-rating -id";
             return success;
         }
 
         public string SubcmdOldest(ParseState state)
         {
+            state.flags |= CmdFlags.Autopick;
             state.sort = "+id -rating";
             return success;
         }
@@ -341,6 +373,25 @@ namespace SongRequestManager
             Instance?.QueueChatMessage($"{state.command} Disabled.");
             return endcommand;
         }
+
+        public string SubcmdList(ParseState state)
+        {
+            ListList(state.user, state.botcmd.userParameter.ToString());    
+            return endcommand;
+        }
+
+        public string SubcmdAdd(ParseState state)
+        {
+            Addtolist(state.user, state.botcmd.userParameter.ToString()+" "+state.subparameter);
+            return endcommand;
+        }
+
+        public string SubcmdRemove(ParseState state)
+        {
+            RemoveFromlist(state.user, state.botcmd.userParameter.ToString()+" "+state.subparameter);
+            return endcommand;
+        }
+
 
         public string SubcmdCurrentSong(ParseState state)
         {
@@ -357,6 +408,41 @@ namespace SongRequestManager
 
             return state.error($"Theree is no current song available");
         }
+
+        public string SubcmdSelected(ParseState state)
+        {
+            try
+            {
+                if (state.parameter != "") state.parameter += " ";
+                state.parameter  +=  RequestBotListViewController.Instance.CurrentlySelectedSong().song["version"];
+                return "";
+            }
+            catch
+            {
+                // Being lazy, incase RequestHistory access failure.
+            }
+
+            return state.error($"Theree is no current song available");
+        }
+
+
+
+        public string SubcmdCurrentUser(ParseState state)
+        {
+            try
+            {
+                if (state.parameter != "") state.parameter += " ";
+                //state.parameter += RequestHistory.Songs[0][""];
+                return "";
+            }
+            catch
+            {
+                // Being lazy, incase RequestHistory access failure.
+            }
+
+            return state.error($"Theree is no current user available");
+        }
+
 
         public string SubcmdPreviousSong(ParseState state)
         {
@@ -536,7 +622,7 @@ namespace SongRequestManager
         public partial class COMMAND
         {
             public static StringBuilder commandsummary=new StringBuilder();
-            private static bool Loading = false;
+            public static bool Loading = false;
 
             public static Dictionary<string, COMMAND> aliaslist = new Dictionary<string, COMMAND>(); // There can be only one (static)!
 
@@ -547,6 +633,8 @@ namespace SongRequestManager
             private Func<ParseState, IEnumerator> func1 = null;
 
             public Func<ParseState, string> subcommand = null; // Prefered calling convention. It does expose calling command base properties, so be careful.
+            public Func<ParseState> subcommand2 = null;
+            public Func<ParseState, Task> AsyncSubCommand = null;
 
             public CmdFlags Flags = Broadcaster;          // flags
             public string ShortHelp = "";                   // short help text (on failing preliminary check
@@ -593,15 +681,17 @@ namespace SongRequestManager
                 permittedusers = fixedname;
             }
 
-            public string Execute(ParseState state)
+            public async Task<string> Execute(ParseState state)
             {
                 // BUG: Most of these will be replaced.  
-
+                
                 if (Method2 != null) Method2(state.user, state.parameter, state.flags, state.info);
                 else if (Method != null) Method(state.user, state.parameter);
                 //else if (Method3 != null) return Method3(this, state.user, state.parameter, state.flags, state.info);
                 else if (func1 != null) Instance.StartCoroutine(func1(state));
                 else if (subcommand != null) return subcommand(state); // Recommended.
+                else if (subcommand2 != null) subcommand(state);
+                else if (AsyncSubCommand != null) await AsyncSubCommand(state);
                 return success;
             }
 
@@ -656,6 +746,16 @@ namespace SongRequestManager
                 subcommand = action;
                 return this;
             }
+            public COMMAND Action(Func<ParseState> action)
+            {
+                subcommand2 = action;
+                return this;
+            }
+            public COMMAND AsyncAction(Func<ParseState, Task> action)
+            {
+                AsyncSubCommand = action;
+                return this;
+            }
             public COMMAND Help(CmdFlags flags = Broadcaster, string ShortHelp = "", Regex regexfilter = null)
             {
                 this.Flags = flags;
@@ -698,6 +798,8 @@ namespace SongRequestManager
             public static void Parse(TwitchUser user, string request, CmdFlags flags = 0, string info = "")
             {
                 if (!Instance || request.Length == 0) return;
+
+                if (listcollection.contains(ref _blockeduser, user.UserName.ToLower())) return;
 
                 // This will be used for all parsing type operations, allowing subcommands efficient access to parse state logic
                 ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();
@@ -794,7 +896,7 @@ namespace SongRequestManager
 // !block /alias block, Ban 
 // !lookup /disable
 //");
-                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
+                var filename = Path.Combine(Plugin.DataPath, configfilename + ".ini");
                 File.WriteAllText(filename, UserSettings.ToString());
             }
 
@@ -804,7 +906,7 @@ namespace SongRequestManager
 
                 var UserSettings = new StringBuilder("// This section contains ONLY commands that have changed.\r\n\r\n");
 
-                var filename = Path.Combine(Globals.DataPath, configfilename + ".ini");
+                var filename = Path.Combine(Plugin.DataPath, configfilename + ".ini");
 
                 Loading = true; // Prevents file updates during command load.
 
@@ -823,7 +925,7 @@ namespace SongRequestManager
                             UserSettings.Append(line).Append("\r\n");
                             // MAGICALLY configure the customized commands 
 
-                            COMMAND.Parse(TwitchWebSocketClient.OurTwitchUser,line,CmdFlags.SilentResult | CmdFlags.Local);
+                            COMMAND.Parse(ChatHandler.Self, line, CmdFlags.SilentResult | CmdFlags.Local);
                         }
                         sr.Close();
                     }
@@ -859,19 +961,20 @@ namespace SongRequestManager
             public string subparameter="";
 
             // Object clone constructor. Mostly used when spawning multiple threads against a single command
-            public ParseState(ParseState state)
-                {
+            public ParseState(ParseState state, string parameter = null)
+            {
                 // These are references
-                this.user = state.user; 
+                this.user = state.user;
                 this.botcmd = state.botcmd;
-                 
+
                 this.flags = state.flags;
                 this.parameter = state.parameter;
+                if (parameter != null) this.parameter = parameter;
                 this.subparameter = state.subparameter;
                 this.command = state.command;
                 this.info = state.info;
                 this.sort = state.sort;
-                }
+            }
 
             public ParseState(ref TwitchUser user, ref string request, CmdFlags flags, ref string info)
             {
@@ -914,9 +1017,13 @@ namespace SongRequestManager
                 if (!HasRights(ref subcmd, ref user,flags)) return error($"No permission to use {subcommand}");
 
                 if (subcmd.Flags.HasFlag(CmdFlags.NoParameter))
+                {
                     parameter = parameter.Substring(subcommandend).Trim(' ');
+                }
                 else
+                {
                     parameter = parameter.Substring(subcommandsectionend);
+                }
 
                 try
                 {
@@ -929,7 +1036,6 @@ namespace SongRequestManager
 
                 return "";
             }
-
 
             public string msg(string text,string result=success)
             {
@@ -953,7 +1059,7 @@ namespace SongRequestManager
             }
 
             static string done = "X";
-            public void ExecuteCommand()
+            public async void ExecuteCommand()
             {
                 if (!COMMAND.aliaslist.TryGetValue(command, out botcmd)) return; // Unknown command
 
@@ -964,7 +1070,6 @@ namespace SongRequestManager
                 //          !decklist/setflags SUB
                 //          !lookup/sethelp usage: %alias%<song name or id>
                 //
-
                 while (true)
                 {
                     string errormsg = ExecuteSubcommand();
@@ -987,18 +1092,17 @@ namespace SongRequestManager
 
                 if (botcmd.ChangedParameters != 0 && !botcmd.ChangedParameters.HasFlag(COMMAND.ChangedFlags.Saved))
                 {
-                    COMMAND.WriteCommandConfiguration();
+                    if (COMMAND.Loading==false) COMMAND.WriteCommandConfiguration();
                     botcmd.ChangedParameters |= COMMAND.ChangedFlags.Saved;
                 }
 
                 if (botcmd.Flags.HasFlag(CmdFlags.Disabled) || flags.HasFlag(CmdFlags.Disabled)) return; // Disabled commands fail silently
 
-
                 // Check permissions first
 
                 bool allow = HasRights(ref botcmd, ref user,flags);
 
-                if (!allow && !botcmd.Flags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.displayName.ToLower()))
+                if (!allow && !botcmd.Flags.HasFlag(CmdFlags.BypassRights) && !listcollection.contains(ref botcmd.permittedusers, user.DisplayName.ToLower()))
                 {
                     CmdFlags twitchpermission = botcmd.Flags & CmdFlags.TwitchLevel;
                     if (!botcmd.Flags.HasFlag(CmdFlags.SilentCheck)) Instance?.QueueChatMessage($"{command} is restricted to {twitchpermission.ToString()}");
@@ -1021,7 +1125,7 @@ namespace SongRequestManager
 
                 try
                 {
-                    string errormsg = botcmd.Execute(this); // Call the command
+                    string errormsg = await botcmd.Execute(this); // Call the command
                     if (errormsg != "" && !flags.HasFlag(CmdFlags.SilentError))
                     {
                         Instance.QueueChatMessage(errormsg);
@@ -1035,10 +1139,17 @@ namespace SongRequestManager
             }
 
 
+            public static string GetCommand(ref string request)
+            {
+                int commandlength = 0;
+                // This is a replacement for the much simpler Split code. It was changed to support /fakerest parameters, and sloppy users ... ie: !add4334-333 should now work, so should !command/flags
+                while (commandlength < request.Length && (request[commandlength] != '=' && request[commandlength] != '/' && request[commandlength] != ' ')) commandlength++;  // Command name ends with #... for now, I'll clean up some more later    
+                if (commandlength == 0) return "";
+                return request.Substring(0, commandlength).ToLower();
+            }
 
             public ParseState ParseCommand()
             {
-
                 // Notes for later.
                 //var match = Regex.Match(request, "^!(?<command>[^ ^/]*?<parameter>.*)");
                 //string username = match.Success ? match.Groups["command"].Value : null;
@@ -1066,10 +1177,9 @@ namespace SongRequestManager
                         Plugin.Log(ex.ToString());
                     }
                 }
+
                 return this;
-
             }
-
         }
 
         // A much more general solution for extracting dymatic values into a text string. If we need to convert a text message to one containing local values, but the availability of those values varies by calling location
@@ -1087,6 +1197,15 @@ namespace SongRequestManager
         // Get help on a command
         private string help(ParseState state)
         {
+            if (!RequestBot.HasPermission(state.user, RequestBotConfig.Instance.ShowHelpPermissionLevel))
+            {
+                if (RequestBotConfig.Instance.ShowPermissionLevelRequiredInChat)
+                {
+                    QueueChatMessage(RequestBot.ConstructStringForPermissionLevel(RequestBotConfig.Instance.ShowHelpPermissionLevel) + "\n");
+                }
+                QueueChatMessage(RequestBotConfig.Instance.PermissionLevelNotAcceptedText);
+                return success;
+            }
             if (state.parameter == "")
             {
                 var msg = new QueueLongMessage();
@@ -1124,10 +1243,11 @@ namespace SongRequestManager
             if (flags.HasFlag(CmdFlags.Local)) return true;
             if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return false;
             if (botcmd.Flags.HasFlag(CmdFlags.Everyone)) return true; // Not sure if this is the best approach actually, not worth thinking about right now
-            if (user.isBroadcaster & botcmd.Flags.HasFlag(CmdFlags.Broadcaster)) return true;
-            if (user.isMod & botcmd.Flags.HasFlag(CmdFlags.Mod)) return true;
-            if (user.isSub & botcmd.Flags.HasFlag(CmdFlags.Sub)) return true;
-            if (user.isVip & botcmd.Flags.HasFlag(CmdFlags.VIP)) return true;
+            if (user.IsModerator & RequestBotConfig.Instance.ModFullRights) return true;
+            if (user.IsBroadcaster & botcmd.Flags.HasFlag(CmdFlags.Broadcaster)) return true;
+            if (user.IsModerator & botcmd.Flags.HasFlag(CmdFlags.Mod)) return true;
+            if (user.IsSubscriber & botcmd.Flags.HasFlag(CmdFlags.Sub)) return true;
+            if (user.IsVip & botcmd.Flags.HasFlag(CmdFlags.VIP)) return true;
             return false;
 
         }

@@ -1,0 +1,329 @@
+diff --git a/EnhancedTwitchIntegration/Bot/RequestBot.cs b/EnhancedTwitchIntegration/Bot/RequestBot.cs
+index cf604dc..9c14c6c 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestBot.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestBot.cs
+@@ -84,7 +84,7 @@ namespace SongRequestManager
+         internal static void SRMButtonPressed()
+         {
+             var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
+-            soloFlow.InvokePrivateMethod("PresentFlowCoordinator", _flowCoordinator, null, false, false);
++            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("PresentFlowCoordinator", _flowCoordinator, null, false, false);
+         }
+ 
+         internal static void SetTitle(string title)
+diff --git a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+index beebae3..e4c8c72 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+@@ -131,8 +131,8 @@ namespace SongRequestManager
+                 _songListTableView.gameObject.AddComponent<RectMask2D>();
+                 _songListTableView.transform.SetParent(container, false);
+ 
+-                _songListTableView.SetPrivateField("_preallocatedCells", new TableView.CellsGroup[0]);
+-                _songListTableView.SetPrivateField("_isInitialized", false);
++                _songListTableView.SetField("_preallocatedCells", new TableView.CellsGroup[0]);
++                _songListTableView.SetField("_isInitialized", false);
+ 
+                 var viewport = new GameObject("Viewport").AddComponent<RectTransform>();
+                 viewport.SetParent(go.GetComponent<RectTransform>(), false);
+@@ -141,7 +141,7 @@ namespace SongRequestManager
+                 (viewport.transform as RectTransform).anchorMax = new Vector2(1, 1);
+                 go.GetComponent<ScrollRect>().viewport = viewport;
+ 
+-                _songListTableView.InvokePrivateMethod("Init");
++                _songListTableView.InvokeMethod<object, TableView>("Init");
+ 
+                 _songListTableView.dataSource = this;
+ 
+@@ -159,7 +159,7 @@ namespace SongRequestManager
+                 rectTransform.sizeDelta = new Vector2(74f, 0f);
+                 rectTransform.pivot = new Vector2(0.4f, 0.5f);
+ 
+-                var _songListTableViewScroller = _songListTableView.GetPrivateField<TableViewScroller>("_scroller");
++                var _songListTableViewScroller = _songListTableView.GetField<TableViewScroller, TableView>("_scroller");
+ 
+                 _pageUpButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().Last(x => (x.name == "PageUpButton")), container, false);
+                 (_pageUpButton.transform as RectTransform).anchoredPosition = new Vector2(0f, 35f);
+@@ -519,7 +519,7 @@ namespace SongRequestManager
+         {
+             LevelListTableCell _tableCell = Instantiate(_requestListTableCellInstance);
+             _tableCell.reuseIdentifier = "RequestBotFriendCell";
+-            _tableCell.SetPrivateField("_bought", true);
++            _tableCell.SetField("_bought", true);
+ 
+             SongRequest request = SongInfoForRow(row);
+             SetDataFromLevelAsync(request, _tableCell, row);
+@@ -530,7 +530,7 @@ namespace SongRequestManager
+ 
+         private async void SetDataFromLevelAsync(SongRequest request, LevelListTableCell _tableCell, int row)
+         {
+-            var favouritesBadge = _tableCell.GetPrivateField<RawImage>("_favoritesBadgeImage");
++            var favouritesBadge = _tableCell.GetField<RawImage, LevelListTableCell>("_favoritesBadgeImage");
+             favouritesBadge.enabled = false;
+ 
+             bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
+@@ -540,17 +540,17 @@ namespace SongRequestManager
+             var hasMessage = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
+             var isChallenge = request.requestInfo.IndexOf("!challenge", StringComparison.OrdinalIgnoreCase) >= 0;
+ 
+-            var beatmapCharacteristicImages = _tableCell.GetPrivateField<UnityEngine.UI.Image[]>("_beatmapCharacteristicImages"); // NEW VERSION
++            var beatmapCharacteristicImages = _tableCell.GetField<UnityEngine.UI.Image[], LevelListTableCell>("_beatmapCharacteristicImages"); // NEW VERSION
+             foreach (var i in beatmapCharacteristicImages) i.enabled = false;
+             
+             // causing a nullex?
+-            _tableCell.SetPrivateField("_beatmapCharacteristicAlphas", new float[5] { 1f, 1f, 1f, 1f, 1f });
++            //_tableCell.SetField("_beatmapCharacteristicAlphas", new float[5] { 1f, 1f, 1f, 1f, 1f });
+ 
+             // set message icon if request has a message // NEW VERSION
+             if (hasMessage)
+             {
+-                beatmapCharacteristicImages.First().sprite = Base64Sprites.InfoIcon;
+-                beatmapCharacteristicImages.First().enabled = true;
++                beatmapCharacteristicImages.Last().sprite = Base64Sprites.InfoIcon;
++                beatmapCharacteristicImages.Last().enabled = true;
+             }
+ 
+             // set challenge icon if song is a challenge
+@@ -571,15 +571,15 @@ namespace SongRequestManager
+             dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
+             dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
+ 
+-            var songName = _tableCell.GetPrivateField<TextMeshProUGUI>("_songNameText");
++            var songName = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songNameText");
+             //songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>";
+             songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size>"; // NEW VERSION
+ 
+-            var author = _tableCell.GetPrivateField<TextMeshProUGUI>("_authorText");
++            var author = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_authorText");
+ 
+             author.text = dt.Parse(RequestBot.QueueListRow2);
+ 
+-            var image = _tableCell.GetPrivateField<RawImage>("_coverRawImage");
++            var image = _tableCell.GetField<RawImage, LevelListTableCell>("_coverRawImage");
+             var imageSet = false;
+ 
+             if (SongCore.Loader.AreSongsLoaded)
+diff --git a/EnhancedTwitchIntegration/Bot/RequestFlowCoordinator.cs b/EnhancedTwitchIntegration/Bot/RequestFlowCoordinator.cs
+index 39240ad..ebebb4c 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestFlowCoordinator.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestFlowCoordinator.cs
+@@ -36,7 +36,7 @@ namespace SongRequestManager
+         {
+             // dismiss ourselves
+             var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
+-            soloFlow.InvokePrivateMethod("DismissFlowCoordinator", this, null, false);
++            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("DismissFlowCoordinator", this, null, false);
+         }
+ 
+         public void Dismiss()
+diff --git a/EnhancedTwitchIntegration/Plugin.cs b/EnhancedTwitchIntegration/Plugin.cs
+index a71d1bb..849e11f 100644
+--- a/EnhancedTwitchIntegration/Plugin.cs
++++ b/EnhancedTwitchIntegration/Plugin.cs
+@@ -3,18 +3,17 @@ using IPALogger = IPA.Logging.Logger;
+ using System;
+ using System.IO;
+ using System.Runtime.CompilerServices;
+-using UnityEngine.SceneManagement;
+ using SongRequestManager.UI;
+ using BeatSaberMarkupLanguage.Settings;
+-using SongBrowser;
+ using IPA.Utilities;
+ 
+ namespace SongRequestManager
+ {
+-    public class Plugin : IBeatSaberPlugin
++    [Plugin(RuntimeOptions.SingleStartInit)]
++    public class Plugin
+     {
+         public string Name => "Song Request Manager";
+-        public static SemVer.Version Version => IPA.Loader.PluginManager.GetPluginFromId("SongRequestManager").Metadata.Version;
++        public static SemVer.Version Version => IPA.Loader.PluginManager.GetPluginFromId("SongRequestManager").Version;
+ 
+         public static IPALogger Logger { get; internal set; }
+ 
+@@ -29,7 +28,8 @@ namespace SongRequestManager
+         public static string DataPath = Path.Combine(Environment.CurrentDirectory, "UserData", "StreamCore");
+         public static bool SongBrowserPluginPresent;
+ 
+-        public void Init(object thisIsNull, IPALogger log)
++        [Init]
++        public void Init(IPALogger log)
+         {
+             Logger = log;
+         }
+@@ -42,7 +42,8 @@ namespace SongRequestManager
+             Logger.Info($"[SongRequestManager] {Path.GetFileName(file)}->{member}({line}): {text}");
+         }
+ 
+-        public void OnApplicationStart()
++        [OnStart]
++        public void OnStart()
+         {
+             if (Instance != null) return;
+             Instance = this;
+@@ -80,7 +81,7 @@ namespace SongRequestManager
+         {
+             if (SongBrowserPluginPresent)
+             {
+-                var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
++                var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetField<SongBrowser.UI.SongBrowserUI, SongBrowser.SongBrowserApplication>("_songBrowserUI");
+                 if (_songBrowserUI)
+                 {
+                     if (_songBrowserUI.Model.Settings.filterMode != SongBrowser.DataAccess.SongFilterMode.None && _songBrowserUI.Model.Settings.sortMode != SongBrowser.DataAccess.SongSortMode.Original)
+@@ -95,39 +96,10 @@ namespace SongRequestManager
+             }
+         }
+ 
+-        #region Unused IBeatSaberPlugin methods
+-        public void OnSceneLoaded(Scene arg0, LoadSceneMode arg1)
+-        {
+-        }
+-
+-        public void OnApplicationQuit()
++        [OnExit]
++        public void OnExit()
+         {
+             IsApplicationExiting = true;
+         }
+-
+-        public void OnActiveSceneChanged(Scene from, Scene to)
+-        {
+-        }
+-
+-        public void OnLevelWasLoaded(int level)
+-        {
+-        }
+-
+-        public void OnLevelWasInitialized(int level)
+-        {
+-        }
+-
+-        public void OnFixedUpdate()
+-        {
+-        }
+-
+-        public void OnUpdate()
+-        {
+-        }
+-
+-        public void OnSceneUnloaded(Scene scene)
+-        {
+-        }
+-        #endregion
+     }
+ }
+diff --git a/EnhancedTwitchIntegration/SongRequestManager.csproj b/EnhancedTwitchIntegration/SongRequestManager.csproj
+index 8380a7c..b033040 100644
+--- a/EnhancedTwitchIntegration/SongRequestManager.csproj
++++ b/EnhancedTwitchIntegration/SongRequestManager.csproj
+@@ -52,11 +52,11 @@
+     <Reference Include="IPA.Loader">
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
+     </Reference>
+-    <Reference Include="MainAssembly">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\MainAssembly.dll</HintPath>
++    <Reference Include="Main">
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Main.dll</HintPath>
+     </Reference>
+-    <Reference Include="SemVer.1.2.0.0">
+-      <HintPath>..\..\..\..\..\..\beatsaber\Libs\SemVer.1.2.0.0.dll</HintPath>
++    <Reference Include="SemVer">
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Libs\SemVer.dll</HintPath>
+     </Reference>
+     <Reference Include="SongBrowser">
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
+@@ -169,6 +169,6 @@
+     </PreBuildEvent>
+   </PropertyGroup>
+   <PropertyGroup>
+-    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
++    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Games\Steam\steamapps\common\Beat Saber\Plugins"</PostBuildEvent>
+   </PropertyGroup>
+ </Project>
+\ No newline at end of file
+diff --git a/EnhancedTwitchIntegration/UI/SongListUtils.cs b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+index 8d5bcab..f6e3ac2 100644
+--- a/EnhancedTwitchIntegration/UI/SongListUtils.cs
++++ b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+@@ -43,7 +43,7 @@ namespace SongRequestManager
+         private enum SongBrowserAction { ResetFilter = 1 }
+         private static void ExecuteSongBrowserAction(SongBrowserAction action)
+         {
+-            //var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetPrivateField<SongBrowser.UI.SongBrowserUI>("_songBrowserUI");
++            //var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetField<SongBrowser.UI.SongBrowserUI, SongBrowser.SongBrowserApplication>("_songBrowserUI");
+             //if (_songBrowserUI)
+             //{
+             //    if (action.HasFlag(SongBrowserAction.ResetFilter))
+@@ -118,7 +118,7 @@ namespace SongRequestManager
+             var _levelFilteringNavigationController = Resources.FindObjectsOfTypeAll<LevelFilteringNavigationController>().First();
+ 
+             // get the tab bar
+-            var _tabBarViewController = _levelFilteringNavigationController.GetPrivateField<TabBarViewController>("_tabBarViewController");
++            var _tabBarViewController = _levelFilteringNavigationController.GetField<TabBarViewController, LevelFilteringNavigationController>("_tabBarViewController");
+ 
+             if (_tabBarViewController.selectedCellNumber != 3)
+             {
+@@ -131,16 +131,16 @@ namespace SongRequestManager
+             else
+             {
+                 // get the annotated view controller
+-                var _annotatedBeatmapLevelCollectionsViewController = _levelFilteringNavigationController.GetPrivateField<PlaylistsViewController>("_annotatedBeatmapLevelCollectionsViewController");
++                var _annotatedBeatmapLevelCollectionsViewController = _levelFilteringNavigationController.GetField<AnnotatedBeatmapLevelCollectionsViewController, LevelFilteringNavigationController>("_annotatedBeatmapLevelCollectionsViewController");
+ 
+                 // check if the first element is selected (whichi is custom maps)
+-                if (_annotatedBeatmapLevelCollectionsViewController.selectedPlaylistNumber != 0)
++                if (_annotatedBeatmapLevelCollectionsViewController.selectedItemIndex != 0)
+                 {
+                     // get the table view
+-                    var _playlistsTableView = _annotatedBeatmapLevelCollectionsViewController.GetPrivateField<PlaylistsTableView>("_playlistsTableView");
++                    var _playlistsTableView = _annotatedBeatmapLevelCollectionsViewController.GetField<AnnotatedBeatmapLevelCollectionsTableView, AnnotatedBeatmapLevelCollectionsViewController>("_playlistsTableView");
+ 
+                     // get the tableview to select custom songs
+-                    var _tableView = _playlistsTableView.GetPrivateField<TableView>("_tableView");
++                    var _tableView = _playlistsTableView.GetField<TableView, AnnotatedBeatmapLevelCollectionsTableView>("_tableView");
+                     _tableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Center, false);
+                     _tableView.SelectCellWithIdx(0, true);
+                 }
+@@ -184,16 +184,16 @@ namespace SongRequestManager
+                 int songIndex = 0;
+ 
+                 // get the table view
+-                var levelsTableView = _levelCollectionViewController.GetPrivateField<LevelCollectionTableView>("_levelCollectionTableView");
++                var levelsTableView = _levelCollectionViewController.GetField<LevelCollectionTableView, LevelCollectionViewController>("_levelCollectionTableView");
+ 
+                 //RequestBot.Instance.QueueChatMessage($"selecting song: {levelID} pack: {packIndex}");
+                 yield return null;
+ 
+                 // get the table view
+-                var tableView = levelsTableView.GetPrivateField<TableView>("_tableView");
++                var tableView = levelsTableView.GetField<TableView, LevelCollectionTableView>("_tableView");
+ 
+                 // get list of beatmaps, this is pre-sorted, etc
+-                var beatmaps = levelsTableView.GetPrivateField<IPreviewBeatmapLevel[]>("_previewBeatmapLevels").ToList();
++                var beatmaps = levelsTableView.GetField<IPreviewBeatmapLevel[], LevelCollectionTableView>("_previewBeatmapLevels").ToList();
+ 
+                 // get the row number for the song we want
+                 songIndex = beatmaps.FindIndex(x => (x.levelID.Split('_')[2] == levelID));
+@@ -202,7 +202,7 @@ namespace SongRequestManager
+                 if (songIndex >= 0)
+                 {
+                     // if header is being shown, increment row
+-                    if (levelsTableView.GetPrivateField<bool>("_showLevelPackHeader"))
++                    if (levelsTableView.GetField<bool, LevelCollectionTableView>("_showLevelPackHeader"))
+                     {
+                         songIndex++;
+                     }
+diff --git a/EnhancedTwitchIntegration/UI/UIHelper.cs b/EnhancedTwitchIntegration/UI/UIHelper.cs
+index a3e4a01..6e662de 100644
+--- a/EnhancedTwitchIntegration/UI/UIHelper.cs
++++ b/EnhancedTwitchIntegration/UI/UIHelper.cs
+@@ -15,7 +15,7 @@ namespace SongRequestManager.UI
+             var hoverHint = parent.gameObject.AddComponent<HoverHint>();
+             hoverHint.text = text;
+             var hoverHintController = Resources.FindObjectsOfTypeAll<HoverHintController>().First();
+-            hoverHint.SetPrivateField("_hoverHintController", hoverHintController);
++            hoverHint.SetField("_hoverHintController", hoverHintController);
+             return hoverHint;
+         }
+ 
