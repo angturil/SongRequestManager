@@ -1113,10 +1113,10 @@ namespace SongRequestManager
             // Spell this out in as clearly as possible because the cmd flag values could change
             // This could easily be made much smaller and probably more efficient
             int userPermission = 1;
-            if (inputUser.isSub) { userPermission |= (int)CmdFlags.Sub; }
-            if (inputUser.isMod) { userPermission |= (int)CmdFlags.Mod; }
-            if (inputUser.isBroadcaster) { userPermission |= (int)CmdFlags.Broadcaster; }
-            if (inputUser.isVip) { userPermission |= (int)CmdFlags.VIP; }
+            if (inputUser.IsSubscriber) { userPermission |= (int)CmdFlags.Sub; }
+            if (inputUser.IsModerator) { userPermission |= (int)CmdFlags.Mod; }
+            if (inputUser.IsBroadcaster) { userPermission |= (int)CmdFlags.Broadcaster; }
+            if (inputUser.IsVip) { userPermission |= (int)CmdFlags.VIP; }
             return userPermission;
         }
 
