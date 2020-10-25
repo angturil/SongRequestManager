@@ -16,12 +16,12 @@ namespace SongRequestManager
         // BUG: This one needs to be cleaned up a lot imo
         // BUG: This file needs to be split up a little, but not just yet... Its easier for me to move around in one massive file, since I can see the whole thing at once. 
 
-        static StringBuilder AddSongToQueueText = new StringBuilder( "Request %songName% %songSubName%/%authorName% %Rating% (%version%) added to queue.");
-        static StringBuilder LookupSongDetail= new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%)");
+        static StringBuilder AddSongToQueueText = new StringBuilder( "Request %songName% %songSubName%/%authorName% %Rating% %PP% (%version%) added to queue.");
+        static StringBuilder LookupSongDetail= new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% %PP% (%version%)");
         static StringBuilder BsrSongDetail=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%)");
         static StringBuilder LinkSonglink=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%) %BeatsaverLink%");
         static StringBuilder NextSonglink=new StringBuilder ("%songName% %songSubName%/%authorName% %Rating% (%version%) requested by %user% is next.");
-        static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%LF%<size=60%>Request Time: %RequestTime%</size>");
+        static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%PP%%LF%<size=60%>Request Time: %RequestTime%</size>");
         static StringBuilder QueueTextFileFormat=new StringBuilder ("%songName%%LF%");         // Don't forget to include %LF% for these. 
 
         static public StringBuilder QueueListRow2 = new StringBuilder("%authorName% (%id%) <color=white>%songlength%</color>");
@@ -190,11 +190,14 @@ namespace SongRequestManager
 
         // Returns error text if filter triggers, or "" otherwise, "fast" version returns X if filter triggers
 
-        [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, Duration=64,NJS=128,All = -1 };
+        [Flags] enum SongFilter { none = 0, Queue = 1, Blacklist = 2, Mapper = 4, Duplicate = 8, Remap = 16, Rating = 32, Duration=64,NJS=128,AutoMAP=256,All = -1 };
 
         private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.All) // BUG: This could be nicer
         {
             string songid = song["id"].Value;
+
+            //if (filter.HasFlag(SongFilter.AutoMAP) && song["automapper"].AsBool== true) return fast ? "X" : $"Automapper songs not allowed.";
+
             if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
 
             if (filter.HasFlag(SongFilter.Blacklist) && listcollection.contains(ref banlist,songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is banned!";

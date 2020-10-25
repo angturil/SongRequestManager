@@ -299,10 +299,16 @@ namespace SongRequestManager
 
                 }
 
+                bool resetsession = true;
+
                 try
                 {
                     TimeSpan PlayedAge = GetFileAgeDifference(playedfilename);
-                if (PlayedAge < TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours)) played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed 
+                    if (PlayedAge < TimeSpan.FromHours(RequestBotConfig.Instance.SessionResetAfterXHours))
+                    {
+                        resetsession = false;
+                        played = ReadJSON(playedfilename); // Read the songsplayed file if less than x hours have passed
+                    } 
                 }
                 catch (Exception ex)
                 {
@@ -317,7 +323,8 @@ namespace SongRequestManager
 
                 if (RequestBotConfig.Instance.LocalSearch) MapDatabase.LoadCustomSongs(); // This is a background process
 
-                RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
+                if (resetsession==false || RequestBotConfig.Instance.PersistentRequestQueue) RequestQueue.Read(); // Might added the timespan check for this too. To be decided later.
+   
                 RequestHistory.Read();
                 listcollection.OpenList("banlist.unique");
 
@@ -434,7 +441,11 @@ namespace SongRequestManager
             MapperAllowList(ChatHandler.Self, "mapper.list");
             accesslist("mapper.list");
 
-            loaddecks(ChatHandler.Self, ""); // Load our default deck collection
+            string dummy = "";
+
+            TwitchUser user = ChatHandler.Self;
+
+            loaddecks(new ParseState(ref user,ref dummy,CmdFlags.Silent,ref dummy)); // Load our default deck collection
             // BUG: Command failure observed once, no permission to use /chatcommand. Possible cause: OurTwitchUser isn't authenticated yet.
 
             RunScript(ChatHandler.Self, "startup.script"); // Run startup script. This can include any bot commands.
@@ -886,7 +897,7 @@ namespace SongRequestManager
                 #if UNRELEASED
                 if (!request.song.IsNull) // Experimental!
                 {
-                    ChatHandler.Send("marker "+ new DynamicText().AddUser(ref request.requestor).AddSong(request.song).Parse(NextSonglink.ToString()), true);
+                    //ChatHandler.Send("marker "+ new DynamicText().AddUser(ref request.requestor).AddSong(request.song).Parse("%version% songName%"), true);
                 }
                 #endif
             }
