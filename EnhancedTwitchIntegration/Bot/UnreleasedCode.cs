@@ -10,7 +10,7 @@ using UnityEngine.Networking;
 using TMPro;
 using System.Threading.Tasks;
 using ChatCore.Models.Twitch;
-using ChatCore.SimpleJSON;
+using ChatCore.Utilities;
 
 //using BeatBits;
 

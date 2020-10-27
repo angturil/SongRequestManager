@@ -41,18 +41,8 @@ Copy SongRequestManager.dll to your Beat Saber\Plugins folder, and install all o
 # Usage
 A song request icon will appear on the upper right of the main menu. It will be green if there are song requests in the queue, but you can press it regardless. Don't forget to Open the queue for requests when you are ready. It will stay that way until you close it again. The Open Queue button is on the lower right of the song request panel.
 
-# Setup
-Needs more documentation
-
 # Config
-The configuration files are located under UserData\EnhancedTwitchChat. RequestBotSettings.ini and TwitchLoginInfo.ini are the two files you need to adjust. *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values (**NOTE:** You will need to setup your channel info to be able to receive song requests.)
-
-# TwitchLoginInfo.ini
-| Option | Description |
-| - | - |
-| **TwitchChannelName** | The name of the Twitch channel whos chat you want to join (this is your Twitch username if you want to join your own channel) |
-| **TwitchUsername** | Your twitch username for the account you want to send messages as in chat (only matters if you're using the request bot) |
-| **TwitchOAuthToken** | The oauth token corresponding to the TwitchUsername entered above ([Click here to generate an oauth token](https://twitchapps.com/tmi/))  |
+The configuration files are located under UserData\SRM. RequestBotSettings.ini is the only file you need to adjust. *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values (**NOTE:** Be sure to configure ChatCore with your Twitch related settings so you will be able to receive song requests.)
 
 # RequestBotSettings.ini
 | Option | Description |

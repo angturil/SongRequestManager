@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using IPA.Utilities;
 
 namespace SongRequestManager
 {
@@ -47,7 +48,7 @@ namespace SongRequestManager
         public int maximumlookupmessages = 1;
 
         public string LastBackup = DateTime.MinValue.ToString();
-        public string backuppath = Path.Combine(Environment.CurrentDirectory, "userdata", "backup");
+        public string backuppath = Path.Combine(UnityGame.UserDataPath, "backup");
 
         public bool OfflineMode = false;
         public bool SavedatabaseOnNewest=false;

@@ -27,6 +27,7 @@ namespace SongRequestManager
             modal.Hide(true);
             OnConfirm?.Invoke();
             OnConfirm = null;
+            //modal.HandleBlockerButtonClicked();
         }
 
         [UIAction("no-click")]
@@ -35,6 +36,7 @@ namespace SongRequestManager
             modal.Hide(true);
             OnDecline?.Invoke();
             OnDecline = null;
+            //modal.HandleBlockerButtonClicked();
         }
 
         public void ShowDialog(string title, string message, Action onConfirm = null, Action onDecline = null)
@@ -46,6 +48,7 @@ namespace SongRequestManager
             OnDecline = onDecline;
 
             modal.Show(true);
+            //modal.CreateBlocker();
         }
 
         internal void Setup()

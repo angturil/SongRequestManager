@@ -25,9 +25,10 @@ namespace SongRequestManager
         public bool IsApplicationExiting = false;
         public static Plugin Instance { get; private set; }
         
-        private readonly RequestBotConfig RequestBotConfig = new RequestBotConfig();
+        private RequestBotConfig RequestBotConfig;
 
-        public static string DataPath = Path.Combine(Environment.CurrentDirectory, "UserData", "StreamCore");
+        public static string DataPath = Path.Combine(UnityGame.UserDataPath, "SRM");
+        public static string OldDataPath = Path.Combine(UnityGame.UserDataPath, "StreamCore");
         public static bool SongBrowserPluginPresent;
 
         [Init]
@@ -41,7 +42,7 @@ namespace SongRequestManager
                         [CallerMemberName] string member = "",
                         [CallerLineNumber] int line = 0)
         {
-            Logger.Info($"[SongRequestManager] {Path.GetFileName(file)}->{member}({line}): {text}");
+            Logger.Info($"{Path.GetFileName(file)}->{member}({line}): {text}");
         }
 
         [OnStart]
@@ -50,11 +51,21 @@ namespace SongRequestManager
             if (Instance != null) return;
             Instance = this;
 
-            // create playlists folder if needed
+            // create SRM UserDataFolder folder if needed, or rename old streamcore folder
             if (!Directory.Exists(DataPath))
             {
-                Directory.CreateDirectory(DataPath);
+                if (Directory.Exists(OldDataPath))
+                {
+                    Directory.Move(OldDataPath, DataPath);
+                }
+                else
+                {
+                    Directory.CreateDirectory(DataPath);
+                }
             }
+
+            // initialize config
+            RequestBotConfig = new RequestBotConfig();
 
             Dispatcher.Initialize();
 
@@ -68,7 +79,7 @@ namespace SongRequestManager
 
             // setup handle for fresh menu scene changes
             BS_Utils.Utilities.BSEvents.OnLoad();
-            BS_Utils.Utilities.BSEvents.menuSceneLoadedFresh += OnMenuSceneLoadedFresh;
+            BS_Utils.Utilities.BSEvents.lateMenuSceneLoadedFresh += OnLateMenuSceneLoadedFresh;
 
             // keep track of active scene
             BS_Utils.Utilities.BSEvents.menuSceneActive += () => { IsAtMainMenu = true; };
@@ -78,7 +89,7 @@ namespace SongRequestManager
             Base64Sprites.Init();
         }
 
-        private void OnMenuSceneLoadedFresh()
+        private void OnLateMenuSceneLoadedFresh(ScenesTransitionSetupDataSO scenesTransitionSetupData)
         {
             // setup settings ui
             BSMLSettings.instance.AddSettingsMenu("SRM", "SongRequestManager.Views.SongRequestManagerSettings.bsml", SongRequestManagerSettings.instance);

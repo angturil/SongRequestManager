@@ -7,7 +7,7 @@ using System.Text;
 using UnityEngine;
 using System.Threading.Tasks;
 using ChatCore.Models.Twitch;
-using ChatCore.SimpleJSON;
+using ChatCore.Utilities;
 
 namespace SongRequestManager
 {
@@ -24,7 +24,7 @@ namespace SongRequestManager
         static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%PP%%LF%<size=60%>Request Time: %RequestTime%</size>");
         static StringBuilder QueueTextFileFormat=new StringBuilder ("%songName%%LF%");         // Don't forget to include %LF% for these. 
 
-        static public StringBuilder QueueListRow2 = new StringBuilder("%authorName% (%id%) <color=white>%songlength%</color>");
+        static public StringBuilder QueueListRow2 = new StringBuilder("%authorName%");
 
         static StringBuilder BanSongDetail = new StringBuilder("Blocking %songName%/%authorName% (%version%)");
 

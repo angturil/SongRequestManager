@@ -1,12 +1,9 @@
-﻿using BeatSaverDownloader.UI;
-using HMUI;
+﻿using HMUI;
+using IPA.Utilities;
 using System;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
-using IPA.Utilities;
-using IPA.Loader;
-using SongCore;
 
 namespace SongRequestManager
 {
@@ -111,42 +108,69 @@ namespace SongRequestManager
             //    ScrollToLevel(selectedLevelId);
         }
 
-        private static int SelectCustomSongPack()
+        private static IEnumerator SelectCustomSongPack()
         {
-            // get the Level Filtering Nav Controller, the top bar
-            var _levelFilteringNavigationController = Resources.FindObjectsOfTypeAll<LevelFilteringNavigationController>().First();
+            // get the select Level category view controller
+            var selectLevelCategoryViewController = Resources.FindObjectsOfTypeAll<SelectLevelCategoryViewController>().First();
 
-            // get the tab bar
-            var _tabBarViewController = _levelFilteringNavigationController.GetField<TabBarViewController, LevelFilteringNavigationController>("_tabBarViewController");
+            Plugin.Log("1");
 
-            if (_tabBarViewController.selectedCellNumber != 3)
+            // check if the selected level category is the custom category
+            if (selectLevelCategoryViewController.selectedLevelCategory != SelectLevelCategoryViewController.LevelCategory.CustomSongs)
             {
-                // select the 4th item, whichi is custom songs
-                _tabBarViewController.SelectItem(3);
+                // get the icon segmented controller
+                var iconSegmentedControl = selectLevelCategoryViewController.GetField<IconSegmentedControl, SelectLevelCategoryViewController>("_levelFilterCategoryIconSegmentedControl");
 
-                // trigger a switch and reload
-                _levelFilteringNavigationController.InvokeMethod<object, LevelFilteringNavigationController>("TabBarDidSwitch");
+                Plugin.Log("2");
+
+                // get the current level categories listed
+                var levelCategoryInfos = selectLevelCategoryViewController.GetField<SelectLevelCategoryViewController.LevelCategoryInfo[], SelectLevelCategoryViewController>("_levelCategoryInfos").ToList();
+
+                Plugin.Log("3");
+
+                // get the index of the custom category
+                var idx = levelCategoryInfos.FindIndex(lci => lci.levelCategory == SelectLevelCategoryViewController.LevelCategory.CustomSongs);
+
+                Plugin.Log($"3 - {idx}");
+
+                // select the custom category
+                iconSegmentedControl.SelectCellWithNumber(idx);
+
+                // ge tthe level filtering nev controller
+                var levelFilteringNavigationController = Resources.FindObjectsOfTypeAll<LevelFilteringNavigationController>().First();
+
+                // update the content, as selecting the new cell alone won't always work
+                levelFilteringNavigationController.UpdateSecondChildControllerContent(SelectLevelCategoryViewController.LevelCategory.CustomSongs);
+
+                // arbitrary wait for catch-up
+                yield return new WaitForSeconds(0.1f);
             }
-            else
+
+            Plugin.Log("4");
+
+            // get the beatmap level collections controller
+            var annotatedBeatmapLevelCollectionsViewController = Resources.FindObjectsOfTypeAll<AnnotatedBeatmapLevelCollectionsViewController>().First();
+
+            Plugin.Log("5");
+
+            // check if the first element is selected
+            if (annotatedBeatmapLevelCollectionsViewController.selectedItemIndex != 0)
             {
-                // get the annotated view controller
-                var _annotatedBeatmapLevelCollectionsViewController = _levelFilteringNavigationController.GetField<AnnotatedBeatmapLevelCollectionsViewController, LevelFilteringNavigationController>("_annotatedBeatmapLevelCollectionsViewController");
+                Plugin.Log("6");
 
-                // check if the first element is selected (whichi is custom maps)
-                if (_annotatedBeatmapLevelCollectionsViewController.selectedItemIndex != 0)
-                {
-                    // get the table view
-                    var _playlistsTableView = _annotatedBeatmapLevelCollectionsViewController.GetField<AnnotatedBeatmapLevelCollectionsTableView, AnnotatedBeatmapLevelCollectionsViewController>("_playlistsTableView");
+                // get the level collection
+                var annotatedBeatmapLevelCollectionsTableView = annotatedBeatmapLevelCollectionsViewController.GetField<AnnotatedBeatmapLevelCollectionsTableView, AnnotatedBeatmapLevelCollectionsViewController>("_annotatedBeatmapLevelCollectionsTableView");
 
-                    // get the tableview to select custom songs
-                    var _tableView = _playlistsTableView.GetField<TableView, AnnotatedBeatmapLevelCollectionsTableView>("_tableView");
-                    _tableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Center, false);
-                    _tableView.SelectCellWithIdx(0, true);
-                }
+                Plugin.Log("7");
+
+                // select the first element
+                annotatedBeatmapLevelCollectionsTableView.SelectAndScrollToCellWithIdx(0);
             }
 
-            // first element is custom maps
-            return 0;
+            // arbitrary wait for catch-up
+            yield return new WaitForSeconds(0.1f);
+
+            Plugin.Log("Done");
         }
 
         //public static SongCore.OverrideClasses.SongCoreCustomLevelCollection BeatSaverDownloaderGetLevelPackWithLevels()
@@ -176,7 +200,7 @@ namespace SongRequestManager
                 }
 
                 // Make sure our custom songpack is selected
-                var packIndex = SelectCustomSongPack();
+                yield return SelectCustomSongPack();
 
                 yield return null;
 
@@ -223,11 +247,15 @@ namespace SongRequestManager
                         {
                             // disable no fail gamepaly modifier
                             var gameplayModifiersPanelController = Resources.FindObjectsOfTypeAll<GameplayModifiersPanelController>().First();
-                            gameplayModifiersPanelController.gameplayModifiers.noFail = false;
- 
-                            //gameplayModifiersPanelController.gameplayModifiers.ResetToDefault();
-
-                            gameplayModifiersPanelController.Refresh();
+                            var gamePlayModifierToggles = gameplayModifiersPanelController.GetField<GameplayModifierToggle[], GameplayModifiersPanelController>("_gameplayModifierToggles");
+                            foreach (var gamePlayModifierToggle in gamePlayModifierToggles)
+                            {
+                                if (gamePlayModifierToggle.gameplayModifier.modifierNameLocalizationKey == "MODIFIER_NO_FAIL")
+                                {
+                                    gameplayModifiersPanelController.SetToggleValueWithGameplayModifierParams(gamePlayModifierToggle.gameplayModifier, false);
+                                }
+                            }
+                            gameplayModifiersPanelController.RefreshTotalMultiplierAndRankUI();
                         }
                         catch
                         { }

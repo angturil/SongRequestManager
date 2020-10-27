@@ -10,6 +10,9 @@ using SongRequestManager.UI;
 using IPA.Utilities;
 using BeatSaberMarkupLanguage;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using VRUIControls;
+using Object = System.Object;
 
 namespace SongRequestManager
 {
@@ -34,6 +37,9 @@ namespace SongRequestManager
 
         private TextMeshProUGUI _CurrentSongName;
         private TextMeshProUGUI _CurrentSongName2;
+
+        private RequestFlowCoordinator RequestFlowCoordinator;
+        private SimpleDialogPromptViewController _dialog;
 
         private HoverHint _historyHintText;
 
@@ -99,7 +105,7 @@ namespace SongRequestManager
 
         static public SongRequest currentsong = null;
 
-        protected override void DidActivate(bool firstActivation, ActivationType type)
+        protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
         {
             if (firstActivation)
             {
@@ -118,13 +124,16 @@ namespace SongRequestManager
 
                 RectTransform container = new GameObject("RequestBotContainer", typeof(RectTransform)).transform as RectTransform;
                 container.SetParent(rectTransform, false);
-                container.sizeDelta = new Vector2(60f, 0f);
 
                 #region TableView Setup and Initialization
                 var go = new GameObject("SongRequestTableView", typeof(RectTransform));
                 go.SetActive(false);
+
+                go.AddComponent<ScrollRect>();
+                go.AddComponent<Touchable>();
+
                 _songListTableView = go.AddComponent<TableView>();
-                _songListTableView.gameObject.AddComponent<RectMask2D>();
+                go.AddComponent<RectMask2D>();
                 _songListTableView.transform.SetParent(container, false);
 
                 _songListTableView.SetField("_preallocatedCells", new TableView.CellsGroup[0]);
@@ -132,42 +141,38 @@ namespace SongRequestManager
 
                 var viewport = new GameObject("Viewport").AddComponent<RectTransform>();
                 viewport.SetParent(go.GetComponent<RectTransform>(), false);
-                (viewport.transform as RectTransform).sizeDelta = new Vector2(0, 0);
-                (viewport.transform as RectTransform).anchorMin = new Vector2(0, 0);
-                (viewport.transform as RectTransform).anchorMax = new Vector2(1, 1);
                 go.GetComponent<ScrollRect>().viewport = viewport;
 
-                _songListTableView.InvokeMethod<object, TableView>("Init");
+                (viewport.transform as RectTransform).sizeDelta = new Vector2(70f, 70f);
 
-                _songListTableView.dataSource = this;
+                _songListTableView.SetDataSource(this, false);
+
+                _songListTableView.LazyInit();
 
                 go.SetActive(true);
 
-                (_songListTableView.transform as RectTransform).anchorMin = new Vector2(0f, 0f);
-                (_songListTableView.transform as RectTransform).anchorMax = new Vector2(1f, 1f);
-                (_songListTableView.transform as RectTransform).sizeDelta = new Vector2(0f, 60f);
-                (_songListTableView.transform as RectTransform).anchoredPosition = new Vector2(0f, -3f);
+                (_songListTableView.transform as RectTransform).sizeDelta = new Vector2(70f, 70f);
+                (_songListTableView.transform as RectTransform).anchoredPosition = new Vector2(3f, 0f);
 
                 _songListTableView.didSelectCellWithIdxEvent += DidSelectRow;
 
-                rectTransform.anchorMin = new Vector2(0.5f, 0f);
-                rectTransform.anchorMax = new Vector2(0.5f, 1f);
-                rectTransform.sizeDelta = new Vector2(74f, 0f);
-                rectTransform.pivot = new Vector2(0.4f, 0.5f);
-
-                var _songListTableViewScroller = _songListTableView.GetField<TableViewScroller, TableView>("_scroller");
+                var _songListTableViewScroller = _songListTableView.GetField<TableViewScroller, TableView>("scroller");
 
                 _pageUpButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().Last(x => (x.name == "PageUpButton")), container, false);
-                (_pageUpButton.transform as RectTransform).anchoredPosition = new Vector2(0f, 35f);
+                (_pageUpButton.transform as RectTransform).anchoredPosition = new Vector2(3f, -14f);
+                (_pageUpButton.transform as RectTransform).sizeDelta = new Vector2(-30f, 6f);
                 _pageUpButton.interactable = true;
+                _pageUpButton.name = "SRMPageUpButton";
                 _pageUpButton.onClick.AddListener(delegate ()
                 {
                     _songListTableViewScroller.PageScrollUp();
                 });
 
                 _pageDownButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "PageDownButton")), container, false);
-                (_pageDownButton.transform as RectTransform).anchoredPosition = new Vector2(0f, -41f);
+                (_pageDownButton.transform as RectTransform).anchoredPosition = new Vector2(3f, 14f);
+                (_pageDownButton.transform as RectTransform).sizeDelta = new Vector2(-30f, 6f);
                 _pageDownButton.interactable = true;
+                _pageDownButton.name = "SRMPageDownButton";
                 _pageDownButton.onClick.AddListener(delegate ()
                 {
                     _songListTableViewScroller.PageScrollDown();
@@ -209,154 +214,151 @@ namespace SongRequestManager
 
                 #region History button
                 // History button
-                _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
+                _historyButton = UIHelper.CreateUIButton("SRMHistory", container, "PracticeButton", new Vector2(53f, 30f),
+                    new Vector2(25f, 15f),
+                    () =>
+                    {
+                        isShowingHistory = !isShowingHistory;
+                        RequestBot.SetTitle(isShowingHistory ? "Song Request History" : "Song Request Queue");
+                        UpdateRequestUI(true);
+                        SetUIInteractivity();
+                        _lastSelection = -1;
+                        if (NumberOfCells() > 0)
+                        {
+                            _songListTableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Beginning, false);
+                            _songListTableView.SelectCellWithIdx(0);
+                        }
+                    }, "History");
+
                 _historyButton.ToggleWordWrapping(false);
-                (_historyButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 30f);
-                _historyButton.SetButtonText("History");
-                _historyButton.onClick.RemoveAllListeners();
-                _historyButton.onClick.AddListener(delegate ()
-                {
-                    isShowingHistory = !isShowingHistory;
-                    RequestBot.SetTitle(isShowingHistory ? "Song Request History" : "Song Request Queue");
-                    UpdateRequestUI(true);
-                    SetUIInteractivity();
-                    _lastSelection = -1;
-                });
                 _historyHintText = UIHelper.AddHintText(_historyButton.transform as RectTransform, "");
                 #endregion
 
                 #region Blacklist button
                 // Blacklist button
-                _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
-                _blacklistButton.ToggleWordWrapping(false);
-                (_blacklistButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 10f);
-                _blacklistButton.SetButtonText("Blacklist");
-                //_blacklistButton.GetComponentInChildren<Image>().color = Color.red;
-                _blacklistButton.onClick.RemoveAllListeners();
-                _blacklistButton.onClick.AddListener(delegate ()
-                {
-                    if (NumberOfCells() > 0)
+                _blacklistButton = UIHelper.CreateUIButton("SRMBlacklist", container, "PracticeButton", new Vector2(53f, 10f),
+                    new Vector2(25f, 15f),
+                    () =>
                     {
-                        void _onConfirm()
+                        if (NumberOfCells() > 0)
                         {
-                            RequestBot.Blacklist(_selectedRow, isShowingHistory, true);
-                            if (_selectedRow > 0)
-                                _selectedRow--;
-                            confirmDialogActive = false;
+                            void _onConfirm()
+                            {
+                                RequestBot.Blacklist(_selectedRow, isShowingHistory, true);
+                                if (_selectedRow > 0)
+                                    _selectedRow--;
+                                confirmDialogActive = false;
+                            }
+
+                            // get song
+                            var song = SongInfoForRow(_selectedRow).song;
+
+                            // indicate dialog is active
+                            confirmDialogActive = true;
+
+                            // show dialog
+                            YesNoModal.instance.ShowDialog("Blacklist Song Warning", $"Blacklisting {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?", _onConfirm, () => { confirmDialogActive = false; });
                         }
+                    }, "Blacklist");
 
-                        // get song
-                        var song = SongInfoForRow(_selectedRow).song;
-
-                        // indicate dialog is active
-                        confirmDialogActive = true;
-
-                        // show dialog
-                        YesNoModal.instance.ShowDialog("Blacklist Song Warning", $"Blacklisting {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?", _onConfirm, () => { confirmDialogActive = false; });
-                    }
-                });
+                _blacklistButton.ToggleWordWrapping(false);
                 UIHelper.AddHintText(_blacklistButton.transform as RectTransform, "Block the selected request from being queued in the future.");
                 #endregion
 
                 #region Skip button
                 // Skip button
-                _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
-                _skipButton.ToggleWordWrapping(false);
-                (_skipButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 0f);
-                _skipButton.SetButtonText("Skip");
-                //_skipButton.GetComponentInChildren<Image>().color = Color.yellow;
-                _skipButton.onClick.RemoveAllListeners();
-                _skipButton.onClick.AddListener(delegate ()
-                {
-                    if (NumberOfCells() > 0)
+                _skipButton = UIHelper.CreateUIButton("SRMSkip", container, "PracticeButton", new Vector2(53f, 0f),
+                    new Vector2(25f, 15f),
+                    () =>
                     {
-                        void _onConfirm()
+                        if (NumberOfCells() > 0)
                         {
-                            // get selected song
-                            currentsong = SongInfoForRow(_selectedRow);
+                            // get song
+                            var song = SongInfoForRow(_selectedRow).song;
 
-                            // skip it
-                            RequestBot.Skip(_selectedRow);
-
-                            // select previous song if not first song
-                            if (_selectedRow > 0)
+                            void _onConfirm()
                             {
-                                _selectedRow--;
+                                // get selected song
+                                currentsong = SongInfoForRow(_selectedRow);
+
+                                // skip it
+                                RequestBot.Skip(_selectedRow);
+
+                                // select previous song if not first song
+                                if (_selectedRow > 0)
+                                {
+                                    _selectedRow--;
+                                }
+
+                                // indicate dialog is no longer active
+                                confirmDialogActive = false;
                             }
 
-                            // indicate dialog is no longer active
-                            confirmDialogActive = false;
+                            // indicate dialog is active
+                            confirmDialogActive = true;
+
+                            // show dialog
+                            YesNoModal.instance.ShowDialog("Skip Song Warning", $"Skipping {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?", _onConfirm, () => { confirmDialogActive = false; });
                         }
+                    }, "Skip");
 
-                        // get song
-                        var song = SongInfoForRow(_selectedRow).song;
-
-                        // indicate dialog is active
-                        confirmDialogActive = true;
-
-                        // show dialog
-                        YesNoModal.instance.ShowDialog("Skip Song Warning", $"Skipping {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?", _onConfirm, () => { confirmDialogActive = false; });
-                    }
-                });
+                _skipButton.ToggleWordWrapping(false);
                 UIHelper.AddHintText(_skipButton.transform as RectTransform, "Remove the selected request from the queue.");
                 #endregion
 
                 #region Play button
                 // Play button
-                _playButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
-                _playButton.ToggleWordWrapping(false);
-                (_playButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -10f);
-                _playButton.SetButtonText("Play");
-                _playButton.GetComponentInChildren<Image>().color = Color.green;
-                _playButton.onClick.RemoveAllListeners();
-                _playButton.onClick.AddListener(delegate ()
-                {
-                    if (NumberOfCells() > 0)
+                _playButton = UIHelper.CreateUIButton("SRMPlay", container, "ActionButton", new Vector2(53f, -10f),
+                    new Vector2(25f, 15f),
+                    () =>
                     {
-                        currentsong = SongInfoForRow(_selectedRow);
-                        RequestBot.played.Add(currentsong.song);
-                        RequestBot.WriteJSON(RequestBot.playedfilename, ref RequestBot.played);
-                        
-                        SetUIInteractivity(false);
-                        RequestBot.Process(_selectedRow, isShowingHistory);
-                        _selectedRow = -1;
-                    }
-                });
+                        if (NumberOfCells() > 0)
+                        {
+                            currentsong = SongInfoForRow(_selectedRow);
+                            RequestBot.played.Add(currentsong.song);
+                            RequestBot.WriteJSON(RequestBot.playedfilename, ref RequestBot.played);
+
+                            SetUIInteractivity(false);
+                            RequestBot.Process(_selectedRow, isShowingHistory);
+                            _selectedRow = -1;
+                        }
+                    }, "Play");
+
+                _playButton.ToggleWordWrapping(false);
+                _playButton.interactable = ((isShowingHistory && RequestHistory.Songs.Count > 0) || (!isShowingHistory && RequestQueue.Songs.Count > 0));
                 UIHelper.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");
                 #endregion
 
                 #region Queue button
                 // Queue button
-                _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
-                _queueButton.ToggleWordWrapping(false);
+                _queueButton = UIHelper.CreateUIButton("SRMQueue", container, "PracticeButton", new Vector2(53f, -30f),
+                    new Vector2(25f, 15f),
+                    () =>
+                    {
+                        RequestBotConfig.Instance.RequestQueueOpen = !RequestBotConfig.Instance.RequestQueueOpen;
+                        RequestBotConfig.Instance.Save();
+                        RequestBot.WriteQueueStatusToFile(RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
+                        RequestBot.Instance.QueueChatMessage(RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
+                        UpdateRequestUI();
+                    }, RequestBotConfig.Instance.RequestQueueOpen ? "Queue Open" : "Queue Closed");
+
+                _queueButton.ToggleWordWrapping(true);
+                _queueButton.SetButtonUnderlineColor(RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red);
                 _queueButton.SetButtonTextSize(3.5f);
-                (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -30f);
-                _queueButton.SetButtonText(RequestBotConfig.Instance.RequestQueueOpen ? "Queue Open" : "Queue Closed");
-                _queueButton.GetComponentInChildren<Image>().color = RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red; ;
-                _queueButton.interactable = true;
-                _queueButton.onClick.RemoveAllListeners();
-                _queueButton.onClick.AddListener(delegate ()
-                {
-                    RequestBotConfig.Instance.RequestQueueOpen = !RequestBotConfig.Instance.RequestQueueOpen;
-                    RequestBotConfig.Instance.Save();
-                    RequestBot.WriteQueueStatusToFile(RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
-                    RequestBot.Instance.QueueChatMessage(RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
-                    UpdateRequestUI();
-                });
                 UIHelper.AddHintText(_queueButton.transform as RectTransform, "Open/Close the queue.");
                 #endregion
 
                 // Set default RequestFlowCoordinator title
                 RequestBot.SetTitle(isShowingHistory ? "Song Request History" : "Song Request Queue");
             }
-            base.DidActivate(firstActivation, type);
+            base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
             UpdateRequestUI();
             SetUIInteractivity(true);
         }
 
-        protected override void DidDeactivate(DeactivationType type)
+        protected override void DidDeactivate(bool addedToHierarchy, bool screenSystemEnabling)
         {
-            base.DidDeactivate(type);
+            base.DidDeactivate(addedToHierarchy, screenSystemEnabling);
             if (!confirmDialogActive)
             {
                 isShowingHistory = false;
@@ -391,9 +393,11 @@ namespace SongRequestManager
 
         public void UpdateRequestUI(bool selectRowCallback = false)
         {
-            _playButton.GetComponentInChildren<Image>().color = ((isShowingHistory && RequestHistory.Songs.Count > 0) || (!isShowingHistory && RequestQueue.Songs.Count > 0)) ? Color.green : Color.red;
+            _playButton.interactable = ((isShowingHistory && RequestHistory.Songs.Count > 0) || (!isShowingHistory && RequestQueue.Songs.Count > 0));
+
             _queueButton.SetButtonText(RequestBotConfig.Instance.RequestQueueOpen ? "Queue Open" : "Queue Closed");
-            _queueButton.GetComponentInChildren<Image>().color = RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red; ;
+            _queueButton.SetButtonUnderlineColor(RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red);
+
             _historyHintText.text = isShowingHistory ? "Go back to your current song request queue." : "View the history of song requests from the current session.";
             _historyButton.SetButtonText(isShowingHistory ? "Requests" : "History");
             _playButton.SetButtonText(isShowingHistory ? "Replay" : "Play");
@@ -432,7 +436,7 @@ namespace SongRequestManager
             SetUIInteractivity();
         }
 
-        private void SongLoader_SongsLoadedEvent(SongCore.Loader arg1, Dictionary <string,CustomPreviewBeatmapLevel> arg2)
+        private void SongLoader_SongsLoadedEvent(SongCore.Loader arg1, ConcurrentDictionary <string,CustomPreviewBeatmapLevel> arg2)
         {
             _songListTableView?.ReloadData();
         }
@@ -518,8 +522,8 @@ namespace SongRequestManager
         public TableCell CellForIdx(TableView tableView, int row)
         {
             LevelListTableCell _tableCell = Instantiate(_requestListTableCellInstance);
-            _tableCell.reuseIdentifier = "RequestBotFriendCell";
-            _tableCell.SetField("_bought", true);
+            _tableCell.reuseIdentifier = "RequestBotSongCell";
+            _tableCell.SetField("_notOwned", false);
 
             SongRequest request = SongInfoForRow(row);
             SetDataFromLevelAsync(request, _tableCell, row);
@@ -530,7 +534,7 @@ namespace SongRequestManager
 
         private async void SetDataFromLevelAsync(SongRequest request, LevelListTableCell _tableCell, int row)
         {
-            var favouritesBadge = _tableCell.GetField<RawImage, LevelListTableCell>("_favoritesBadgeImage");
+            var favouritesBadge = _tableCell.GetField<Image, LevelListTableCell>("_favoritesBadgeImage");
             favouritesBadge.enabled = false;
 
             bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
@@ -539,28 +543,6 @@ namespace SongRequestManager
 
             var hasMessage = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
             var isChallenge = request.requestInfo.IndexOf("!challenge", StringComparison.OrdinalIgnoreCase) >= 0;
-
-            var beatmapCharacteristicImages = _tableCell.GetField<UnityEngine.UI.Image[], LevelListTableCell>("_beatmapCharacteristicImages"); // NEW VERSION
-            foreach (var i in beatmapCharacteristicImages) i.enabled = false;
-            
-            // causing a nullex?
-            //_tableCell.SetField("_beatmapCharacteristicAlphas", new float[5] { 1f, 1f, 1f, 1f, 1f });
-
-            // set message icon if request has a message // NEW VERSION
-            if (hasMessage)
-            {
-                beatmapCharacteristicImages.Last().sprite = Base64Sprites.InfoIcon;
-                beatmapCharacteristicImages.Last().enabled = true;
-            }
-
-            // set challenge icon if song is a challenge
-            if (isChallenge)
-            {
-                var el = beatmapCharacteristicImages.ElementAt(beatmapCharacteristicImages.Length - 2);
-
-                el.sprite = Base64Sprites.VersusChallengeIcon;
-                el.enabled = true;
-            }
 
             string pp = "";
             int ppvalue = request.song["pp"].AsInt;
@@ -571,15 +553,34 @@ namespace SongRequestManager
             dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
             dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
 
+            var songDurationText = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songDurationText");
+            songDurationText.text = request.song["songlength"].Value;
+
+            var songBpm = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songBpmText");
+            (songBpm.transform as RectTransform).anchoredPosition = new Vector2(-2.5f, -1.8f);
+            (songBpm.transform as RectTransform).sizeDelta += new Vector2(15f, 0f);
+
+            var k = new List<string>();
+            if (hasMessage) k.Add("MSG");
+            if (isChallenge) k.Add("VS");
+            k.Add(request.song["id"]);
+            songBpm.text = string.Join(" - ", k);
+
+            var songBmpIcon = _tableCell.GetComponentsInChildren<Image>().LastOrDefault(c => string.Equals(c.name, "BpmIcon", StringComparison.OrdinalIgnoreCase));
+            if (songBmpIcon != null)
+            {
+                Destroy(songBmpIcon);
+            }
+
             var songName = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songNameText");
-            //songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>";
-            songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size>"; // NEW VERSION
+            songName.richText = true;
+            songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size>";
 
-            var author = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_authorText");
-
+            var author = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songAuthorText");
+            author.richText = true;
             author.text = dt.Parse(RequestBot.QueueListRow2);
 
-            var image = _tableCell.GetField<RawImage, LevelListTableCell>("_coverRawImage");
+            var image = _tableCell.GetField<Image, LevelListTableCell>("_coverImage");
             var imageSet = false;
 
             if (SongCore.Loader.AreSongsLoaded)
@@ -589,8 +590,8 @@ namespace SongRequestManager
                 {
                     //Plugin.Log("custom level found");
                     // set image from song's cover image
-                    var tex = await level.GetCoverImageTexture2DAsync(System.Threading.CancellationToken.None);
-                    image.texture = tex;
+                    var sprite = await level.GetCoverImageAsync(System.Threading.CancellationToken.None);
+                    image.sprite = sprite;
                     imageSet = true;
                 }
             }
@@ -616,7 +617,7 @@ namespace SongRequestManager
                     }
                 }
 
-                image.texture = tex;
+                image.sprite = Base64Sprites.Texture2DToSprite(tex);
             }
 
             UIHelper.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));

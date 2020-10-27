@@ -1,14 +1,18 @@
-﻿<modal id="modal" show-event='open-modal' hide-event='close-modal' clickerino-offerino-closerino="false" size-delta-x='90' size-delta-y='45' move-to-center='true'>
-  <vertical child-control-height='false' child-expand-width='true' child-expand-height='true'>
-    <horizontal bg='panel-top' pad-left='10' pad-right='10' horizontal-fit='PreferredSize' child-align='UpperCenter'>
-      <text id='title' text='Dialog Title' align='Center'></text>
-    </horizontal>
-  </vertical>
-  <horizontal child-control-width='false' anchor-pos-x='0' anchor-pos-y='0'>
-    <text id='message' align='Center' text='Blacklist song? this is a really long text line to see what happens with text wrapping'></text>
-  </horizontal>
-  <bottom-button-panel>
-    <button on-click='yes-click' text='Yes'></button>
-    <button on-click='no-click' text='No'></button>
-  </bottom-button-panel>
-</modal>
+﻿<bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
+  <modal id="modal" show-event='open-modal' hide-event='close-modal' clickerino-offerino-closerino="false" size-delta-x='90' size-delta-y='45' move-to-center='true'>
+    <vertical child-control-height='false' child-expand-width='true' child-expand-height='true'>
+      <horizontal bg='panel-top' pad-left='10' pad-right='10' horizontal-fit='PreferredSize' child-align='UpperCenter'>
+        <text id='title' text='Dialog Title' align='Center'></text>
+      </horizontal>
+    </vertical>
+    <vertical child-expand-width='true' child-expand-height='true'>
+      <horizontal child-control-width='false' anchor-pos-x='0' anchor-pos-y='0' vertical-fit='Unconstrained'>
+        <text id='message' align='Center' text='Blacklist song? this is a really long text line to see what happens with text wrapping' vertical-fit='Unconstrained'></text>
+      </horizontal>
+      <horizontal>
+        <button on-click='yes-click' text='Yes' preferred-width='30'></button>
+        <button on-click='no-click' text='No' preferred-width='30'></button>
+      </horizontal>
+    </vertical>
+  </modal>
+</bg>

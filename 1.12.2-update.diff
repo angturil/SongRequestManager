@@ -1,0 +1,1368 @@
+diff --git a/EnhancedTwitchIntegration/Bot/ChatCommands.cs b/EnhancedTwitchIntegration/Bot/ChatCommands.cs
+index fd4966c..c1b28df 100644
+--- a/EnhancedTwitchIntegration/Bot/ChatCommands.cs
++++ b/EnhancedTwitchIntegration/Bot/ChatCommands.cs
+@@ -7,7 +7,7 @@ using System.Text;
+ using UnityEngine;
+ using System.Threading.Tasks;
+ using ChatCore.Models.Twitch;
+-using ChatCore.SimpleJSON;
++using ChatCore.Utilities;
+ 
+ namespace SongRequestManager
+ {
+@@ -24,7 +24,7 @@ namespace SongRequestManager
+         static public  StringBuilder SongHintText=new StringBuilder ("Requested by %user%%LF%Status: %Status%%Info%%LF%%PP%%LF%<size=60%>Request Time: %RequestTime%</size>");
+         static StringBuilder QueueTextFileFormat=new StringBuilder ("%songName%%LF%");         // Don't forget to include %LF% for these. 
+ 
+-        static public StringBuilder QueueListRow2 = new StringBuilder("%authorName% (%id%) <color=white>%songlength%</color>");
++        static public StringBuilder QueueListRow2 = new StringBuilder("%authorName%");
+ 
+         static StringBuilder BanSongDetail = new StringBuilder("Blocking %songName%/%authorName% (%version%)");
+ 
+diff --git a/EnhancedTwitchIntegration/Bot/Keyboard.cs b/EnhancedTwitchIntegration/Bot/Keyboard.cs
+index b58bd6d..fe15f09 100644
+--- a/EnhancedTwitchIntegration/Bot/Keyboard.cs
++++ b/EnhancedTwitchIntegration/Bot/Keyboard.cs
+@@ -79,13 +79,13 @@ namespace SongRequestManager
+ 
+         }
+ 
+-        public void SetButtonType(string ButtonName= "KeyboardButton")
++        public void SetButtonType(string ButtonName = "Q")
+         {
+-            BaseButton = Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == ButtonName));
+-            if (BaseButton==null) BaseButton = Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "KeyboardButton"));
++            BaseButton = Resources.FindObjectsOfTypeAll<Button>().Last(x => string.Equals(x.name, ButtonName, StringComparison.OrdinalIgnoreCase));
++            if (BaseButton == null) BaseButton = Resources.FindObjectsOfTypeAll<Button>().Last(x => string.Equals(x.name, "Q", StringComparison.OrdinalIgnoreCase));
+         }
+ 
+-        public void SetValue (string keylabel, string value)
++        public void SetValue(string keylabel, string value)
+         {
+             bool found = false;
+             foreach (KEY key in keys) if (key.name == keylabel)
+@@ -384,9 +384,9 @@ namespace SongRequestManager
+         void Search(KEY key)
+         {
+             if (key.kb.KeyboardText.text.StartsWith("!"))
+-                {
++            {
+                 Enter(key);
+-                }
++            }
+ 
+ #if UNRELEASED
+             ClearSearches();
+@@ -510,12 +510,13 @@ namespace SongRequestManager
+                 // This key is not intialized at all
+             }
+ 
+-            public KEY(KEYBOARD kb, Vector2 position, string text, float width,float height, Color color)
++            public KEY(KEYBOARD kb, Vector2 position, string text, float width, float height, Color color)
+             {
+                 value = text;
+                 this.kb = kb;
+ 
+                 name = text;
++
+                 mybutton = Button.Instantiate(kb.BaseButton, kb.container, false);
+ 
+                 (mybutton.transform as RectTransform).anchorMin = new Vector2(0.5f,0.5f);
+@@ -527,6 +528,7 @@ namespace SongRequestManager
+                 mybutton.transform.localScale = new Vector3(kb.scale, kb.scale, 1.0f);
+                 mybutton.SetButtonTextSize(5f);
+                 mybutton.SetButtonText(text);
++                mybutton.name = $"SRM_{text}";
+                 mybutton.GetComponentInChildren<Image>().color =  color;
+ 
+                 if (width == 0)
+@@ -539,7 +541,7 @@ namespace SongRequestManager
+ 
+                 // Adjust starting position so button aligns to upper left of current drawing position
+ 
+-                position.x += kb.scale*width / 2 ; 
++                position.x += kb.scale * width / 2 ; 
+                 position.y -= kb.scale * height / 2;
+                 (mybutton.transform as RectTransform).anchoredPosition = position;
+  
+diff --git a/EnhancedTwitchIntegration/Bot/ListManager.cs b/EnhancedTwitchIntegration/Bot/ListManager.cs
+index eb2e9f9..27ae8bd 100644
+--- a/EnhancedTwitchIntegration/Bot/ListManager.cs
++++ b/EnhancedTwitchIntegration/Bot/ListManager.cs
+@@ -3,7 +3,7 @@ using System.Collections.Generic;
+ using System.IO;
+ using System.Linq;
+ using ChatCore.Models.Twitch;
+-using ChatCore.SimpleJSON;
++using ChatCore.Utilities;
+ using UnityEngine;
+ 
+ namespace SongRequestManager
+diff --git a/EnhancedTwitchIntegration/Bot/RequestBot.cs b/EnhancedTwitchIntegration/Bot/RequestBot.cs
+index 4be9cb1..444d60e 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestBot.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestBot.cs
+@@ -20,7 +20,8 @@ using BeatSaberMarkupLanguage;
+ using System.Threading.Tasks;
+ using System.IO.Compression;
+ using ChatCore.Models.Twitch;
+-using ChatCore.SimpleJSON;
++using ChatCore.Utilities;
++using HMUI;
+ 
+ namespace SongRequestManager
+ {
+@@ -78,7 +79,7 @@ namespace SongRequestManager
+         internal static void SRMButtonPressed()
+         {
+             var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
+-            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("PresentFlowCoordinator", _flowCoordinator, null, false, false);
++            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("PresentFlowCoordinator", _flowCoordinator, null, ViewController.AnimationDirection.Horizontal, false, false);
+         }
+ 
+         internal static void SetTitle(string title)
+@@ -90,17 +91,27 @@ namespace SongRequestManager
+         {
+             try
+             {
+-                var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelCollectionViewController>().First();
++                var _levelListViewController = Resources.FindObjectsOfTypeAll<SelectLevelCategoryViewController>().Last();
++
+                 if (_levelListViewController)
+-                    {
+-                    _requestButton = UIHelper.CreateUIButton(_levelListViewController.rectTransform, "OkButton", new Vector2(66, -3.5f),
+-                        new Vector2(9f, 5.5f), () => { _requestButton.interactable = false; SRMButtonPressed(); _requestButton.interactable = true; }, "SRM");
++                {
++                    // move the icon control
++                    var iconSegmentedControl = _levelListViewController.GetField<IconSegmentedControl, SelectLevelCategoryViewController>("_levelFilterCategoryIconSegmentedControl");
++                    ((RectTransform)iconSegmentedControl.transform).anchoredPosition = new Vector2(0, 4.5f);
++
++                    _requestButton = _levelListViewController.CreateUIButton("SRMButton", "PracticeButton", new Vector2(14, -4.5f), new Vector2(15f, 105f),
++                        () =>
++                        {
++                            _requestButton.interactable = false;
++                            SRMButtonPressed();
++                            _requestButton.interactable = true;
++                        },
++                        "SRM");
+ 
+-                    (_requestButton.transform as RectTransform).anchorMin = new Vector2(1, 1);
+-                    (_requestButton.transform as RectTransform).anchorMax = new Vector2(1, 1);
+ 
+                     _requestButton.ToggleWordWrapping(false);
+-                    _requestButton.SetButtonTextSize(3.5f);
++                    _requestButton.SetButtonTextSize(5f);
++
+                     UIHelper.AddHintText(_requestButton.transform as RectTransform, "Manage the current request queue");
+ 
+                     UpdateRequestUI();
+@@ -917,11 +928,11 @@ namespace SongRequestManager
+ 
+                     if (RequestQueue.Songs.Count == 0)
+                     {
+-                        _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
++                        _requestButton.SetButtonUnderlineColor(Color.red);
+                     }
+                     else
+                     {
+-                        _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
++                        _requestButton.SetButtonUnderlineColor(Color.green);
+                     }
+                 }
+             }
+@@ -931,7 +942,6 @@ namespace SongRequestManager
+             }
+         }
+ 
+-
+         public static void DequeueRequest(SongRequest request, bool updateUI = true)
+         {
+             if (request.status!=RequestStatus.Wrongsong && request.status!=RequestStatus.SongSearch) RequestHistory.Songs.Insert(0, request); // Wrong song requests are not logged into history, is it possible that other status states shouldn't be moved either?
+diff --git a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+index d2579c8..fb787b8 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+@@ -10,6 +10,9 @@ using SongRequestManager.UI;
+ using IPA.Utilities;
+ using BeatSaberMarkupLanguage;
+ using System.Threading.Tasks;
++using System.Collections.Concurrent;
++using VRUIControls;
++using Object = System.Object;
+ 
+ namespace SongRequestManager
+ {
+@@ -35,6 +38,9 @@ namespace SongRequestManager
+         private TextMeshProUGUI _CurrentSongName;
+         private TextMeshProUGUI _CurrentSongName2;
+ 
++        private RequestFlowCoordinator RequestFlowCoordinator;
++        private SimpleDialogPromptViewController _dialog;
++
+         private HoverHint _historyHintText;
+ 
+         private SongPreviewPlayer _songPreviewPlayer;
+@@ -99,7 +105,7 @@ namespace SongRequestManager
+ 
+         static public SongRequest currentsong = null;
+ 
+-        protected override void DidActivate(bool firstActivation, ActivationType type)
++        protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
+         {
+             if (firstActivation)
+             {
+@@ -118,13 +124,16 @@ namespace SongRequestManager
+ 
+                 RectTransform container = new GameObject("RequestBotContainer", typeof(RectTransform)).transform as RectTransform;
+                 container.SetParent(rectTransform, false);
+-                container.sizeDelta = new Vector2(60f, 0f);
+ 
+                 #region TableView Setup and Initialization
+                 var go = new GameObject("SongRequestTableView", typeof(RectTransform));
+                 go.SetActive(false);
++
++                go.AddComponent<ScrollRect>();
++                go.AddComponent<Touchable>();
++
+                 _songListTableView = go.AddComponent<TableView>();
+-                _songListTableView.gameObject.AddComponent<RectMask2D>();
++                go.AddComponent<RectMask2D>();
+                 _songListTableView.transform.SetParent(container, false);
+ 
+                 _songListTableView.SetField("_preallocatedCells", new TableView.CellsGroup[0]);
+@@ -132,42 +141,38 @@ namespace SongRequestManager
+ 
+                 var viewport = new GameObject("Viewport").AddComponent<RectTransform>();
+                 viewport.SetParent(go.GetComponent<RectTransform>(), false);
+-                (viewport.transform as RectTransform).sizeDelta = new Vector2(0, 0);
+-                (viewport.transform as RectTransform).anchorMin = new Vector2(0, 0);
+-                (viewport.transform as RectTransform).anchorMax = new Vector2(1, 1);
+                 go.GetComponent<ScrollRect>().viewport = viewport;
+ 
+-                _songListTableView.InvokeMethod<object, TableView>("Init");
++                (viewport.transform as RectTransform).sizeDelta = new Vector2(70f, 70f);
+ 
+-                _songListTableView.dataSource = this;
++                _songListTableView.SetDataSource(this, false);
++
++                _songListTableView.LazyInit();
+ 
+                 go.SetActive(true);
+ 
+-                (_songListTableView.transform as RectTransform).anchorMin = new Vector2(0f, 0f);
+-                (_songListTableView.transform as RectTransform).anchorMax = new Vector2(1f, 1f);
+-                (_songListTableView.transform as RectTransform).sizeDelta = new Vector2(0f, 60f);
+-                (_songListTableView.transform as RectTransform).anchoredPosition = new Vector2(0f, -3f);
++                (_songListTableView.transform as RectTransform).sizeDelta = new Vector2(70f, 70f);
++                (_songListTableView.transform as RectTransform).anchoredPosition = new Vector2(3f, 0f);
+ 
+                 _songListTableView.didSelectCellWithIdxEvent += DidSelectRow;
+ 
+-                rectTransform.anchorMin = new Vector2(0.5f, 0f);
+-                rectTransform.anchorMax = new Vector2(0.5f, 1f);
+-                rectTransform.sizeDelta = new Vector2(74f, 0f);
+-                rectTransform.pivot = new Vector2(0.4f, 0.5f);
+-
+-                var _songListTableViewScroller = _songListTableView.GetField<TableViewScroller, TableView>("_scroller");
++                var _songListTableViewScroller = _songListTableView.GetField<TableViewScroller, TableView>("scroller");
+ 
+                 _pageUpButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().Last(x => (x.name == "PageUpButton")), container, false);
+-                (_pageUpButton.transform as RectTransform).anchoredPosition = new Vector2(0f, 35f);
++                (_pageUpButton.transform as RectTransform).anchoredPosition = new Vector2(3f, -14f);
++                (_pageUpButton.transform as RectTransform).sizeDelta = new Vector2(-30f, 6f);
+                 _pageUpButton.interactable = true;
++                _pageUpButton.name = "SRMPageUpButton";
+                 _pageUpButton.onClick.AddListener(delegate ()
+                 {
+                     _songListTableViewScroller.PageScrollUp();
+                 });
+ 
+                 _pageDownButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "PageDownButton")), container, false);
+-                (_pageDownButton.transform as RectTransform).anchoredPosition = new Vector2(0f, -41f);
++                (_pageDownButton.transform as RectTransform).anchoredPosition = new Vector2(3f, 14f);
++                (_pageDownButton.transform as RectTransform).sizeDelta = new Vector2(-30f, 6f);
+                 _pageDownButton.interactable = true;
++                _pageDownButton.name = "SRMPageDownButton";
+                 _pageDownButton.onClick.AddListener(delegate ()
+                 {
+                     _songListTableViewScroller.PageScrollDown();
+@@ -209,154 +214,151 @@ namespace SongRequestManager
+ 
+                 #region History button
+                 // History button
+-                _historyButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
++                _historyButton = UIHelper.CreateUIButton("SRMHistory", container, "PracticeButton", new Vector2(53f, 30f),
++                    new Vector2(25f, 15f),
++                    () =>
++                    {
++                        isShowingHistory = !isShowingHistory;
++                        RequestBot.SetTitle(isShowingHistory ? "Song Request History" : "Song Request Queue");
++                        UpdateRequestUI(true);
++                        SetUIInteractivity();
++                        _lastSelection = -1;
++                        if (NumberOfCells() > 0)
++                        {
++                            _songListTableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Beginning, false);
++                            _songListTableView.SelectCellWithIdx(0);
++                        }
++                    }, "History");
++
+                 _historyButton.ToggleWordWrapping(false);
+-                (_historyButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 30f);
+-                _historyButton.SetButtonText("History");
+-                _historyButton.onClick.RemoveAllListeners();
+-                _historyButton.onClick.AddListener(delegate ()
+-                {
+-                    isShowingHistory = !isShowingHistory;
+-                    RequestBot.SetTitle(isShowingHistory ? "Song Request History" : "Song Request Queue");
+-                    UpdateRequestUI(true);
+-                    SetUIInteractivity();
+-                    _lastSelection = -1;
+-                });
+                 _historyHintText = UIHelper.AddHintText(_historyButton.transform as RectTransform, "");
+                 #endregion
+ 
+                 #region Blacklist button
+                 // Blacklist button
+-                _blacklistButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
+-                _blacklistButton.ToggleWordWrapping(false);
+-                (_blacklistButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 10f);
+-                _blacklistButton.SetButtonText("Blacklist");
+-                //_blacklistButton.GetComponentInChildren<Image>().color = Color.red;
+-                _blacklistButton.onClick.RemoveAllListeners();
+-                _blacklistButton.onClick.AddListener(delegate ()
+-                {
+-                    if (NumberOfCells() > 0)
++                _blacklistButton = UIHelper.CreateUIButton("SRMBlacklist", container, "PracticeButton", new Vector2(53f, 10f),
++                    new Vector2(25f, 15f),
++                    () =>
+                     {
+-                        void _onConfirm()
++                        if (NumberOfCells() > 0)
+                         {
+-                            RequestBot.Blacklist(_selectedRow, isShowingHistory, true);
+-                            if (_selectedRow > 0)
+-                                _selectedRow--;
+-                            confirmDialogActive = false;
+-                        }
++                            void _onConfirm()
++                            {
++                                RequestBot.Blacklist(_selectedRow, isShowingHistory, true);
++                                if (_selectedRow > 0)
++                                    _selectedRow--;
++                                confirmDialogActive = false;
++                            }
+ 
+-                        // get song
+-                        var song = SongInfoForRow(_selectedRow).song;
++                            // get song
++                            var song = SongInfoForRow(_selectedRow).song;
+ 
+-                        // indicate dialog is active
+-                        confirmDialogActive = true;
++                            // indicate dialog is active
++                            confirmDialogActive = true;
+ 
+-                        // show dialog
+-                        YesNoModal.instance.ShowDialog("Blacklist Song Warning", $"Blacklisting {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?", _onConfirm, () => { confirmDialogActive = false; });
+-                    }
+-                });
++                            // show dialog
++                            YesNoModal.instance.ShowDialog("Blacklist Song Warning", $"Blacklisting {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?", _onConfirm, () => { confirmDialogActive = false; });
++                        }
++                    }, "Blacklist");
++
++                _blacklistButton.ToggleWordWrapping(false);
+                 UIHelper.AddHintText(_blacklistButton.transform as RectTransform, "Block the selected request from being queued in the future.");
+                 #endregion
+ 
+                 #region Skip button
+                 // Skip button
+-                _skipButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
+-                _skipButton.ToggleWordWrapping(false);
+-                (_skipButton.transform as RectTransform).anchoredPosition = new Vector2(90f, 0f);
+-                _skipButton.SetButtonText("Skip");
+-                //_skipButton.GetComponentInChildren<Image>().color = Color.yellow;
+-                _skipButton.onClick.RemoveAllListeners();
+-                _skipButton.onClick.AddListener(delegate ()
+-                {
+-                    if (NumberOfCells() > 0)
++                _skipButton = UIHelper.CreateUIButton("SRMSkip", container, "PracticeButton", new Vector2(53f, 0f),
++                    new Vector2(25f, 15f),
++                    () =>
+                     {
+-                        void _onConfirm()
++                        if (NumberOfCells() > 0)
+                         {
+-                            // get selected song
+-                            currentsong = SongInfoForRow(_selectedRow);
+-
+-                            // skip it
+-                            RequestBot.Skip(_selectedRow);
++                            // get song
++                            var song = SongInfoForRow(_selectedRow).song;
+ 
+-                            // select previous song if not first song
+-                            if (_selectedRow > 0)
++                            void _onConfirm()
+                             {
+-                                _selectedRow--;
+-                            }
++                                // get selected song
++                                currentsong = SongInfoForRow(_selectedRow);
+ 
+-                            // indicate dialog is no longer active
+-                            confirmDialogActive = false;
+-                        }
++                                // skip it
++                                RequestBot.Skip(_selectedRow);
+ 
+-                        // get song
+-                        var song = SongInfoForRow(_selectedRow).song;
++                                // select previous song if not first song
++                                if (_selectedRow > 0)
++                                {
++                                    _selectedRow--;
++                                }
+ 
+-                        // indicate dialog is active
+-                        confirmDialogActive = true;
++                                // indicate dialog is no longer active
++                                confirmDialogActive = false;
++                            }
+ 
+-                        // show dialog
+-                        YesNoModal.instance.ShowDialog("Skip Song Warning", $"Skipping {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?", _onConfirm, () => { confirmDialogActive = false; });
+-                    }
+-                });
++                            // indicate dialog is active
++                            confirmDialogActive = true;
++
++                            // show dialog
++                            YesNoModal.instance.ShowDialog("Skip Song Warning", $"Skipping {song["songName"].Value} by {song["authorName"].Value}\r\nDo you want to continue?", _onConfirm, () => { confirmDialogActive = false; });
++                        }
++                    }, "Skip");
++
++                _skipButton.ToggleWordWrapping(false);
+                 UIHelper.AddHintText(_skipButton.transform as RectTransform, "Remove the selected request from the queue.");
+                 #endregion
+ 
+                 #region Play button
+                 // Play button
+-                _playButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
+-                _playButton.ToggleWordWrapping(false);
+-                (_playButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -10f);
+-                _playButton.SetButtonText("Play");
+-                _playButton.GetComponentInChildren<Image>().color = Color.green;
+-                _playButton.onClick.RemoveAllListeners();
+-                _playButton.onClick.AddListener(delegate ()
+-                {
+-                    if (NumberOfCells() > 0)
++                _playButton = UIHelper.CreateUIButton("SRMPlay", container, "ActionButton", new Vector2(53f, -10f),
++                    new Vector2(25f, 15f),
++                    () =>
+                     {
+-                        currentsong = SongInfoForRow(_selectedRow);
+-                        RequestBot.played.Add(currentsong.song);
+-                        RequestBot.WriteJSON(RequestBot.playedfilename, ref RequestBot.played);
+-                        
+-                        SetUIInteractivity(false);
+-                        RequestBot.Process(_selectedRow, isShowingHistory);
+-                        _selectedRow = -1;
+-                    }
+-                });
++                        if (NumberOfCells() > 0)
++                        {
++                            currentsong = SongInfoForRow(_selectedRow);
++                            RequestBot.played.Add(currentsong.song);
++                            RequestBot.WriteJSON(RequestBot.playedfilename, ref RequestBot.played);
++
++                            SetUIInteractivity(false);
++                            RequestBot.Process(_selectedRow, isShowingHistory);
++                            _selectedRow = -1;
++                        }
++                    }, "Play");
++
++                _playButton.ToggleWordWrapping(false);
++                _playButton.interactable = ((isShowingHistory && RequestHistory.Songs.Count > 0) || (!isShowingHistory && RequestQueue.Songs.Count > 0));
+                 UIHelper.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");
+                 #endregion
+ 
+                 #region Queue button
+                 // Queue button
+-                _queueButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(o => (o.name == "OkButton")), container, false);
+-                _queueButton.ToggleWordWrapping(false);
++                _queueButton = UIHelper.CreateUIButton("SRMQueue", container, "PracticeButton", new Vector2(53f, -30f),
++                    new Vector2(25f, 15f),
++                    () =>
++                    {
++                        RequestBotConfig.Instance.RequestQueueOpen = !RequestBotConfig.Instance.RequestQueueOpen;
++                        RequestBotConfig.Instance.Save();
++                        RequestBot.WriteQueueStatusToFile(RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
++                        RequestBot.Instance.QueueChatMessage(RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
++                        UpdateRequestUI();
++                    }, RequestBotConfig.Instance.RequestQueueOpen ? "Queue Open" : "Queue Closed");
++
++                _queueButton.ToggleWordWrapping(true);
++                _queueButton.SetButtonUnderlineColor(RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red);
+                 _queueButton.SetButtonTextSize(3.5f);
+-                (_queueButton.transform as RectTransform).anchoredPosition = new Vector2(90f, -30f);
+-                _queueButton.SetButtonText(RequestBotConfig.Instance.RequestQueueOpen ? "Queue Open" : "Queue Closed");
+-                _queueButton.GetComponentInChildren<Image>().color = RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red; ;
+-                _queueButton.interactable = true;
+-                _queueButton.onClick.RemoveAllListeners();
+-                _queueButton.onClick.AddListener(delegate ()
+-                {
+-                    RequestBotConfig.Instance.RequestQueueOpen = !RequestBotConfig.Instance.RequestQueueOpen;
+-                    RequestBotConfig.Instance.Save();
+-                    RequestBot.WriteQueueStatusToFile(RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
+-                    RequestBot.Instance.QueueChatMessage(RequestBotConfig.Instance.RequestQueueOpen ? "Queue is open." : "Queue is closed.");
+-                    UpdateRequestUI();
+-                });
+                 UIHelper.AddHintText(_queueButton.transform as RectTransform, "Open/Close the queue.");
+                 #endregion
+ 
+                 // Set default RequestFlowCoordinator title
+                 RequestBot.SetTitle(isShowingHistory ? "Song Request History" : "Song Request Queue");
+             }
+-            base.DidActivate(firstActivation, type);
++            base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
+             UpdateRequestUI();
+             SetUIInteractivity(true);
+         }
+ 
+-        protected override void DidDeactivate(DeactivationType type)
++        protected override void DidDeactivate(bool addedToHierarchy, bool screenSystemEnabling)
+         {
+-            base.DidDeactivate(type);
++            base.DidDeactivate(addedToHierarchy, screenSystemEnabling);
+             if (!confirmDialogActive)
+             {
+                 isShowingHistory = false;
+@@ -391,9 +393,11 @@ namespace SongRequestManager
+ 
+         public void UpdateRequestUI(bool selectRowCallback = false)
+         {
+-            _playButton.GetComponentInChildren<Image>().color = ((isShowingHistory && RequestHistory.Songs.Count > 0) || (!isShowingHistory && RequestQueue.Songs.Count > 0)) ? Color.green : Color.red;
++            _playButton.interactable = ((isShowingHistory && RequestHistory.Songs.Count > 0) || (!isShowingHistory && RequestQueue.Songs.Count > 0));
++
+             _queueButton.SetButtonText(RequestBotConfig.Instance.RequestQueueOpen ? "Queue Open" : "Queue Closed");
+-            _queueButton.GetComponentInChildren<Image>().color = RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red; ;
++            _queueButton.SetButtonUnderlineColor(RequestBotConfig.Instance.RequestQueueOpen ? Color.green : Color.red);
++
+             _historyHintText.text = isShowingHistory ? "Go back to your current song request queue." : "View the history of song requests from the current session.";
+             _historyButton.SetButtonText(isShowingHistory ? "Requests" : "History");
+             _playButton.SetButtonText(isShowingHistory ? "Replay" : "Play");
+@@ -432,7 +436,7 @@ namespace SongRequestManager
+             SetUIInteractivity();
+         }
+ 
+-        private void SongLoader_SongsLoadedEvent(SongCore.Loader arg1, Dictionary <string,CustomPreviewBeatmapLevel> arg2)
++        private void SongLoader_SongsLoadedEvent(SongCore.Loader arg1, ConcurrentDictionary <string,CustomPreviewBeatmapLevel> arg2)
+         {
+             _songListTableView?.ReloadData();
+         }
+@@ -518,8 +522,8 @@ namespace SongRequestManager
+         public TableCell CellForIdx(TableView tableView, int row)
+         {
+             LevelListTableCell _tableCell = Instantiate(_requestListTableCellInstance);
+-            _tableCell.reuseIdentifier = "RequestBotFriendCell";
+-            _tableCell.SetField("_bought", true);
++            _tableCell.reuseIdentifier = "RequestBotSongCell";
++            _tableCell.SetField("_notOwned", false);
+ 
+             SongRequest request = SongInfoForRow(row);
+             SetDataFromLevelAsync(request, _tableCell, row);
+@@ -530,7 +534,7 @@ namespace SongRequestManager
+ 
+         private async void SetDataFromLevelAsync(SongRequest request, LevelListTableCell _tableCell, int row)
+         {
+-            var favouritesBadge = _tableCell.GetField<RawImage, LevelListTableCell>("_favoritesBadgeImage");
++            var favouritesBadge = _tableCell.GetField<Image, LevelListTableCell>("_favoritesBadgeImage");
+             favouritesBadge.enabled = false;
+ 
+             bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
+@@ -540,28 +544,6 @@ namespace SongRequestManager
+             var hasMessage = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
+             var isChallenge = request.requestInfo.IndexOf("!challenge", StringComparison.OrdinalIgnoreCase) >= 0;
+ 
+-            var beatmapCharacteristicImages = _tableCell.GetField<UnityEngine.UI.Image[], LevelListTableCell>("_beatmapCharacteristicImages"); // NEW VERSION
+-            foreach (var i in beatmapCharacteristicImages) i.enabled = false;
+-            
+-            // causing a nullex?
+-            //_tableCell.SetField("_beatmapCharacteristicAlphas", new float[5] { 1f, 1f, 1f, 1f, 1f });
+-
+-            // set message icon if request has a message // NEW VERSION
+-            if (hasMessage)
+-            {
+-                beatmapCharacteristicImages.Last().sprite = Base64Sprites.InfoIcon;
+-                beatmapCharacteristicImages.Last().enabled = true;
+-            }
+-
+-            // set challenge icon if song is a challenge
+-            if (isChallenge)
+-            {
+-                var el = beatmapCharacteristicImages.ElementAt(beatmapCharacteristicImages.Length - 2);
+-
+-                el.sprite = Base64Sprites.VersusChallengeIcon;
+-                el.enabled = true;
+-            }
+-
+             string pp = "";
+             int ppvalue = request.song["pp"].AsInt;
+             if (ppvalue > 0) pp = $" {ppvalue} PP";
+@@ -571,15 +553,34 @@ namespace SongRequestManager
+             dt.Add("Info", (request.requestInfo != "") ? " / " + request.requestInfo : "");
+             dt.Add("RequestTime", request.requestTime.ToLocalTime().ToString("hh:mm"));
+ 
+-            var songName = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songNameText");
+-            //songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size> <color=#ff00ff>{msg}</color>";
+-            songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size>"; // NEW VERSION
++            var songDurationText = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songDurationText");
++            songDurationText.text = request.song["songlength"].Value;
++
++            var songBpm = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songBpmText");
++            (songBpm.transform as RectTransform).anchoredPosition = new Vector2(-2.5f, -1.8f);
++            (songBpm.transform as RectTransform).sizeDelta += new Vector2(15f, 0f);
++
++            var k = new List<string>();
++            if (hasMessage) k.Add("MSG");
++            if (isChallenge) k.Add("VS");
++            k.Add(request.song["id"]);
++            songBpm.text = string.Join(" - ", k);
+ 
+-            var author = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_authorText");
++            var songBmpIcon = _tableCell.GetComponentsInChildren<Image>().LastOrDefault(c => string.Equals(c.name, "BpmIcon", StringComparison.OrdinalIgnoreCase));
++            if (songBmpIcon != null)
++            {
++                Destroy(songBmpIcon);
++            }
++
++            var songName = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songNameText");
++            songName.richText = true;
++            songName.text = $"{request.song["songName"].Value} <size=50%>{RequestBot.GetRating(ref request.song)} <color=#3fff3f>{pp}</color></size>";
+ 
++            var author = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songAuthorText");
++            author.richText = true;
+             author.text = dt.Parse(RequestBot.QueueListRow2);
+ 
+-            var image = _tableCell.GetField<RawImage, LevelListTableCell>("_coverRawImage");
++            var image = _tableCell.GetField<Image, LevelListTableCell>("_coverImage");
+             var imageSet = false;
+ 
+             if (SongCore.Loader.AreSongsLoaded)
+@@ -589,8 +590,8 @@ namespace SongRequestManager
+                 {
+                     //Plugin.Log("custom level found");
+                     // set image from song's cover image
+-                    var tex = await level.GetCoverImageTexture2DAsync(System.Threading.CancellationToken.None);
+-                    image.texture = tex;
++                    var sprite = await level.GetCoverImageAsync(System.Threading.CancellationToken.None);
++                    image.sprite = sprite;
+                     imageSet = true;
+                 }
+             }
+@@ -616,7 +617,7 @@ namespace SongRequestManager
+                     }
+                 }
+ 
+-                image.texture = tex;
++                image.sprite = Base64Sprites.Texture2DToSprite(tex);
+             }
+ 
+             UIHelper.AddHintText(_tableCell.transform as RectTransform, dt.Parse(RequestBot.SongHintText));
+diff --git a/EnhancedTwitchIntegration/Bot/RequestFlowCoordinator.cs b/EnhancedTwitchIntegration/Bot/RequestFlowCoordinator.cs
+index ebebb4c..9981b0c 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestFlowCoordinator.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestFlowCoordinator.cs
+@@ -21,11 +21,11 @@ namespace SongRequestManager
+             }
+         }
+ 
+-        protected override void DidActivate(bool firstActivation, ActivationType activationType)
++        protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
+         {
+             if (firstActivation)
+             {
+-                title = "Song Request Manager";
++                SetTitle("Song Request Manager");
+                 showBackButton = true;
+ 
+                 ProvideInitialViewControllers(_requestBotListViewController, rightScreenViewController: _keyboardViewController);
+@@ -36,7 +36,7 @@ namespace SongRequestManager
+         {
+             // dismiss ourselves
+             var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
+-            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("DismissFlowCoordinator", this, null, false);
++            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("DismissFlowCoordinator", this, ViewController.AnimationDirection.Horizontal, null, false);
+         }
+ 
+         public void Dismiss()
+@@ -46,7 +46,7 @@ namespace SongRequestManager
+ 
+         public void SetTitle(string newTitle)
+         {
+-            title = newTitle;
++            base.SetTitle(newTitle);
+         }
+     }
+ }
+diff --git a/EnhancedTwitchIntegration/Bot/RequestManager.cs b/EnhancedTwitchIntegration/Bot/RequestManager.cs
+index 712f0c2..ef676a2 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestManager.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestManager.cs
+@@ -1,7 +1,7 @@
+ ﻿using System;
+ using System.Collections.Generic;
+ using System.IO;
+-using ChatCore.SimpleJSON;
++using ChatCore.Utilities;
+ 
+ namespace SongRequestManager
+ {
+diff --git a/EnhancedTwitchIntegration/Bot/SongRequest.cs b/EnhancedTwitchIntegration/Bot/SongRequest.cs
+index 3ddfc06..d008fa9 100644
+--- a/EnhancedTwitchIntegration/Bot/SongRequest.cs
++++ b/EnhancedTwitchIntegration/Bot/SongRequest.cs
+@@ -1,6 +1,6 @@
+ ﻿using System;
+ using ChatCore.Models.Twitch;
+-using ChatCore.SimpleJSON;
++using ChatCore.Utilities;
+ using static SongRequestManager.RequestBot;
+ 
+ namespace SongRequestManager
+diff --git a/EnhancedTwitchIntegration/Bot/UnreleasedCode.cs b/EnhancedTwitchIntegration/Bot/UnreleasedCode.cs
+index bf3798b..35c76c4 100644
+--- a/EnhancedTwitchIntegration/Bot/UnreleasedCode.cs
++++ b/EnhancedTwitchIntegration/Bot/UnreleasedCode.cs
+@@ -10,7 +10,7 @@ using UnityEngine.Networking;
+ using TMPro;
+ using System.Threading.Tasks;
+ using ChatCore.Models.Twitch;
+-using ChatCore.SimpleJSON;
++using ChatCore.Utilities;
+ 
+ //using BeatBits;
+ 
+diff --git a/EnhancedTwitchIntegration/Bot/songdatabase.cs b/EnhancedTwitchIntegration/Bot/songdatabase.cs
+index 461558b..1c50ed5 100644
+--- a/EnhancedTwitchIntegration/Bot/songdatabase.cs
++++ b/EnhancedTwitchIntegration/Bot/songdatabase.cs
+@@ -10,7 +10,7 @@ using System.Threading.Tasks;
+ using UnityEngine;
+ using System.Collections.Concurrent;
+ using System.Security.Cryptography;
+-using ChatCore.SimpleJSON;
++using ChatCore.Utilities;
+ // Feature requests: Add Reason for being banned to banlist
+ //  
+ 
+diff --git a/EnhancedTwitchIntegration/Config/RequestBotConfig.cs b/EnhancedTwitchIntegration/Config/RequestBotConfig.cs
+index 1033db5..27e4cc8 100644
+--- a/EnhancedTwitchIntegration/Config/RequestBotConfig.cs
++++ b/EnhancedTwitchIntegration/Config/RequestBotConfig.cs
+@@ -2,6 +2,7 @@
+ using System.IO;
+ using System.Threading;
+ using System.Threading.Tasks;
++using IPA.Utilities;
+ 
+ namespace SongRequestManager
+ {
+@@ -47,7 +48,7 @@ namespace SongRequestManager
+         public int maximumlookupmessages = 1;
+ 
+         public string LastBackup = DateTime.MinValue.ToString();
+-        public string backuppath = Path.Combine(Environment.CurrentDirectory, "userdata", "backup");
++        public string backuppath = Path.Combine(UnityGame.UserDataPath, "backup");
+ 
+         public bool OfflineMode = false;
+         public bool SavedatabaseOnNewest=false;
+diff --git a/EnhancedTwitchIntegration/Plugin.cs b/EnhancedTwitchIntegration/Plugin.cs
+index 59100bd..e4c760a 100644
+--- a/EnhancedTwitchIntegration/Plugin.cs
++++ b/EnhancedTwitchIntegration/Plugin.cs
+@@ -25,9 +25,10 @@ namespace SongRequestManager
+         public bool IsApplicationExiting = false;
+         public static Plugin Instance { get; private set; }
+         
+-        private readonly RequestBotConfig RequestBotConfig = new RequestBotConfig();
++        private RequestBotConfig RequestBotConfig;
+ 
+-        public static string DataPath = Path.Combine(Environment.CurrentDirectory, "UserData", "StreamCore");
++        public static string DataPath = Path.Combine(UnityGame.UserDataPath, "SRM");
++        public static string OldDataPath = Path.Combine(UnityGame.UserDataPath, "StreamCore");
+         public static bool SongBrowserPluginPresent;
+ 
+         [Init]
+@@ -41,7 +42,7 @@ namespace SongRequestManager
+                         [CallerMemberName] string member = "",
+                         [CallerLineNumber] int line = 0)
+         {
+-            Logger.Info($"[SongRequestManager] {Path.GetFileName(file)}->{member}({line}): {text}");
++            Logger.Info($"{Path.GetFileName(file)}->{member}({line}): {text}");
+         }
+ 
+         [OnStart]
+@@ -50,12 +51,22 @@ namespace SongRequestManager
+             if (Instance != null) return;
+             Instance = this;
+ 
+-            // create playlists folder if needed
++            // create SRM UserDataFolder folder if needed, or rename old streamcore folder
+             if (!Directory.Exists(DataPath))
+             {
+-                Directory.CreateDirectory(DataPath);
++                if (Directory.Exists(OldDataPath))
++                {
++                    Directory.Move(OldDataPath, DataPath);
++                }
++                else
++                {
++                    Directory.CreateDirectory(DataPath);
++                }
+             }
+ 
++            // initialize config
++            RequestBotConfig = new RequestBotConfig();
++
+             Dispatcher.Initialize();
+ 
+             // create our internal webclient
+@@ -68,7 +79,7 @@ namespace SongRequestManager
+ 
+             // setup handle for fresh menu scene changes
+             BS_Utils.Utilities.BSEvents.OnLoad();
+-            BS_Utils.Utilities.BSEvents.menuSceneLoadedFresh += OnMenuSceneLoadedFresh;
++            BS_Utils.Utilities.BSEvents.lateMenuSceneLoadedFresh += OnLateMenuSceneLoadedFresh;
+ 
+             // keep track of active scene
+             BS_Utils.Utilities.BSEvents.menuSceneActive += () => { IsAtMainMenu = true; };
+@@ -78,7 +89,7 @@ namespace SongRequestManager
+             Base64Sprites.Init();
+         }
+ 
+-        private void OnMenuSceneLoadedFresh()
++        private void OnLateMenuSceneLoadedFresh(ScenesTransitionSetupDataSO scenesTransitionSetupData)
+         {
+             // setup settings ui
+             BSMLSettings.instance.AddSettingsMenu("SRM", "SongRequestManager.Views.SongRequestManagerSettings.bsml", SongRequestManagerSettings.instance);
+diff --git a/EnhancedTwitchIntegration/Properties/AssemblyInfo.cs b/EnhancedTwitchIntegration/Properties/AssemblyInfo.cs
+index c4c2b29..67bab06 100644
+--- a/EnhancedTwitchIntegration/Properties/AssemblyInfo.cs
++++ b/EnhancedTwitchIntegration/Properties/AssemblyInfo.cs
+@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
+ // You can specify all the values or you can default the Build and Revision Numbers
+ // by using the '*' as shown below:
+ // [assembly: AssemblyVersion("1.0.*")]
+-[assembly: AssemblyVersion("2.11.3.0")]
+-[assembly: AssemblyFileVersion("2.11.3.0")]
++[assembly: AssemblyVersion("2.12.2.0")]
++[assembly: AssemblyFileVersion("2.12.2.0")]
+diff --git a/EnhancedTwitchIntegration/SongRequestManager.csproj b/EnhancedTwitchIntegration/SongRequestManager.csproj
+index e04ffba..3c48d01 100644
+--- a/EnhancedTwitchIntegration/SongRequestManager.csproj
++++ b/EnhancedTwitchIntegration/SongRequestManager.csproj
+@@ -44,7 +44,10 @@
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\BS_Utils.dll</HintPath>
+     </Reference>
+     <Reference Include="ChatCore">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Libs\ChatCore.dll</HintPath>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Libs\ChatCore.dll</HintPath>
++    </Reference>
++    <Reference Include="GameplayCore">
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\GameplayCore.dll</HintPath>
+     </Reference>
+     <Reference Include="HMLib">
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\HMLib.dll</HintPath>
+@@ -59,12 +62,15 @@
+     <Reference Include="Main">
+       <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Main.dll</HintPath>
+     </Reference>
++    <Reference Include="Polyglot, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
++      <SpecificVersion>False</SpecificVersion>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Polyglot.dll</HintPath>
++    </Reference>
+     <Reference Include="SemVer">
+       <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Libs\SemVer.dll</HintPath>
+     </Reference>
+-    <Reference Include="SongBrowser, Version=6.0.3.0, Culture=neutral, processorArchitecture=MSIL">
+-      <SpecificVersion>False</SpecificVersion>
+-      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
++    <Reference Include="SongBrowser">
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
+     </Reference>
+     <Reference Include="SongCore, Version=2.7.5.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+@@ -106,9 +112,6 @@
+     <Reference Include="UnityEngine.JSONSerializeModule">
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
+     </Reference>
+-    <Reference Include="UnityEngine.Networking">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.Networking.dll</HintPath>
+-    </Reference>
+     <Reference Include="UnityEngine.TextRenderingModule">
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+     </Reference>
+@@ -127,6 +130,10 @@
+     <Reference Include="UnityEngine.VRModule">
+       <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.VRModule.dll</HintPath>
+     </Reference>
++    <Reference Include="VRUI, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
++      <SpecificVersion>False</SpecificVersion>
++      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\VRUI.dll</HintPath>
++    </Reference>
+   </ItemGroup>
+   <ItemGroup>
+     <Compile Include="Bot\ChatCommands.cs" />
+\ No newline at end of file
+diff --git a/EnhancedTwitchIntegration/UI/Base64Sprites.cs b/EnhancedTwitchIntegration/UI/Base64Sprites.cs
+index 607d499..ab9b160 100644
+--- a/EnhancedTwitchIntegration/UI/Base64Sprites.cs
++++ b/EnhancedTwitchIntegration/UI/Base64Sprites.cs
+@@ -66,6 +66,22 @@ namespace SongRequestManager.UI
+             return texture;
+         }
+ 
++        public static Sprite Texture2DToSprite(Texture2D tex)
++        {
++            Sprite s = null;
++            try
++            {
++                s = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), (Vector2.one / 2f));
++            }
++            catch (Exception)
++            {
++                Console.WriteLine("Exception loading texture from base64 data.");
++                s = null;
++            }
++
++            return s;
++        }
++
+         private static void GetImageSize(byte[] imageData, out int width, out int height)
+         {
+             width = ReadInt(imageData, 3 + 15);
+diff --git a/EnhancedTwitchIntegration/UI/KeyboardViewController.cs b/EnhancedTwitchIntegration/UI/KeyboardViewController.cs
+index 32f4f3c..f21408b 100644
+--- a/EnhancedTwitchIntegration/UI/KeyboardViewController.cs
++++ b/EnhancedTwitchIntegration/UI/KeyboardViewController.cs
+@@ -5,7 +5,7 @@ namespace SongRequestManager.UI
+ {
+     public class KeyboardViewController : ViewController
+     {
+-        protected override void DidActivate(bool firstActivation, ActivationType type)
++        protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
+         {
+             if (firstActivation)
+             {
+@@ -34,7 +34,7 @@ namespace SongRequestManager.UI
+ #endif
+ 
+ 
+-                mykeyboard.SetButtonType("OkButton"); // Adding this alters button positions??! Why?
++                mykeyboard.SetButtonType("Q"); // Adding this alters button positions??! Why?
+                 mykeyboard.AddKeys(SEARCH, 0.75f);
+ 
+                 mykeyboard.SetAction("CLEAR SEARCH", RequestBot.ClearSearch);
+diff --git a/EnhancedTwitchIntegration/UI/SongListUtils.cs b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+index a68201b..0886670 100644
+--- a/EnhancedTwitchIntegration/UI/SongListUtils.cs
++++ b/EnhancedTwitchIntegration/UI/SongListUtils.cs
+@@ -1,12 +1,9 @@
+-﻿using BeatSaverDownloader.UI;
+-using HMUI;
++﻿using HMUI;
++using IPA.Utilities;
+ using System;
+ using System.Collections;
+ using System.Linq;
+ using UnityEngine;
+-using IPA.Utilities;
+-using IPA.Loader;
+-using SongCore;
+ 
+ namespace SongRequestManager
+ {
+@@ -111,42 +108,69 @@ namespace SongRequestManager
+             //    ScrollToLevel(selectedLevelId);
+         }
+ 
+-        private static int SelectCustomSongPack()
++        private static IEnumerator SelectCustomSongPack()
+         {
+-            // get the Level Filtering Nav Controller, the top bar
+-            var _levelFilteringNavigationController = Resources.FindObjectsOfTypeAll<LevelFilteringNavigationController>().First();
++            // get the select Level category view controller
++            var selectLevelCategoryViewController = Resources.FindObjectsOfTypeAll<SelectLevelCategoryViewController>().First();
+ 
+-            // get the tab bar
+-            var _tabBarViewController = _levelFilteringNavigationController.GetField<TabBarViewController, LevelFilteringNavigationController>("_tabBarViewController");
++            Plugin.Log("1");
+ 
+-            if (_tabBarViewController.selectedCellNumber != 3)
++            // check if the selected level category is the custom category
++            if (selectLevelCategoryViewController.selectedLevelCategory != SelectLevelCategoryViewController.LevelCategory.CustomSongs)
+             {
+-                // select the 4th item, whichi is custom songs
+-                _tabBarViewController.SelectItem(3);
++                // get the icon segmented controller
++                var iconSegmentedControl = selectLevelCategoryViewController.GetField<IconSegmentedControl, SelectLevelCategoryViewController>("_levelFilterCategoryIconSegmentedControl");
++
++                Plugin.Log("2");
++
++                // get the current level categories listed
++                var levelCategoryInfos = selectLevelCategoryViewController.GetField<SelectLevelCategoryViewController.LevelCategoryInfo[], SelectLevelCategoryViewController>("_levelCategoryInfos").ToList();
++
++                Plugin.Log("3");
++
++                // get the index of the custom category
++                var idx = levelCategoryInfos.FindIndex(lci => lci.levelCategory == SelectLevelCategoryViewController.LevelCategory.CustomSongs);
++
++                Plugin.Log($"3 - {idx}");
++
++                // select the custom category
++                iconSegmentedControl.SelectCellWithNumber(idx);
++
++                // ge tthe level filtering nev controller
++                var levelFilteringNavigationController = Resources.FindObjectsOfTypeAll<LevelFilteringNavigationController>().First();
++
++                // update the content, as selecting the new cell alone won't always work
++                levelFilteringNavigationController.UpdateSecondChildControllerContent(SelectLevelCategoryViewController.LevelCategory.CustomSongs);
+ 
+-                // trigger a switch and reload
+-                _levelFilteringNavigationController.InvokeMethod<object, LevelFilteringNavigationController>("TabBarDidSwitch");
++                // arbitrary wait for catch-up
++                yield return new WaitForSeconds(0.1f);
+             }
+-            else
++
++            Plugin.Log("4");
++
++            // get the beatmap level collections controller
++            var annotatedBeatmapLevelCollectionsViewController = Resources.FindObjectsOfTypeAll<AnnotatedBeatmapLevelCollectionsViewController>().First();
++
++            Plugin.Log("5");
++
++            // check if the first element is selected
++            if (annotatedBeatmapLevelCollectionsViewController.selectedItemIndex != 0)
+             {
+-                // get the annotated view controller
+-                var _annotatedBeatmapLevelCollectionsViewController = _levelFilteringNavigationController.GetField<AnnotatedBeatmapLevelCollectionsViewController, LevelFilteringNavigationController>("_annotatedBeatmapLevelCollectionsViewController");
++                Plugin.Log("6");
+ 
+-                // check if the first element is selected (whichi is custom maps)
+-                if (_annotatedBeatmapLevelCollectionsViewController.selectedItemIndex != 0)
+-                {
+-                    // get the table view
+-                    var _playlistsTableView = _annotatedBeatmapLevelCollectionsViewController.GetField<AnnotatedBeatmapLevelCollectionsTableView, AnnotatedBeatmapLevelCollectionsViewController>("_playlistsTableView");
++                // get the level collection
++                var annotatedBeatmapLevelCollectionsTableView = annotatedBeatmapLevelCollectionsViewController.GetField<AnnotatedBeatmapLevelCollectionsTableView, AnnotatedBeatmapLevelCollectionsViewController>("_annotatedBeatmapLevelCollectionsTableView");
+ 
+-                    // get the tableview to select custom songs
+-                    var _tableView = _playlistsTableView.GetField<TableView, AnnotatedBeatmapLevelCollectionsTableView>("_tableView");
+-                    _tableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Center, false);
+-                    _tableView.SelectCellWithIdx(0, true);
+-                }
++                Plugin.Log("7");
++
++                // select the first element
++                annotatedBeatmapLevelCollectionsTableView.SelectAndScrollToCellWithIdx(0);
+             }
+ 
+-            // first element is custom maps
+-            return 0;
++            // arbitrary wait for catch-up
++            yield return new WaitForSeconds(0.1f);
++
++            Plugin.Log("Done");
+         }
+ 
+         //public static SongCore.OverrideClasses.SongCoreCustomLevelCollection BeatSaverDownloaderGetLevelPackWithLevels()
+@@ -176,7 +200,7 @@ namespace SongRequestManager
+                 }
+ 
+                 // Make sure our custom songpack is selected
+-                var packIndex = SelectCustomSongPack();
++                yield return SelectCustomSongPack();
+ 
+                 yield return null;
+ 
+@@ -223,11 +247,15 @@ namespace SongRequestManager
+                         {
+                             // disable no fail gamepaly modifier
+                             var gameplayModifiersPanelController = Resources.FindObjectsOfTypeAll<GameplayModifiersPanelController>().First();
+-                            gameplayModifiersPanelController.gameplayModifiers.noFail = false;
+- 
+-                            //gameplayModifiersPanelController.gameplayModifiers.ResetToDefault();
+-
+-                            gameplayModifiersPanelController.Refresh();
++                            var gamePlayModifierToggles = gameplayModifiersPanelController.GetField<GameplayModifierToggle[], GameplayModifiersPanelController>("_gameplayModifierToggles");
++                            foreach (var gamePlayModifierToggle in gamePlayModifierToggles)
++                            {
++                                if (gamePlayModifierToggle.gameplayModifier.modifierNameLocalizationKey == "MODIFIER_NO_FAIL")
++                                {
++                                    gameplayModifiersPanelController.SetToggleValueWithGameplayModifierParams(gamePlayModifierToggle.gameplayModifier, false);
++                                }
++                            }
++                            gameplayModifiersPanelController.RefreshTotalMultiplierAndRankUI();
+                         }
+                         catch
+                         { }
+diff --git a/EnhancedTwitchIntegration/UI/UIHelper.cs b/EnhancedTwitchIntegration/UI/UIHelper.cs
+index 6e662de..855c027 100644
+--- a/EnhancedTwitchIntegration/UI/UIHelper.cs
++++ b/EnhancedTwitchIntegration/UI/UIHelper.cs
+@@ -5,6 +5,8 @@ using UnityEngine.Events;
+ using UnityEngine.UI;
+ using IPA.Utilities;
+ using BeatSaberMarkupLanguage;
++using TMPro;
++using VRUIControls;
+ 
+ namespace SongRequestManager.UI
+ {
+@@ -19,22 +21,53 @@ namespace SongRequestManager.UI
+             return hoverHint;
+         }
+ 
+-        public static Button CreateUIButton(RectTransform parent, string buttonTemplate, Vector2 anchoredPosition, Vector2 sizeDelta, UnityAction onClick = null, string buttonText = "BUTTON", Sprite icon = null)
++        public static Button CreateUIButton(string name, RectTransform parent, string buttonTemplate, Vector2 anchoredPosition, Vector2 sizeDelta, UnityAction onClick = null, string buttonText = "BUTTON", Sprite icon = null)
+         {
+-            Button btn = Instantiate(Resources.FindObjectsOfTypeAll<Button>().Last(x => (x.name == buttonTemplate)), parent, false);
+-            btn.onClick = new Button.ButtonClickedEvent();
++            var btn = UnityEngine.Object.Instantiate(Resources.FindObjectsOfTypeAll<Button>().Last(x => (x.name == buttonTemplate)), parent, false);
++            btn.gameObject.SetActive(true);
++            btn.name = name;
++            btn.interactable = true;
++
++            var localizer = btn.GetComponentInChildren<Polyglot.LocalizedTextMeshProUGUI>();
++            if (localizer != null)
++            {
++                GameObject.Destroy(localizer);
++            }
++            BeatSaberMarkupLanguage.Components.ExternalComponents externalComponents = btn.gameObject.AddComponent<BeatSaberMarkupLanguage.Components.ExternalComponents>();
++            var textMesh = btn.GetComponentInChildren<TextMeshProUGUI>();
++            textMesh.richText = true;
++            externalComponents.components.Add(textMesh);
++
++            var contentTransform = btn.transform.Find("Content").GetComponent<LayoutElement>();
++            if (contentTransform != null)
++            {
++                GameObject.Destroy(contentTransform);
++            }
++
++            var buttonSizeFitter = btn.gameObject.AddComponent<ContentSizeFitter>();
++            buttonSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
++            buttonSizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
++
++            var stackLayoutGroup = btn.GetComponentInChildren<LayoutGroup>();
++            if (stackLayoutGroup != null)
++            {
++                externalComponents.components.Add(stackLayoutGroup);
++            }
++            
++            btn.onClick.RemoveAllListeners();
+             if (onClick != null)
++            {
++                Plugin.Log("Adding listener");
+                 btn.onClick.AddListener(onClick);
+-            btn.name = "VersusUIButton";
++            }
+ 
+-            (btn.transform as RectTransform).anchorMin = new Vector2(0.5f, 0.5f);
+-            (btn.transform as RectTransform).anchorMax = new Vector2(0.5f, 0.5f);
+-            (btn.transform as RectTransform).anchoredPosition = anchoredPosition;
+-            (btn.transform as RectTransform).sizeDelta = sizeDelta;
++            var btnTransform = btn.transform as RectTransform;
++            btnTransform.anchorMin = new Vector2(0.5f, 0.5f);
++            btnTransform.anchorMax = new Vector2(0.5f, 0.5f);
++            btnTransform.anchoredPosition = anchoredPosition;
++            btnTransform.sizeDelta = sizeDelta;
+ 
+             btn.SetButtonText(buttonText);
+-            if (icon != null)
+-                btn.SetButtonIcon(icon);
+ 
+             return btn;
+         }
+@@ -50,4 +83,27 @@ namespace SongRequestManager.UI
+             }
+         }
+     }
++
++    public static class ButtonExtensions
++    {
++        #region Button Extensions
++        public static void SetButtonUnderlineColor(this Button parent, Color color)
++        {
++            HMUI.ImageView img = parent.GetComponentsInChildren<HMUI.ImageView>().FirstOrDefault(x => x.name == "Underline");
++            if (img != null)
++            {
++                img.color = color;
++            }
++        }
++        #endregion
++    }
++
++    public static class ViewControllerExtensions
++    {
++        public static Button CreateUIButton(this HMUI.ViewController parent, string name, string buttonTemplate, Vector2 anchoredPosition, Vector2 sizeDelta, UnityAction onClick = null, string buttonText = "BUTTON")
++        {
++            var btn = UIHelper.CreateUIButton(name, parent.rectTransform, buttonTemplate, anchoredPosition, sizeDelta, onClick, buttonText);
++            return btn;
++        }
++    }
+ }
+diff --git a/EnhancedTwitchIntegration/UI/YesNoModal.cs b/EnhancedTwitchIntegration/UI/YesNoModal.cs
+index ed6908b..99ac4ea 100644
+--- a/EnhancedTwitchIntegration/UI/YesNoModal.cs
++++ b/EnhancedTwitchIntegration/UI/YesNoModal.cs
+@@ -27,6 +27,7 @@ namespace SongRequestManager
+             modal.Hide(true);
+             OnConfirm?.Invoke();
+             OnConfirm = null;
++            //modal.HandleBlockerButtonClicked();
+         }
+ 
+         [UIAction("no-click")]
+@@ -35,6 +36,7 @@ namespace SongRequestManager
+             modal.Hide(true);
+             OnDecline?.Invoke();
+             OnDecline = null;
++            //modal.HandleBlockerButtonClicked();
+         }
+ 
+         public void ShowDialog(string title, string message, Action onConfirm = null, Action onDecline = null)
+@@ -46,6 +48,7 @@ namespace SongRequestManager
+             OnDecline = onDecline;
+ 
+             modal.Show(true);
++            //modal.CreateBlocker();
+         }
+ 
+         internal void Setup()
+diff --git a/EnhancedTwitchIntegration/UdpListener.cs b/EnhancedTwitchIntegration/UdpListener.cs
+index ae34240..5d64c94 100644
+--- a/EnhancedTwitchIntegration/UdpListener.cs
++++ b/EnhancedTwitchIntegration/UdpListener.cs
+@@ -2,7 +2,7 @@
+ using System.Net;
+ using System.Net.Sockets;
+ using System.Text;
+-using ChatCore.SimpleJSON;
++using ChatCore.Utilities;
+ 
+ namespace SongRequestManager
+ {
+diff --git a/EnhancedTwitchIntegration/Views/YesNoModal.bsml b/EnhancedTwitchIntegration/Views/YesNoModal.bsml
+index 55cd717..91f1e81 100644
+--- a/EnhancedTwitchIntegration/Views/YesNoModal.bsml
++++ b/EnhancedTwitchIntegration/Views/YesNoModal.bsml
+@@ -1,14 +1,18 @@
+-﻿<modal id="modal" show-event='open-modal' hide-event='close-modal' clickerino-offerino-closerino="false" size-delta-x='90' size-delta-y='45' move-to-center='true'>
+-  <vertical child-control-height='false' child-expand-width='true' child-expand-height='true'>
+-    <horizontal bg='panel-top' pad-left='10' pad-right='10' horizontal-fit='PreferredSize' child-align='UpperCenter'>
+-      <text id='title' text='Dialog Title' align='Center'></text>
+-    </horizontal>
+-  </vertical>
+-  <horizontal child-control-width='false' anchor-pos-x='0' anchor-pos-y='0'>
+-    <text id='message' align='Center' text='Blacklist song? this is a really long text line to see what happens with text wrapping'></text>
+-  </horizontal>
+-  <bottom-button-panel>
+-    <button on-click='yes-click' text='Yes'></button>
+-    <button on-click='no-click' text='No'></button>
+-  </bottom-button-panel>
+-</modal>
+\ No newline at end of file
++﻿<bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
++  <modal id="modal" show-event='open-modal' hide-event='close-modal' clickerino-offerino-closerino="false" size-delta-x='90' size-delta-y='45' move-to-center='true'>
++    <vertical child-control-height='false' child-expand-width='true' child-expand-height='true'>
++      <horizontal bg='panel-top' pad-left='10' pad-right='10' horizontal-fit='PreferredSize' child-align='UpperCenter'>
++        <text id='title' text='Dialog Title' align='Center'></text>
++      </horizontal>
++    </vertical>
++    <vertical child-expand-width='true' child-expand-height='true'>
++      <horizontal child-control-width='false' anchor-pos-x='0' anchor-pos-y='0' vertical-fit='Unconstrained'>
++        <text id='message' align='Center' text='Blacklist song? this is a really long text line to see what happens with text wrapping' vertical-fit='Unconstrained'></text>
++      </horizontal>
++      <horizontal>
++        <button on-click='yes-click' text='Yes' preferred-width='30'></button>
++        <button on-click='no-click' text='No' preferred-width='30'></button>
++      </horizontal>
++    </vertical>
++  </modal>
++</bg>
+\ No newline at end of file
+diff --git a/EnhancedTwitchIntegration/WebClient.cs b/EnhancedTwitchIntegration/WebClient.cs
+index d63af8a..b0d4bab 100644
+--- a/EnhancedTwitchIntegration/WebClient.cs
++++ b/EnhancedTwitchIntegration/WebClient.cs
+@@ -6,7 +6,7 @@ using System.Net.Http.Headers;
+ using System.Text;
+ using System.Threading;
+ using System.Threading.Tasks;
+-using ChatCore.SimpleJSON;
++using ChatCore.Utilities;
+ 
+ namespace SongRequestManager
+ {
+diff --git a/EnhancedTwitchIntegration/manifest.json b/EnhancedTwitchIntegration/manifest.json
+index f397d84..710756b 100644
+--- a/EnhancedTwitchIntegration/manifest.json
++++ b/EnhancedTwitchIntegration/manifest.json
+@@ -1,19 +1,15 @@
+ {
+-  "$schema": "",
++  "$schema": "https://raw.githubusercontent.com/nike4613/ModSaber-MetadataFileSchema/master/Schema.json",
+   "author": "angturil",
+   "description": "Song Request Manager on twitch",
+-  "gameVersion": "1.11.0",
++  "gameVersion": "1.12.2",
+   "id": "SongRequestManager",
+   "name": "Song Request Manager",
+-  "version": "2.11.3",
++  "version": "2.12.2",
+   "dependsOn": {
+-    "BeatSaberMarkupLanguage": "^1.3.4",
+-    "BS Utils": "^1.4.11",
+-    "ChatCore": "^1.0.0" 
+-  },
+-  "features": [
+-    "print",
+-    "debug",
+-    "warn"
+-  ]
++    "BSIPA": "^4.1.3",
++    "BeatSaberMarkupLanguage": "^1.4.0",
++    "BS Utils": "^1.6.1",
++    "ChatCore": "^2.0.0"
++  }
+ }
+\ No newline at end of file
+diff --git a/README.md b/README.md
+index d4678ee..c0bd1a1 100644
+--- a/README.md
++++ b/README.md
+@@ -41,18 +41,8 @@ Copy SongRequestManager.dll to your Beat Saber\Plugins folder, and install all o
+ # Usage
+ A song request icon will appear on the upper right of the main menu. It will be green if there are song requests in the queue, but you can press it regardless. Don't forget to Open the queue for requests when you are ready. It will stay that way until you close it again. The Open Queue button is on the lower right of the song request panel.
+ 
+-# Setup
+-Needs more documentation
+-
+ # Config
+-The configuration files are located under UserData\EnhancedTwitchChat. RequestBotSettings.ini and TwitchLoginInfo.ini are the two files you need to adjust. *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values (**NOTE:** You will need to setup your channel info to be able to receive song requests.)
+-
+-# TwitchLoginInfo.ini
+-| Option | Description |
+-| - | - |
+-| **TwitchChannelName** | The name of the Twitch channel whos chat you want to join (this is your Twitch username if you want to join your own channel) |
+-| **TwitchUsername** | Your twitch username for the account you want to send messages as in chat (only matters if you're using the request bot) |
+-| **TwitchOAuthToken** | The oauth token corresponding to the TwitchUsername entered above ([Click here to generate an oauth token](https://twitchapps.com/tmi/))  |
++The configuration files are located under UserData\SRM. RequestBotSettings.ini is the only file you need to adjust. *Keep in mind all config options will update in realtime when you save the file! This means you don't have to restart the game to see your changes!* Use the table below as a guide for setting these values (**NOTE:** Be sure to configure ChatCore with your Twitch related settings so you will be able to receive song requests.)
+ 
+ # RequestBotSettings.ini
+ | Option | Description |

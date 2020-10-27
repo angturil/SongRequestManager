@@ -1,6 +1,6 @@
 ﻿using System;
 using ChatCore.Models.Twitch;
-using ChatCore.SimpleJSON;
+using ChatCore.Utilities;
 using static SongRequestManager.RequestBot;
 
 namespace SongRequestManager

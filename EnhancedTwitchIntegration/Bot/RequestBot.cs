@@ -20,7 +20,8 @@ using BeatSaberMarkupLanguage;
 using System.Threading.Tasks;
 using System.IO.Compression;
 using ChatCore.Models.Twitch;
-using ChatCore.SimpleJSON;
+using ChatCore.Utilities;
+using HMUI;
 
 namespace SongRequestManager
 {
@@ -78,7 +79,7 @@ namespace SongRequestManager
         internal static void SRMButtonPressed()
         {
             var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
-            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("PresentFlowCoordinator", _flowCoordinator, null, false, false);
+            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("PresentFlowCoordinator", _flowCoordinator, null, ViewController.    AnimationDirection.Horizontal, false, false);
         }
 
         internal static void SetTitle(string title)
@@ -90,17 +91,27 @@ namespace SongRequestManager
         {
             try
             {
-                var _levelListViewController = Resources.FindObjectsOfTypeAll<LevelCollectionViewController>().First();
-                if (_levelListViewController)
-                    {
-                    _requestButton = UIHelper.CreateUIButton(_levelListViewController.rectTransform, "OkButton", new Vector2(66, -3.5f),
-                        new Vector2(9f, 5.5f), () => { _requestButton.interactable = false; SRMButtonPressed(); _requestButton.interactable = true; }, "SRM");
+                var _levelListViewController = Resources.FindObjectsOfTypeAll<SelectLevelCategoryViewController>().Last();
 
-                    (_requestButton.transform as RectTransform).anchorMin = new Vector2(1, 1);
-                    (_requestButton.transform as RectTransform).anchorMax = new Vector2(1, 1);
+                if (_levelListViewController)
+                {
+                    // move the icon control
+                    var iconSegmentedControl = _levelListViewController.GetField<IconSegmentedControl, SelectLevelCategoryViewController>("_levelFilterCategoryIconSegmentedControl");
+                    ((RectTransform)iconSegmentedControl.transform).anchoredPosition = new Vector2(0, 4.5f);
+
+                    _requestButton = _levelListViewController.CreateUIButton("SRMButton", "PracticeButton", new Vector2(14, -4.5f), new Vector2(15f, 105f),
+                        () =>
+                        {
+                            _requestButton.interactable = false;
+                            SRMButtonPressed();
+                            _requestButton.interactable = true;
+                        },
+                        "SRM");
+
 
                     _requestButton.ToggleWordWrapping(false);
-                    _requestButton.SetButtonTextSize(3.5f);
+                    _requestButton.SetButtonTextSize(5f);
+
                     UIHelper.AddHintText(_requestButton.transform as RectTransform, "Manage the current request queue");
 
                     UpdateRequestUI();
@@ -917,11 +928,11 @@ namespace SongRequestManager
 
                     if (RequestQueue.Songs.Count == 0)
                     {
-                        _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.red;
+                        _requestButton.SetButtonUnderlineColor(Color.red);
                     }
                     else
                     {
-                        _requestButton.gameObject.GetComponentInChildren<Image>().color = Color.green;
+                        _requestButton.SetButtonUnderlineColor(Color.green);
                     }
                 }
             }
@@ -930,7 +941,6 @@ namespace SongRequestManager
                 Plugin.Log(ex.ToString());
             }
         }
-
 
         public static void DequeueRequest(SongRequest request, bool updateUI = true)
         {

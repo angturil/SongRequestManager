@@ -66,6 +66,22 @@ namespace SongRequestManager.UI
             return texture;
         }
 
+        public static Sprite Texture2DToSprite(Texture2D tex)
+        {
+            Sprite s = null;
+            try
+            {
+                s = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), (Vector2.one / 2f));
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Exception loading texture from base64 data.");
+                s = null;
+            }
+
+            return s;
+        }
+
         private static void GetImageSize(byte[] imageData, out int width, out int height)
         {
             width = ReadInt(imageData, 3 + 15);

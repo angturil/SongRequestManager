@@ -5,7 +5,7 @@ namespace SongRequestManager.UI
 {
     public class KeyboardViewController : ViewController
     {
-        protected override void DidActivate(bool firstActivation, ActivationType type)
+        protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
         {
             if (firstActivation)
             {
@@ -34,7 +34,7 @@ namespace SongRequestManager.UI
 #endif
 
 
-                mykeyboard.SetButtonType("OkButton"); // Adding this alters button positions??! Why?
+                mykeyboard.SetButtonType("Q"); // Adding this alters button positions??! Why?
                 mykeyboard.AddKeys(SEARCH, 0.75f);
 
                 mykeyboard.SetAction("CLEAR SEARCH", RequestBot.ClearSearch);
