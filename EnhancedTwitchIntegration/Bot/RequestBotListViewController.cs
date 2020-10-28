@@ -11,7 +11,6 @@ using IPA.Utilities;
 using BeatSaberMarkupLanguage;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
-using VRUIControls;
 using Object = System.Object;
 
 namespace SongRequestManager

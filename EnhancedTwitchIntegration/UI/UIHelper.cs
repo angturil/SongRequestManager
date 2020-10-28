@@ -6,7 +6,6 @@ using UnityEngine.UI;
 using IPA.Utilities;
 using BeatSaberMarkupLanguage;
 using TMPro;
-using VRUIControls;
 
 namespace SongRequestManager.UI
 {

@@ -78,11 +78,21 @@ namespace SongRequestManager
 
         internal static void SRMButtonPressed()
         {
-            var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
-            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("PresentFlowCoordinator", _flowCoordinator, null, ViewController.    AnimationDirection.Horizontal, false, false);
+            FlowCoordinator flowCoordinator;
+
+            if (Plugin.gameMode == Plugin.GameMode.Solo)
+            {
+                flowCoordinator = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
+            }
+            else
+            {
+                flowCoordinator = Resources.FindObjectsOfTypeAll<MultiplayerLevelSelectionFlowCoordinator>().First();
+            }
+
+            flowCoordinator.InvokeMethod<object, FlowCoordinator>("PresentFlowCoordinator", _flowCoordinator, null, ViewController.AnimationDirection.Horizontal, false, false);
         }
 
-        internal static void SetTitle(string title)
+    internal static void SetTitle(string title)
         {
             _flowCoordinator.SetTitle(title);
         }
@@ -92,6 +102,8 @@ namespace SongRequestManager
             try
             {
                 var _levelListViewController = Resources.FindObjectsOfTypeAll<SelectLevelCategoryViewController>().Last();
+
+                _levelListViewController.didActivateEvent += _levelListViewController_didActivateEvent;
 
                 if (_levelListViewController)
                 {
@@ -138,6 +150,11 @@ namespace SongRequestManager
 
             if (Instance) return;
             new GameObject("SongRequestManager").AddComponent<RequestBot>();
+        }
+
+        private static void _levelListViewController_didActivateEvent(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
+        {
+            UpdateRequestUI();
         }
 
         public static bool AddKeyboard(KEYBOARD keyboard, string keyboardname, float scale = 0.5f)
@@ -924,7 +941,15 @@ namespace SongRequestManager
 
                 if (_requestButton != null)
                 {
-                    _requestButton.interactable = true;
+                    var enabled = Plugin.gameMode == Plugin.GameMode.Solo;
+                    if (Plugin.gameMode == Plugin.GameMode.Online)
+                    {
+                        var mpFlowCoordinator = Resources.FindObjectsOfTypeAll<MultiplayerLevelSelectionFlowCoordinator>().First();
+                        enabled = mpFlowCoordinator.GetProperty<bool, MultiplayerLevelSelectionFlowCoordinator>("enableCustomLevels");
+                    }
+                    _requestButton.enabled = enabled;
+
+                    _requestButton.interactable = enabled;
 
                     if (RequestQueue.Songs.Count == 0)
                     {

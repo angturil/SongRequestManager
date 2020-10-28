@@ -2,10 +2,13 @@
 using IPALogger = IPA.Logging.Logger;
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using SongRequestManager.UI;
 using BeatSaberMarkupLanguage.Settings;
 using IPA.Utilities;
+using UnityEngine;
+using UnityEngine.UI;
 
 namespace SongRequestManager
 {
@@ -26,6 +29,8 @@ namespace SongRequestManager
         public static Plugin Instance { get; private set; }
         
         private RequestBotConfig RequestBotConfig;
+
+        internal static GameMode gameMode;
 
         public static string DataPath = Path.Combine(UnityGame.UserDataPath, "SRM");
         public static string OldDataPath = Path.Combine(UnityGame.UserDataPath, "StreamCore");
@@ -94,9 +99,25 @@ namespace SongRequestManager
             // setup settings ui
             BSMLSettings.instance.AddSettingsMenu("SRM", "SongRequestManager.Views.SongRequestManagerSettings.bsml", SongRequestManagerSettings.instance);
 
+            var onlinePlayButton = Resources.FindObjectsOfTypeAll<Button>().First(x => x.name == "OnlineButton");
+            var soloFreePlayButton = Resources.FindObjectsOfTypeAll<Button>().First(x => x.name == "SoloButton");
+            var partyFreePlayButton = Resources.FindObjectsOfTypeAll<Button>().First(x => x.name == "PartyButton");
+            var campaignButton = Resources.FindObjectsOfTypeAll<Button>().First(x => x.name == "CampaignButton");
+
+            onlinePlayButton.onClick.AddListener(() => { gameMode = GameMode.Online; });
+            soloFreePlayButton.onClick.AddListener(() => { gameMode = GameMode.Solo; });
+            partyFreePlayButton.onClick.AddListener(() => { gameMode = GameMode.Solo; });
+            campaignButton.onClick.AddListener(() => { gameMode = GameMode.Solo; });
+
             // main load point
             RequestBot.OnLoad();
             RequestBotConfig.Save(true);
+        }
+
+        internal enum GameMode
+        {
+            Solo,
+            Online
         }
 
         public static void SongBrowserCancelFilter()

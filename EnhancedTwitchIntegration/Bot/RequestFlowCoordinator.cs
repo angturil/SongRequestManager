@@ -35,8 +35,18 @@ namespace SongRequestManager
         protected override void BackButtonWasPressed(ViewController topViewController)
         {
             // dismiss ourselves
-            var soloFlow = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
-            soloFlow.InvokeMethod<object, SoloFreePlayFlowCoordinator>("DismissFlowCoordinator", this, ViewController.AnimationDirection.Horizontal, null, false);
+            FlowCoordinator flowCoordinator;
+
+            if (Plugin.gameMode == Plugin.GameMode.Solo)
+            {
+                flowCoordinator = Resources.FindObjectsOfTypeAll<SoloFreePlayFlowCoordinator>().First();
+            }
+            else
+            {
+                flowCoordinator = Resources.FindObjectsOfTypeAll<MultiplayerLevelSelectionFlowCoordinator>().First();
+            }
+
+            flowCoordinator.InvokeMethod<object, FlowCoordinator>("DismissFlowCoordinator", this, ViewController.AnimationDirection.Horizontal, null, false);
         }
 
         public void Dismiss()
