@@ -24,7 +24,6 @@ namespace SongRequestManager
 
         public static UdpListener UdpListener;
 
-        public bool IsAtMainMenu = true;
         public bool IsApplicationExiting = false;
         public static Plugin Instance { get; private set; }
         
@@ -85,10 +84,6 @@ namespace SongRequestManager
             // setup handle for fresh menu scene changes
             BS_Utils.Utilities.BSEvents.OnLoad();
             BS_Utils.Utilities.BSEvents.lateMenuSceneLoadedFresh += OnLateMenuSceneLoadedFresh;
-
-            // keep track of active scene
-            BS_Utils.Utilities.BSEvents.menuSceneActive += () => { IsAtMainMenu = true; };
-            BS_Utils.Utilities.BSEvents.gameSceneActive += () => { IsAtMainMenu = false; };
 
             // init sprites
             Base64Sprites.Init();

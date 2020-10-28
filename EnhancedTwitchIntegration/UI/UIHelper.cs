@@ -85,6 +85,26 @@ namespace SongRequestManager.UI
     public static class ButtonExtensions
     {
         #region Button Extensions
+        public static void HighlightDeckButton(this Button button, Color color)
+        {
+            var text = button.GetComponentInChildren<TextMeshProUGUI>();
+            text.color = color;
+
+            var bgImage = button.GetComponentsInChildren<HMUI.ImageView>().FirstOrDefault(x => x.name == "BG");
+            var stroke = button.GetComponentsInChildren<HMUI.ImageView>().FirstOrDefault(x => x.name == "Stroke");
+
+            if (stroke != null)
+            {
+                color.a = 0.2509804f;
+
+                stroke.color0 = color;
+                stroke.color1 = color;
+                stroke.color = color;
+                stroke.fillMethod = Image.FillMethod.Horizontal;
+                stroke.SetAllDirty();
+            }
+        }
+
         public static void SetButtonUnderlineColor(this Button parent, Color color)
         {
             HMUI.ImageView img = parent.GetComponentsInChildren<HMUI.ImageView>().FirstOrDefault(x => x.name == "Underline");

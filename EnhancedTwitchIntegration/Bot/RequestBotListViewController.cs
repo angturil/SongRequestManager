@@ -9,9 +9,7 @@ using Image = UnityEngine.UI.Image;
 using SongRequestManager.UI;
 using IPA.Utilities;
 using BeatSaberMarkupLanguage;
-using System.Threading.Tasks;
 using System.Collections.Concurrent;
-using Object = System.Object;
 
 namespace SongRequestManager
 {
@@ -36,9 +34,6 @@ namespace SongRequestManager
 
         private TextMeshProUGUI _CurrentSongName;
         private TextMeshProUGUI _CurrentSongName2;
-
-        private RequestFlowCoordinator RequestFlowCoordinator;
-        private SimpleDialogPromptViewController _dialog;
 
         private HoverHint _historyHintText;
 
@@ -67,24 +62,18 @@ namespace SongRequestManager
         string SONGLISTKEY = @"
 [blacklist last]/0'!block/current%CR%'
 
-[fun +]/25'!fun/current/toggle%CR%' [hard +]/25'!hard/current/toggle%CR%'
-[dance +]/25'!dance/current/toggle%CR%' [chill +]/25'!chill/current/toggle%CR%'
-[brutal +]/25'!brutal/current/toggle%CR%' 
+[fun +]/25'!fun/selected/toggle%CR%' [hard +]/25'!hard/selected/toggle%CR%'
+[dance +]/25'!dance/selected/toggle%CR%' [chill +]/25'!chill/selected/toggle%CR%'
+[brutal +]/25'!brutal/selected/toggle%CR%' 
 
 [Random song!]/0'!decklist draw%CR%'";
-
-        public static void InvokeBeatSaberButton(String buttonName)
-        {
-            Button buttonInstance = Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == buttonName));
-            buttonInstance.onClick.Invoke();
-        }
 
         public void Awake()
         {
             Instance = this;
         }
 
-        public void ColorDeckButtons(KEYBOARD kb, Color basecolor, Color Present)
+        public void ColorDeckButtons(KEYBOARD kb, Color basecolor, Color Present, bool setSprite = false)
         {
             if (RequestHistory.Songs.Count == 0) return;
             foreach (KEYBOARD.KEY key in kb.keys)
@@ -96,7 +85,8 @@ namespace SongRequestManager
                     {
                         string deckname = item.Key.ToLower() + ".deck";
                         Color color = (RequestBot.listcollection.contains(ref deckname, CurrentlySelectedSong().song["id"].Value)) ? Present : basecolor;
-                        key.mybutton.GetComponentInChildren<Image>().color = color;
+
+                        key.mybutton.HighlightDeckButton(color);
                     }
                 }
             }
@@ -219,14 +209,19 @@ namespace SongRequestManager
                     {
                         isShowingHistory = !isShowingHistory;
                         RequestBot.SetTitle(isShowingHistory ? "Song Request History" : "Song Request Queue");
-                        UpdateRequestUI(true);
-                        SetUIInteractivity();
-                        _lastSelection = -1;
                         if (NumberOfCells() > 0)
                         {
                             _songListTableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Beginning, false);
                             _songListTableView.SelectCellWithIdx(0);
+                            _selectedRow = 0;
                         }
+                        else
+                        {
+                            _selectedRow = -1;
+                        }
+                        UpdateRequestUI(true);
+                        SetUIInteractivity();
+                        _lastSelection = -1;
                     }, "History");
 
                 _historyButton.ToggleWordWrapping(false);
@@ -351,6 +346,13 @@ namespace SongRequestManager
                 RequestBot.SetTitle(isShowingHistory ? "Song Request History" : "Song Request Queue");
             }
             base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
+
+            if (addedToHierarchy)
+            {
+                _selectedRow = -1;
+                _songListTableView.ClearSelection();
+            }
+
             UpdateRequestUI();
             SetUIInteractivity(true);
         }
@@ -479,13 +481,10 @@ namespace SongRequestManager
 
             // history button can be enabled even if others are disabled
             _historyButton.interactable = true;
-            _historyButton.interactable = interactive;
 
             _playButton.interactable = interactive;
             _skipButton.interactable = interactive;
             _blacklistButton.interactable = interactive;
-            // history button can be enabled even if others are disabled
-            _historyButton.interactable = true;
         }
 
         private CustomPreviewBeatmapLevel CustomLevelForRow(int row)
@@ -536,15 +535,15 @@ namespace SongRequestManager
             var favouritesBadge = _tableCell.GetField<Image, LevelListTableCell>("_favoritesBadgeImage");
             favouritesBadge.enabled = false;
 
-            bool highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
+            var highlight = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
 
-            string msg = highlight ? "MSG" : "";
+            var msg = highlight ? "MSG" : "";
 
             var hasMessage = (request.requestInfo.Length > 0) && (request.requestInfo[0] == '!');
             var isChallenge = request.requestInfo.IndexOf("!challenge", StringComparison.OrdinalIgnoreCase) >= 0;
 
-            string pp = "";
-            int ppvalue = request.song["pp"].AsInt;
+            var pp = "";
+            var ppvalue = request.song["pp"].AsInt;
             if (ppvalue > 0) pp = $" {ppvalue} PP";
 
             var dt = new RequestBot.DynamicText().AddSong(request.song).AddUser(ref request.requestor); // Get basic fields
@@ -584,10 +583,9 @@ namespace SongRequestManager
 
             if (SongCore.Loader.AreSongsLoaded)
             {
-                CustomPreviewBeatmapLevel level = CustomLevelForRow(row);
+                var level = CustomLevelForRow(row);
                 if (level != null)
                 {
-                    //Plugin.Log("custom level found");
                     // set image from song's cover image
                     var sprite = await level.GetCoverImageAsync(System.Threading.CancellationToken.None);
                     image.sprite = sprite;
@@ -597,7 +595,7 @@ namespace SongRequestManager
 
             if (!imageSet)
             {
-                string url = request.song["coverURL"].Value;
+                var url = request.song["coverURL"].Value;
 
                 if (!_cachedTextures.TryGetValue(url, out var tex))
                 {
@@ -612,7 +610,7 @@ namespace SongRequestManager
                     }
                     catch (Exception)
                     {
-
+                        // ignored
                     }
                 }
 

@@ -283,12 +283,9 @@ namespace SongRequestManager
         {
             //createdeck(state.user, RequestBotConfig.Instance.DeckList.ToLower());
 
-            string dummy = "";
             string decklist = RequestBotConfig.Instance.DeckList.ToLower();
             state.parameter = decklist;
             return createdeck(state);
-           
-
         }
 
         private string createdeck(ParseState state)
