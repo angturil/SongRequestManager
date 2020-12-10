@@ -46,6 +46,7 @@ namespace SongRequestManager
                 flowCoordinator = Resources.FindObjectsOfTypeAll<MultiplayerLevelSelectionFlowCoordinator>().First();
             }
 
+            SetRightScreenViewController(null, ViewController.AnimationType.None);
             flowCoordinator.InvokeMethod<object, FlowCoordinator>("DismissFlowCoordinator", this, ViewController.AnimationDirection.Horizontal, null, false);
         }
 
