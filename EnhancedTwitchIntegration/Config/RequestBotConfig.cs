@@ -28,6 +28,7 @@ namespace SongRequestManager
         public float LowestAllowedRating = 0; // Lowest allowed song rating to be played 0-100 *IMPLEMENTED*, needs UI
         public float MaximumSongLength = 180; // Maximum song length in minutes
         public float MinimumNJS = 0;
+        public bool Automap = true;
 
         public int MaxiumScanRange = 5; // How far down the list to scan for new songs
 
