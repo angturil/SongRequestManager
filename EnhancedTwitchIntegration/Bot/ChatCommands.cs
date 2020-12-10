@@ -196,7 +196,7 @@ namespace SongRequestManager
         {
             string songid = song["id"].Value;
 
-            //if (filter.HasFlag(SongFilter.AutoMAP) && song["automapper"].AsBool== true) return fast ? "X" : $"Automapper songs not allowed.";
+            if (filter.HasFlag(SongFilter.AutoMAP) && song["metadata"]["automapper"] != null && RequestBotConfig.Instance.Automap == false) return fast ? "X" : $"{song["songName"].Value} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) is banned due to being automapped!"; ;
 
             if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
 

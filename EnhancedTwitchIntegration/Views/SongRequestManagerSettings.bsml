@@ -3,6 +3,7 @@
   <slider-setting text='Minimum rating' min='0' max='100' increment='.5' value='lowest-allowed-rating' integer-only='false' hover-hint='Minimum allowed song rating'></slider-setting>
   <slider-setting text='Maximum Song Length' min='0' max='999' increment='1' value='maximum-song-length' integer-only='true' hover-hint='Longest allowed song length in minutes'></slider-setting>
   <slider-setting text='Minimum NJS allowed' min='0' max='50' increment='1' value='minimum-njs' integer-only='true' hover-hint='Disallow songs below a certain NJS'></slider-setting>
+  <bool-setting text='Automapped Maps allowed' value='automap' hover-hint='Allow automapped (beatsage) maps'></bool-setting>
   <bool-setting text='TTS Support' value='tts-support' hover-hint='Add ! to all command outputs for TTS Filtering'></bool-setting>
   <slider-setting text='User Request limit' min='0' max='10' increment='1' value='user-request-limit' integer-only='true' hover-hint='Maximum requests in queue at one time'></slider-setting>
   <slider-setting text='Sub Request limit' min='0' max='10' increment='1' value='sub-request-limit' integer-only='true' hover-hint='Maximum requests in queue at one time'></slider-setting>
