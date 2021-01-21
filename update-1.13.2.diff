@@ -1,0 +1,215 @@
+diff --git a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+index 3a782a4..4dd0db4 100644
+--- a/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
++++ b/EnhancedTwitchIntegration/Bot/RequestBotListViewController.cs
+@@ -103,12 +103,16 @@ namespace SongRequestManager
+                     SongCore.Loader.SongsLoadedEvent += SongLoader_SongsLoadedEvent;
+                 }
+ 
++                Plugin.Log("DidActivate 001");
++
+                 // get table cell instance
+                 _requestListTableCellInstance = Resources.FindObjectsOfTypeAll<LevelListTableCell>().First((LevelListTableCell x) => x.name == "LevelListTableCell");
+ 
+                 // initialize Yes/No modal
+                 YesNoModal.instance.Setup();
+ 
++                Plugin.Log("DidActivate 002");
++
+                 _songPreviewPlayer = Resources.FindObjectsOfTypeAll<SongPreviewPlayer>().FirstOrDefault();
+ 
+                 RectTransform container = new GameObject("RequestBotContainer", typeof(RectTransform)).transform as RectTransform;
+@@ -147,9 +151,15 @@ namespace SongRequestManager
+ 
+                 var _songListTableViewScroller = _songListTableView.GetField<TableViewScroller, TableView>("scroller");
+ 
+-                _pageUpButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().Last(x => (x.name == "PageUpButton")), container, false);
+-                (_pageUpButton.transform as RectTransform).anchoredPosition = new Vector2(3f, -14f);
+-                (_pageUpButton.transform as RectTransform).sizeDelta = new Vector2(-30f, 6f);
++                Plugin.Log("DidActivate 003");
++
++                var textPageScrollView = Resources.FindObjectsOfTypeAll<ReleaseInfoViewController>().First().GetField<TextPageScrollView, ReleaseInfoViewController>("_textPageScrollView");
++                var pageUpButton = textPageScrollView.GetField<Button, ScrollView>("_pageUpButton");
++                var pageDownButton = textPageScrollView.GetField<Button, ScrollView>("_pageDownButton");
++
++                _pageUpButton = Instantiate(pageUpButton, container, false);
++                (_pageUpButton.transform as RectTransform).anchoredPosition = new Vector2(-50f, -8f);
++                (_pageUpButton.transform as RectTransform).sizeDelta = new Vector2(10f, 6f);
+                 _pageUpButton.interactable = true;
+                 _pageUpButton.name = "SRMPageUpButton";
+                 _pageUpButton.onClick.AddListener(delegate ()
+@@ -157,9 +167,11 @@ namespace SongRequestManager
+                     _songListTableViewScroller.PageScrollUp();
+                 });
+ 
+-                _pageDownButton = Instantiate(Resources.FindObjectsOfTypeAll<Button>().First(x => (x.name == "PageDownButton")), container, false);
+-                (_pageDownButton.transform as RectTransform).anchoredPosition = new Vector2(3f, 14f);
+-                (_pageDownButton.transform as RectTransform).sizeDelta = new Vector2(-30f, 6f);
++                Plugin.Log("DidActivate 004");
++
++                _pageDownButton = Instantiate(pageDownButton, container, false);
++                (_pageDownButton.transform as RectTransform).anchoredPosition = new Vector2(-50f, 14f);
++                (_pageDownButton.transform as RectTransform).sizeDelta = new Vector2(10f, 6f);
+                 _pageDownButton.interactable = true;
+                 _pageDownButton.name = "SRMPageDownButton";
+                 _pageDownButton.onClick.AddListener(delegate ()
+@@ -174,6 +186,8 @@ namespace SongRequestManager
+                 // BUG: Need additional modes disabling one shot buttons
+                 // BUG: Need to make sure the buttons are usable on older headsets
+ 
++                Plugin.Log("DidActivate 005");
++
+                 _CurrentSongName = BeatSaberUI.CreateText(container, "", new Vector2(-35, 37f));
+                 _CurrentSongName.fontSize = 3f;
+                 _CurrentSongName.color = Color.cyan;
+diff --git a/EnhancedTwitchIntegration/SongRequestManager.csproj b/EnhancedTwitchIntegration/SongRequestManager.csproj
+index 5323b64..d701077 100644
+--- a/EnhancedTwitchIntegration/SongRequestManager.csproj
++++ b/EnhancedTwitchIntegration/SongRequestManager.csproj
+@@ -35,52 +35,52 @@
+   </PropertyGroup>
+   <ItemGroup>
+     <Reference Include="BeatSaverDownloader">
+-      <HintPath>..\..\..\Versus\BeatSaverDownloader.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Plugins\BeatSaverDownloader.dll</HintPath>
+     </Reference>
+     <Reference Include="BSML">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Plugins\BSML.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Plugins\BSML.dll</HintPath>
+     </Reference>
+     <Reference Include="BS_Utils, Version=1.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\BS_Utils.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Plugins\BS_Utils.dll</HintPath>
+     </Reference>
+     <Reference Include="ChatCore, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Libs\ChatCore.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Libs\ChatCore.dll</HintPath>
+     </Reference>
+     <Reference Include="GameplayCore">
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\GameplayCore.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\GameplayCore.dll</HintPath>
+     </Reference>
+     <Reference Include="HMLib, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\HMLib.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\HMLib.dll</HintPath>
+     </Reference>
+     <Reference Include="HMUI, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\HMUI.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\HMUI.dll</HintPath>
+     </Reference>
+     <Reference Include="IPA.Loader, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
+     </Reference>
+     <Reference Include="Main, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Main.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Main.dll</HintPath>
+     </Reference>
+     <Reference Include="Polyglot, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Polyglot.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Polyglot.dll</HintPath>
+     </Reference>
+     <Reference Include="SemVer">
+-      <HintPath>C:\Games\steam\steamapps\common\Beat Saber\Libs\SemVer.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Libs\SemVer.dll</HintPath>
+     </Reference>
+     <Reference Include="SongBrowser, Version=6.0.5.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Plugins\SongBrowser.dll</HintPath>
+     </Reference>
+     <Reference Include="SongCore, Version=2.9.5.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Plugins\SongCore.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Plugins\SongCore.dll</HintPath>
+     </Reference>
+     <Reference Include="System" />
+     <Reference Include="System.Core" />
+@@ -92,53 +92,53 @@
+     <Reference Include="System.Data" />
+     <Reference Include="System.Xml" />
+     <Reference Include="Unity.ProBuilder">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Unity.ProBuilder.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Unity.ProBuilder.dll</HintPath>
+     </Reference>
+     <Reference Include="Unity.TextMeshPro">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Unity.TextMeshPro.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.AnimationModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.AssetBundleModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.AudioModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.CoreModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.ImageConversionModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.JSONSerializeModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.TextRenderingModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UI">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UI.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.UI.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UIElementsModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.UIModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.UIModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.VideoModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.VideoModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.VideoModule.dll</HintPath>
+     </Reference>
+     <Reference Include="UnityEngine.VRModule">
+-      <HintPath>C:\Games\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\UnityEngine.VRModule.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.VRModule.dll</HintPath>
+     </Reference>
+     <Reference Include="VRUI, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+       <SpecificVersion>False</SpecificVersion>
+-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\VRUI.dll</HintPath>
++      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\VRUI.dll</HintPath>
+     </Reference>
+   </ItemGroup>
+   <ItemGroup>
+@@ -187,7 +187,7 @@
+     </PreBuildEvent>
+   </PropertyGroup>
+   <PropertyGroup>
+-    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "C:\Games\Steam\steamapps\common\Beat Saber\Plugins"
+-copy /Y "$(TargetDir)$(TargetFileName)" "C:\Beat Saber\Plugins"</PostBuildEvent>
++    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "$(BeatSaberDir)\Plugins"
++copy /Y "$(TargetDir)$(TargetFileName)" "$(BeatSaberDir)"</PostBuildEvent>
+   </PropertyGroup>
+ </Project>
+\ No newline at end of file
