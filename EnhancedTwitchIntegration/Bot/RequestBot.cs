@@ -196,7 +196,7 @@ namespace SongRequestManager
                 key.kb.Enter(key);
             }
             ClearSearches();
-            RequestBot.COMMAND.Parse(ChatHandler.Self, $"!makesearchdeck {key.kb.KeyboardText.text}", CmdFlags.Local);
+            RequestBot.COMMAND.Parse(ChatHandler.Self, $"!addsongs/top {key.kb.KeyboardText.text}", CmdFlags.Local);
             key.kb.Clear(key);
         }
 
@@ -847,17 +847,39 @@ namespace SongRequestManager
                     //        goto here;
                     //    }
                     //}
+                    byte[] songZip = null;
 
+                    if (!string.IsNullOrEmpty(RequestBotConfig.Instance.offlinepath))
+                    {
+                        // build cache name to check
+                        var cacheName = $"{request.song["key"].Value}_{request.song["hash"].Value}.zip";
+                        Plugin.Log($"{RequestBotConfig.Instance.offlinepath} - {cacheName}");
+                        var cachePath = Path.Combine(RequestBotConfig.Instance.offlinepath, cacheName);
 
+                        // check if a local cache exists, if so, copy it
+                        if (File.Exists(cachePath))
+                        {
+                            Plugin.Log($"{request.song["key"]} found in offline cache");
+                            using (var stream = File.Open(cachePath, FileMode.Open))
+                            {
+                                songZip = new byte[stream.Length];
+                                await stream.ReadAsync(songZip, 0, (int)stream.Length, System.Threading.CancellationToken.None);
+                            }
+                        }
+                    }
+
+                    if (songZip == null)
+                    {
 #if UNRELEASED
-                    // Direct download hack
-                    var ext = Path.GetExtension(request.song["coverURL"].Value);
-                    var k = request.song["coverURL"].Value.Replace(ext, ".zip");
+                        // Direct download hack
+                        var ext = Path.GetExtension(request.song["coverURL"].Value);
+                        var k = request.song["coverURL"].Value.Replace(ext, ".zip");
 
-                    var songZip = await Plugin.WebClient.DownloadSong($"https://beatsaver.com{k}", System.Threading.CancellationToken.None);
+                        songZip = await Plugin.WebClient.DownloadSong($"https://beatsaver.com{k}", System.Threading.CancellationToken.None);
 #else
-                    var songZip = await Plugin.WebClient.DownloadSong($"https://beatsaver.com{request.song["downloadURL"].Value}", System.Threading.CancellationToken.None);
+                        songZip = await Plugin.WebClient.DownloadSong($"https://beatsaver.com{request.song["downloadURL"].Value}", System.Threading.CancellationToken.None);
 #endif
+                    }
 
                     Stream zipStream = new MemoryStream(songZip);
                     try

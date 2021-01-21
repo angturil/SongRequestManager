@@ -81,7 +81,7 @@ namespace SongRequestManager
                     var metadata = song["metadata"];
                     song.Add("songName", metadata["songName"].Value);
                     song.Add("songSubName", metadata["songSubName"].Value);
-                    song.Add("authorName", metadata["levelAuthorName"].Value);
+                    song.Add("authorName", metadata["songAuthorName"].Value);
                     song.Add("levelAuthor", metadata["levelAuthorName"].Value);
                     song.Add("rating", song["stats"]["rating"].AsFloat*100);
 
@@ -485,7 +485,7 @@ namespace SongRequestManager
 
                     var StarTime = DateTime.UtcNow;
 
-                    if (folder == "") folder = Path.Combine(Environment.CurrentDirectory, "customsongs");
+                    if (folder == "") folder = Path.Combine(Environment.CurrentDirectory, "Beat Saber_data\\customlevels");
 
                     List<FileInfo> files = new List<FileInfo>();  // List that will hold the files and subfiles in path
                     List<DirectoryInfo> folders = new List<DirectoryInfo>(); // List that hold direcotries that cannot be accessed
@@ -505,7 +505,7 @@ namespace SongRequestManager
                         {
                             foreach (FileInfo f in dir.GetFiles(searchPattern))
                             {
-                                if (f.FullName.EndsWith("info.json"))
+                                if (f.FullName.EndsWith("info.dat"))
                                     files.Add(f);
                             }
                         }
@@ -880,7 +880,7 @@ namespace SongRequestManager
 
                     ppmap.TryAdd(id, (int)(maxpp));
 
-                    if (id != "" && maxpp > 200) listcollection.add("pp.deck", id);
+                    if (id != "" && maxpp > RequestBotConfig.Instance.PPDeckMiniumumPP) listcollection.add("pp.deck", id);
 
                     if (MapDatabase.MapLibrary.TryGetValue(id, out SongMap map))
                     {
