@@ -151,27 +151,24 @@ namespace SongRequestManager
 
                 var _songListTableViewScroller = _songListTableView.GetField<TableViewScroller, TableView>("scroller");
 
-                var textPageScrollView = Resources.FindObjectsOfTypeAll<ReleaseInfoViewController>().First().GetField<TextPageScrollView, ReleaseInfoViewController>("_textPageScrollView");
-                var pageUpButton = textPageScrollView.GetField<Button, ScrollView>("_pageUpButton");
-                var pageDownButton = textPageScrollView.GetField<Button, ScrollView>("_pageDownButton");
+                _pageUpButton = UIHelper.CreateUIButton("SRMPageUpButton",
+                     container,
+                     "PracticeButton",
+                     new Vector2(0f, 38.5f),
+                     new Vector2(15f, 7f),
+                     () => { _songListTableViewScroller.PageScrollUp(); },
+                     "˄");
+                Destroy(_pageUpButton.GetComponentsInChildren<ImageView>().FirstOrDefault(x => x.name == "Underline"));
 
-                _pageUpButton = Instantiate(pageUpButton, container, false);
-                (_pageUpButton.transform as RectTransform).anchorMin = new Vector2(0f, 0f);
-                (_pageUpButton.transform as RectTransform).anchorMax = new Vector2(1f, 0f);
-                (_pageUpButton.transform as RectTransform).anchoredPosition = new Vector2(-50f, 92f);
-                (_pageUpButton.transform as RectTransform).sizeDelta = new Vector2(10f, 6f);
-                _pageUpButton.interactable = true;
-                _pageUpButton.name = "SRMPageUpButton";
-                _pageUpButton.onClick.AddListener(delegate ()
-                {
-                    _songListTableViewScroller.PageScrollUp();
-                });
+                _pageDownButton = UIHelper.CreateUIButton("SRMPageDownButton",
+                    container,
+                    "PracticeButton",
+                    new Vector2(0f, -38.5f),
+                    new Vector2(15f, 7f),
+                    () => { _songListTableViewScroller.PageScrollDown(); },
+                    "˅");
+                Destroy(_pageDownButton.GetComponentsInChildren<ImageView>().FirstOrDefault(x => x.name == "Underline"));
 
-                _pageDownButton = Instantiate(pageDownButton, container, false);
-                (_pageDownButton.transform as RectTransform).anchorMin = new Vector2(0f, 0f);
-                (_pageDownButton.transform as RectTransform).anchorMax = new Vector2(1f, 0f);
-                (_pageDownButton.transform as RectTransform).anchoredPosition = new Vector2(-50f, 14f);
-                (_pageDownButton.transform as RectTransform).sizeDelta = new Vector2(10f, 6f);
                 #endregion
 
                 CenterKeys = new KEYBOARD(container, "", false, -15, 15);
