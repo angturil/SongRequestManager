@@ -106,7 +106,7 @@ namespace SongRequestManager
                     Plugin.Log($"Selecting row {songIndex}");
 
                     // scroll to song
-                    tableView.ScrollToCellWithIdx(songIndex, TableViewScroller.ScrollPositionType.Beginning, animated);
+                    tableView.ScrollToCellWithIdx(songIndex, TableView.ScrollPositionType.Beginning, animated);
 
                     // select song, and fire the event
                     tableView.SelectCellWithIdx(songIndex, true);

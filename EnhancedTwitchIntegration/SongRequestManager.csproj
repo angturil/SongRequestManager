@@ -44,8 +44,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(BeatSaberDir)\Plugins\BS_Utils.dll</HintPath>
     </Reference>
-    <Reference Include="ChatCore">
-      <HintPath>..\..\..\..\..\..\steam\steamapps\common\Beat Saber\Libs\ChatCore.dll</HintPath>
+    <Reference Include="ChatCore, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(BeatSaberDir)\Libs\ChatCore.dll</HintPath>
     </Reference>
     <Reference Include="GameplayCore">
       <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\GameplayCore.dll</HintPath>

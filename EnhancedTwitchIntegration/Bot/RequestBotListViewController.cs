@@ -124,6 +124,9 @@ namespace SongRequestManager
 
                 go.AddComponent<ScrollRect>();
                 go.AddComponent<Touchable>();
+                go.AddComponent<EventSystemListener>();
+
+                ScrollView scrollView = go.AddComponent<ScrollView>();
 
                 _songListTableView = go.AddComponent<TableView>();
                 go.AddComponent<RectMask2D>();
@@ -131,12 +134,18 @@ namespace SongRequestManager
 
                 _songListTableView.SetField("_preallocatedCells", new TableView.CellsGroup[0]);
                 _songListTableView.SetField("_isInitialized", false);
+                _songListTableView.SetField("_scrollView", scrollView);
 
                 var viewport = new GameObject("Viewport").AddComponent<RectTransform>();
                 viewport.SetParent(go.GetComponent<RectTransform>(), false);
                 go.GetComponent<ScrollRect>().viewport = viewport;
-
                 (viewport.transform as RectTransform).sizeDelta = new Vector2(70f, 70f);
+
+                RectTransform content = new GameObject("Content").AddComponent<RectTransform>();
+                content.SetParent(viewport, false);
+
+                scrollView.SetField("_contentRectTransform", content);
+                scrollView.SetField("_viewport", viewport);
 
                 _songListTableView.SetDataSource(this, false);
 
@@ -149,15 +158,13 @@ namespace SongRequestManager
 
                 _songListTableView.didSelectCellWithIdxEvent += DidSelectRow;
 
-                var _songListTableViewScroller = _songListTableView.GetField<TableViewScroller, TableView>("scroller");
-
                 _pageUpButton = UIHelper.CreateUIButton("SRMPageUpButton",
-                     container,
-                     "PracticeButton",
-                     new Vector2(0f, 38.5f),
-                     new Vector2(15f, 7f),
-                     () => { _songListTableViewScroller.PageScrollUp(); },
-                     "˄");
+                    container,
+                    "PracticeButton",
+                    new Vector2(0f, 38.5f),
+                    new Vector2(15f, 7f),
+                    () => { scrollView.PageUpButtonPressed(); },
+                    "˄");
                 Destroy(_pageUpButton.GetComponentsInChildren<ImageView>().FirstOrDefault(x => x.name == "Underline"));
 
                 _pageDownButton = UIHelper.CreateUIButton("SRMPageDownButton",
@@ -165,10 +172,9 @@ namespace SongRequestManager
                     "PracticeButton",
                     new Vector2(0f, -38.5f),
                     new Vector2(15f, 7f),
-                    () => { _songListTableViewScroller.PageScrollDown(); },
+                    () => { scrollView.PageDownButtonPressed(); },
                     "˅");
                 Destroy(_pageDownButton.GetComponentsInChildren<ImageView>().FirstOrDefault(x => x.name == "Underline"));
-
                 #endregion
 
                 CenterKeys = new KEYBOARD(container, "", false, -15, 15);
@@ -216,7 +222,7 @@ namespace SongRequestManager
                         RequestBot.SetTitle(isShowingHistory ? "Song Request History" : "Song Request Queue");
                         if (NumberOfCells() > 0)
                         {
-                            _songListTableView.ScrollToCellWithIdx(0, TableViewScroller.ScrollPositionType.Beginning, false);
+                            _songListTableView.ScrollToCellWithIdx(0, TableView.ScrollPositionType.Beginning, false);
                             _songListTableView.SelectCellWithIdx(0);
                             _selectedRow = 0;
                         }
@@ -417,7 +423,7 @@ namespace SongRequestManager
             if (NumberOfCells() > _selectedRow)
             {
                 _songListTableView.SelectCellWithIdx(_selectedRow, selectRowCallback);
-                _songListTableView.ScrollToCellWithIdx(_selectedRow, TableViewScroller.ScrollPositionType.Beginning, true);
+                _songListTableView.ScrollToCellWithIdx(_selectedRow, TableView.ScrollPositionType.Beginning, true);
             }
         }
 
