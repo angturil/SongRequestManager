@@ -51,7 +51,7 @@ namespace SongRequestManager
             {
 
                 listcollection.add(ref parts[0], ref parts[1]);
-                QueueChatMessage($"Added {parts[1]} to {parts[0]}");
+                //QueueChatMessage($"Added {parts[1]} to {parts[0]}");
 
             }
             catch

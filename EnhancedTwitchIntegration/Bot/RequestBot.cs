@@ -59,6 +59,7 @@ namespace SongRequestManager
 
         public static List<JSONObject> played = new List<JSONObject>(); // Played list
 
+        public static StringListManager automtt = new StringListManager(); // BUG: This needs to switch to list manager interface
         private static StringListManager mapperwhitelist = new StringListManager(); // BUG: This needs to switch to list manager interface
         private static StringListManager mapperBanlist = new StringListManager(); // BUG: This needs to switch to list manager interface
         private static StringListManager Whitelist = new StringListManager();
@@ -467,7 +468,12 @@ namespace SongRequestManager
 #if UNRELEASED
             OpenList(ChatHandler.Self, "mapper.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
             MapperAllowList(ChatHandler.Self, "mapper.list");
+
             accesslist("mapper.list");
+
+            OpenList(ChatHandler.Self, "automtt.list"); // Open mapper list so we can get new songs filtered by our favorite mappers.
+            automtt = listcollection.OpenList("automtt.list");
+            accesslist("automtt.list");
 
             string dummy = "";
 
@@ -1151,6 +1157,15 @@ namespace SongRequestManager
                         return success;
                     }
                 }
+
+                if (automtt.Contains(state.user.UserName.ToLower()))
+                    {
+                    QueueChatMessage($"{state.user.DisplayName}'s request was promoted!");
+                    state.flags |= CmdFlags.MoveToTop;
+                    state.flags |= CmdFlags.Mod;
+                    automtt.Removeentry(state.user.UserName.ToLower());
+                    state.info = "!promoted";
+                    }
 
                 // BUG: Need to clean up the new request pipeline
                 string testrequest = normalize.RemoveSymbols(ref state.parameter,normalize._SymbolsNoDash);

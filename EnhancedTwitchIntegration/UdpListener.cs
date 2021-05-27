@@ -39,6 +39,10 @@ namespace SongRequestManager
                 case "mtt":
                     RequestBot.Instance.MoveRequestPositionInQueue(null, msg["value"].Value, true);
                     break;
+                case "addmtt":
+                    RequestBot.automtt.Add(msg["value"].Value.ToLower());
+                    //RequestBot.Instance.MoveRequestPositionInQueue(null, msg["value"].Value, true);
+                    break;
             }
 
             // receive a new
