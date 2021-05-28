@@ -48,6 +48,9 @@ namespace SongRequestManager
 
                 // select the custom category
                 iconSegmentedControl.SelectCellWithNumber(idx);
+
+                // since the select event is not bubbled, force it
+                selectLevelCategoryViewController.LevelFilterCategoryIconSegmentedControlDidSelectCell(iconSegmentedControl, idx);
             }
 
             // get the level filtering nev controller
