@@ -11,6 +11,6 @@
     "BeatSaberMarkupLanguage": "^1.5.1",
     "BS Utils": "^1.8.0",
     "ChatCore": "^2.0.0",
-	"SongCore": "^3.0.0"
+    "SongCore": "^3.0.0"
   }
 }
