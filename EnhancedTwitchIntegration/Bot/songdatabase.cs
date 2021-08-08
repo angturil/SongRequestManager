@@ -75,8 +75,12 @@ namespace SongRequestManager
                 if (!song["version"].IsString)
                     {
                     //RequestBot.Instance.QueueChatMessage($"{song["key"].Value}: {song["metadata"]}");
-                    song.Add("id", song["key"]);
-                    song.Add("version", song["key"]);
+                    song.Add("id", song["id"]);
+                    song.Add("version", song["id"]);
+                    song.Add("hash", song["versions"][0]["hash"]);
+                    song.Add("downloadURL", song["versions"][0]["downloadURL"]);
+                    song.Add("coverURL", song["versions"][0]["coverURL"]);
+                    song.Add("previewURL", song["versions"][0]["previewURL"]);
 
                     var metadata = song["metadata"];
                     song.Add("songName", metadata["songName"].Value);
@@ -91,7 +95,7 @@ namespace SongRequestManager
                     try
                     {
 
-                        var characteristics = metadata["characteristics"][0]["difficulties"];
+                        var characteristics = song["versions"][0]["diffs"];
 
                         //Instance.QueueChatMessage($"{characteristics}");
 
@@ -105,7 +109,7 @@ namespace SongRequestManager
                         foreach (var entry in characteristics)
                         {
                             if (entry.Value.IsNull) continue;
-                            var diff = entry.Value["length"].AsInt;
+                            var diff = entry.Value["seconds"].AsInt;
                             var njs = entry.Value["njs"].AsInt;
                             if (njs > maxnjs) maxnjs = njs;
 
