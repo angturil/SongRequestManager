@@ -585,7 +585,7 @@ namespace SongRequestManager
 
         private async void UpdateSongMap(JSONObject song)
         {
-            var resp = await Plugin.WebClient.GetAsync($"https://beatsaver.com/api/maps/detail/{song["id"].Value.ToString()}", System.Threading.CancellationToken.None);
+            var resp = await Plugin.WebClient.GetAsync($"https://api.beatsaver.com/maps/id/{song["id"].Value.ToString()}", System.Threading.CancellationToken.None);
 
             if (resp.IsSuccessStatusCode)
             {
@@ -650,10 +650,11 @@ namespace SongRequestManager
             // Get song query results from beatsaver.com
             if (!RequestBotConfig.Instance.OfflineMode)
             {
-                string requestUrl = (id != "") ? $"https://beatsaver.com/api/maps/detail/{normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash)}" : $"https://beatsaver.com/api/search/text/0?q={normalrequest}";
+                string requestUrl = (id != "") ? $"https://api.beatsaver.com/maps/id/{normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash)}" : $"https://api.beatsaver.com/search/text/0?q={normalrequest}";
 
                 var resp = await Plugin.WebClient.GetAsync(requestUrl, System.Threading.CancellationToken.None);
 
+                
                 if (resp.IsSuccessStatusCode)
                 {
                     result = resp.ConvertToJsonNode();
@@ -879,11 +880,11 @@ namespace SongRequestManager
 #if UNRELEASED
                         // Direct download hack
                         var ext = Path.GetExtension(request.song["coverURL"].Value);
-                        var k = request.song["coverURL"].Value.Replace(ext, ".zip");
+                        var k = request.song["downloadURL"].Value;
 
-                        songZip = await Plugin.WebClient.DownloadSong($"https://beatsaver.com{k}", System.Threading.CancellationToken.None);
+                        songZip = await Plugin.WebClient.DownloadSong($"{k}", System.Threading.CancellationToken.None);
 #else
-                        songZip = await Plugin.WebClient.DownloadSong($"https://beatsaver.com{request.song["downloadURL"].Value}", System.Threading.CancellationToken.None);
+                        songZip = await Plugin.WebClient.DownloadSong($"https://cdn.beatsaver.com{request.song["downloadURL"].Value}", System.Threading.CancellationToken.None);
 #endif
                     }
 
