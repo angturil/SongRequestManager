@@ -76,7 +76,7 @@ namespace SongRequestManager
         internal async Task<byte[]> DownloadSong(string url, CancellationToken token, IProgress<double> progress = null)
         {
             // check if beatsaver url needs to be pre-pended
-            if (!url.StartsWith(@"https://cdn.beatsaver.com/"))
+            if (!url.Contains(@"beatsaver.com/"))
             {
                 url = $"https://cdn.beatsaver.com/{url}";
             }
