@@ -329,6 +329,8 @@ namespace SongRequestManager
                         }
                     }, "Play");
 
+                ((RectTransform)_playButton.transform).localScale = Vector3.one;
+
                 _playButton.ToggleWordWrapping(false);
                 _playButton.interactable = ((isShowingHistory && RequestHistory.Songs.Count > 0) || (!isShowingHistory && RequestQueue.Songs.Count > 0));
                 UIHelper.AddHintText(_playButton.transform as RectTransform, "Download and scroll to the currently selected request.");
