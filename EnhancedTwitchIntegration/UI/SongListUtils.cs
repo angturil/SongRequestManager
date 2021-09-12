@@ -53,6 +53,10 @@ namespace SongRequestManager
                 selectLevelCategoryViewController.LevelFilterCategoryIconSegmentedControlDidSelectCell(iconSegmentedControl, idx);
             }
 
+            // Clear currently possibly applied filters
+            var levelSearchViewController = Resources.FindObjectsOfTypeAll<LevelSearchViewController>().FirstOrDefault();
+            levelSearchViewController?.ResetCurrentFilterParams();
+
             // get the level filtering nev controller
             var levelFilteringNavigationController = Resources.FindObjectsOfTypeAll<LevelFilteringNavigationController>().First();
 
