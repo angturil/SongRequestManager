@@ -64,7 +64,7 @@ namespace SongRequestManager
             levelFilteringNavigationController.UpdateCustomSongs();
 
             // arbitrary wait for catch-up
-            yield return new WaitForSeconds(0.1f);
+            yield return 0;
         }
 
         public static IEnumerator ScrollToLevel(string levelID, Action<bool> callback, bool animated, bool isRetry = false)
@@ -82,15 +82,12 @@ namespace SongRequestManager
                 // Make sure our custom songpack is selected
                 yield return SelectCustomSongPack();
 
-                yield return null;
-
                 int songIndex = 0;
 
                 // get the table view
                 var levelsTableView = _levelCollectionViewController.GetField<LevelCollectionTableView, LevelCollectionViewController>("_levelCollectionTableView");
 
                 //RequestBot.Instance.QueueChatMessage($"selecting song: {levelID} pack: {packIndex}");
-                yield return null;
 
                 // get the table view
                 var tableView = levelsTableView.GetField<TableView, LevelCollectionTableView>("_tableView");
