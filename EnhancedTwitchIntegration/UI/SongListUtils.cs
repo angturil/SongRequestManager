@@ -99,7 +99,7 @@ namespace SongRequestManager
                 var beatmaps = levelsTableView.GetField<IPreviewBeatmapLevel[], LevelCollectionTableView>("_previewBeatmapLevels").ToList();
 
                 // get the row number for the song we want
-                songIndex = beatmaps.FindIndex(x => (x.levelID.Split('_')[2] == levelID));
+                songIndex = beatmaps.FindIndex(x => (x.levelID.StartsWith("custom_level_" + levelID)));
 
                 // bail if song is not found, shouldn't happen
                 if (songIndex >= 0)
