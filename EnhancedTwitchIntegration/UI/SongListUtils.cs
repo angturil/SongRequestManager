@@ -35,7 +35,7 @@ namespace SongRequestManager
             var selectLevelCategoryViewController = Resources.FindObjectsOfTypeAll<SelectLevelCategoryViewController>().First();
 
             // check if the selected level category is the custom category
-            if (selectLevelCategoryViewController.selectedLevelCategory != SelectLevelCategoryViewController.LevelCategory.CustomSongs)
+            if (selectLevelCategoryViewController.selectedLevelCategory != SelectLevelCategoryViewController.LevelCategory.All)
             {
                 // get the icon segmented controller
                 var iconSegmentedControl = selectLevelCategoryViewController.GetField<IconSegmentedControl, SelectLevelCategoryViewController>("_levelFilterCategoryIconSegmentedControl");
@@ -44,7 +44,7 @@ namespace SongRequestManager
                 var levelCategoryInfos = selectLevelCategoryViewController.GetField<SelectLevelCategoryViewController.LevelCategoryInfo[], SelectLevelCategoryViewController>("_levelCategoryInfos").ToList();
 
                 // get the index of the custom category
-                var idx = levelCategoryInfos.FindIndex(lci => lci.levelCategory == SelectLevelCategoryViewController.LevelCategory.CustomSongs);
+                var idx = levelCategoryInfos.FindIndex(lci => lci.levelCategory == SelectLevelCategoryViewController.LevelCategory.All);
 
                 // select the custom category
                 iconSegmentedControl.SelectCellWithNumber(idx);
@@ -53,6 +53,10 @@ namespace SongRequestManager
                 selectLevelCategoryViewController.LevelFilterCategoryIconSegmentedControlDidSelectCell(iconSegmentedControl, idx);
             }
 
+            // Clear currently possibly applied filters
+            var levelSearchViewController = Resources.FindObjectsOfTypeAll<LevelSearchViewController>().FirstOrDefault();
+            levelSearchViewController?.ResetCurrentFilterParams();
+
             // get the level filtering nev controller
             var levelFilteringNavigationController = Resources.FindObjectsOfTypeAll<LevelFilteringNavigationController>().First();
 
@@ -60,7 +64,7 @@ namespace SongRequestManager
             levelFilteringNavigationController.UpdateCustomSongs();
 
             // arbitrary wait for catch-up
-            yield return new WaitForSeconds(0.1f);
+            yield return 0;
         }
 
         public static IEnumerator ScrollToLevel(string levelID, Action<bool> callback, bool animated, bool isRetry = false)
@@ -78,15 +82,12 @@ namespace SongRequestManager
                 // Make sure our custom songpack is selected
                 yield return SelectCustomSongPack();
 
-                yield return null;
-
                 int songIndex = 0;
 
                 // get the table view
                 var levelsTableView = _levelCollectionViewController.GetField<LevelCollectionTableView, LevelCollectionViewController>("_levelCollectionTableView");
 
                 //RequestBot.Instance.QueueChatMessage($"selecting song: {levelID} pack: {packIndex}");
-                yield return null;
 
                 // get the table view
                 var tableView = levelsTableView.GetField<TableView, LevelCollectionTableView>("_tableView");
@@ -95,7 +96,7 @@ namespace SongRequestManager
                 var beatmaps = levelsTableView.GetField<IPreviewBeatmapLevel[], LevelCollectionTableView>("_previewBeatmapLevels").ToList();
 
                 // get the row number for the song we want
-                songIndex = beatmaps.FindIndex(x => (x.levelID.Split('_')[2] == levelID));
+                songIndex = beatmaps.FindIndex(x => (x.levelID.StartsWith("custom_level_" + levelID)));
 
                 // bail if song is not found, shouldn't happen
                 if (songIndex >= 0)
