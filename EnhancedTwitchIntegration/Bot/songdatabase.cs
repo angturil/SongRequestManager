@@ -73,21 +73,26 @@ namespace SongRequestManager
             {
  
                 if (!song["version"].IsString)
-                    {
+                {
+                    var version_nr = song["versions"].Count - 1;
                     //RequestBot.Instance.QueueChatMessage($"{song["key"].Value}: {song["metadata"]}");
                     if (!song["key"].IsString)
                     {
                         song.Add("id", song["id"]);
                         song.Add("version", song["id"]);
-                        song.Add("hash", song["versions"][0]["hash"]);
-                        song.Add("downloadURL", song["versions"][0]["downloadURL"]);
-                        song.Add("coverURL", song["versions"][0]["coverURL"]);
-                        song.Add("previewURL", song["versions"][0]["previewURL"]);
+                        song.Add("hash", song["versions"][version_nr]["hash"]);
+                        song.Add("downloadURL", song["versions"][version_nr]["downloadURL"]);
+                        song.Add("coverURL", song["versions"][version_nr]["coverURL"]);
+                        song.Add("previewURL", song["versions"][version_nr]["previewURL"]);
                     }
                     else
                     {
                         song.Add("id", song["key"]);
                         song.Add("version", song["key"]);
+                        song.Add("downloadURL", "https://cdn.beatsaver.com/" + song["hash"] + ".zip");
+                        song.Add("coverURL", "https://cdn.beatsaver.com/" + song["hash"] + ".jpg");
+                        song.Add("previewURL", "https://cdn.beatsaver.com/" + song["hash"] + ".mp3");
+                        song.Add("automapper", song["metadata"]["automapper"]);
                     }
                     var metadata = song["metadata"];
                     song.Add("songName", metadata["songName"].Value);
@@ -106,7 +111,7 @@ namespace SongRequestManager
                         var lenghtlabel = "length";
                         if (!song["key"].IsString)
                         {
-                            characteristics = song["versions"][0]["diffs"];
+                            characteristics = song["versions"][version_nr]["diffs"];
                             lenghtlabel = "seconds";
                         }
 

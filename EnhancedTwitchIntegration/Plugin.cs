@@ -122,10 +122,10 @@ namespace SongRequestManager
                 var _songBrowserUI = SongBrowser.SongBrowserApplication.Instance.GetField<SongBrowser.UI.SongBrowserUI, SongBrowser.SongBrowserApplication>("_songBrowserUI");
                 if (_songBrowserUI)
                 {
-                    if (_songBrowserUI.Model.Settings.filterMode != SongBrowser.DataAccess.SongFilterMode.None && _songBrowserUI.Model.Settings.sortMode != SongBrowser.DataAccess.SongSortMode.Original)
-                    {
+                    //if (_songBrowserUI.Model.Settings.filterMode != SongBrowser.Configuration.SongFilterMode.None && _songBrowserUI.Model.Settings.sortMode != SongBrowser.Configuration.SongSortMode.Original)
+                    //{
                         _songBrowserUI.CancelFilter();
-                    }
+                    //}
                 }
                 else
                 {
