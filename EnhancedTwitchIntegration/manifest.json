@@ -2,10 +2,10 @@
   "$schema": "https://raw.githubusercontent.com/nike4613/ModSaber-MetadataFileSchema/master/Schema.json",
   "author": "angturil",
   "description": "Song Request Manager on twitch",
-  "gameVersion": "1.16.0",
+  "gameVersion": "1.18.0",
   "id": "SongRequestManager",
   "name": "Song Request Manager",
-  "version": "2.13.0",
+  "version": "2.13.1",
   "dependsOn": {
     "BSIPA": "^4.1.4",
     "BeatSaberMarkupLanguage": "^1.5.1",
