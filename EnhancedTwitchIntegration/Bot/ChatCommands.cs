@@ -620,7 +620,7 @@ namespace SongRequestManager
         {
             int totalSongs = 0;
 
-            string requestUrl = "https://beatsaver.com/api/maps/latest";
+            string requestUrl = "https://beatsaver.com/api/maps/latest?automapper=false";
 
             //if (RequestBotConfig.Instance.OfflineMode) return;
 
@@ -630,19 +630,21 @@ namespace SongRequestManager
 
             //state.msg($"Flags: {state.flags}");
 
+            string next = "";
+
             while (offset < RequestBotConfig.Instance.MaxiumScanRange) // MaxiumAddScanRange
             {
-                var resp = await Plugin.WebClient.GetAsync($"{requestUrl}/{offset}", System.Threading.CancellationToken.None);
+                var resp = await Plugin.WebClient.GetAsync($"{requestUrl}{next}", System.Threading.CancellationToken.None);
 
                 if (resp.IsSuccessStatusCode)
                 {
                     var result = resp.ConvertToJsonNode();
 
 
-                    if (result["docs"].IsArray && result["totalDocs"].AsInt == 0)
-                    {
-                        return;
-                    }
+                    //if (result["docs"].IsArray && result["totalDocs"].AsInt == 0)
+                    //{
+                    //    return;
+                    //}
 
 
                     if (result["docs"].IsArray)
@@ -653,8 +655,13 @@ namespace SongRequestManager
 
 
 
-
                             new SongMap(song);
+
+                            //"lastPublishedAt": "2021-10-17T19:45:04.459770Z"
+                            string lastpublished = entry["lastPublishedAt"];
+                            next = $"&before={lastpublished}";
+                            //QueueChatMessage($"next: {next}");
+
 
                             if (mapperfiltered(song, true)) continue; // This forces the mapper filter
                             if (filtersong(song)) continue;
@@ -662,6 +669,8 @@ namespace SongRequestManager
                             if (state.flags.HasFlag(CmdFlags.Local)) QueueSong(state, song);
                             listcollection.add("latest.deck", song["id"].Value);
                             totalSongs++;
+
+
                         }
                     }
 
