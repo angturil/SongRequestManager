@@ -75,7 +75,7 @@
       <HintPath>$(BeatSaberDir)\Libs\SemVer.dll</HintPath>
     </Reference>
     <Reference Include="SongBrowser">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
+      <HintPath>>$(BeatSaberDir)\Plugins\SongBrowser.dll</HintPath>
     </Reference>
     <Reference Include="SongCore, Version=2.9.5.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
