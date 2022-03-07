@@ -31,6 +31,7 @@ namespace SongRequestManager
 
         internal static GameMode gameMode;
 
+        //DataPath is typically "C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\UserData\SRM"
         public static string DataPath = Path.Combine(UnityGame.UserDataPath, "SRM");
         public static string OldDataPath = Path.Combine(UnityGame.UserDataPath, "StreamCore");
         public static bool SongBrowserPluginPresent;

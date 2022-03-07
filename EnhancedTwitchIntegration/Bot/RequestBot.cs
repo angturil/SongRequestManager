@@ -651,7 +651,7 @@ namespace SongRequestManager
             if (!RequestBotConfig.Instance.OfflineMode)
             {
                 //string requestUrl = (id != "") ? $"https://api.beatsaver.com/maps/id/{normalize.RemoveSymbols(ref request, normalize._SymbolsNoDash)}" : $"https://api.beatsaver.com/search/text/0?q={normalrequest}";
-                string requestUrl = (id != "") ? $"https://api.beatsaver.com/maps/id/{id}" : $"https://beatsaver.com/api/search/text/0?q={state.request}";
+                string requestUrl = (id != "") ? $"https://api.beatsaver.com/maps/id/{id}" : $"https://beatsaver.com/api/search/text/0?q={normalrequest}";
 
                 var resp = await Plugin.WebClient.GetAsync(requestUrl, System.Threading.CancellationToken.None);
 
@@ -674,71 +674,103 @@ namespace SongRequestManager
 
             // Filter out too many or too few results
             if (songs.Count == 0)
+            {
+                if (errorMessage == "")
+                    errorMessage = $"No results found for request \"{request}\"";
+            }
+            else if (!autopick && songs.Count >= 4)
+            {
+                errorMessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
+            }
+            else if (!autopick && songs.Count > 1 && songs.Count < 4)
+            {
+                var msg = new QueueLongMessage(1, 5);
+                msg.Header($"@{requestor.DisplayName}, please choose: ");
+                foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(BsrSongDetail), ", ");
+                msg.end("...", $"No matching songs for for {request}");
+                return;
+            }
+            else
+            {
+                if (!requestInfo.flags.HasFlag(CmdFlags.NoFilter)) errorMessage = SongSearchFilter(songs[0], false);
+            }
+
+            // Display reason why chosen song was rejected, if filter is triggered. Do not add filtered songs
+            if (errorMessage != "")
+            {
+                QueueChatMessage(errorMessage);
+                return;
+            }
+
+            JSONObject song = songs[0];
+
+            // Song requests should try to be current. If the song was local, we double check for a newer version
+
+            //if ((song["downloadUrl"].Value == "") && !RequestBotConfig.Instance.OfflineMode )
+            //{
+            //    //QueueChatMessage($"song:  {song["id"].Value.ToString()} ,{song["songName"].Value}");
+
+            //    yield return Utilities.Download($"https://beatsaver.com/api/maps/detail/{song["id"].Value.ToString()}", Utilities.DownloadType.Raw, null,
+            //     // Download success
+            //     (web) =>
+            //     {
+            //         result = JSON.Parse(web.downloadHandler.text);
+            //         var newsong = result["song"].AsObject;
+
+            //         if (result != null && newsong["version"].Value != "")
+            //         {
+            //             new SongMap(newsong);
+            //             song = newsong;
+            //         }
+            //     },
+            //     // Download failed,  song probably doesn't exist on beatsaver
+            //     (web) =>
+            //     {
+            //         // Let player know that the song is not current on BeatSaver
+            //         requestInfo.requestInfo += " *LOCAL ONLY*";
+            //         ; //errorMessage = $"Invalid BeatSaver ID \"{request}\" specified. {requestUrl}";
+            //     });
+
+            //}
+
+            RequestTracker[requestor.Id].IncrementRequests();
+            listcollection.add(duplicatelist, song["id"].Value);
+            if ((requestInfo.flags.HasFlag(CmdFlags.MoveToTop)))
+            {
+                RequestQueue.Songs.Insert(0, new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
+            }
+            else
+            {
+
+                if (RequestBotConfig.Instance.UseRoundRobinQueue)
                 {
-                    if (errorMessage == "")
-                        errorMessage = $"No results found for request \"{request}\"";
-                }
-                else if (!autopick && songs.Count >= 4)
-                {
-                    errorMessage = $"Request for '{request}' produces {songs.Count} results, narrow your search by adding a mapper name, or use https://beatsaver.com to look it up.";
-                }
-                else if (!autopick && songs.Count > 1 && songs.Count < 4)
-                {
-                    var msg = new QueueLongMessage(1, 5);
-                    msg.Header($"@{requestor.DisplayName}, please choose: ");
-                    foreach (var eachsong in songs) msg.Add(new DynamicText().AddSong(eachsong).Parse(BsrSongDetail), ", ");
-                    msg.end("...", $"No matching songs for for {request}");
-                    return;
+                    bool addedSong = false;
+                    HashSet<String> seenUsers = new HashSet<string>();
+                    for (int i = 0; i < RequestQueue.Songs.Count; i++)
+                    {
+                        String ithRequestorId = RequestQueue.Songs[i].requestor.Id;
+                        if (seenUsers.Contains(ithRequestorId))
+                        {
+                            RequestQueue.Songs.Insert(i, new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
+                            addedSong = true;
+                            break;
+                        }
+                        else
+                        {
+                            seenUsers.Add(ithRequestorId);
+                        }
+                    }
+                    if (!addedSong)
+                    {
+                        RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
+                    }
                 }
                 else
                 {
-                    if (!requestInfo.flags.HasFlag(CmdFlags.NoFilter)) errorMessage = SongSearchFilter(songs[0], false);
-                }
-
-                // Display reason why chosen song was rejected, if filter is triggered. Do not add filtered songs
-                if (errorMessage != "")
-                {
-                    QueueChatMessage(errorMessage);
-                    return;
-                }
-
-                JSONObject song = songs[0];
-
-                // Song requests should try to be current. If the song was local, we double check for a newer version
-
-                //if ((song["downloadUrl"].Value == "") && !RequestBotConfig.Instance.OfflineMode )
-                //{
-                //    //QueueChatMessage($"song:  {song["id"].Value.ToString()} ,{song["songName"].Value}");
-
-                //    yield return Utilities.Download($"https://beatsaver.com/api/maps/detail/{song["id"].Value.ToString()}", Utilities.DownloadType.Raw, null,
-                //     // Download success
-                //     (web) =>
-                //     {
-                //         result = JSON.Parse(web.downloadHandler.text);
-                //         var newsong = result["song"].AsObject;
-
-                //         if (result != null && newsong["version"].Value != "")
-                //         {
-                //             new SongMap(newsong);
-                //             song = newsong;
-                //         }
-                //     },
-                //     // Download failed,  song probably doesn't exist on beatsaver
-                //     (web) =>
-                //     {
-                //         // Let player know that the song is not current on BeatSaver
-                //         requestInfo.requestInfo += " *LOCAL ONLY*";
-                //         ; //errorMessage = $"Invalid BeatSaver ID \"{request}\" specified. {requestUrl}";
-                //     });
-
-                //}
-
-            RequestTracker[requestor.Id].numRequests++;
-                listcollection.add(duplicatelist, song["id"].Value);
-                if ((requestInfo.flags.HasFlag(CmdFlags.MoveToTop)))
-                    RequestQueue.Songs.Insert(0, new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
-                else
                     RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
+                }
+
+            }
 
                 RequestQueue.Write();
 
@@ -1011,11 +1043,7 @@ namespace SongRequestManager
             RequestQueue.Write();
 
             // Decrement the requestors request count, since their request is now out of the queue
-
-            if (!RequestBotConfig.Instance.LimitUserRequestsToSession)
-            {
-                if (RequestTracker.ContainsKey(request.requestor.Id)) RequestTracker[request.requestor.Id].numRequests--;
-            }
+            if (RequestTracker.ContainsKey(request.requestor.Id)) RequestTracker[request.requestor.Id].DecrementRequestsInQueue();
 
             if (updateUI == false) return;
 
@@ -1138,24 +1166,41 @@ namespace SongRequestManager
                 if (!RequestTracker.ContainsKey(state.user.Id))
                     RequestTracker.Add(state.user.Id, new RequestUserTracker());
 
-                int limit = RequestBotConfig.Instance.UserRequestLimit;
-                if (state.user.IsSubscriber) limit = Math.Max(limit, RequestBotConfig.Instance.SubRequestLimit);
-                if (state.user.IsModerator) limit = Math.Max(limit, RequestBotConfig.Instance.ModRequestLimit);
-                if (state.user.IsVip) limit += RequestBotConfig.Instance.VipBonusRequests; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
+                int queueLimit = 0;
+                int totalLimit = 0;
+                if (RequestBotConfig.Instance.LimitUserRequestsToSession)
+                {
+                    totalLimit = RequestBotConfig.Instance.UserRequestLimit;
+                    if (state.user.IsSubscriber) queueLimit = Math.Max(queueLimit, RequestBotConfig.Instance.SubRequestLimit);
+                    if (state.user.IsModerator) queueLimit = Math.Max(queueLimit, RequestBotConfig.Instance.ModRequestLimit);
+                    queueLimit = totalLimit;
+                }
+                else
+                {
+                    queueLimit = RequestBotConfig.Instance.UserRequestLimit;
+                    if (state.user.IsSubscriber) queueLimit = Math.Max(queueLimit, RequestBotConfig.Instance.SubRequestLimit);
+                    if (state.user.IsModerator) queueLimit = Math.Max(queueLimit, RequestBotConfig.Instance.ModRequestLimit);
+                    totalLimit = RequestBotConfig.Instance.UserTotalRequestLimit == -1 ? int.MaxValue : RequestBotConfig.Instance.UserTotalRequestLimit;
+                    if (state.user.IsSubscriber) totalLimit = Math.Max(totalLimit, RequestBotConfig.Instance.SubTotalRequestLimit == -1 ? int.MaxValue : RequestBotConfig.Instance.SubTotalRequestLimit);
+                    if (state.user.IsModerator) totalLimit = Math.Max(totalLimit, RequestBotConfig.Instance.ModTotalRequestLimit == -1 ? int.MaxValue : RequestBotConfig.Instance.ModTotalRequestLimit);
+                }
+                if (state.user.IsVip)
+                {
+                    // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
+                    queueLimit += RequestBotConfig.Instance.VipBonusRequests;
+                    totalLimit += RequestBotConfig.Instance.VipBonusRequests;
+                }
 
                 if (!state.user.IsBroadcaster)
                 {
-                    if (RequestTracker[state.user.Id].numRequests >= limit)
+                    if (RequestTracker[state.user.Id].GetNumTotalRequests() >= totalLimit)
                     {
-                        if (RequestBotConfig.Instance.LimitUserRequestsToSession)
-                        {
-                            new DynamicText().Add("Requests", RequestTracker[state.user.Id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You've already used %Requests% requests this stream. Subscribers are limited to %RequestLimit%.");
-                        }
-                        else
-                        {
-                            new DynamicText().Add("Requests", RequestTracker[state.user.Id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
-                        }
-
+                        new DynamicText().Add("Requests", RequestTracker[state.user.Id].GetNumTotalRequests().ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubTotalRequestLimit.ToString()).QueueMessage("You've already used %Requests% requests this stream. Subscribers are limited to %RequestLimit%.");
+                        return success;
+                    }
+                    if (RequestTracker[state.user.Id].GetNumRequestsInQueue() >= queueLimit)
+                    {
+                        new DynamicText().Add("Requests", RequestTracker[state.user.Id].GetNumRequestsInQueue().ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
                         return success;
                     }
                 }
@@ -1185,9 +1230,7 @@ namespace SongRequestManager
                 Plugin.Log(ex.ToString());
 
             }
-        return success;
+            return success;
         }
-
- 
     }
 }

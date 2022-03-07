@@ -1133,7 +1133,7 @@ namespace SongRequestManager
             {
                 try
                 {
-                    if (RequestTracker.ContainsKey(list[i].requestor.Id)) RequestTracker[list[i].requestor.Id].numRequests--;
+                    if (RequestTracker.ContainsKey(list[i].requestor.Id)) RequestTracker[list[i].requestor.Id].DecrementRequestsInQueue();
                     listcollection.remove(duplicatelist, list[i].song["id"]);
                 }
                 catch { }
