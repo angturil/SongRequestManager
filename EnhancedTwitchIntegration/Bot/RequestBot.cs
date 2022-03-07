@@ -733,7 +733,7 @@ namespace SongRequestManager
 
                 //}
 
-            RequestTracker[requestor.Id].numRequests++;
+                RequestTracker[requestor.Id].IncrementRequests();
                 listcollection.add(duplicatelist, song["id"].Value);
                 if ((requestInfo.flags.HasFlag(CmdFlags.MoveToTop)))
                     RequestQueue.Songs.Insert(0, new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
@@ -1011,11 +1011,7 @@ namespace SongRequestManager
             RequestQueue.Write();
 
             // Decrement the requestors request count, since their request is now out of the queue
-
-            if (!RequestBotConfig.Instance.LimitUserRequestsToSession)
-            {
-                if (RequestTracker.ContainsKey(request.requestor.Id)) RequestTracker[request.requestor.Id].numRequests--;
-            }
+            if (RequestTracker.ContainsKey(request.requestor.Id)) RequestTracker[request.requestor.Id].DecrementRequestsInQueue();
 
             if (updateUI == false) return;
 
@@ -1138,24 +1134,41 @@ namespace SongRequestManager
                 if (!RequestTracker.ContainsKey(state.user.Id))
                     RequestTracker.Add(state.user.Id, new RequestUserTracker());
 
-                int limit = RequestBotConfig.Instance.UserRequestLimit;
-                if (state.user.IsSubscriber) limit = Math.Max(limit, RequestBotConfig.Instance.SubRequestLimit);
-                if (state.user.IsModerator) limit = Math.Max(limit, RequestBotConfig.Instance.ModRequestLimit);
-                if (state.user.IsVip) limit += RequestBotConfig.Instance.VipBonusRequests; // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
+                int queueLimit = 0;
+                int totalLimit = 0;
+                if (RequestBotConfig.Instance.LimitUserRequestsToSession)
+                {
+                    totalLimit = RequestBotConfig.Instance.UserRequestLimit;
+                    if (state.user.IsSubscriber) queueLimit = Math.Max(queueLimit, RequestBotConfig.Instance.SubRequestLimit);
+                    if (state.user.IsModerator) queueLimit = Math.Max(queueLimit, RequestBotConfig.Instance.ModRequestLimit);
+                    queueLimit = totalLimit;
+                }
+                else
+                {
+                    queueLimit = RequestBotConfig.Instance.UserRequestLimit;
+                    if (state.user.IsSubscriber) queueLimit = Math.Max(queueLimit, RequestBotConfig.Instance.SubRequestLimit);
+                    if (state.user.IsModerator) queueLimit = Math.Max(queueLimit, RequestBotConfig.Instance.ModRequestLimit);
+                    totalLimit = RequestBotConfig.Instance.UserTotalRequestLimit == -1 ? int.MaxValue : RequestBotConfig.Instance.UserTotalRequestLimit;
+                    if (state.user.IsSubscriber) totalLimit = Math.Max(totalLimit, RequestBotConfig.Instance.SubTotalRequestLimit == -1 ? int.MaxValue : RequestBotConfig.Instance.SubTotalRequestLimit);
+                    if (state.user.IsModerator) totalLimit = Math.Max(totalLimit, RequestBotConfig.Instance.ModTotalRequestLimit == -1 ? int.MaxValue : RequestBotConfig.Instance.ModTotalRequestLimit);
+                }
+                if (state.user.IsVip)
+                {
+                    // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
+                    queueLimit += RequestBotConfig.Instance.VipBonusRequests;
+                    totalLimit += RequestBotConfig.Instance.VipBonusRequests;
+                }
 
                 if (!state.user.IsBroadcaster)
                 {
-                    if (RequestTracker[state.user.Id].numRequests >= limit)
+                    if (RequestTracker[state.user.Id].GetNumTotalRequests() >= totalLimit)
                     {
-                        if (RequestBotConfig.Instance.LimitUserRequestsToSession)
-                        {
-                            new DynamicText().Add("Requests", RequestTracker[state.user.Id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You've already used %Requests% requests this stream. Subscribers are limited to %RequestLimit%.");
-                        }
-                        else
-                        {
-                            new DynamicText().Add("Requests", RequestTracker[state.user.Id].numRequests.ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
-                        }
-
+                        new DynamicText().Add("Requests", RequestTracker[state.user.Id].GetNumTotalRequests().ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubTotalRequestLimit.ToString()).QueueMessage("You've already used %Requests% requests this stream. Subscribers are limited to %RequestLimit%.");
+                        return success;
+                    }
+                    if (RequestTracker[state.user.Id].GetNumRequestsInQueue() >= queueLimit)
+                    {
+                        new DynamicText().Add("Requests", RequestTracker[state.user.Id].GetNumRequestsInQueue().ToString()).Add("RequestLimit", RequestBotConfig.Instance.SubRequestLimit.ToString()).QueueMessage("You already have %Requests% on the queue. You can add another once one is played. Subscribers are limited to %RequestLimit%.");
                         return success;
                     }
                 }
@@ -1185,7 +1198,7 @@ namespace SongRequestManager
                 Plugin.Log(ex.ToString());
 
             }
-        return success;
+            return success;
         }
 
  

@@ -18,9 +18,12 @@ namespace SongRequestManager
         public bool ClearNoFail = true; // Pressing play will automatically attempt to play the song you selected at the highest difficulty level it has
 
         public int RequestHistoryLimit = 40;
-        public int UserRequestLimit = 2;
+        public int UserRequestLimit = 2; //If LimitUserRequestsToSession is false, this is the maximum number of songs that can be in queue at a time; if LimitUserRequestsToSession is true, this is the maximum number of songs that can be requested in the session.
+        public int UserTotalRequestLimit = -1; //If LimitUserRequestsToSession is false, this is the maximum number of songs that can be requested in the session; -1 means no limit; if LimitUserRequestsToSession is true, this value is ignored. 
         public int SubRequestLimit = 5;
+        public int SubTotalRequestLimit = -1;
         public int ModRequestLimit = 10;
+        public int ModTotalRequestLimit = -1;
         public int VipBonusRequests = 1; // VIP's get bonus requests in addition to their base limit *IMPLEMENTED*
         public int SessionResetAfterXHours = 6; // Number of hours before persistent session properties are reset (ie: Queue, Played , Duplicate List)
         public bool LimitUserRequestsToSession = false; // Request limits do not reset after a song is played.  
