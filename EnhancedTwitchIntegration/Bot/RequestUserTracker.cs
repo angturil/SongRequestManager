@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SongRequestManager
 {
@@ -17,7 +13,10 @@ namespace SongRequestManager
         }
 
         public void DecrementRequestsInQueue() {
-            numRequestsInQueue--;
+            if (numRequestsInQueue > 0)
+            {
+                numRequestsInQueue--;
+            }
         }
 
         public int GetNumRequestsInQueue() {
