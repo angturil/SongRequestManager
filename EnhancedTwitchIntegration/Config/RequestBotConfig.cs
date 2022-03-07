@@ -43,6 +43,7 @@ namespace SongRequestManager
         public bool AllowModAddClosedQueue = true; // Allow moderator to add songs while queue is closed 
         public bool SendNextSongBeingPlayedtoChat = true; // Enable chat message when you hit play
         public bool UpdateQueueStatusFiles = true; // Create and update queue list and open/close status files for OBS *IMPLEMENTED*, needs UI
+        public bool UseRoundRobinQueue = false;
         public int MaximumQueueTextEntries = 8;
         public string BotPrefix ="";
 
