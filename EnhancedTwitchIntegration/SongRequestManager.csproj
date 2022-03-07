@@ -4,6 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <BeatSaberDir Condition=" '$(BeatSaberDir)' == '' ">C:\Program Files (x86)\Steam\steamapps\common\Beat Saber</BeatSaberDir>
     <ProjectGuid>{CDBD5008-0F51-408E-B89C-6142CB5C70E5}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -75,7 +76,7 @@
       <HintPath>$(BeatSaberDir)\Libs\SemVer.dll</HintPath>
     </Reference>
     <Reference Include="SongBrowser">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\SongBrowser.dll</HintPath>
+      <HintPath>$(BeatSaberDir)\Plugins\SongBrowser.dll</HintPath>
     </Reference>
     <Reference Include="SongCore, Version=2.9.5.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -186,7 +187,6 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "$(BeatSaberDir)\Plugins"
-copy /Y "$(TargetDir)$(TargetFileName)" "$(BeatSaberDir)"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "$(BeatSaberDir)\Plugins"</PostBuildEvent>
   </PropertyGroup>
 </Project>
