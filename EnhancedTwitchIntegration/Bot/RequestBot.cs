@@ -601,6 +601,52 @@ namespace SongRequestManager
             }
         }
 
+        public enum QueueInsertionStyle
+        {
+            FIFO, MoveToTop, RoundRobin
+        }
+
+        public static int GetQueueInsertionPoint(List<SongRequest> queue, QueueInsertionStyle style, String requestorTwitchId)
+        {
+            int lastPosition = queue.Count;
+            switch (style)
+            {
+                case QueueInsertionStyle.MoveToTop:
+                    return 0;
+                case QueueInsertionStyle.RoundRobin:
+                    int countRequestorSongsInQueue = 0;
+                    for (int i = 0; i < queue.Count; i++)
+                    {
+                        if (queue[i].requestor.Id.Equals(requestorTwitchId))
+                        {
+                            countRequestorSongsInQueue++;
+                        }
+                    }
+                    countRequestorSongsInQueue++; //if the requester has N songs in queue, this song will be song N + 1
+
+                    Dictionary<string, int> requestCountsPerUser = new Dictionary<string, int>();
+                    for (int i = 0; i < queue.Count; i++)
+                    {
+                        string ithRequestorId = queue[i].requestor.Id;
+                        if (requestCountsPerUser.ContainsKey(ithRequestorId))
+                        {
+                            requestCountsPerUser[ithRequestorId]++;
+                        } else
+                        {
+                            requestCountsPerUser[ithRequestorId] = 1;
+                        }
+                        if (requestCountsPerUser[ithRequestorId] > countRequestorSongsInQueue)
+                        {
+                            return i;
+                        }
+                    }
+                    return lastPosition;
+                case QueueInsertionStyle.FIFO:
+                default:
+                    return lastPosition;
+            }
+        }
+
         // BUG: Testing major changes. This will get seriously refactored soon.
         private async Task CheckRequest(RequestInfo requestInfo)
         {
@@ -735,46 +781,26 @@ namespace SongRequestManager
 
             RequestTracker[requestor.Id].IncrementRequests();
             listcollection.add(duplicatelist, song["id"].Value);
-            if ((requestInfo.flags.HasFlag(CmdFlags.MoveToTop)))
+            QueueInsertionStyle queueInsertionStyle;
+            if (requestInfo.flags.HasFlag(CmdFlags.MoveToTop))
             {
-                RequestQueue.Songs.Insert(0, new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
-            }
-            else
+                queueInsertionStyle = QueueInsertionStyle.MoveToTop;
+            } else if (RequestBotConfig.Instance.UseRoundRobinQueue)
             {
-
-                if (RequestBotConfig.Instance.UseRoundRobinQueue)
-                {
-                    bool addedSong = false;
-                    HashSet<String> seenUsers = new HashSet<string>();
-                    for (int i = 0; i < RequestQueue.Songs.Count; i++)
-                    {
-                        String ithRequestorId = RequestQueue.Songs[i].requestor.Id;
-                        if (seenUsers.Contains(ithRequestorId))
-                        {
-                            RequestQueue.Songs.Insert(i, new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
-                            addedSong = true;
-                            break;
-                        }
-                        else
-                        {
-                            seenUsers.Add(ithRequestorId);
-                        }
-                    }
-                    if (!addedSong)
-                    {
-                        RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
-                    }
-                }
-                else
-                {
-                    RequestQueue.Songs.Add(new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo));
-                }
-
+                queueInsertionStyle = QueueInsertionStyle.RoundRobin;
+            } else
+            {
+                queueInsertionStyle = QueueInsertionStyle.FIFO;
             }
+            RequestQueue.Songs.Insert(
+                GetQueueInsertionPoint(RequestQueue.Songs, queueInsertionStyle, requestInfo.requestor.Id),
+                new SongRequest(song, requestor, requestInfo.requestTime, RequestStatus.Queued, requestInfo.requestInfo)
+            );
 
-                RequestQueue.Write();
 
-                Writedeck(requestor, "savedqueue"); // This can be used as a backup if persistent Queue is turned off.
+            RequestQueue.Write();
+
+            Writedeck(requestor, "savedqueue"); // This can be used as a backup if persistent Queue is turned off.
 
             if (!requestInfo.flags.HasFlag(CmdFlags.SilentResult))
             {
