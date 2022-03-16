@@ -2,6 +2,7 @@
 using IPA.Utilities;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -93,7 +94,7 @@ namespace SongRequestManager
                 var tableView = levelsTableView.GetField<TableView, LevelCollectionTableView>("_tableView");
 
                 // get list of beatmaps, this is pre-sorted, etc
-                var beatmaps = levelsTableView.GetField<IPreviewBeatmapLevel[], LevelCollectionTableView>("_previewBeatmapLevels").ToList();
+                var beatmaps = levelsTableView.GetField<IReadOnlyList<IPreviewBeatmapLevel>, LevelCollectionTableView>("_previewBeatmapLevels").ToList();
 
                 // get the row number for the song we want
                 songIndex = beatmaps.FindIndex(x => (x.levelID.StartsWith("custom_level_" + levelID)));
