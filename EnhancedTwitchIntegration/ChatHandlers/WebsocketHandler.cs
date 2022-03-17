@@ -1,3 +1,4 @@
+using System;
 using WebSocketSharp;
 using Newtonsoft.Json;
 using ChatCore.Models.Twitch;
@@ -9,14 +10,40 @@ namespace SongRequestManager.ChatHandlers
         private static WebSocket _ws;
         public WebsocketHandler()
         {
-            _ws = new WebSocket("ws://127.0.0.1:9090/SRM");
+            _ws = new WebSocket(RequestBotConfig.Instance.WebsocketURL);
             _ws.OnMessage += _ws_OnTextMessageReceived;
 
             _ws.OnClose += (sender, args) =>
             {
-                _ws.Connect();
+                ConnectWebsocket();
             };
-            _ws.Connect();
+            ConnectWebsocket();
+        }
+
+        public bool ConnectWebsocket()
+        {
+            if (!Connected) 
+                for (int i=0;i<RequestBotConfig.Instance.WebsocketConnectionAttempts;i++)
+                {
+                    try
+                    {
+                        _ws.Connect();
+                    }
+                    catch (Exception e)
+                    {
+                        Plugin.Log($"Exception was caught when trying to send bot message. {e.ToString()}");
+                        _ws.Close();
+                        _ws = new WebSocket(RequestBotConfig.Instance.WebsocketURL);
+                        _ws.OnMessage += _ws_OnTextMessageReceived;
+
+                        _ws.OnClose += (sender, args) =>
+                        {
+                            ConnectWebsocket();
+                        };
+                    }
+                    if (Connected) return true;
+                }
+            return false;
         }
         private void _ws_OnTextMessageReceived(object s, MessageEventArgs e)
         {
@@ -39,7 +66,15 @@ namespace SongRequestManager.ChatHandlers
 
         public void Send(string message, bool isCommand = false)
         {
-            _ws.Send(message);
+            if (!Connected) return;
+            try
+            {
+                _ws.Send(message);
+            }
+            catch (Exception e)
+            {
+                Plugin.Log($"Exception was caught when trying to send bot message. {e.ToString()}");
+            }
         }
     }
 }

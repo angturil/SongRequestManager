@@ -15,6 +15,7 @@ namespace SongRequestManager
     {
         bool initialized = false;
         private static List<IChatHandler> _chatHandlers = new List<IChatHandler>();
+        private static WebsocketHandler _wsHandler;
         private bool ChatCorePluginPresent;
 
         public void Awake()
@@ -30,7 +31,8 @@ namespace SongRequestManager
             ChatCorePluginPresent = IPA.Loader.PluginManager.GetPlugin("ChatCore") != null;
             if(ChatCorePluginPresent)
                 _chatHandlers.Add(new ChatCoreHandler());
-            _chatHandlers.Add(new WebsocketHandler());
+            _wsHandler = new WebsocketHandler();
+            _chatHandlers.Add(_wsHandler);
             // create chat core instance
 
             initialized = true;
@@ -67,6 +69,11 @@ namespace SongRequestManager
             {
                 Plugin.Log($"Exception was caught when trying to send bot message. {e.ToString()}");
             }
+        }
+
+        public static void WebsocketHandlerConnect()
+        {
+            _wsHandler.ConnectWebsocket();
         }
     }
 }
