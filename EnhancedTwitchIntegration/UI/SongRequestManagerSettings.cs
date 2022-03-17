@@ -26,14 +26,14 @@ namespace SongRequestManager.UI
         [UIValue("maximum-song-length")]
         public int MaximumSongLength
         {
-            get => (int)RequestBotConfig.Instance.MaximumSongLength;
+            get => (int) RequestBotConfig.Instance.MaximumSongLength;
             set => RequestBotConfig.Instance.MaximumSongLength = value;
         }
 
         [UIValue("minimum-njs")]
         public int MinimumNJS
         {
-            get => (int)RequestBotConfig.Instance.MinimumNJS;
+            get => (int) RequestBotConfig.Instance.MinimumNJS;
             set => RequestBotConfig.Instance.MinimumNJS = value;
         }
 
@@ -79,6 +79,26 @@ namespace SongRequestManager.UI
             set => RequestBotConfig.Instance.VipBonusRequests = value;
         }
 
+        [UIValue("websocket-url")]
+        public string WebsocketURL {
+            get => RequestBotConfig.Instance.WebsocketURL;
+            set => RequestBotConfig.Instance.WebsocketURL = value;
+        }
+
+        [UIValue("websocket-connection-attempts")]
+        public int WebsocketConnectionAttempts
+        {
+            get => RequestBotConfig.Instance.WebsocketConnectionAttempts;
+            set => RequestBotConfig.Instance.WebsocketConnectionAttempts = value;
+        }
+        
+        [UIAction("connect-click")]
+        private void ConnectClick()
+        {
+            ChatHandler.WebsocketHandlerConnect();
+            //modal.HandleBlockerButtonClicked();
+        }
+        
         [UIValue("mod-full-rights")]
         public bool ModFullRights
         {
