@@ -804,6 +804,7 @@ namespace SongRequestManager
                 // This will be used for all parsing type operations, allowing subcommands efficient access to parse state logic
                 ParseState parse = new ParseState(ref user, ref request, flags, ref info).ParseCommand();
             }
+            
 
             #region Command List Save / Load functionality
             private string GetHelpText()

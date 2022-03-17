@@ -63,6 +63,10 @@ namespace SongRequestManager
         public bool PPSearch = false;
         public string additionalsongpath = "";
         public string songdownloadpath = "";
+        
+        
+        public string WebsocketURL = "ws://127.0.0.1:9090/SRM";
+        public int WebsocketConnectionAttempts = 0;
 
         public event Action<RequestBotConfig> ConfigChangedEvent;
 
