@@ -1214,7 +1214,8 @@ namespace SongRequestManager
                 {
                     // Current idea is to give VIP's a bonus over their base subscription class, you can set this to 0 if you like
                     queueLimit += RequestBotConfig.Instance.VipBonusRequests;
-                    totalLimit += RequestBotConfig.Instance.VipBonusRequests;
+                    if (totalLimit != int.MaxValue)
+                        totalLimit += RequestBotConfig.Instance.VipBonusRequests;
                 }
 
                 if (!state.user.IsBroadcaster)
