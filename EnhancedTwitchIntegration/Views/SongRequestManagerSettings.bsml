@@ -12,5 +12,6 @@
   <string-setting text='Websocket URL' value='websocket-url'></string-setting>
   <slider-setting text='Websocket Connection Attempts' min='0' max='5' increment='1' value='websocket-connection-attempts' integer-only='true' hover-hint='WS connection attempts (0 = WS off)'></slider-setting>
   <button on-click='connect-click' text='Connect WS' preferred-width='30'></button>
+  <bool-setting text='Disable Chatcore' value='disable-chatcore' hover-hint='Disable Chatcore even if it is installed (requires restart)'></bool-setting>
   <bool-setting text='Full moderator rights' value='mod-full-rights' hover-hint='Allow moderators access to ALL bot commands. Do you trust your mods?'></bool-setting>
 </scrollable-settings-container>

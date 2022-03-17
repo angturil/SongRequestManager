@@ -29,7 +29,7 @@ namespace SongRequestManager
         {
             if (initialized) return;
             ChatCorePluginPresent = IPA.Loader.PluginManager.GetPlugin("ChatCore") != null;
-            if(ChatCorePluginPresent)
+            if(ChatCorePluginPresent && !RequestBotConfig.Instance.DisableChatcore)
                 _chatHandlers.Add(new ChatCoreHandler());
             _wsHandler = new WebsocketHandler();
             _chatHandlers.Add(_wsHandler);

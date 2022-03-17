@@ -99,6 +99,13 @@ namespace SongRequestManager.UI
             //modal.HandleBlockerButtonClicked();
         }
         
+        [UIValue("disable-chatcore")]
+        public bool DisableChatcore
+        {
+            get => RequestBotConfig.Instance.DisableChatcore;
+            set => RequestBotConfig.Instance.DisableChatcore = value;
+        }
+            
         [UIValue("mod-full-rights")]
         public bool ModFullRights
         {

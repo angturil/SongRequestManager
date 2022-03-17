@@ -67,6 +67,7 @@ namespace SongRequestManager
         
         public string WebsocketURL = "ws://127.0.0.1:9090/SRM";
         public int WebsocketConnectionAttempts = 0;
+        public bool DisableChatcore = false;
 
         public event Action<RequestBotConfig> ConfigChangedEvent;
 
