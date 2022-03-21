@@ -1,5 +1,5 @@
-using ChatCore.Models.Twitch;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace SongRequestManager.ChatHandlers
 {
@@ -23,15 +23,16 @@ namespace SongRequestManager.ChatHandlers
 
         public bool IsVip { get;  set; }
 
-        public ChatCore.Interfaces.IChatBadge[] Badges { get; set; }
+        public List<KeyValuePair<string, string>> Badges { get; set; }
+        //public ChatCore.Interfaces.IChatBadge[] Badges { get; set; }
 
         public string Message { get; set; }
 
 
         public char Command { get;  set; }
-        public TwitchUser GetTwitchUser()
+        public ChatUser GetTwitchUser()
         {
-            return new TwitchUser(JsonConvert.SerializeObject(this));
+            return ChatUser.FromJSON(JsonConvert.SerializeObject(this));
         }
     }
 }

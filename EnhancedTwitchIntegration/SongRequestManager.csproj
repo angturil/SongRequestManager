@@ -119,6 +119,7 @@
     <Compile Include="ChatHandler.cs" />
     <Compile Include="ChatHandlers\ChatCoreHandler.cs" />
     <Compile Include="ChatHandlers\ChatMessage.cs" />
+    <Compile Include="ChatHandlers\ChatUser.cs" />
     <Compile Include="ChatHandlers\IChatHandler.cs" />
     <Compile Include="ChatHandlers\WebsocketHandler.cs" />
     <Compile Include="Config\RequestBotConfig.cs" />

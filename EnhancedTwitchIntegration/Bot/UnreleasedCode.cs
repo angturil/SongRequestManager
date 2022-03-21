@@ -9,8 +9,8 @@ using UnityEngine;
 using UnityEngine.Networking;
 using TMPro;
 using System.Threading.Tasks;
-using ChatCore.Models.Twitch;
-using ChatCore.Utilities;
+using SongRequestManager.SimpleJSON;
+using SongRequestManager.ChatHandlers;
 
 //using BeatBits;
 
@@ -398,7 +398,7 @@ namespace SongRequestManager
         }
 
 
-        private void unloaddeck(TwitchUser requestor, string request)
+        private void unloaddeck(ChatUser chatUser, string request, CmdFlags arg3, string arg4)
         {
             if (COMMAND.aliaslist.ContainsKey('!' + request) && deck.ContainsKey(request))
             {

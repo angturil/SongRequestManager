@@ -1,60 +1,67 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using ChatCore;
 using ChatCore.Models.Twitch;
 using ChatCore.Services.Twitch;
-using WebSocketSharp;
 using Newtonsoft.Json;
+
+
 
 namespace SongRequestManager.ChatHandlers
 {
     public class ChatCoreHandler : IChatHandler
     {
         bool initialized = false;
+            
+            
+        private object _twitchService;
 
-        private static ChatCoreInstance _sc;
-        private static TwitchService _twitchService;
-
-
-        
         public ChatCoreHandler()
         {
             if (initialized) return;
             // create chat core instance
-            _sc = ChatCoreInstance.Create();
-
             // run twitch services
-            _twitchService = _sc.RunTwitchServices();
-
-            _twitchService.OnTextMessageReceived += _services_OnTextMessageReceived;
+            try
+            {
+            var sc = ChatCoreInstance.Create();
+            _twitchService = ((ChatCoreInstance)sc).RunTwitchServices();
+            
+            ((TwitchService)_twitchService).OnTextMessageReceived += _services_OnTextMessageReceived;
+            
+            }
+            catch (Exception e)
+            {
+                Plugin.Log($"Exception was caught when trying to send bot message. {e.ToString()}");
+            }
 
             initialized = true;
         }
 
         private void _services_OnTextMessageReceived(ChatCore.Interfaces.IChatService service, ChatCore.Interfaces.IChatMessage msg)
         {
-            ChatHandler.ParseMessage((TwitchUser)msg.Sender, msg.Message);
+            ChatHandler.ParseMessage(ChatUser.FromJSON(JsonConvert.SerializeObject((TwitchUser)msg.Sender)), msg.Message);
         }
 
         
         
-        public TwitchUser Self => _twitchService.LoggedInUser;
+        public ChatUser Self => ChatUser.FromJSON(JsonConvert.SerializeObject(((TwitchService)_twitchService).LoggedInUser));
         
-        public bool Connected => _twitchService.LoggedInUser != null && _twitchService.Channels.Count > 0;
+        public bool Connected => ((TwitchService)_twitchService).LoggedInUser != null && ((TwitchService)_twitchService).Channels.Count > 0;
         
         public void Send(string message, bool isCommand = false)
         {
             if (string.IsNullOrEmpty(message)) return;
             try
             {
-                foreach (var channel in _twitchService.Channels)
+                foreach (var channel in  ((TwitchService)_twitchService).Channels)
                 {
                     if (isCommand)
                     {
-                        _twitchService.SendCommand(message.TrimStart('/'), channel.Value.Name);
+                        ((TwitchService)_twitchService).SendCommand(message.TrimStart('/'), channel.Value.Name);
                     }
                     else
                     {
-                        _twitchService.SendTextMessage(message, channel.Value);
+                        ((TwitchService)_twitchService).SendTextMessage(message, channel.Value);
                     }
                 }
             }

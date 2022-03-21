@@ -7,8 +7,7 @@ using System.Text;
 using UnityEngine;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using ChatCore.Interfaces;
-using ChatCore.Models.Twitch;
+using SongRequestManager.ChatHandlers;
 
 // Feature requests: Add Reason for being banned to banlist
 
@@ -627,8 +626,8 @@ namespace SongRequestManager
             public static Dictionary<string, COMMAND> aliaslist = new Dictionary<string, COMMAND>(); // There can be only one (static)!
 
             // BUG: Extra methods will be removed after the offending code is migrated, There will likely always be 2-3.
-            private Action<TwitchUser, string> Method = null;  // Method to call
-            private Action<TwitchUser, string, CmdFlags, string> Method2 = null; // Alternate method
+            private Action<ChatUser, string> Method = null;  // Method to call
+            private Action<ChatUser, string, CmdFlags, string> Method2 = null; // Alternate method
             //private Func<COMMAND, TwitchUser, string, CmdFlags, string, string> Method3 = null; // Prefered method, returns the error msg as a string.
             private Func<ParseState, IEnumerator> func1 = null;
 
@@ -777,13 +776,13 @@ namespace SongRequestManager
               //  return this;
             //}
 
-            public COMMAND Action(Action<TwitchUser, string, CmdFlags, string> action)
+            public COMMAND Action(Action<ChatUser, string, CmdFlags, string> action)
             {
                 Method2 = action;
                 return this;
             }
 
-            public COMMAND Action(Action<TwitchUser, string> action)
+            public COMMAND Action(Action<ChatUser, string> action)
             {
                 Method = action;
                 return this;
@@ -795,7 +794,7 @@ namespace SongRequestManager
                 return this;
             }
 
-            public static void Parse(TwitchUser user, string request, CmdFlags flags = 0, string info = "")
+            public static void Parse(ChatUser user, string request, CmdFlags flags = 0, string info = "")
             {
                 if (!Instance || request.Length == 0) return;
 
@@ -948,7 +947,7 @@ namespace SongRequestManager
 
         public class ParseState
         {
-            public TwitchUser user;
+            public ChatUser user;
             public String request;
             public CmdFlags flags;
             public string info;
@@ -977,7 +976,7 @@ namespace SongRequestManager
                 this.sort = state.sort;
             }
 
-            public ParseState(ref TwitchUser user, ref string request, CmdFlags flags, ref string info)
+            public ParseState(ref ChatUser user, ref string request, CmdFlags flags, ref string info)
             {
                 this.user = user;
                 this.request = request;
@@ -1187,7 +1186,7 @@ namespace SongRequestManager
         // We thus build a table with only those values we have. 
 
         // BUG: This is actually part of botcmd, please move
-        public static void ShowHelpMessage(ref COMMAND botcmd, ref TwitchUser user, string param, bool showlong)
+        public static void ShowHelpMessage(ref COMMAND botcmd, ref ChatUser user, string param, bool showlong)
         {
             if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return; // Make sure we're allowed to show help
 
@@ -1230,7 +1229,7 @@ namespace SongRequestManager
             return success;
         }
 
-        public static bool HasRights(ref COMMAND botcmd, ref TwitchUser user,CmdFlags flags)
+        public static bool HasRights(ref COMMAND botcmd, ref ChatUser user,CmdFlags flags)
         {
             if (flags.HasFlag(CmdFlags.Local)) return true;
             if (botcmd.Flags.HasFlag(CmdFlags.Disabled)) return false;
