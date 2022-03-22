@@ -2,7 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using ChatCore.Utilities;
+using SongRequestManager.SimpleJSON;
 
 namespace SongRequestManager
 {

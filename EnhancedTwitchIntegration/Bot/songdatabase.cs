@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using ChatCore.Utilities;
+using SongRequestManager.SimpleJSON;
 // Feature requests: Add Reason for being banned to banlist
 //  
 

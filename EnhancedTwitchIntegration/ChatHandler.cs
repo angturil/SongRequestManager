@@ -1,12 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using ChatCore;
-using ChatCore.Interfaces;
-using ChatCore.Models.Twitch;
-using ChatCore.Services.Twitch;
-using WebSocketSharp;
-using Newtonsoft.Json;
 using SongRequestManager.ChatHandlers;
 
 namespace SongRequestManager
@@ -29,8 +23,12 @@ namespace SongRequestManager
         {
             if (initialized) return;
             ChatCorePluginPresent = IPA.Loader.PluginManager.GetPlugin("ChatCore") != null;
-            if(ChatCorePluginPresent)
+            
+            Plugin.Log($"Chatcore is installed? {ChatCorePluginPresent}");
+            
+            if(ChatCorePluginPresent && !RequestBotConfig.Instance.DisableChatcore)
                 _chatHandlers.Add(new ChatCoreHandler());
+
             _wsHandler = new WebsocketHandler();
             _chatHandlers.Add(_wsHandler);
             // create chat core instance
@@ -39,7 +37,7 @@ namespace SongRequestManager
         }
 
 
-        public static void ParseMessage(TwitchUser sender, string msg)
+        public static void ParseMessage(ChatUser sender, string msg)
         {
             RequestBot.COMMAND.Parse(sender, msg);
         }
@@ -51,7 +49,7 @@ namespace SongRequestManager
 
 
 
-        public static TwitchUser Self => _chatHandlers[0].Self;
+        public static ChatUser Self => _chatHandlers[0].Self;
 
         public static bool Connected =>  _chatHandlers.Any(c=> c.Connected == true); 
         

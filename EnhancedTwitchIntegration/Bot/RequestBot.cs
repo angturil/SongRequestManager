@@ -19,9 +19,9 @@ using SongRequestManager.UI;
 using BeatSaberMarkupLanguage;
 using System.Threading.Tasks;
 using System.IO.Compression;
-using ChatCore.Models.Twitch;
-using ChatCore.Utilities;
+using SongRequestManager.SimpleJSON;
 using HMUI;
+using SongRequestManager.ChatHandlers;
 
 namespace SongRequestManager
 {
@@ -477,7 +477,7 @@ namespace SongRequestManager
 
             string dummy = "";
 
-            TwitchUser user = ChatHandler.Self;
+            ChatUser user = ChatHandler.Self;
 
             loaddecks(new ParseState(ref user,ref dummy,CmdFlags.Silent,ref dummy)); // Load our default deck collection
             // BUG: Command failure observed once, no permission to use /chatcommand. Possible cause: OurTwitchUser isn't authenticated yet.
@@ -650,7 +650,7 @@ namespace SongRequestManager
         // BUG: Testing major changes. This will get seriously refactored soon.
         private async Task CheckRequest(RequestInfo requestInfo)
         {
-            TwitchUser requestor = requestInfo.requestor;
+            ChatUser requestor = requestInfo.requestor;
             string request = requestInfo.request;
 
             string normalrequest= normalize.NormalizeBeatSaverString(requestInfo.request);

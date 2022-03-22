@@ -85,11 +85,11 @@ namespace SongRequestManager.UI
             set => RequestBotConfig.Instance.WebsocketURL = value;
         }
 
-        [UIValue("websocket-connection-attempts")]
-        public int WebsocketConnectionAttempts
+        [UIValue("websocket-enable")]
+        public bool WebsocketEnabled
         {
-            get => RequestBotConfig.Instance.WebsocketConnectionAttempts;
-            set => RequestBotConfig.Instance.WebsocketConnectionAttempts = value;
+            get => RequestBotConfig.Instance.WebsocketEnabled;
+            set => RequestBotConfig.Instance.WebsocketEnabled = value;
         }
         
         [UIAction("connect-click")]
@@ -99,6 +99,13 @@ namespace SongRequestManager.UI
             //modal.HandleBlockerButtonClicked();
         }
         
+        [UIValue("disable-chatcore")]
+        public bool DisableChatcore
+        {
+            get => RequestBotConfig.Instance.DisableChatcore;
+            set => RequestBotConfig.Instance.DisableChatcore = value;
+        }
+            
         [UIValue("mod-full-rights")]
         public bool ModFullRights
         {
