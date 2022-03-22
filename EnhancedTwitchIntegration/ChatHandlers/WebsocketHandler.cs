@@ -22,14 +22,14 @@ namespace SongRequestManager.ChatHandlers
 
         public bool ConnectWebsocket()
         {
-            if (!Connected) 
+            if (!Connected && RequestBotConfig.Instance.WebsocketEnabled) 
                 try
                 {
                     _ws.Connect();
                 }
                 catch (Exception e)
                 {
-                    Plugin.Log($"Exception was caught when trying to send bot message. {e.ToString()}");
+                    Plugin.Log($"Exception was caught when trying to connect the websocket. {e.ToString()}");
                     _ws.Close();
                     _ws = new WebSocket(RequestBotConfig.Instance.WebsocketURL);
                     _ws.OnMessage += _ws_OnTextMessageReceived;
@@ -45,7 +45,7 @@ namespace SongRequestManager.ChatHandlers
         }
         private void _ws_OnTextMessageReceived(object s, MessageEventArgs e)
         {
-            Plugin.Log($"incoming WS data: {e.Data}");
+            //Plugin.Log($"incoming WS data: {e.Data}");
             ChatMessage msg = JsonConvert.DeserializeObject<ChatMessage>(e.Data);
             switch(msg.Command )
             { 
@@ -54,7 +54,7 @@ namespace SongRequestManager.ChatHandlers
                     Plugin.Log($"Received userdata");
                     break;
                 case 'c': default:
-                    Plugin.Log($"Received command: {msg.Message}");
+                    //Plugin.Log($"Received command: {msg.Message}");
                     ChatHandler.ParseMessage(msg.GetTwitchUser(), msg.Message);
                     break;
             }
