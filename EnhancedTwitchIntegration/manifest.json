@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/nike4613/ModSaber-MetadataFileSchema/master/Schema.json",
   "author": "angturil",
   "description": "Song Request Manager on twitch",
-  "gameVersion": "1.18.0",
+  "gameVersion": "1.20.0",
   "id": "SongRequestManager",
   "name": "Song Request Manager",
   "version": "2.15.2",
