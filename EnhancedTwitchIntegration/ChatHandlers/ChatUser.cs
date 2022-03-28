@@ -41,7 +41,6 @@ namespace SongRequestManager.ChatHandlers
             this.IsModerator = isMod;
 
             this.Color = color;
-            this.Badges = badges;
             this.IsSubscriber = isSub;
             this.IsTurbo = isTurbo;
 
