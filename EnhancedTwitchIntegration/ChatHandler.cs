@@ -11,6 +11,7 @@ namespace SongRequestManager
         private static List<IChatHandler> _chatHandlers = new List<IChatHandler>();
         private static WebsocketHandler _wsHandler;
         private bool ChatCorePluginPresent;
+        private static ChatUser _defaultSelf;
 
         public void Awake()
         {
@@ -32,7 +33,7 @@ namespace SongRequestManager
             _wsHandler = new WebsocketHandler();
             _chatHandlers.Add(_wsHandler);
             // create chat core instance
-
+            _defaultSelf = new ChatUser("0", "SRM", "SRM", true, false, "#FFFFFF", null, false, false, false);
             initialized = true;
         }
 
@@ -48,8 +49,7 @@ namespace SongRequestManager
         }
 
 
-
-        public static ChatUser Self => _chatHandlers[0].Self;
+        public static ChatUser Self => _chatHandlers[0].Connected ? _chatHandlers[0].Self : _defaultSelf;
 
         public static bool Connected =>  _chatHandlers.Any(c=> c.Connected == true); 
         
