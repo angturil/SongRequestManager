@@ -1,6 +1,7 @@
 using System;
 using WebSocketSharp;
 using Newtonsoft.Json;
+using System.Threading.Tasks;
 
 namespace SongRequestManager.ChatHandlers
 {
@@ -8,24 +9,35 @@ namespace SongRequestManager.ChatHandlers
     {
         private static WebSocket _ws;
         private ChatUser _self;
+        private Task _connectTask;
         public WebsocketHandler()
         {
             _ws = new WebSocket(RequestBotConfig.Instance.WebsocketURL);
             _ws.OnMessage += _ws_OnTextMessageReceived;
 
+            _connectTask = new Task(_connectWebsocket);
             _ws.OnClose += (sender, args) =>
             {
                 ConnectWebsocket();
+                if (RequestBotListViewController.Instance.isActivated)
+                {
+                    RequestBotListViewController.Instance.UpdateWebsocketConnectButton(!Connected);
+                }
             };
             ConnectWebsocket();
         }
 
-        public bool ConnectWebsocket()
+        private void _connectWebsocket()
         {
             if (!Connected && RequestBotConfig.Instance.WebsocketEnabled) 
                 try
                 {
                     _ws.Connect();
+
+                    if (RequestBotListViewController.Instance.isActivated)
+                    {
+                        RequestBotListViewController.Instance.UpdateWebsocketConnectButton(!Connected);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -36,13 +48,23 @@ namespace SongRequestManager.ChatHandlers
 
                     _ws.OnClose += (sender, args) =>
                     {
-                        ConnectWebsocket(); 
+                        ConnectWebsocket();
+                        if (RequestBotListViewController.Instance.isActivated)
+                        {
+                            RequestBotListViewController.Instance.UpdateWebsocketConnectButton(!Connected);
+                        }
                     };
                 }
-            if (Connected) return true;
-                
-            return false;
         }
+
+        public void ConnectWebsocket()
+        {
+            if (_connectTask.Status == TaskStatus.Running) return;
+            if (_connectTask.Status != TaskStatus.Created) _connectTask = new Task(_connectWebsocket);
+            _connectTask.Start();
+        }
+
+
         private void _ws_OnTextMessageReceived(object s, MessageEventArgs e)
         {
             //Plugin.Log($"incoming WS data: {e.Data}");

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SongRequestManager.ChatHandlers;
 
+
 namespace SongRequestManager
 {
     public class ChatHandler : PersistentSingleton<ChatHandler>
@@ -72,6 +73,11 @@ namespace SongRequestManager
         public static void WebsocketHandlerConnect()
         {
             _wsHandler.ConnectWebsocket();
+        }
+        
+        public static bool WebsocketHandlerConnected()
+        {
+            return _wsHandler.Connected;
         }
     }
 }
