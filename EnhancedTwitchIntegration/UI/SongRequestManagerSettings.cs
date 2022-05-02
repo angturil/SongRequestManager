@@ -79,6 +79,14 @@ namespace SongRequestManager.UI
             set => RequestBotConfig.Instance.VipBonusRequests = value;
         }
 
+        
+        [UIValue("request-time-censor")]
+        public int minimumUploadTimeCensor
+        {
+            get => RequestBotConfig.Instance.minimumUploadTimeCensor;
+            set => RequestBotConfig.Instance.minimumUploadTimeCensor = value;
+        }
+            
         [UIValue("websocket-url")]
         public string WebsocketURL {
             get => RequestBotConfig.Instance.WebsocketURL;
@@ -112,5 +120,32 @@ namespace SongRequestManager.UI
             get => RequestBotConfig.Instance.ModFullRights;
             set => RequestBotConfig.Instance.ModFullRights = value;
         }
+        
+        [UIValue("requestui-enable")]
+        public bool BeatsaverRequestUIEnabled
+        {
+            get => RequestBotConfig.Instance.BeatsaverRequestUIEnabled;
+            set => RequestBotConfig.Instance.BeatsaverRequestUIEnabled = value;
+        }
+        
+        [UIValue("requestui-id")]
+        public string BeatsaverRequestUIId {
+            get => RequestBotConfig.Instance.BeatsaverRequestUIId;
+            set => RequestBotConfig.Instance.BeatsaverRequestUIId = value;
+        }
+        
+        [UIValue("requestui-url")]
+        public string BeatsaverRequestUIurl {
+            get => RequestBotConfig.Instance.BeatsaverRequestUIurl;
+            set => RequestBotConfig.Instance.BeatsaverRequestUIurl = value;
+        }
+        
+        [UIAction("rqui-connect-click")]
+        private void RequestUIConnectClick()
+        {
+            ChatHandler.BeatsaberRequestUiHandlerConnect();
+            //modal.HandleBlockerButtonClicked();
+        }
+
     }
 }

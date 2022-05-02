@@ -196,25 +196,25 @@ namespace SongRequestManager
         {
             string songid = song["id"].Value;
 
-            if (filter.HasFlag(SongFilter.AutoMAP) && song["automapper"] == true && RequestBotConfig.Instance.Automap == false) return fast ? "X" : $"{song["songName"].Value} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) is banned due to being automapped!"; ;
+            if (filter.HasFlag(SongFilter.AutoMAP) && song["automapper"] == true && RequestBotConfig.Instance.Automap == false) return fast ? "X" : $"{SongRequest.GetCensoredData(song,"songName",DateTime.Now)} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) is banned due to being automapped!"; ;
 
-            if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} already exists in queue!";
+            if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {SongRequest.GetCensoredData(song,"songName",DateTime.Now)} by {song["authorName"].Value} already exists in queue!";
 
-            if (filter.HasFlag(SongFilter.Blacklist) && listcollection.contains(ref banlist,songid)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) is banned!";
+            if (filter.HasFlag(SongFilter.Blacklist) && listcollection.contains(ref banlist,songid)) return fast ? "X" : $"{SongRequest.GetCensoredData(song,"songName",DateTime.Now)} by {song["authorName"].Value} ({song["version"].Value}) is banned!";
 
-            if (filter.HasFlag(SongFilter.Mapper) &&  mapperfiltered(song,_mapperWhitelist)) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} does not have a permitted mapper!";
+            if (filter.HasFlag(SongFilter.Mapper) &&  mapperfiltered(song,_mapperWhitelist)) return fast ? "X" : $"{SongRequest.GetCensoredData(song,"songName",DateTime.Now)} by {song["authorName"].Value} does not have a permitted mapper!";
 
-            if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist, songid)) return fast ? "X" : $"{song["songName"].Value} by  {song["authorName"].Value} already requested this session!";
+            if (filter.HasFlag(SongFilter.Duplicate) && listcollection.contains(ref duplicatelist, songid)) return fast ? "X" : $"{SongRequest.GetCensoredData(song,"songName",DateTime.Now)} by  {song["authorName"].Value} already requested this session!";
 
             if (listcollection.contains(ref _whitelist, songid)) return "";
 
-            if (filter.HasFlag(SongFilter.Duration) && song["songduration"].AsFloat > RequestBotConfig.Instance.MaximumSongLength*60) return fast ? "X" : $"{song["songName"].Value} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) is too long!";
+            if (filter.HasFlag(SongFilter.Duration) && song["songduration"].AsFloat > RequestBotConfig.Instance.MaximumSongLength*60) return fast ? "X" : $"{SongRequest.GetCensoredData(song,"songName",DateTime.Now)} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) is too long!";
 
-            if (filter.HasFlag(SongFilter.NJS) && song["njs"].AsInt < RequestBotConfig.Instance.MinimumNJS) return fast ? "X" : $"{song["songName"].Value} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) NJS ({song["njs"].Value}) is too low!";
+            if (filter.HasFlag(SongFilter.NJS) && song["njs"].AsInt < RequestBotConfig.Instance.MinimumNJS) return fast ? "X" : $"{SongRequest.GetCensoredData(song,"songName",DateTime.Now)} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) NJS ({song["njs"].Value}) is too low!";
 
             if (filter.HasFlag(SongFilter.Remap) && songremap.ContainsKey(songid)) return fast ? "X" : $"no permitted results found!";
 
-            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{song["songName"].Value} by {song["authorName"].Value} is below {RequestBotConfig.Instance.LowestAllowedRating}% rating!";
+            if (filter.HasFlag(SongFilter.Rating) && song["rating"].AsFloat < RequestBotConfig.Instance.LowestAllowedRating && song["rating"] != 0) return fast ? "X" : $"{SongRequest.GetCensoredData(song,"songName",DateTime.Now)} by {song["authorName"].Value} is below {RequestBotConfig.Instance.LowestAllowedRating}% rating!";
 
             return "";
         }
@@ -230,7 +230,7 @@ namespace SongRequestManager
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
                 var song = req.song;
-                if (song[matchby].Value == request) return fast ? "X" : $"Request {song["songName"].Value} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!";
+                if (song[matchby].Value == request) return fast ? "X" : $"Request {SongRequest.GetCensoredData(song,"songName",req.requestTime)} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!";
             }
             return ""; // Empty string: The request is not in the RequestQueue.Songs
         }
@@ -426,7 +426,7 @@ namespace SongRequestManager
 
                 if (dequeueSong)
                 {
-                    QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
+                    QueueChatMessage($"{SongRequest.GetCensoredData(song,"songName",RequestQueue.Songs[i].requestTime)} ({song["version"].Value}) removed.");
                     RequestBot.Skip(i);
                     return success;
                 }

@@ -11,8 +11,11 @@ namespace SongRequestManager
         bool initialized = false;
         private static List<IChatHandler> _chatHandlers = new List<IChatHandler>();
         private static WebsocketHandler _wsHandler;
+        private static BeatsaberRequestUIHandler _bsruiHandler;
         private bool ChatCorePluginPresent;
+        private bool CatCorePluginPresent;
         private static ChatUser _defaultSelf;
+        private static List<string> CensorList = new List<string>();
 
         public void Awake()
         {
@@ -25,23 +28,31 @@ namespace SongRequestManager
         {
             if (initialized) return;
             ChatCorePluginPresent = IPA.Loader.PluginManager.GetPlugin("ChatCore") != null;
+            CatCorePluginPresent = IPA.Loader.PluginManager.GetPlugin("CatCore") != null;
             
             Plugin.Log($"Chatcore is installed? {ChatCorePluginPresent}");
             
+            if(CatCorePluginPresent && !RequestBotConfig.Instance.DisableChatcore)
+                _chatHandlers.Add(new CatCoreHandler());
             if(ChatCorePluginPresent && !RequestBotConfig.Instance.DisableChatcore)
                 _chatHandlers.Add(new ChatCoreHandler());
-
             _wsHandler = new WebsocketHandler();
             _chatHandlers.Add(_wsHandler);
+            if (RequestBotConfig.Instance.BeatsaverRequestUIEnabled)
+            {
+                _bsruiHandler = new BeatsaberRequestUIHandler();
+                _chatHandlers.Add(_bsruiHandler);
+            }
             // create chat core instance
             _defaultSelf = new ChatUser("0", "SRM", "SRM", true, false, "#FFFFFF", null, false, false, false);
+            
             initialized = true;
         }
 
 
-        public static void ParseMessage(ChatUser sender, string msg)
+        public static void ParseMessage(ChatUser sender, string msg, Func<bool> callback = null)
         {
-            RequestBot.COMMAND.Parse(sender, msg);
+            RequestBot.COMMAND.Parse(sender, msg, 0, "", callback);
         }
         
         public static void ParseMessage(ChatMessage msg)
@@ -57,6 +68,10 @@ namespace SongRequestManager
         public static void Send(string message, bool isCommand = false)
         {
             if (string.IsNullOrEmpty(message)) return;
+            if(CensorList.Any(word => message.Contains(word)))
+                foreach(var word in CensorList){
+                    message = message.Replace(word, "***");
+                }
             try
             {
                 foreach (var handler in _chatHandlers)
@@ -73,6 +88,14 @@ namespace SongRequestManager
         public static void WebsocketHandlerConnect()
         {
             _wsHandler.ConnectWebsocket();
+        }
+        
+        public static void BeatsaberRequestUiHandlerConnect()
+        {
+            if (RequestBotConfig.Instance.BeatsaverRequestUIEnabled)
+            {
+                _bsruiHandler.ConnectWebsocket();
+            }
         }
         
         public static bool WebsocketHandlerConnected()
