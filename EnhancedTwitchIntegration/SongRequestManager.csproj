@@ -38,9 +38,6 @@
     <Reference Include="BeatSaberPlus">
       <HintPath>$(BeatSaberDir)\Plugins\BeatSaberPlus.dll</HintPath>
     </Reference>
-    <Reference Include="BeatSaberPlus_ChatIntegrations">
-      <HintPath>$(BeatSaberDir)\Plugins\BeatSaberPlus_ChatIntegrations.dll</HintPath>
-    </Reference>
     <Reference Include="BSML">
       <HintPath>$(BeatSaberDir)\Plugins\BSML.dll</HintPath>
     </Reference>

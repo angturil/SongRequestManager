@@ -30,7 +30,7 @@ namespace SongRequestManager
             if (initialized) return;
             ChatCorePluginPresent = IPA.Loader.PluginManager.GetPlugin("ChatCore") != null;
             CatCorePluginPresent = IPA.Loader.PluginManager.GetPlugin("CatCore") != null;
-            BSPlusPluginPresent = IPA.Loader.PluginManager.GetPlugin("BeatSaberPlus_ChatIntegrations") != null;
+            BSPlusPluginPresent = IPA.Loader.PluginManager.GetPlugin("BeatSaberPlus") != null;
             
             Plugin.Log($"Chatcore is installed? {ChatCorePluginPresent}");
             
