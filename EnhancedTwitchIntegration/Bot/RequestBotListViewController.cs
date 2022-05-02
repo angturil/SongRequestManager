@@ -598,19 +598,24 @@ namespace SongRequestManager
             songDurationText.text = request.song["songlength"].Value;
 
             var songBpm = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songBpmText");
-            (songBpm.transform as RectTransform).anchoredPosition = new Vector2(-2.5f, -1.8f);
+            if(!request.requestor.IsModerator && !request.requestor.IsVip)
+                (songBpm.transform as RectTransform).anchoredPosition = new Vector2(-2.5f, -1.8f);
             (songBpm.transform as RectTransform).sizeDelta += new Vector2(15f, 0f);
 
+            
             var k = new List<string>();
             if (hasMessage) k.Add("MSG");
             if (isChallenge) k.Add("VS");
             k.Add(request.song["id"]);
             songBpm.text = string.Join(" - ", k);
 
+
             var songBmpIcon = _tableCell.GetComponentsInChildren<Image>().LastOrDefault(c => string.Equals(c.name, "BpmIcon", StringComparison.OrdinalIgnoreCase));
             if (songBmpIcon != null)
             {
-                Destroy(songBmpIcon);
+                songBmpIcon.color = request.requestor.roleColor;
+                if(!request.requestor.IsModerator && !request.requestor.IsVip)
+                    Destroy(songBmpIcon);
             }
 
             var songName = _tableCell.GetField<TextMeshProUGUI, LevelListTableCell>("_songNameText");

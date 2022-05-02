@@ -63,11 +63,16 @@ namespace SongRequestManager
         public bool PPSearch = false;
         public string additionalsongpath = "";
         public string songdownloadpath = "";
+        public int minimumUploadTimeCensor = 0;
         
         
         public string WebsocketURL = "ws://127.0.0.1:9090/SRM";
         public bool WebsocketEnabled = false;
         public bool DisableChatcore = false;
+        
+        public string BeatsaverRequestUIurl = "";
+        public string BeatsaverRequestUIId = "";
+        public bool BeatsaverRequestUIEnabled = false;
 
         public event Action<RequestBotConfig> ConfigChangedEvent;
 

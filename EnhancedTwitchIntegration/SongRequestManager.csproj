@@ -42,12 +42,15 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(BeatSaberDir)\Plugins\BS_Utils.dll</HintPath>
     </Reference>
+    <Reference Include="CatCore">
+      <HintPath>$(BeatSaberDir)\Libs\CatCore.dll</HintPath>
+    </Reference>
     <Reference Include="ChatCore, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(BeatSaberDir)\Libs\ChatCore.dll</HintPath>
     </Reference>
     <Reference Include="Hive.Versioning, Version=0.1.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>$(BeatSaberDir)\\Libs\Hive.Versioning.dll</HintPath>
+      <HintPath>$(BeatSaberDir)\Libs\Hive.Versioning.dll</HintPath>
     </Reference>
     <Reference Include="HMLib, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -120,6 +123,8 @@
     <Compile Include="Bot\UnreleasedCode.cs" />
     <Compile Include="Bot\util.cs" />
     <Compile Include="ChatHandler.cs" />
+    <Compile Include="ChatHandlers\BeatsaberRequestUIHandler.cs" />
+    <Compile Include="ChatHandlers\CatCoreHandler.cs" />
     <Compile Include="ChatHandlers\ChatCoreHandler.cs" />
     <Compile Include="ChatHandlers\ChatMessage.cs" />
     <Compile Include="ChatHandlers\ChatUser.cs" />

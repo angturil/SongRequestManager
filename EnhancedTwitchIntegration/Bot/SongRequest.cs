@@ -1,6 +1,7 @@
 ﻿using System;
 using SongRequestManager.SimpleJSON;
 using SongRequestManager.ChatHandlers;
+using UnityEngine;
 using static SongRequestManager.RequestBot;
 
 namespace SongRequestManager
@@ -42,6 +43,13 @@ namespace SongRequestManager
             song = obj["song"].AsObject;
             requestInfo = obj["requestInfo"].Value;
             return this;
+        }
+
+        public static string GetCensoredData(JSONObject song, string field,  DateTime timeSince)
+        {
+            //if (RequestBotConfig.Instance.minimumUploadTimeCensor < (timeSince - DateTime.Parse(song["createdAt"].Value)).Minutes) 
+            //    return "***";
+            return song[field].Value;
         }
     }
 }
