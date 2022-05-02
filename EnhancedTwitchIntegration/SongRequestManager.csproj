@@ -35,6 +35,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="BeatSaberPlus">
+      <HintPath>$(BeatSaberDir)\Plugins\BeatSaberPlus.dll</HintPath>
+    </Reference>
+    <Reference Include="BeatSaberPlus_ChatIntegrations">
+      <HintPath>$(BeatSaberDir)\Plugins\BeatSaberPlus_ChatIntegrations.dll</HintPath>
+    </Reference>
     <Reference Include="BSML">
       <HintPath>$(BeatSaberDir)\Plugins\BSML.dll</HintPath>
     </Reference>
@@ -124,6 +130,7 @@
     <Compile Include="Bot\util.cs" />
     <Compile Include="ChatHandler.cs" />
     <Compile Include="ChatHandlers\BeatsaberRequestUIHandler.cs" />
+    <Compile Include="ChatHandlers\BSPlusHandler.cs" />
     <Compile Include="ChatHandlers\CatCoreHandler.cs" />
     <Compile Include="ChatHandlers\ChatCoreHandler.cs" />
     <Compile Include="ChatHandlers\ChatMessage.cs" />

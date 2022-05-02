@@ -14,6 +14,7 @@ namespace SongRequestManager
         private static BeatsaberRequestUIHandler _bsruiHandler;
         private bool ChatCorePluginPresent;
         private bool CatCorePluginPresent;
+        private bool BSPlusPluginPresent;
         private static ChatUser _defaultSelf;
         private static List<string> CensorList = new List<string>();
 
@@ -29,13 +30,17 @@ namespace SongRequestManager
             if (initialized) return;
             ChatCorePluginPresent = IPA.Loader.PluginManager.GetPlugin("ChatCore") != null;
             CatCorePluginPresent = IPA.Loader.PluginManager.GetPlugin("CatCore") != null;
+            BSPlusPluginPresent = IPA.Loader.PluginManager.GetPlugin("BeatSaberPlus_ChatIntegrations") != null;
             
             Plugin.Log($"Chatcore is installed? {ChatCorePluginPresent}");
             
             if(CatCorePluginPresent && !RequestBotConfig.Instance.DisableChatcore)
                 _chatHandlers.Add(new CatCoreHandler());
-            if(ChatCorePluginPresent && !RequestBotConfig.Instance.DisableChatcore)
+            if(ChatCorePluginPresent && !CatCorePluginPresent && !RequestBotConfig.Instance.DisableChatcore)
                 _chatHandlers.Add(new ChatCoreHandler());
+            if (BSPlusPluginPresent && !ChatCorePluginPresent && !CatCorePluginPresent &&
+                !RequestBotConfig.Instance.DisableChatcore)
+                _chatHandlers.Add(new BSPlusHandler());
             _wsHandler = new WebsocketHandler();
             _chatHandlers.Add(_wsHandler);
             if (RequestBotConfig.Instance.BeatsaverRequestUIEnabled)
