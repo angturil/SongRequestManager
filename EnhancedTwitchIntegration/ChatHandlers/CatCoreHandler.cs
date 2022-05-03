@@ -55,9 +55,8 @@ namespace SongRequestManager.ChatHandlers
             if (string.IsNullOrEmpty(message)) return;
             try
             {
-                var channel =  ((ITwitchService)_twitchService).DefaultChannel;
-               
-                channel.SendMessage(message);
+                foreach(var channel in  ((ITwitchService)_twitchService).GetChannelManagementService().GetAllActiveChannels())
+                    channel.SendMessage(message);
                 
             }
             catch (Exception e)
