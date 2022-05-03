@@ -68,6 +68,3 @@ To compile this mod simply clone the repo and update the project references to r
 # Tips
 This plugin is free. If you wish to help us out though, tips to 
 [our Paypal](https://paypal.me/sehria) are always appreciated.
-
-# Download
-[Click here to download the latest SongRequestManager.dll](https://github.com/angturil/SongRequestManager/releases/download/1.3.1/SongRequestManager.dll)
