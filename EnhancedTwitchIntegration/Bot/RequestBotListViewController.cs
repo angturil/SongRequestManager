@@ -613,7 +613,7 @@ namespace SongRequestManager
             var songBmpIcon = _tableCell.GetComponentsInChildren<Image>().LastOrDefault(c => string.Equals(c.name, "BpmIcon", StringComparison.OrdinalIgnoreCase));
             if (songBmpIcon != null)
             {
-                songBmpIcon.color = request.requestor.roleColor;
+                songBmpIcon.color = request.requestor.IsModerator ? Color.green : request.requestor.IsVip ? Color.magenta : Color.white;
                 if(!request.requestor.IsModerator && !request.requestor.IsVip)
                     Destroy(songBmpIcon);
             }
