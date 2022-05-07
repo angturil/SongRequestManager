@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using UnityEngine;
+//using UnityEngine;
 
 namespace SongRequestManager.ChatHandlers
 {
@@ -28,8 +28,8 @@ namespace SongRequestManager.ChatHandlers
         
         public bool IsUsingSlashMe;
         
-        public Color roleColor => this.IsModerator ? UnityEngine.Color.green : this.IsVip ? UnityEngine.Color.magenta : UnityEngine.Color.white;
-        public string roleColorStr => this.IsModerator ? "green" : this.IsVip ? "#E005B9" : "white";
+        //public Color roleColor => this.IsModerator ? UnityEngine.Color.green : this.IsVip ? UnityEngine.Color.magenta : UnityEngine.Color.white;
+        //public string roleColorStr => this.IsModerator ? "green" : this.IsVip ? "#E005B9" : "white";
 
         public ChatUser()
         {
