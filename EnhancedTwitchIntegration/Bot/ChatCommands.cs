@@ -576,7 +576,7 @@ namespace SongRequestManager
                 if (song["id"].Value == songId)
                 {
                     entry.requestInfo = "!"+parts[1];
-                    QueueChatMessage($"{song["songName"].Value} : {parts[1]}");
+                    QueueChatMessage($"{SongRequest.GetCensoredData(song,"songName",entry.requestTime)} : {parts[1]}");
                     return success;
                 }
             }
@@ -886,7 +886,7 @@ namespace SongRequestManager
                     // And write a summary to file
                     WriteQueueSummaryToFile();
 
-                    QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) {(top ? "promoted" : "demoted")}.");
+                    QueueChatMessage($"{SongRequest.GetCensoredData(song,"songName",req.requestTime)} ({song["version"].Value}) {(top ? "promoted" : "demoted")}.");
                     return;
                 }
             }
@@ -1268,7 +1268,7 @@ namespace SongRequestManager
                 var song = RequestQueue.Songs[i].song;
                 if (RequestQueue.Songs[i].requestor.Id == requestor.Id)
                 {
-                    QueueChatMessage($"{song["songName"].Value} ({song["version"].Value}) removed.");
+                    QueueChatMessage($"{SongRequest.GetCensoredData(song,"songName",RequestQueue.Songs[i].requestTime)} ({song["version"].Value}) removed.");
 
                     listcollection.remove(duplicatelist, song["id"].Value);
                     RequestBot.Skip(i,RequestStatus.Wrongsong);

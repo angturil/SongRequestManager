@@ -808,7 +808,9 @@ namespace SongRequestManager
 
             if (!requestInfo.flags.HasFlag(CmdFlags.SilentResult))
             {
-                new DynamicText().AddSong(ref song).QueueMessage(AddSongToQueueText.ToString());
+                var songr = SongRequest.GetCensoredData(song, requestInfo.requestTime);
+
+                new DynamicText().AddSong(ref songr).QueueMessage(AddSongToQueueText.ToString());
             }
 
             Dispatcher.RunOnMainThread(() =>
@@ -1114,7 +1116,7 @@ namespace SongRequestManager
 
             listcollection.add(banlist, request.song["id"].Value);
  
-            Instance.QueueChatMessage($"{request.song["songName"].Value} by {request.song["authorName"].Value} ({request.song["id"].Value}) added to the blacklist.");
+            Instance.QueueChatMessage($"{SongRequest.GetCensoredData(request.song,"songName",request.requestTime)} by {request.song["authorName"].Value} ({request.song["id"].Value}) added to the blacklist.");
 
             if (!fromHistory)
             {

@@ -63,7 +63,7 @@ namespace SongRequestManager
         public bool PPSearch = false;
         public string additionalsongpath = "";
         public string songdownloadpath = "";
-        public int minimumUploadTimeCensor = 0;
+        public int MinimumUploadTimeCensor = 0;
         
         
         public string WebsocketURL = "ws://127.0.0.1:9090/SRM";
