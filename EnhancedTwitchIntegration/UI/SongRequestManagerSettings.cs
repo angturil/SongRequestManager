@@ -81,10 +81,10 @@ namespace SongRequestManager.UI
 
         
         [UIValue("request-time-censor")]
-        public int minimumUploadTimeCensor
+        public int MinimumUploadTimeCensor
         {
-            get => RequestBotConfig.Instance.minimumUploadTimeCensor;
-            set => RequestBotConfig.Instance.minimumUploadTimeCensor = value;
+            get => RequestBotConfig.Instance.MinimumUploadTimeCensor;
+            set => RequestBotConfig.Instance.MinimumUploadTimeCensor = value;
         }
             
         [UIValue("websocket-url")]
