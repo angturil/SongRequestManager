@@ -9,7 +9,7 @@
   <slider-setting text='Sub Request limit' min='0' max='10' increment='1' value='sub-request-limit' integer-only='true' hover-hint='Maximum requests in queue at one time'></slider-setting>
   <slider-setting text='Moderator Request limit' min='0' max='100' increment='1' value='mod-request-limit' integer-only='true' hover-hint='Maximum requests in queue at one time'></slider-setting>
   <slider-setting text='VIP Request bonus' min='0' max='10' increment='1' value='vip-bonus-requests' integer-only='true' hover-hint='Additional requests allowed in queue'></slider-setting>
-  <slider-setting text='Upload Time Censor' min='0' max='200' increment='10' value='request-time-censor' integer-only='true' hover-hint='Censors song name based on Upload time'></slider-setting>
+  <slider-setting text='Upload Time Censor' min='-10' max='200' increment='10' value='request-time-censor' integer-only='true' hover-hint='Censors song name based on Upload time (-10 filters everything)'></slider-setting>
   <string-setting text='Websocket URL' value='websocket-url'></string-setting>
   <bool-setting text='Enable Websocket Connection' value='websocket-enable' hover-hint='Enables the Websocket Connection'></bool-setting>
   <button on-click='connect-click' text='Connect WS' preferred-width='30'></button>
