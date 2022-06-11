@@ -47,19 +47,20 @@ namespace SongRequestManager
 
         public static string GetCensoredData(JSONObject song, string field,  DateTime timeSince)
         {
-            if (RequestBotConfig.Instance.MinimumUploadTimeCensor > (timeSince - DateTime.Parse(song["createdAt"].Value).ToUniversalTime()).TotalMinutes) 
+            if (RequestBotConfig.Instance.MinimumUploadTimeCensor == -10 || RequestBotConfig.Instance.MinimumUploadTimeCensor > (timeSince - DateTime.Parse(song["createdAt"].Value).ToUniversalTime()).TotalMinutes) 
                 return "***";
             return song[field].Value;
         }
 
         public static JSONObject GetCensoredData(JSONObject song, DateTime timeSince)
         {
-            if (RequestBotConfig.Instance.MinimumUploadTimeCensor >
+            if (RequestBotConfig.Instance.MinimumUploadTimeCensor == -10 || RequestBotConfig.Instance.MinimumUploadTimeCensor >
                 (timeSince - DateTime.Parse(song["createdAt"].Value).ToUniversalTime()).TotalMinutes)
             {
             var songcpy = song.Clone();
             songcpy["songName"] = "***";
-            songcpy["songAuthor"] = "***";
+            songcpy["authorName"] = "***";
+            songcpy["songSubName"] = "***";
             return songcpy.AsObject;
             }
         return song;

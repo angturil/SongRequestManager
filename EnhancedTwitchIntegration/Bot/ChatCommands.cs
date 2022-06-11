@@ -195,7 +195,8 @@ namespace SongRequestManager
         private string SongSearchFilter(JSONObject song, bool fast = false, SongFilter filter = SongFilter.All) // BUG: This could be nicer
         {
             string songid = song["id"].Value;
-
+            song = SongRequest.GetCensoredData(song, DateTime.Now);
+            
             if (filter.HasFlag(SongFilter.AutoMAP) && song["automapper"] == true && RequestBotConfig.Instance.Automap == false) return fast ? "X" : $"{SongRequest.GetCensoredData(song,"songName",DateTime.Now)} ({song["songlength"].Value}) by {song["authorName"].Value} ({song["version"].Value}) is banned due to being automapped!"; ;
 
             if (filter.HasFlag(SongFilter.Queue) && RequestQueue.Songs.Any(req => req.song["version"] == song["version"])) return fast ? "X" : $"Request {SongRequest.GetCensoredData(song,"songName",DateTime.Now)} by {song["authorName"].Value} already exists in queue!";
