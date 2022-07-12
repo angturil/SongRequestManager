@@ -231,6 +231,7 @@ namespace SongRequestManager
             foreach (SongRequest req in RequestQueue.Songs.ToArray())
             {
                 var song = req.song;
+                song = SongRequest.GetCensoredData(song, req.requestTime);
                 if (song[matchby].Value == request) return fast ? "X" : $"Request {SongRequest.GetCensoredData(song,"songName",req.requestTime)} by {song["authorName"].Value} ({song["version"].Value}) already exists in queue!";
             }
             return ""; // Empty string: The request is not in the RequestQueue.Songs

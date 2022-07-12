@@ -93,6 +93,8 @@ namespace SongRequestManager
                         song.Add("coverURL", "https://cdn.beatsaver.com/" + song["hash"] + ".jpg");
                         song.Add("previewURL", "https://cdn.beatsaver.com/" + song["hash"] + ".mp3");
                         song.Add("automapper", song["metadata"]["automapper"]);
+                        
+                        song.Add("createdAt", song["uploaded"].Value);
                     }
                     var metadata = song["metadata"];
                     song.Add("songName", metadata["songName"].Value);
@@ -100,7 +102,6 @@ namespace SongRequestManager
                     song.Add("authorName", metadata["songAuthorName"].Value);
                     song.Add("levelAuthor", metadata["levelAuthorName"].Value);
                     song.Add("rating", song["stats"]["rating"].AsFloat*100);
-
                     bool degrees90 = false;
                     bool degrees360 = false;
 
