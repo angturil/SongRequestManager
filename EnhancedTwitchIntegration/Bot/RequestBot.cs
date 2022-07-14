@@ -1113,10 +1113,10 @@ namespace SongRequestManager
         {
             // Add the song to the blacklist
             SongRequest request = fromHistory ? RequestHistory.Songs.ElementAt(index) : RequestQueue.Songs.ElementAt(index);
-
+            var song = SongRequest.GetCensoredData(request.song, request.requestTime);
             listcollection.add(banlist, request.song["id"].Value);
  
-            Instance.QueueChatMessage($"{SongRequest.GetCensoredData(request.song,"songName",request.requestTime)} by {request.song["authorName"].Value} ({request.song["id"].Value}) added to the blacklist.");
+            Instance.QueueChatMessage($"{song["songName"].Value} by {song["authorName"].Value} ({song["id"].Value}) added to the blacklist.");
 
             if (!fromHistory)
             {
